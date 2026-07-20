@@ -2243,7 +2243,7 @@ namespace xoshiro
 	template <class SeedSeq>
 		requires (!std::same_as<std::remove_cvref_t<SeedSeq>, SFC64>)
 	inline constexpr SFC64::SFC64(SeedSeq& seq)
-		: m_a(0), m_b(0), m_c(0), m_counter(1)
+		: m_counter(1)
 	{
 		std::array<std::uint32_t, 8> seeds;
 		seq.generate(seeds.begin(), seeds.end());

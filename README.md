@@ -12,7 +12,7 @@
 | 头文件 | 标准 | 命名空间 | 说明 |
 |--------|------|----------|------|
 | **Random.hpp** | C++23 | `xoshiro` | 增强版：concepts 约束、便捷 API（`RandInt`/`RandReal`/`RandBool`/`RandElement`）、线程局部默认引擎、`discard(n)`、Lemire 无偏 `RandIntCE`、多流接口、14 引擎、中文注释 |
-| **XoshiroCpp.hpp** | C++17 / C++20 | `XoshiroCpp` | 兼容版：SFINAE 约束、便捷 API、`discard(n)`、14 引擎、中文注释 |
+| **XoshiroCpp.hpp** | C++17 / C++23 | `XoshiroCpp` | 兼容版：SFINAE 约束、便捷 API、`discard(n)`、14 引擎、中文注释 |
 
 > 如果你的编译器支持 C++23，推荐使用 `Random.hpp`；否则使用 `XoshiroCpp.hpp`。
 > 两者算法实现完全一致，输出序列相同（相同种子下），便捷 API 签名一致。

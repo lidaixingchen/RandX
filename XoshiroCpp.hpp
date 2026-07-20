@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------------------
 //
-//	XoshiroCpp.hpp — 基于 Xoshiro 的伪随机数生成器封装库（C++17 / C++20）
+//	XoshiroCpp.hpp — 基于 Xoshiro 的伪随机数生成器封装库（C++17 / C++23）
 //
 //	原始算法：David Blackman & Sebastiano Vigna (http://prng.di.unimi.it/)
 //
@@ -2378,7 +2378,7 @@ namespace XoshiroCpp
 
 	template <class SeedSeq, std::enable_if_t<!std::is_same_v<std::decay_t<SeedSeq>, SFC64>>*>
 	inline constexpr SFC64::SFC64(SeedSeq& seq)
-		: m_a(0), m_b(0), m_c(0), m_counter(1)
+		: m_counter(1)
 	{
 		std::array<std::uint32_t, 8> seeds;
 		seq.generate(seeds.begin(), seeds.end());
