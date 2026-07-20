@@ -223,6 +223,96 @@ int main()
         std::puts("[PASS] jump / longJump");
     }
 
+	// ===== Reseed 可重播种 =====
+	{
+		Reseed(42);
+		const auto a = RandInt(0, 1000000);
+		Reseed(42);
+		const auto b = RandInt(0, 1000000);
+		assert(a == b);
+		std::printf("[PASS] Reseed\n");
+	}
+
+	// ===== std::seed_seq 播种 =====
+	{
+		std::seed_seq seq{1, 2, 3, 4, 5, 6, 7, 8};
+		Xoshiro256StarStar rng1{ seq };
+		std::seed_seq seq2{1, 2, 3, 4, 5, 6, 7, 8};
+		Xoshiro256StarStar rng2{ seq2 };
+		// 相同 seed_seq → 相同输出
+		assert(rng1() == rng2());
+		assert(rng1() == rng2());
+		std::printf("[PASS] seed_seq\n");
+	}
+
+	// ===== 统计自检（Chi-Square 频率检验）=====
+	{
+		constexpr int N = 1'000'000;
+		constexpr int BINS = 100;
+		constexpr double EXPECTED = static_cast<double>(N) / BINS;
+
+		Xoshiro256StarStar rng{ 98765 };
+		int counts[BINS] = {};
+		for (int i = 0; i < N; ++i)
+			++counts[RandInt(rng, 0, BINS - 1)];
+
+		double chi2 = 0.0;
+		for (int i = 0; i < BINS; ++i)
+		{
+			const double diff = counts[i] - EXPECTED;
+			chi2 += diff * diff / EXPECTED;
+		}
+
+		// 自由度 99，alpha=0.001 临界值 ≈ 148.2
+		assert(chi2 < 148.2);
+		std::printf("[PASS] Chi-Square (chi2 = %.1f < 148.2)\n", chi2);
+	}
+
+	// Chi-Square 原始输出检验（SFC64）
+	{
+		constexpr int N = 1'000'000;
+		constexpr int BINS = 128;
+		constexpr double EXPECTED = static_cast<double>(N) / BINS;
+
+		SFC64 rng{ 54321 };
+		int counts[BINS] = {};
+		for (int i = 0; i < N; ++i)
+			++counts[rng() & 127];
+
+		double chi2 = 0.0;
+		for (int i = 0; i < BINS; ++i)
+		{
+			const double diff = counts[i] - EXPECTED;
+			chi2 += diff * diff / EXPECTED;
+		}
+
+		// 自由度 127，alpha=0.001 临界值 ≈ 173.6
+		assert(chi2 < 173.6);
+		std::printf("[PASS] Chi-Square raw: SFC64 (chi2 = %.1f)\n", chi2);
+	}
+
+	// Chi-Square 原始输出检验（RomuDuoJr）
+	{
+		constexpr int N = 1'000'000;
+		constexpr int BINS = 128;
+		constexpr double EXPECTED = static_cast<double>(N) / BINS;
+
+		RomuDuoJr rng{ 54321 };
+		int counts[BINS] = {};
+		for (int i = 0; i < N; ++i)
+			++counts[rng() & 127];
+
+		double chi2 = 0.0;
+		for (int i = 0; i < BINS; ++i)
+		{
+			const double diff = counts[i] - EXPECTED;
+			chi2 += diff * diff / EXPECTED;
+		}
+
+		assert(chi2 < 173.6);
+		std::printf("[PASS] Chi-Square raw: RomuDuoJr (chi2 = %.1f)\n", chi2);
+	}
+
     std::puts("\n=== All XoshiroCpp.hpp tests passed ===");
     return 0;
 }

@@ -231,6 +231,116 @@ int main()
         std::puts("[PASS] jump / longJump");
     }
 
+	// ===== 编译期洗牌（ShuffleCE）=====
+	{
+		constexpr auto shuffled = [] {
+			std::array<int, 10> a = {0,1,2,3,4,5,6,7,8,9};
+			xoshiro::ShuffleCE(a.begin(), a.end());
+			return a;
+		}();
+		// 验证是排列：排序后等于原序列
+		static_assert([](std::array<int, 10> s) {
+			// 手动排序（constexpr）
+			for (int i = 0; i < 10; ++i)
+				for (int j = i + 1; j < 10; ++j)
+					if (s[j] < s[i]) { auto t = s[i]; s[i] = s[j]; s[j] = t; }
+			return s == std::array{0,1,2,3,4,5,6,7,8,9};
+		}(shuffled));
+		// 验证确实被打乱了（极大概率不等）
+		static_assert(shuffled != std::array{0,1,2,3,4,5,6,7,8,9});
+		std::printf("[PASS] ShuffleCE (constexpr)\n");
+	}
+
+	// ===== Reseed 可重播种 =====
+	{
+		xoshiro::Reseed(42);
+		const auto a = xoshiro::RandInt(0, 1000000);
+		xoshiro::Reseed(42);
+		const auto b = xoshiro::RandInt(0, 1000000);
+		assert(a == b);
+		std::printf("[PASS] Reseed\n");
+	}
+
+	// ===== std::seed_seq 播种 =====
+	{
+		std::seed_seq seq{1, 2, 3, 4, 5, 6, 7, 8};
+		xoshiro::Xoshiro256StarStar rng1{ seq };
+		std::seed_seq seq2{1, 2, 3, 4, 5, 6, 7, 8};
+		xoshiro::Xoshiro256StarStar rng2{ seq2 };
+		// 相同 seed_seq → 相同输出
+		assert(rng1() == rng2());
+		assert(rng1() == rng2());
+		std::printf("[PASS] seed_seq\n");
+	}
+
+	// ===== 统计自检（Chi-Square 频率检验）=====
+	{
+		constexpr int N = 1'000'000;
+		constexpr int BINS = 100;
+		constexpr double EXPECTED = static_cast<double>(N) / BINS;
+
+		xoshiro::Xoshiro256StarStar rng{ 98765 };
+		int counts[BINS] = {};
+		for (int i = 0; i < N; ++i)
+			++counts[xoshiro::RandInt(rng, 0, BINS - 1)];
+
+		double chi2 = 0.0;
+		for (int i = 0; i < BINS; ++i)
+		{
+			const double diff = counts[i] - EXPECTED;
+			chi2 += diff * diff / EXPECTED;
+		}
+
+		// 自由度 99，alpha=0.001 临界值 ≈ 148.2
+		assert(chi2 < 148.2);
+		std::printf("[PASS] Chi-Square (chi2 = %.1f < 148.2)\n", chi2);
+	}
+
+	// Chi-Square 原始输出检验（SFC64）
+	{
+		constexpr int N = 1'000'000;
+		constexpr int BINS = 128;
+		constexpr double EXPECTED = static_cast<double>(N) / BINS;
+
+		xoshiro::SFC64 rng{ 54321 };
+		int counts[BINS] = {};
+		for (int i = 0; i < N; ++i)
+			++counts[rng() & 127];
+
+		double chi2 = 0.0;
+		for (int i = 0; i < BINS; ++i)
+		{
+			const double diff = counts[i] - EXPECTED;
+			chi2 += diff * diff / EXPECTED;
+		}
+
+		// 自由度 127，alpha=0.001 临界值 ≈ 173.6
+		assert(chi2 < 173.6);
+		std::printf("[PASS] Chi-Square raw: SFC64 (chi2 = %.1f)\n", chi2);
+	}
+
+	// Chi-Square 原始输出检验（RomuDuoJr）
+	{
+		constexpr int N = 1'000'000;
+		constexpr int BINS = 128;
+		constexpr double EXPECTED = static_cast<double>(N) / BINS;
+
+		xoshiro::RomuDuoJr rng{ 54321 };
+		int counts[BINS] = {};
+		for (int i = 0; i < N; ++i)
+			++counts[rng() & 127];
+
+		double chi2 = 0.0;
+		for (int i = 0; i < BINS; ++i)
+		{
+			const double diff = counts[i] - EXPECTED;
+			chi2 += diff * diff / EXPECTED;
+		}
+
+		assert(chi2 < 173.6);
+		std::printf("[PASS] Chi-Square raw: RomuDuoJr (chi2 = %.1f)\n", chi2);
+	}
+
     std::puts("\n=== All Random.hpp tests passed ===");
     return 0;
 }

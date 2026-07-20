@@ -30,6 +30,13 @@
 - 多流接口 `MakeStreamEngine<Engine>(streamId, seed)` 用于并行计算
 - 新增 SFC64 / RomuDuoJr 高速引擎
 - 14 个引擎全覆盖
+- 编译期洗牌 `ShuffleCE` / `ShuffledArray`（`std::shuffle` 的 constexpr 替代）
+- `Reseed(seed)` 重置默认引擎，方便测试复现
+- `std::seed_seq` 播种支持（所有 14 引擎）
+- 硬件种子：`RandomSeed()` 优先使用 RDRAND（x86_64）
+- MSVC 兼容：`RandIntCE` 条件编译（`__uint128_t` / 拒绝采样回退）
+- CMake 安装支持：`find_package(xoshiro)` / `FetchContent`
+- GitHub Actions CI：GCC 14 / Clang 18 / MSVC 三编译器矩阵
 
 ## 引擎一览
 
@@ -163,6 +170,27 @@ int main()
 }
 ```
 
+## 编译期洗牌
+
+```cpp
+#include "Random.hpp"
+#include <array>
+#include <iostream>
+
+int main()
+{
+    // 编译期 Fisher-Yates 洗牌
+    constexpr auto shuffled = [] {
+        std::array<int, 10> a = {0,1,2,3,4,5,6,7,8,9};
+        xoshiro::ShuffleCE(a.begin(), a.end());
+        return a;
+    }();
+
+    for (const auto& x : shuffled)
+        std::cout << x << ' ';
+}
+```
+
 ## 基准测试
 
 编译并运行 benchmark.cpp：
@@ -172,6 +200,40 @@ g++ -std=c++23 -O2 benchmark.cpp -o benchmark && ./benchmark
 ```
 
 输出各引擎的吞吐量（Mops/s、MB/s）、jump 开销和 RandInt API 性能。
+
+## CMake 集成
+
+### FetchContent（推荐）
+
+```cmake
+include(FetchContent)
+FetchContent_Declare(xoshiro
+    GIT_REPOSITORY https://github.com/lidaixingchen/Pseudo-random-number-generator-based-on-Xoshiro.git
+    GIT_TAG master
+)
+FetchContent_MakeAvailable(xoshiro)
+target_link_libraries(myapp PRIVATE xoshiro::xoshiro)
+```
+
+### find_package
+
+```bash
+cmake -DCMAKE_INSTALL_PREFIX=/usr/local ..
+cmake --install .
+```
+
+```cmake
+find_package(xoshiro REQUIRED)
+target_link_libraries(myapp PRIVATE xoshiro::xoshiro)
+```
+
+### 构建测试
+
+```bash
+cmake -B build -DXOSHIRO_BUILD_TESTS=ON -DXOSHIRO_BUILD_BENCHMARK=ON
+cmake --build build
+ctest --test-dir build
+```
 
 ## 编译要求
 
@@ -193,6 +255,16 @@ g++ -std=c++23 -Wall -Wextra -o test_random test_random.cpp && ./test_random
 # C++17 测试
 g++ -std=c++17 -Wall -Wextra -o test_xoshirocpp test_xoshirocpp.cpp && ./test_xoshirocpp
 ```
+
+## CI
+
+每次 push 自动在以下环境编译 + 运行测试：
+
+| 编译器 | 平台 | 标准 |
+|--------|------|------|
+| GCC 14 | Ubuntu 24.04 | C++17 / C++23 |
+| Clang 18 | Ubuntu 24.04 | C++17 / C++23 |
+| MSVC (v145) | Windows 2025 | C++17 / C++23 |
 
 ## 致谢
 

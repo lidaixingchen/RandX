@@ -1,0 +1,72 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  gcc:
+    runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        std: [c++17, c++23]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install GCC 14
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y g++-14
+      - name: Build & Test
+        run: |
+          if [ "${{ matrix.std }}" = "c++23" ]; then
+            g++-14 -std=c++23 -O2 -Wall -Wextra -o test_random test_random.cpp
+            ./test_random
+            g++-14 -std=c++23 -O2 -Wall -Wextra -o benchmark benchmark.cpp
+          else
+            g++-14 -std=c++17 -O2 -Wall -Wextra -o test_xoshirocpp test_xoshirocpp.cpp
+            ./test_xoshirocpp
+          fi
+
+  clang:
+    runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        std: [c++17, c++23]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Clang 18
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang-18
+      - name: Build & Test
+        run: |
+          if [ "${{ matrix.std }}" = "c++23" ]; then
+            clang++-18 -std=c++23 -O2 -Wall -Wextra -o test_random test_random.cpp
+            ./test_random
+            clang++-18 -std=c++23 -O2 -Wall -Wextra -o benchmark benchmark.cpp
+          else
+            clang++-18 -std=c++17 -O2 -Wall -Wextra -o test_xoshirocpp test_xoshirocpp.cpp
+            ./test_xoshirocpp
+          fi
+
+  msvc:
+    runs-on: windows-2025
+    strategy:
+      matrix:
+        std: [c++17, c++23]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ilammy/msvc-dev-cmd@v1
+      - name: Build & Test
+        shell: cmd
+        run: |
+          if "${{ matrix.std }}"=="c++23" (
+            cl /std:c++23 /W4 /EHsc /O2 /Fe:test_random.exe test_random.cpp
+            test_random.exe
+            cl /std:c++23 /W4 /EHsc /O2 /Fe:benchmark.exe benchmark.cpp
+          ) else (
+            cl /std:c++17 /W4 /EHsc /O2 /Fe:test_xoshirocpp.exe test_xoshirocpp.cpp
+            test_xoshirocpp.exe
+          )
