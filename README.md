@@ -11,18 +11,19 @@
 
 | 头文件 | 标准 | 命名空间 | 说明 |
 |--------|------|----------|------|
-| **Random.hpp** | C++23 | `xoshiro` | 增强版：concepts 约束、便捷 API（`RandInt`/`RandReal`/`RandBool`/`RandElement`）、线程局部默认引擎、`discard(n)`、中文注释 |
-| **XoshiroCpp.hpp** | C++17 / C++20 | `XoshiroCpp` | 原始版：与上游 Xoshiro-cpp 保持一致，英文注释，无额外依赖 |
+| **Random.hpp** | C++23 | `xoshiro` | 增强版：concepts 约束、`operator<=>`、便捷 API、`constexpr` 编译期随机、`static_assert` 概念守卫、中文注释 |
+| **XoshiroCpp.hpp** | C++17 / C++20 | `XoshiroCpp` | 兼容版：SFINAE 约束、便捷 API、`discard(n)`、中文注释 |
 
 > 如果你的编译器支持 C++23，推荐使用 `Random.hpp`；否则使用 `XoshiroCpp.hpp`。
-> 两者算法实现完全一致，输出序列相同（相同种子下）。
+> 两者算法实现完全一致，输出序列相同（相同种子下），便捷 API 签名一致。
 
-## 特性（Random.hpp）
+## 特性
 
-- 满足 `std::uniform_random_bit_generator` 概念，可直接配合标准库 distribution / `std::shuffle` 使用
+- 满足 `std::uniform_random_bit_generator` 概念（Random.hpp 含 `static_assert` 编译期验证）
 - 全 `constexpr`，编译期可用
-- 内置便捷 API：`RandInt` / `RandReal` / `RandBool` / `RandElement`
+- 便捷 API：`RandInt` / `RandReal` / `RandBool` / `RandElement` / `RandNormal` / `RandShuffle` / `RandWeighted`
 - 线程局部默认引擎（`DefaultEngine()`），零配置即用
+- `constexpr` 编译期随机（仅 Random.hpp）：`RandIntCE<Seed>(min, max)`
 - 支持 `jump()` / `longJump()` 并行子序列、`discard(n)` 跳过、`serialize()` / `deserialize()` 状态持久化
 - 12 个引擎全覆盖
 
@@ -55,8 +56,25 @@ int main()
     std::cout << xoshiro::RandInt(1, 6) << '\n';   // 掷骰子 [1, 6]
     std::cout << xoshiro::RandReal() << '\n';       // [0.0, 1.0)
     std::cout << xoshiro::RandBool(0.3) << '\n';    // 30% 概率为 true
+    std::cout << xoshiro::RandNormal() << '\n';     // 正态分布 N(0,1)
 }
 ```
+
+## 便捷 API 一览
+
+| 函数 | 说明 |
+|------|------|
+| `RandInt(min, max)` | [min, max] 闭区间整数 |
+| `RandInt(max)` | [0, max] 闭区间整数 |
+| `RandReal(min, max)` | [min, max) 浮点数 |
+| `RandBool(p)` | 概率 p 为 true |
+| `RandElement(container)` | 从容器随机取一个元素 |
+| `RandNormal(mean, stddev)` | 正态分布 |
+| `RandShuffle(container)` | 随机打乱容器 |
+| `RandWeighted(weights)` | 按权重选取索引 |
+| `RandInt(rng, min, max)` | 指定引擎版本 |
+| `RandReal(rng, min, max)` | 指定引擎版本 |
+| `RandIntCE<Seed>(min, max)` | 编译期随机（仅 Random.hpp） |
 
 ## 手动管理引擎
 
@@ -90,27 +108,20 @@ int main()
 }
 ```
 
-## 配合 std::shuffle
+## 编译期随机（仅 Random.hpp）
 
 ```cpp
 #include "Random.hpp"
-#include <algorithm>
-#include <array>
-#include <iostream>
 
-int main()
-{
-    xoshiro::Xoshiro256PlusPlus rng{ 12345 };
+// 编译期确定结果（固定种子）
+constexpr int compileTimeDice = xoshiro::RandIntCE(1, 6);
+static_assert(compileTimeDice >= 1 && compileTimeDice <= 6);
 
-    std::array<int, 10> ar = { 0,1,2,3,4,5,6,7,8,9 };
-    std::shuffle(ar.begin(), ar.end(), rng);
-
-    for (const auto& x : ar)
-        std::cout << x << ' ';
-}
+// 自定义种子
+constexpr auto v = xoshiro::RandIntCE<int, 42>(0, 100);
 ```
 
-## 从容器中随机取元素
+## 按权重随机选取
 
 ```cpp
 #include "Random.hpp"
@@ -119,8 +130,10 @@ int main()
 
 int main()
 {
-    std::vector<int> items = { 10, 20, 30, 40, 50 };
-    std::cout << xoshiro::RandElement(items) << '\n';
+    // 权重：A=1, B=2, C=7 → C 被选中概率约 70%
+    std::vector<double> weights = { 1.0, 2.0, 7.0 };
+    auto idx = xoshiro::RandWeighted(weights);
+    std::cout << "选中索引: " << idx << '\n';
 }
 ```
 
@@ -132,6 +145,18 @@ int main()
 | XoshiroCpp.hpp | C++17 | GCC 9+ / Clang 10+ / MSVC 16.8+ |
 
 - 无外部依赖，纯头文件，复制即用
+
+## 测试
+
+仓库包含确定性单元测试（固定种子 → 断言已知输出序列）：
+
+```bash
+# C++23 测试
+g++ -std=c++23 -Wall -Wextra -o test_random test_random.cpp && ./test_random
+
+# C++17 测试
+g++ -std=c++17 -Wall -Wextra -o test_xoshirocpp test_xoshirocpp.cpp && ./test_xoshirocpp
+```
 
 ## 致谢
 

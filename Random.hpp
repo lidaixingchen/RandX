@@ -71,6 +71,7 @@
 # include <limits>
 # include <concepts>
 # include <random>
+# include <algorithm>
 # include <type_traits>
 
 namespace xoshiro
@@ -122,17 +123,7 @@ namespace xoshiro
 
 		constexpr void deserialize(state_type state) noexcept;
 
-		[[nodiscard]]
-		friend bool operator ==(const SplitMix64& lhs, const SplitMix64& rhs) noexcept
-		{
-			return (lhs.m_state == rhs.m_state);
-		}
-
-		[[nodiscard]]
-		friend bool operator !=(const SplitMix64& lhs, const SplitMix64& rhs) noexcept
-		{
-			return (lhs.m_state != rhs.m_state);
-		}
+		friend auto operator <=>(const SplitMix64&, const SplitMix64&) = default;
 	
 	private:
 
@@ -182,17 +173,7 @@ namespace xoshiro
 
 		constexpr void deserialize(state_type state) noexcept;
 
-		[[nodiscard]]
-		friend bool operator ==(const Xoshiro256Plus& lhs, const Xoshiro256Plus& rhs) noexcept
-		{
-			return (lhs.m_state == rhs.m_state);
-		}
-
-		[[nodiscard]]
-		friend bool operator !=(const Xoshiro256Plus& lhs, const Xoshiro256Plus& rhs) noexcept
-		{
-			return (lhs.m_state != rhs.m_state);
-		}
+		friend auto operator <=>(const Xoshiro256Plus&, const Xoshiro256Plus&) = default;
 
 	private:
 
@@ -242,17 +223,7 @@ namespace xoshiro
 
 		constexpr void deserialize(state_type state) noexcept;
 
-		[[nodiscard]]
-		friend bool operator ==(const Xoshiro256PlusPlus& lhs, const Xoshiro256PlusPlus& rhs) noexcept
-		{
-			return (lhs.m_state == rhs.m_state);
-		}
-
-		[[nodiscard]]
-		friend bool operator !=(const Xoshiro256PlusPlus& lhs, const Xoshiro256PlusPlus& rhs) noexcept
-		{
-			return (lhs.m_state != rhs.m_state);
-		}
+		friend auto operator <=>(const Xoshiro256PlusPlus&, const Xoshiro256PlusPlus&) = default;
 
 	private:
 
@@ -302,17 +273,7 @@ namespace xoshiro
 
 		constexpr void deserialize(state_type state) noexcept;
 
-		[[nodiscard]]
-		friend bool operator ==(const Xoshiro256StarStar& lhs, const Xoshiro256StarStar& rhs) noexcept
-		{
-			return (lhs.m_state == rhs.m_state);
-		}
-
-		[[nodiscard]]
-		friend bool operator !=(const Xoshiro256StarStar& lhs, const Xoshiro256StarStar& rhs) noexcept
-		{
-			return (lhs.m_state != rhs.m_state);
-		}
+		friend auto operator <=>(const Xoshiro256StarStar&, const Xoshiro256StarStar&) = default;
 
 	private:
 
@@ -362,17 +323,7 @@ namespace xoshiro
 
 		constexpr void deserialize(state_type state) noexcept;
 
-		[[nodiscard]]
-		friend bool operator ==(const Xoroshiro128Plus& lhs, const Xoroshiro128Plus& rhs) noexcept
-		{
-			return (lhs.m_state == rhs.m_state);
-		}
-
-		[[nodiscard]]
-		friend bool operator !=(const Xoroshiro128Plus& lhs, const Xoroshiro128Plus& rhs) noexcept
-		{
-			return (lhs.m_state != rhs.m_state);
-		}
+		friend auto operator <=>(const Xoroshiro128Plus&, const Xoroshiro128Plus&) = default;
 
 	private:
 
@@ -422,17 +373,7 @@ namespace xoshiro
 
 		constexpr void deserialize(state_type state) noexcept;
 
-		[[nodiscard]]
-		friend bool operator ==(const Xoroshiro128PlusPlus& lhs, const Xoroshiro128PlusPlus& rhs) noexcept
-		{
-			return (lhs.m_state == rhs.m_state);
-		}
-
-		[[nodiscard]]
-		friend bool operator !=(const Xoroshiro128PlusPlus& lhs, const Xoroshiro128PlusPlus& rhs) noexcept
-		{
-			return (lhs.m_state != rhs.m_state);
-		}
+		friend auto operator <=>(const Xoroshiro128PlusPlus&, const Xoroshiro128PlusPlus&) = default;
 
 	private:
 
@@ -482,17 +423,7 @@ namespace xoshiro
 
 		constexpr void deserialize(state_type state) noexcept;
 
-		[[nodiscard]]
-		friend bool operator ==(const Xoroshiro128StarStar& lhs, const Xoroshiro128StarStar& rhs) noexcept
-		{
-			return (lhs.m_state == rhs.m_state);
-		}
-
-		[[nodiscard]]
-		friend bool operator !=(const Xoroshiro128StarStar& lhs, const Xoroshiro128StarStar& rhs) noexcept
-		{
-			return (lhs.m_state != rhs.m_state);
-		}
+		friend auto operator <=>(const Xoroshiro128StarStar&, const Xoroshiro128StarStar&) = default;
 
 	private:
 
@@ -542,17 +473,7 @@ namespace xoshiro
 
 		constexpr void deserialize(state_type state) noexcept;
 
-		[[nodiscard]]
-		friend bool operator ==(const Xoshiro128Plus& lhs, const Xoshiro128Plus& rhs) noexcept
-		{
-			return (lhs.m_state == rhs.m_state);
-		}
-
-		[[nodiscard]]
-		friend bool operator !=(const Xoshiro128Plus& lhs, const Xoshiro128Plus& rhs) noexcept
-		{
-			return (lhs.m_state != rhs.m_state);
-		}
+		friend auto operator <=>(const Xoshiro128Plus&, const Xoshiro128Plus&) = default;
 
 	private:
 
@@ -602,17 +523,7 @@ namespace xoshiro
 
 		constexpr void deserialize(state_type state) noexcept;
 
-		[[nodiscard]]
-		friend bool operator ==(const Xoshiro128PlusPlus& lhs, const Xoshiro128PlusPlus& rhs) noexcept
-		{
-			return (lhs.m_state == rhs.m_state);
-		}
-
-		[[nodiscard]]
-		friend bool operator !=(const Xoshiro128PlusPlus& lhs, const Xoshiro128PlusPlus& rhs) noexcept
-		{
-			return (lhs.m_state != rhs.m_state);
-		}
+		friend auto operator <=>(const Xoshiro128PlusPlus&, const Xoshiro128PlusPlus&) = default;
 
 	private:
 
@@ -662,17 +573,7 @@ namespace xoshiro
 
 		constexpr void deserialize(state_type state) noexcept;
 
-		[[nodiscard]]
-		friend bool operator ==(const Xoshiro128StarStar& lhs, const Xoshiro128StarStar& rhs) noexcept
-		{
-			return (lhs.m_state == rhs.m_state);
-		}
-
-		[[nodiscard]]
-		friend bool operator !=(const Xoshiro128StarStar& lhs, const Xoshiro128StarStar& rhs) noexcept
-		{
-			return (lhs.m_state != rhs.m_state);
-		}
+		friend auto operator <=>(const Xoshiro128StarStar&, const Xoshiro128StarStar&) = default;
 
 	private:
 
@@ -712,17 +613,7 @@ namespace xoshiro
 
 		constexpr void deserialize(state_type state) noexcept;
 
-		[[nodiscard]]
-		friend bool operator ==(const Xoroshiro64Star& lhs, const Xoroshiro64Star& rhs) noexcept
-		{
-			return (lhs.m_state == rhs.m_state);
-		}
-
-		[[nodiscard]]
-		friend bool operator !=(const Xoroshiro64Star& lhs, const Xoroshiro64Star& rhs) noexcept
-		{
-			return (lhs.m_state != rhs.m_state);
-		}
+		friend auto operator <=>(const Xoroshiro64Star&, const Xoroshiro64Star&) = default;
 
 	private:
 
@@ -762,17 +653,7 @@ namespace xoshiro
 
 		constexpr void deserialize(state_type state) noexcept;
 
-		[[nodiscard]]
-		friend bool operator ==(const Xoroshiro64StarStar& lhs, const Xoroshiro64StarStar& rhs) noexcept
-		{
-			return (lhs.m_state == rhs.m_state);
-		}
-
-		[[nodiscard]]
-		friend bool operator !=(const Xoroshiro64StarStar& lhs, const Xoroshiro64StarStar& rhs) noexcept
-		{
-			return (lhs.m_state != rhs.m_state);
-		}
+		friend auto operator <=>(const Xoroshiro64StarStar&, const Xoroshiro64StarStar&) = default;
 
 	private:
 
@@ -1998,6 +1879,33 @@ namespace xoshiro
 		return c[RandInt<Size>(static_cast<Size>(c.size() - 1))];
 	}
 
+
+	// 生成正态分布随机数（默认均值 0，标准差 1）
+	template <std::floating_point T = double>
+	[[nodiscard]]
+	inline T RandNormal(T mean = T{0}, T stddev = T{1})
+	{
+		std::normal_distribution<T> dist(mean, stddev);
+		return dist(DefaultEngine());
+	}
+
+	// 随机打乱容器
+	template <class Container>
+	inline void RandShuffle(Container&& c)
+	{
+		std::shuffle(c.begin(), c.end(), DefaultEngine());
+	}
+
+	// 按权重随机选取索引（权重容器元素为数值类型）
+	template <class WeightContainer>
+	[[nodiscard]]
+	inline typename WeightContainer::size_type RandWeighted(const WeightContainer& weights)
+	{
+		using Size = typename WeightContainer::size_type;
+		std::discrete_distribution<Size> dist(weights.begin(), weights.end());
+		return dist(DefaultEngine());
+	}
+
 	// 指定引擎的重载版本
 	template <std::integral T, class Engine>
 	[[nodiscard]]
@@ -2014,5 +1922,48 @@ namespace xoshiro
 		std::uniform_real_distribution<T> dist(min, max);
 		return dist(engine);
 	}
+
+
+	////////////////////////////////////////////////////////////////
+	//
+	//	编译期随机（constexpr）
+	//
+
+	// 编译期生成 [min, max] 范围内的随机整数（使用固定种子，结果在编译期确定）
+	template <std::integral T = int, std::uint64_t Seed = DefaultSeed>
+	[[nodiscard]]
+	inline constexpr T RandIntCE(T min, T max) noexcept
+	{
+		Xoshiro256StarStar rng{ Seed };
+		const auto range = static_cast<std::uint64_t>(max - min) + 1;
+		return static_cast<T>(static_cast<std::uint64_t>(min) + (rng() % range));
+	}
+
+	// 编译期生成 [0, max] 范围内的随机整数
+	template <std::integral T = int, std::uint64_t Seed = DefaultSeed>
+	[[nodiscard]]
+	inline constexpr T RandIntCE(T max) noexcept
+	{
+		return RandIntCE<T, Seed>(T{0}, max);
+	}
+
+
+	////////////////////////////////////////////////////////////////
+	//
+	//	静态断言：确认引擎满足 uniform_random_bit_generator 概念
+	//
+
+	static_assert(std::uniform_random_bit_generator<SplitMix64>);
+	static_assert(std::uniform_random_bit_generator<Xoshiro256Plus>);
+	static_assert(std::uniform_random_bit_generator<Xoshiro256PlusPlus>);
+	static_assert(std::uniform_random_bit_generator<Xoshiro256StarStar>);
+	static_assert(std::uniform_random_bit_generator<Xoroshiro128Plus>);
+	static_assert(std::uniform_random_bit_generator<Xoroshiro128PlusPlus>);
+	static_assert(std::uniform_random_bit_generator<Xoroshiro128StarStar>);
+	static_assert(std::uniform_random_bit_generator<Xoshiro128Plus>);
+	static_assert(std::uniform_random_bit_generator<Xoshiro128PlusPlus>);
+	static_assert(std::uniform_random_bit_generator<Xoshiro128StarStar>);
+	static_assert(std::uniform_random_bit_generator<Xoroshiro64Star>);
+	static_assert(std::uniform_random_bit_generator<Xoroshiro64StarStar>);
 
 }

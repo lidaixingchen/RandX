@@ -31,6 +31,7 @@
 # include <limits>
 # include <type_traits>
 # include <random>
+# include <algorithm>
 # if __has_cpp_attribute(nodiscard) >= 201907L
 #	define XOSHIROCPP_NODISCARD_CXX20 [[nodiscard]]
 # else
@@ -70,6 +71,8 @@ namespace XoshiroCpp
 		explicit constexpr SplitMix64(state_type state = DefaultSeed) noexcept;
 
 		constexpr result_type operator()() noexcept;
+
+		constexpr void discard(unsigned long long n) noexcept;
 
 		template <std::size_t N>
 		[[nodiscard]]
@@ -123,6 +126,8 @@ namespace XoshiroCpp
 		explicit constexpr Xoshiro256Plus(state_type state) noexcept;
 
 		constexpr result_type operator()() noexcept;
+
+		constexpr void discard(unsigned long long n) noexcept;
 
 		// 这是该生成器的 jump 函数。它等价于
 		// 调用 2^128 次 operator()；可用于生成 2^128 个
@@ -184,6 +189,8 @@ namespace XoshiroCpp
 
 		constexpr result_type operator()() noexcept;
 
+		constexpr void discard(unsigned long long n) noexcept;
+
 		// 这是该生成器的 jump 函数。它等价于
 		// 调用 2^128 次 next()；可用于生成 2^128 个
 		// 互不重叠的子序列，用于并行计算。
@@ -243,6 +250,8 @@ namespace XoshiroCpp
 		explicit constexpr Xoshiro256StarStar(state_type state) noexcept;
 
 		constexpr result_type operator()() noexcept;
+
+		constexpr void discard(unsigned long long n) noexcept;
 
 		// 这是该生成器的 jump 函数。它等价于
 		// 调用 2^128 次 next()；可用于生成 2^128 个
@@ -304,6 +313,8 @@ namespace XoshiroCpp
 
 		constexpr result_type operator()() noexcept;
 
+		constexpr void discard(unsigned long long n) noexcept;
+
 		// 这是该生成器的 jump 函数。它等价于
 		// 调用 2^64 次 next()；可用于生成 2^64 个
 		// 互不重叠的子序列，用于并行计算。
@@ -363,6 +374,8 @@ namespace XoshiroCpp
 		explicit constexpr Xoroshiro128PlusPlus(state_type state) noexcept;
 
 		constexpr result_type operator()() noexcept;
+
+		constexpr void discard(unsigned long long n) noexcept;
 
 		// 这是该生成器的 jump 函数。它等价于
 		// 调用 2^64 次 next()；可用于生成 2^64 个
@@ -424,6 +437,8 @@ namespace XoshiroCpp
 
 		constexpr result_type operator()() noexcept;
 
+		constexpr void discard(unsigned long long n) noexcept;
+
 		// 这是该生成器的 jump 函数。它等价于
 		// 调用 2^64 次 next()；可用于生成 2^64 个
 		// 互不重叠的子序列，用于并行计算。
@@ -483,6 +498,8 @@ namespace XoshiroCpp
 		explicit constexpr Xoshiro128Plus(state_type state) noexcept;
 
 		constexpr result_type operator()() noexcept;
+
+		constexpr void discard(unsigned long long n) noexcept;
 
 		// 这是该生成器的 jump 函数。它等价于
 		// 调用 2^64 次 next()；可用于生成 2^64 个
@@ -544,6 +561,8 @@ namespace XoshiroCpp
 
 		constexpr result_type operator()() noexcept;
 
+		constexpr void discard(unsigned long long n) noexcept;
+
 		// 这是该生成器的 jump 函数。它等价于
 		// 调用 2^64 次 next()；可用于生成 2^64 个
 		// 互不重叠的子序列，用于并行计算。
@@ -604,6 +623,8 @@ namespace XoshiroCpp
 
 		constexpr result_type operator()() noexcept;
 
+		constexpr void discard(unsigned long long n) noexcept;
+
 		// 这是该生成器的 jump 函数。它等价于
 		// 调用 2^64 次 next()；可用于生成 2^64 个
 		// 互不重叠的子序列，用于并行计算。
@@ -663,6 +684,8 @@ namespace XoshiroCpp
 
 		constexpr result_type operator()() noexcept;
 
+		constexpr void discard(unsigned long long n) noexcept;
+
 		[[nodiscard]]
 		static constexpr result_type min() noexcept;
 
@@ -710,6 +733,8 @@ namespace XoshiroCpp
 			explicit constexpr Xoroshiro64StarStar(state_type state) noexcept;
 
 		constexpr result_type operator()() noexcept;
+
+		constexpr void discard(unsigned long long n) noexcept;
 
 		[[nodiscard]]
 		static constexpr result_type min() noexcept;
@@ -819,6 +844,11 @@ namespace XoshiroCpp
 		m_state = state;
 	}
 
+	inline constexpr void SplitMix64::discard(const unsigned long long n) noexcept
+	{
+		for (unsigned long long i = 0; i < n; ++i) { operator()(); }
+	}
+
 	////////////////////////////////////////////////////////////////
 	//
 	//	xoshiro256+
@@ -920,6 +950,11 @@ namespace XoshiroCpp
 	inline constexpr void Xoshiro256Plus::deserialize(const state_type state) noexcept
 	{
 		m_state = state;
+	}
+
+	inline constexpr void Xoshiro256Plus::discard(const unsigned long long n) noexcept
+	{
+		for (unsigned long long i = 0; i < n; ++i) { operator()(); }
 	}
 
 	////////////////////////////////////////////////////////////////
@@ -1025,6 +1060,11 @@ namespace XoshiroCpp
 		m_state = state;
 	}
 
+	inline constexpr void Xoshiro256PlusPlus::discard(const unsigned long long n) noexcept
+	{
+		for (unsigned long long i = 0; i < n; ++i) { operator()(); }
+	}
+
 	////////////////////////////////////////////////////////////////
 	//
 	//	xoshiro256**
@@ -1128,6 +1168,11 @@ namespace XoshiroCpp
 		m_state = state;
 	}
 
+	inline constexpr void Xoshiro256StarStar::discard(const unsigned long long n) noexcept
+	{
+		for (unsigned long long i = 0; i < n; ++i) { operator()(); }
+	}
+
 	////////////////////////////////////////////////////////////////
 	//
 	//	xoroshiro128+
@@ -1215,6 +1260,11 @@ namespace XoshiroCpp
 	inline constexpr void Xoroshiro128Plus::deserialize(const state_type state) noexcept
 	{
 		m_state = state;
+	}
+
+	inline constexpr void Xoroshiro128Plus::discard(const unsigned long long n) noexcept
+	{
+		for (unsigned long long i = 0; i < n; ++i) { operator()(); }
 	}
 
 	////////////////////////////////////////////////////////////////
@@ -1306,6 +1356,11 @@ namespace XoshiroCpp
 		m_state = state;
 	}
 
+	inline constexpr void Xoroshiro128PlusPlus::discard(const unsigned long long n) noexcept
+	{
+		for (unsigned long long i = 0; i < n; ++i) { operator()(); }
+	}
+
 	////////////////////////////////////////////////////////////////
 	//
 	//	xoroshiro128**
@@ -1393,6 +1448,11 @@ namespace XoshiroCpp
 	inline constexpr void Xoroshiro128StarStar::deserialize(const state_type state) noexcept
 	{
 		m_state = state;
+	}
+
+	inline constexpr void Xoroshiro128StarStar::discard(const unsigned long long n) noexcept
+	{
+		for (unsigned long long i = 0; i < n; ++i) { operator()(); }
 	}
 
 	////////////////////////////////////////////////////////////////
@@ -1506,6 +1566,11 @@ namespace XoshiroCpp
 		m_state = state;
 	}
 
+	inline constexpr void Xoshiro128Plus::discard(const unsigned long long n) noexcept
+	{
+		for (unsigned long long i = 0; i < n; ++i) { operator()(); }
+	}
+
 	////////////////////////////////////////////////////////////////
 	//
 	//	xoshiro128++
@@ -1615,6 +1680,11 @@ namespace XoshiroCpp
 	inline constexpr void Xoshiro128PlusPlus::deserialize(const state_type state) noexcept
 	{
 		m_state = state;
+	}
+
+	inline constexpr void Xoshiro128PlusPlus::discard(const unsigned long long n) noexcept
+	{
+		for (unsigned long long i = 0; i < n; ++i) { operator()(); }
 	}
 
 	////////////////////////////////////////////////////////////////
@@ -1728,6 +1798,11 @@ namespace XoshiroCpp
 		m_state = state;
 	}
 
+	inline constexpr void Xoshiro128StarStar::discard(const unsigned long long n) noexcept
+	{
+		for (unsigned long long i = 0; i < n; ++i) { operator()(); }
+	}
+
 	////////////////////////////////////////////////////////////////
 	//
 	//	xoroshiro64*
@@ -1781,6 +1856,11 @@ namespace XoshiroCpp
 		m_state = state;
 	}
 
+	inline constexpr void Xoroshiro64Star::discard(const unsigned long long n) noexcept
+	{
+		for (unsigned long long i = 0; i < n; ++i) { operator()(); }
+	}
+
 	////////////////////////////////////////////////////////////////
 	//
 	//	xoroshiro64**
@@ -1832,6 +1912,11 @@ namespace XoshiroCpp
 	inline constexpr void Xoroshiro64StarStar::deserialize(const state_type state) noexcept
 	{
 		m_state = state;
+	}
+
+	inline constexpr void Xoroshiro64StarStar::discard(const unsigned long long n) noexcept
+	{
+		for (unsigned long long i = 0; i < n; ++i) { operator()(); }
 	}
 
 	////////////////////////////////////////////////////////////////
@@ -1900,6 +1985,33 @@ namespace XoshiroCpp
 		return c[RandInt<Size>(static_cast<Size>(c.size() - 1))];
 	}
 
+
+	// 生成正态分布随机数（默认均值 0，标准差 1）
+	template <class T = double, std::enable_if_t<std::is_floating_point_v<T>>* = nullptr>
+	[[nodiscard]]
+	inline T RandNormal(T mean = T{0}, T stddev = T{1})
+	{
+		std::normal_distribution<T> dist(mean, stddev);
+		return dist(DefaultEngine());
+	}
+
+	// 随机打乱容器
+	template <class Container>
+	inline void RandShuffle(Container&& c)
+	{
+		std::shuffle(c.begin(), c.end(), DefaultEngine());
+	}
+
+	// 按权重随机选取索引（权重容器元素为数值类型）
+	template <class WeightContainer>
+	[[nodiscard]]
+	inline typename WeightContainer::size_type RandWeighted(const WeightContainer& weights)
+	{
+		using Size = typename WeightContainer::size_type;
+		std::discrete_distribution<Size> dist(weights.begin(), weights.end());
+		return dist(DefaultEngine());
+	}
+
 	// 指定引擎的重载版本
 	template <class T, class Engine, std::enable_if_t<std::is_integral_v<T>>* = nullptr>
 	[[nodiscard]]
@@ -1916,4 +2028,19 @@ namespace XoshiroCpp
 		std::uniform_real_distribution<T> dist(min, max);
 		return dist(engine);
 	}
+
+	////////////////////////////////////////////////////////////////
+	//
+	//	静态断言：确认引擎满足 UniformRandomBitGenerator 要求
+	//
+
+	static_assert(std::is_same_v<SplitMix64::result_type, std::uint64_t>);
+	static_assert(std::is_same_v<Xoshiro256StarStar::result_type, std::uint64_t>);
+	static_assert(std::is_same_v<Xoshiro128StarStar::result_type, std::uint32_t>);
+	static_assert(std::is_same_v<Xoroshiro64StarStar::result_type, std::uint32_t>);
+	static_assert(SplitMix64::min() < SplitMix64::max());
+	static_assert(Xoshiro256StarStar::min() < Xoshiro256StarStar::max());
+	static_assert(Xoshiro128StarStar::min() < Xoshiro128StarStar::max());
+	static_assert(Xoroshiro64StarStar::min() < Xoroshiro64StarStar::max());
+
 }
