@@ -63,9 +63,9 @@ jobs:
         shell: cmd
         run: |
           if "${{ matrix.std }}"=="c++23" (
-            cl /std:c++23 /W4 /EHsc /O2 /Fe:test_random.exe test_random.cpp
+            cl /std:c++latest /W4 /EHsc /O2 /Fe:test_random.exe test_random.cpp
             test_random.exe
-            cl /std:c++23 /W4 /EHsc /O2 /Fe:benchmark.exe benchmark.cpp
+            cl /std:c++latest /W4 /EHsc /O2 /Fe:benchmark.exe benchmark.cpp
           ) else (
             cl /std:c++17 /W4 /EHsc /O2 /Fe:test_xoshirocpp.exe test_xoshirocpp.cpp
             test_xoshirocpp.exe

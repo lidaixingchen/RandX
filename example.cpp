@@ -1,86 +1,104 @@
-﻿
+﻿//----------------------------------------------------------------------------------------
+//
+//	example.cpp
+//	Random.hpp (C++23) 功能演示
+//
+//----------------------------------------------------------------------------------------
+
+# include "Random.hpp"
 # include <iostream>
+# include <array>
+# include <vector>
 # include <random>
-# include "XoshiroCpp.hpp"
 
 int main()
 {
-	using namespace XoshiroCpp;
+	using namespace xoshiro;
 
-	std::cout << "# Initialize with a default 64-bit seed\n";
+	// ===== 便捷 API（零配置）=====
+	std::cout << "=== 便捷 API ===\n";
+	std::cout << "RandInt(1, 6)   = " << RandInt(1, 6) << '\n';
+	std::cout << "RandReal()      = " << RandReal() << '\n';
+	std::cout << "RandBool(0.3)   = " << RandBool(0.3) << '\n';
+
+	std::vector<int> items = { 10, 20, 30, 40, 50 };
+	std::cout << "RandElement     = " << RandElement(items) << '\n';
+	std::cout << "RandNormal()    = " << RandNormal() << '\n';
+
+	// ===== 手动管理引擎 =====
+	std::cout << "\n=== 手动引擎 ===\n";
 	{
-		Xoshiro256PlusPlus rng;
-		std::cout << rng() << '\n'
-				  << rng() << '\n'
-				  << rng() << '\n';
+		Xoshiro256StarStar rng{ 777 };
+		std::cout << "Xoshiro256**: " << rng() << '\n';
+
+		// 配合标准库 distribution
+		std::uniform_int_distribution<int> dist(1, 100);
+		std::cout << "dist(1,100)   = " << dist(rng) << '\n';
+
+		// 序列化 / 反序列化
+		auto state = rng.serialize();
+		const auto next1 = rng();
+		rng.deserialize(state);
+		const auto next2 = rng();
+		std::cout << "serialize OK  = " << (next1 == next2 ? "true" : "false") << '\n';
 	}
 
-	std::cout << "\n# Initialize with a 64-bit seed\n";
+	// ===== std::seed_seq 播种 =====
+	std::cout << "\n=== seed_seq 播种 ===\n";
 	{
-		constexpr std::uint64_t seed = 777;
-	
-		Xoshiro256PlusPlus rng(seed);
-		std::cout << rng() << '\n'
-				  << rng() << '\n'
-				  << rng() << '\n';
+		std::seed_seq seq{ 1, 2, 3, 4, 5, 6, 7, 8 };
+		Xoshiro256PlusPlus rng{ seq };
+		std::cout << "from seed_seq = " << rng() << '\n';
 	}
 
-	std::cout << "\n# Initialize with a given state\n";
+	// ===== 多流并行（MakeStreamEngine）=====
+	std::cout << "\n=== 多流并行 ===\n";
 	{
-		// poorly distributed
-		constexpr std::uint64_t seed0 = 0;
-		constexpr std::uint64_t seed1 = 0;
-		constexpr std::uint64_t seed2 = 1;
-		constexpr std::uint64_t seed3 = 1;
-		constexpr Xoshiro256PlusPlus::state_type state =
-		{
-			seed0,
-			seed1,
-			seed2,
-			seed3
-		};
-
-		Xoshiro256PlusPlus rng(state);
-		std::cout << rng() << '\n'
-				  << rng() << '\n'
-				  << rng() << '\n';
+		auto stream0 = MakeStreamEngine<Xoshiro256StarStar>(0, 42);
+		auto stream1 = MakeStreamEngine<Xoshiro256StarStar>(1, 42);
+		std::cout << "stream[0]     = " << RandInt(stream0, 0, 999) << '\n';
+		std::cout << "stream[1]     = " << RandInt(stream1, 0, 999) << '\n';
 	}
 
-	std::cout << "\n# Initialize with a given state (SplitMix64 is used for entropy)\n";
+	// ===== 编译期随机（constexpr）=====
+	std::cout << "\n=== constexpr ===\n";
 	{
-		// poorly distributed
-		constexpr std::uint64_t seed0 = 0;
-		constexpr std::uint64_t seed1 = 0;
-		constexpr std::uint64_t seed2 = 1;
-		constexpr std::uint64_t seed3 = 1;
-		constexpr Xoshiro256PlusPlus::state_type state =
-		{
-			SplitMix64(seed0)(),
-			SplitMix64(seed1)(),
-			SplitMix64(seed2)(),
-			SplitMix64(seed3)()
-		};
+		constexpr int v = RandIntCE(0, 100);
+		std::cout << "RandIntCE     = " << v << " (编译期确定)\n";
 
-		Xoshiro256PlusPlus rng(state);
-		std::cout << rng() << '\n'
-				  << rng() << '\n'
-				  << rng() << '\n';
+		constexpr auto shuffled = ShuffledArray<int, 5>(
+			std::array{ 1, 2, 3, 4, 5 });
+		std::cout << "ShuffledArray = ";
+		for (const auto& x : shuffled) std::cout << x << ' ';
+		std::cout << "(编译期洗牌)\n";
 	}
 
-	std::cout << "\n# Generate double in the range of [0.0, 1.0)\n";
+	// ===== Reseed 复现 =====
+	std::cout << "\n=== Reseed ===\n";
 	{
-		Xoshiro256PlusPlus rng(111);
-		std::cout << DoubleFromBits(rng()) << '\n'
-				  << DoubleFromBits(rng()) << '\n'
-				  << DoubleFromBits(rng()) << '\n';
+		Reseed(12345);
+		const auto a = RandInt(0, 1000000);
+		Reseed(12345);
+		const auto b = RandInt(0, 1000000);
+		std::cout << "same seed     = " << (a == b ? "true" : "false") << '\n';
 	}
 
-	std::cout << "\n# Generate int in the range of [1, 6]\n";
+	// ===== jump 并行子序列 =====
+	std::cout << "\n=== jump ===\n";
 	{
-		Xoshiro256PlusPlus rng(222);
-		std::uniform_int_distribution<int> dist(1, 6);
-		std::cout << dist(rng) << '\n'
-				  << dist(rng) << '\n'
-				  << dist(rng) << '\n';
+		Xoshiro256StarStar rng{ 999 };
+		rng.jump();      // 前进 2^128 步
+		std::cout << "after jump    = " << rng() << '\n';
+		rng.longJump();  // 前进 2^192 步
+		std::cout << "after longJmp = " << rng() << '\n';
+	}
+
+	// ===== 高速引擎 =====
+	std::cout << "\n=== SFC64 / RomuDuoJr ===\n";
+	{
+		SFC64 sfc{ 42 };
+		RomuDuoJr romu{ 42 };
+		std::cout << "SFC64         = " << sfc() << '\n';
+		std::cout << "RomuDuoJr     = " << romu() << '\n';
 	}
 }
