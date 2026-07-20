@@ -30,6 +30,7 @@
 # include <array>
 # include <limits>
 # include <type_traits>
+# include <random>
 # if __has_cpp_attribute(nodiscard) >= 201907L
 #	define XOSHIROCPP_NODISCARD_CXX20 [[nodiscard]]
 # else
@@ -1831,5 +1832,88 @@ namespace XoshiroCpp
 	inline constexpr void Xoroshiro64StarStar::deserialize(const state_type state) noexcept
 	{
 		m_state = state;
+	}
+
+	////////////////////////////////////////////////////////////////
+	//
+	//	便捷工具函数
+	//
+
+	// 默认线程局部引擎，使用 std::random_device 播种
+	[[nodiscard]]
+	inline Xoshiro256StarStar& DefaultEngine()
+	{
+		thread_local Xoshiro256StarStar engine{ [] {
+			std::random_device rd;
+			return (static_cast<std::uint64_t>(rd()) << 32) | rd();
+		}() };
+		return engine;
+	}
+
+	// 生成非确定性的 64 位种子
+	[[nodiscard]]
+	inline std::uint64_t RandomSeed()
+	{
+		std::random_device rd;
+		return (static_cast<std::uint64_t>(rd()) << 32) | rd();
+	}
+
+	// 生成 [min, max] 范围内的随机整数
+	template <class T = int, std::enable_if_t<std::is_integral_v<T>>* = nullptr>
+	[[nodiscard]]
+	inline T RandInt(T min, T max)
+	{
+		std::uniform_int_distribution<T> dist(min, max);
+		return dist(DefaultEngine());
+	}
+
+	// 生成 [0, max] 范围内的随机整数
+	template <class T = int, std::enable_if_t<std::is_integral_v<T>>* = nullptr>
+	[[nodiscard]]
+	inline T RandInt(T max)
+	{
+		return RandInt<T>(T{0}, max);
+	}
+
+	// 生成 [min, max) 范围内的随机浮点数
+	template <class T = double, std::enable_if_t<std::is_floating_point_v<T>>* = nullptr>
+	[[nodiscard]]
+	inline T RandReal(T min = T{0}, T max = T{1})
+	{
+		std::uniform_real_distribution<T> dist(min, max);
+		return dist(DefaultEngine());
+	}
+
+	// 生成随机布尔值，为 true 的概率为 p
+	[[nodiscard]]
+	inline bool RandBool(double p = 0.5)
+	{
+		return RandReal<double>(0.0, 1.0) < p;
+	}
+
+	// 从容器中随机取一个元素
+	template <class Container>
+	[[nodiscard]]
+	inline decltype(auto) RandElement(Container&& c)
+	{
+		using Size = typename std::remove_reference_t<Container>::size_type;
+		return c[RandInt<Size>(static_cast<Size>(c.size() - 1))];
+	}
+
+	// 指定引擎的重载版本
+	template <class T, class Engine, std::enable_if_t<std::is_integral_v<T>>* = nullptr>
+	[[nodiscard]]
+	inline T RandInt(Engine& engine, T min, T max)
+	{
+		std::uniform_int_distribution<T> dist(min, max);
+		return dist(engine);
+	}
+
+	template <class T, class Engine, std::enable_if_t<std::is_floating_point_v<T>>* = nullptr>
+	[[nodiscard]]
+	inline T RandReal(Engine& engine, T min = T{0}, T max = T{1})
+	{
+		std::uniform_real_distribution<T> dist(min, max);
+		return dist(engine);
 	}
 }
