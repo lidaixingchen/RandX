@@ -74,6 +74,9 @@
 # include <algorithm>
 # include <cassert>
 # include <type_traits>
+# include <string>
+# include <string_view>
+# include <vector>
 # if defined(_MSC_VER) && (defined(__x86_64__) || defined(_M_X64))
 #	include <immintrin.h>
 # endif
@@ -2459,6 +2462,125 @@ namespace xoshiro
 	}
 
 
+
+	namespace detail
+	{
+		// 前向声明（定义见下方"编译期随机"节）
+		[[nodiscard]]
+		inline constexpr std::uint64_t BoundedRand(Xoshiro256StarStar& rng, std::uint64_t range) noexcept;
+	}
+
+	////////////////////////////////////////////////////////////////
+	//
+	//	扩展便捷 API
+	//
+
+	// 无放回抽样：从容器中随机抽取 n 个元素（Fisher-Yates 前 n 步）
+	template <class Container>
+	[[nodiscard]]
+	inline auto RandSample(const Container& c, typename Container::size_type n)
+	{
+		using T = typename Container::value_type;
+		std::vector<T> pool(c.begin(), c.end());
+		const auto size = static_cast<std::uint64_t>(pool.size());
+		if (n >= pool.size()) return pool;
+		auto& rng = DefaultEngine();
+		for (std::uint64_t i = 0; i < n; ++i)
+		{
+			const auto j = i + detail::BoundedRand(rng, size - i);
+			auto tmp = std::move(pool[i]);
+			pool[i] = std::move(pool[j]);
+			pool[j] = std::move(tmp);
+		}
+		pool.resize(n);
+		return pool;
+	}
+
+	// 生成 [0, n) 的随机排列
+	[[nodiscard]]
+	inline std::vector<std::size_t> RandPermutation(std::size_t n)
+	{
+		std::vector<std::size_t> perm(n);
+		for (std::size_t i = 0; i < n; ++i) perm[i] = i;
+		auto& rng = DefaultEngine();
+		for (std::uint64_t i = static_cast<std::uint64_t>(n) - 1; i > 0; --i)
+		{
+			const auto j = detail::BoundedRand(rng, i + 1);
+			auto tmp = perm[i];
+			perm[i] = perm[j];
+			perm[j] = tmp;
+		}
+		return perm;
+	}
+
+	// 生成指定长度的随机字符串
+	[[nodiscard]]
+	inline std::string RandString(std::size_t length, std::string_view charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
+	{
+		std::string result(length, '\0');
+		auto& rng = DefaultEngine();
+		const auto range = static_cast<std::uint64_t>(charset.size());
+		for (std::size_t i = 0; i < length; ++i)
+			result[i] = charset[detail::BoundedRand(rng, range)];
+		return result;
+	}
+
+	// 指数分布随机数（参数 lambda，均值 = 1/lambda）
+	template <std::floating_point T = double>
+	[[nodiscard]]
+	inline T RandExp(T lambda = T{1})
+	{
+		std::exponential_distribution<T> dist(lambda);
+		return dist(DefaultEngine());
+	}
+
+	// 泊松分布随机数（参数 mean）
+	template <std::integral T = int>
+	[[nodiscard]]
+	inline T RandPoisson(double mean = 1.0)
+	{
+		std::poisson_distribution<T> dist(mean);
+		return dist(DefaultEngine());
+	}
+
+	// 伽马分布随机数（参数 alpha, beta）
+	template <std::floating_point T = double>
+	[[nodiscard]]
+	inline T RandGamma(T alpha = T{1}, T beta = T{1})
+	{
+		std::gamma_distribution<T> dist(alpha, beta);
+		return dist(DefaultEngine());
+	}
+
+	// 生成 N 位随机整数（结果范围 [0, 2^N)）
+	template <int N, std::integral T = std::uint64_t>
+		requires (N > 0 && N <= 64)
+	[[nodiscard]]
+	inline T RandBits() noexcept
+	{
+		auto& rng = DefaultEngine();
+		if constexpr (N == 64)
+			return static_cast<T>(rng());
+		else
+			return static_cast<T>(rng() & ((std::uint64_t{1} << N) - 1));
+	}
+
+	// 生成随机 UUID v4 字符串（xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx）
+	[[nodiscard]]
+	inline std::string RandUUID()
+	{
+		auto& rng = DefaultEngine();
+		static constexpr char hex[] = "0123456789abcdef";
+		std::string uuid(36, '-');
+		for (int i = 0; i < 36; ++i)
+		{
+			if (i == 8 || i == 13 || i == 18 || i == 23) continue;  // 保留 '-'
+			if (i == 14) { uuid[i] = '4'; continue; }  // 版本号
+			if (i == 19) { uuid[i] = hex[8 + (rng() & 3)]; continue; }  // 变体位 [89ab]
+			uuid[i] = hex[rng() & 15];
+		}
+		return uuid;
+	}
 
 	////////////////////////////////////////////////////////////////
 	//

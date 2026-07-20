@@ -36,6 +36,8 @@
 - 硬件种子：`RandomSeed()` 优先使用 RDRAND（x86_64）
 - MSVC 兼容：`RandIntCE` 条件编译（`__uint128_t` / 拒绝采样回退）
 - CMake 安装支持：`find_package(xoshiro)` / `FetchContent`
+- 扩展便捷 API：`RandSample`（无放回抽样）/ `RandPermutation` / `RandString` / `RandExp` / `RandPoisson` / `RandGamma` / `RandBits<N>` / `RandUUID`
+- 包管理器支持：vcpkg / Conan
 - GitHub Actions CI：GCC 14 / Clang 18 / MSVC 三编译器矩阵
 
 ## 引擎一览
@@ -88,6 +90,37 @@ int main()
 | `RandInt(rng, min, max)` | 指定引擎版本 |
 | `RandReal(rng, min, max)` | 指定引擎版本 |
 | `RandIntCE<Seed>(min, max)` | 编译期随机（仅 Random.hpp） |
+
+## 扩展 API
+
+```cpp
+#include "Random.hpp"
+#include <iostream>
+
+int main()
+{
+    // 无放回抽样
+    std::vector<int> pool = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+    auto sample = xoshiro::RandSample(pool, 3);
+
+    // 随机排列
+    auto perm = xoshiro::RandPermutation(5);  // {3, 0, 4, 1, 2} 之类
+
+    // 随机字符串
+    auto token = xoshiro::RandString(16);  // 16 位字母数字
+
+    // 分布
+    auto exp = xoshiro::RandExp(2.0);       // 指数分布 λ=2
+    auto poi = xoshiro::RandPoisson(5.0);   // 泊松分布 μ=5
+    auto gam = xoshiro::RandGamma(2.0, 1.0); // 伽马分布
+
+    // N 位随机数
+    auto byte = xoshiro::RandBits<8>();     // [0, 256)
+
+    // UUID v4
+    auto id = xoshiro::RandUUID();  // "a1b2c3d4-e5f6-4789-abcd-ef0123456789"
+}
+```
 
 ## 手动管理引擎
 
@@ -233,6 +266,31 @@ target_link_libraries(myapp PRIVATE xoshiro::xoshiro)
 cmake -B build -DXOSHIRO_BUILD_TESTS=ON -DXOSHIRO_BUILD_BENCHMARK=ON
 cmake --build build
 ctest --test-dir build
+```
+
+## 包管理器
+
+### vcpkg
+
+```bash
+# 自定义注册表方式
+vcpkg install xoshiro-cpp --overlay-ports=path/to/ports
+```
+
+### Conan
+
+```bash
+conan create . --version=2.0.0
+```
+
+```python
+# conanfile.txt
+[requires]
+xoshiro-cpp/2.0.0
+
+[generators]
+CMakeDeps
+CMakeToolchain
 ```
 
 ## 编译要求

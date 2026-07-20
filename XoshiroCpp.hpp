@@ -33,6 +33,8 @@
 # include <random>
 # include <algorithm>
 # include <cassert>
+# include <string>
+# include <vector>
 # if defined(_MSC_VER) && (defined(__x86_64__) || defined(_M_X64))
 #	include <immintrin.h>
 # endif
@@ -2581,6 +2583,120 @@ namespace XoshiroCpp
 	{
 		std::uniform_real_distribution<T> dist(min, max);
 		return dist(engine);
+	}
+
+	////////////////////////////////////////////////////////////////
+	//
+	//	扩展便捷 API
+	//
+
+	// 无放回抽样：从容器中随机抽取 n 个元素（Fisher-Yates 前 n 步）
+	template <class Container>
+	[[nodiscard]]
+	inline auto RandSample(const Container& c, typename Container::size_type n)
+	{
+		using T = typename Container::value_type;
+		using Size = typename Container::size_type;
+		std::vector<T> pool(c.begin(), c.end());
+		const Size size = static_cast<Size>(pool.size());
+		if (n >= size) return pool;
+		auto& rng = DefaultEngine();
+		for (Size i = 0; i < n; ++i)
+		{
+			std::uniform_int_distribution<Size> dist(i, size - 1);
+			const Size j = dist(rng);
+			auto tmp = std::move(pool[i]);
+			pool[i] = std::move(pool[j]);
+			pool[j] = std::move(tmp);
+		}
+		pool.resize(n);
+		return pool;
+	}
+
+	// 生成 [0, n) 的随机排列
+	[[nodiscard]]
+	inline std::vector<std::size_t> RandPermutation(std::size_t n)
+	{
+		std::vector<std::size_t> perm(n);
+		for (std::size_t i = 0; i < n; ++i) perm[i] = i;
+		auto& rng = DefaultEngine();
+		for (std::size_t i = n - 1; i > 0; --i)
+		{
+			std::uniform_int_distribution<std::size_t> dist(0, i);
+			const std::size_t j = dist(rng);
+			auto tmp = perm[i];
+			perm[i] = perm[j];
+			perm[j] = tmp;
+		}
+		return perm;
+	}
+
+	// 生成指定长度的随机字符串
+	[[nodiscard]]
+	inline std::string RandString(std::size_t length, const std::string& charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
+	{
+		std::string result(length, '\0');
+		auto& rng = DefaultEngine();
+		std::uniform_int_distribution<std::size_t> dist(0, charset.size() - 1);
+		for (std::size_t i = 0; i < length; ++i)
+			result[i] = charset[dist(rng)];
+		return result;
+	}
+
+	// 指数分布随机数（参数 lambda，均值 = 1/lambda）
+	template <class T = double, std::enable_if_t<std::is_floating_point_v<T>>* = nullptr>
+	[[nodiscard]]
+	inline T RandExp(T lambda = T{1})
+	{
+		std::exponential_distribution<T> dist(lambda);
+		return dist(DefaultEngine());
+	}
+
+	// 泊松分布随机数（参数 mean）
+	template <class T = int, std::enable_if_t<std::is_integral_v<T>>* = nullptr>
+	[[nodiscard]]
+	inline T RandPoisson(double mean = 1.0)
+	{
+		std::poisson_distribution<T> dist(mean);
+		return dist(DefaultEngine());
+	}
+
+	// 伽马分布随机数（参数 alpha, beta）
+	template <class T = double, std::enable_if_t<std::is_floating_point_v<T>>* = nullptr>
+	[[nodiscard]]
+	inline T RandGamma(T alpha = T{1}, T beta = T{1})
+	{
+		std::gamma_distribution<T> dist(alpha, beta);
+		return dist(DefaultEngine());
+	}
+
+	// 生成 N 位随机整数（结果范围 [0, 2^N)）
+	template <int N, class T = std::uint64_t, std::enable_if_t<std::is_integral_v<T> && (N > 0) && (N <= 64)>* = nullptr>
+	[[nodiscard]]
+	inline T RandBits() noexcept
+	{
+		auto& rng = DefaultEngine();
+		if constexpr (N == 64)
+			return static_cast<T>(rng());
+		else
+			return static_cast<T>(rng() & ((std::uint64_t{1} << N) - 1));
+	}
+
+	// 生成随机 UUID v4 字符串（xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx）
+	[[nodiscard]]
+	inline std::string RandUUID()
+	{
+		auto& rng = DefaultEngine();
+		static constexpr char hex[] = "0123456789abcdef";
+		std::string uuid(36, '-');
+		for (int i = 0; i < 36; ++i)
+		{
+			if (i == 8 || i == 13 || i == 18 || i == 23) continue;
+			if (i == 14) { uuid[i] = '4'; continue; }
+			if (i == 19) { uuid[i] = hex[8 + (rng() & 3)]; continue; }
+			uuid[i] = hex[rng() & 15];
+		}
+		return uuid;
 	}
 
 	////////////////////////////////////////////////////////////////

@@ -245,6 +245,63 @@ int main()
 		std::printf("[PASS] seed_seq\n");
 	}
 
+	// ===== 扩展便捷 API =====
+	{
+		// RandSample：无放回抽样
+		std::vector<int> pool = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+		auto sample = RandSample(pool, 3);
+		assert(sample.size() == 3);
+		// 验证抽到的元素都在原容器中
+		for (const auto& x : sample)
+			assert(std::find(pool.begin(), pool.end(), x) != pool.end());
+		// 验证无重复
+		assert(sample[0] != sample[1] || sample[1] != sample[2] || sample[0] != sample[2]);
+
+		// RandPermutation：随机排列
+		auto perm = RandPermutation(10);
+		assert(perm.size() == 10);
+		// 验证是 [0,10) 的排列
+		auto sorted_perm = perm;
+		std::sort(sorted_perm.begin(), sorted_perm.end());
+		for (std::size_t i = 0; i < 10; ++i)
+			assert(sorted_perm[i] == i);
+
+		// RandString：随机字符串
+		auto str = RandString(16);
+		assert(str.size() == 16);
+		auto str2 = RandString(8, "01");
+		assert(str2.size() == 8);
+		for (const auto& c : str2) assert(c == '0' || c == '1');
+
+		// RandExp：指数分布（验证非负）
+		for (int i = 0; i < 100; ++i)
+			assert(RandExp() >= 0.0);
+
+		// RandPoisson：泊松分布（验证非负）
+		for (int i = 0; i < 100; ++i)
+			assert(RandPoisson() >= 0);
+
+		// RandGamma：伽马分布（验证正数）
+		for (int i = 0; i < 100; ++i)
+			assert(RandGamma() > 0.0);
+
+		// RandBits：N 位随机数
+		for (int i = 0; i < 100; ++i)
+		{
+			assert(RandBits<8>() < 256);
+			assert(RandBits<1>() < 2);
+		}
+
+		// RandUUID：格式验证
+		auto uuid = RandUUID();
+		assert(uuid.size() == 36);
+		assert(uuid[8] == '-' && uuid[13] == '-' && uuid[18] == '-' && uuid[23] == '-');
+		assert(uuid[14] == '4');  // 版本号
+		assert(uuid[19] == '8' || uuid[19] == '9' || uuid[19] == 'a' || uuid[19] == 'b');  // 变体位
+
+		std::printf("[PASS] 扩展便捷 API (Sample/Permutation/String/Exp/Poisson/Gamma/Bits/UUID)\n");
+	}
+
 	// ===== 统计自检（Chi-Square 频率检验）=====
 	{
 		constexpr int N = 1'000'000;

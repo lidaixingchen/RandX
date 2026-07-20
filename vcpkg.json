@@ -1,0 +1,8 @@
+{
+  "name": "xoshiro-cpp",
+  "version": "2.0.0",
+  "description": "Header-only C++ pseudo-random number generator library based on xoshiro/xoroshiro algorithms. 14 engines, constexpr support, convenience API, CMake integration.",
+  "homepage": "https://github.com/lidaixingchen/Pseudo-random-number-generator-based-on-Xoshiro",
+  "license": "MIT",
+  "dependencies": []
+}
