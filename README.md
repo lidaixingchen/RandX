@@ -21,7 +21,7 @@
 
 - 满足 `std::uniform_random_bit_generator` 概念（Random.hpp 含 `static_assert` 编译期验证）
 - 全 `constexpr`，编译期可用
-- 便捷 API：基础生成（`RandInt`/`RandReal`/`RandBool`/`RandBits`）、分布（`RandNormal`/`RandExp`/`RandPoisson`/`RandGamma`/`RandWeighted`）、容器（`RandElement`/`RandSample`/`RandShuffle`/`RandPermutation`）、字符串（`RandString`/`RandUUID`）
+- 便捷 API：基础生成（`RandInt`/`RandReal`/`RandBool`/`RandChar`/`RandBits`）、分布（`RandNormal`/`RandExp`/`RandPoisson`/`RandGamma`/`RandWeighted`）、容器（`RandElement` 容器版/迭代器版/`RandSample`/`RandShuffle`/`RandPermutation`/`RandFill`/`RandVector`）、字符串（`RandString`/`RandUUID`）、流式序列化（`operator<<`/`operator>>`）
 - 线程局部默认引擎（`DefaultEngine()`），零配置即用
 - `constexpr` 编译期随机（仅 Random.hpp）：`RandIntCE<Seed>(min, max)`
 - 支持 `jump()` / `longJump()` 并行子序列、`discard(n)` 跳过、`serialize()` / `deserialize()` 状态持久化
@@ -81,18 +81,24 @@ int main()
 | 基础生成 | `RandInt(min, max)` | [min, max] 闭区间整数 |
 | | `RandReal(min, max)` | [min, max) 浮点数 |
 | | `RandBool(p)` | 概率 p 为 true |
+| | `RandChar(min, max)` | [min, max] 范围随机字符（`char`/`wchar_t`/`char16_t`/`char32_t`，C++20+ 含 `char8_t`） |
 | | `RandBits<N>()` | N 位随机整数 [0, 2^N) |
 | 分布 | `RandNormal(mean, stddev)` | 正态分布 |
 | | `RandExp(lambda)` | 指数分布 |
 | | `RandPoisson(mean)` | 泊松分布 |
 | | `RandGamma(alpha, beta)` | 伽马分布 |
 | | `RandWeighted(weights)` | 按权重选取索引 |
-| 容器 | `RandElement(container)` | 随机取一个元素 |
+| 容器 | `RandElement(container)` | 随机取一个元素（容器版，返回引用） |
+| | `RandElement(first, last)` | 随机取一个元素（迭代器版，返回迭代器；随机访问 O(1)，输入迭代器 O(n) reservoir sampling） |
 | | `RandSample(container, n)` | 无放回抽样 n 个 |
 | | `RandShuffle(container)` | 随机打乱 |
 | | `RandPermutation(n)` | [0, n) 随机排列 |
+| | `RandFill(first, last, min, max)` | 用随机值填充 [first, last) 范围（STL 风格） |
+| | `RandVector(min, max, n)` | 生成 n 个随机值构成的 `std::vector` |
 | 字符串/ID | `RandString(len, charset)` | 随机字符串 |
 | | `RandUUID()` | UUID v4 |
+| 序列化 | `serialize()` / `deserialize(state)` | 状态持久化（主接口，所有引擎） |
+| | `operator<<` / `operator>>` | 流式语法糖（仅 `state_type` 为容器类的引擎，排除 `SplitMix64`） |
 | 编译期 | `RandIntCE<Seed>(min, max)` | 编译期随机整数（仅 Random.hpp） |
 | | `ShuffleCE(first, last)` | 编译期洗牌 |
 | | `ShuffledArray<T,N,Seed>(arr)` | 编译期洗牌数组版 |
@@ -267,7 +273,7 @@ vcpkg install xoshiro-cpp --overlay-ports=path/to/ports
 ### Conan
 
 ```bash
-conan create . --version=2.0.0
+conan create . --version=1.1.0
 ```
 
 ```python
@@ -291,14 +297,17 @@ CMakeToolchain
 
 ## 测试
 
-仓库包含确定性单元测试（固定种子 → 断言已知输出序列）：
+仓库包含确定性单元测试（doctest 框架，固定种子 → 断言已知输出序列）：
 
 ```bash
-# C++23 测试
-g++ -std=c++23 -Wall -Wextra -o test_random test_random.cpp && ./test_random
+# C++23 测试（Random.hpp）
+g++ -std=c++23 -Wall -Wextra -I third_party -o test_random test_random.cpp && ./test_random
 
-# C++17 测试
-g++ -std=c++17 -Wall -Wextra -o test_xoshirocpp test_xoshirocpp.cpp && ./test_xoshirocpp
+# C++17 测试（XoshiroCpp.hpp）
+g++ -std=c++17 -Wall -Wextra -I third_party -o test_xoshirocpp test_xoshirocpp.cpp && ./test_xoshirocpp
+
+# C++20 测试（验证 char8_t 条件编译路径）
+g++ -std=c++20 -Wall -Wextra -I third_party -o test_xoshirocpp test_xoshirocpp.cpp && ./test_xoshirocpp
 ```
 
 ## CI
@@ -307,9 +316,11 @@ g++ -std=c++17 -Wall -Wextra -o test_xoshirocpp test_xoshirocpp.cpp && ./test_xo
 
 | 编译器 | 平台 | 标准 |
 |--------|------|------|
-| GCC 14 | Ubuntu 24.04 | C++17 / C++23 |
-| Clang 18 | Ubuntu 24.04 | C++17 / C++23 |
+| GCC 14 | Ubuntu 24.04 | C++17 / C++20 / C++23 |
+| Clang 18 | Ubuntu 24.04 | C++17 / C++20 / C++23 |
 | MSVC (v145) | Windows 2025 | C++17 / C++23 |
+
+C++20 矩阵专门覆盖 `char8_t` 条件编译路径。覆盖率任务使用 lcov，阈值 80%。
 
 ## 致谢
 

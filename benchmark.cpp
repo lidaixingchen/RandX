@@ -8,6 +8,8 @@
 //		1. 原始吞吐量（Mops/s, MB/s）
 //		2. jump() 跳跃开销（仅支持 jump 的引擎）
 //		3. RandInt(0, 999999) 便捷 API 吞吐量
+//		4. RandFill 容器填充吞吐量
+//		5. RandVector 生成新 vector 吞吐量（含分配开销）
 //
 //----------------------------------------------------------------------------------------
 
@@ -15,6 +17,7 @@
 #include <chrono>
 #include <cstdio>
 #include <type_traits>
+#include <vector>
 
 // 迭代次数
 static constexpr int N = 100'000'000;
@@ -97,6 +100,63 @@ static double BenchmarkRandInt(const char* name)
 	const auto start = std::chrono::high_resolution_clock::now();
 	for (int i = 0; i < N; ++i)
 		DoNotOptimize(xoshiro::RandInt(rng, 0, 999999));
+	const auto end = std::chrono::high_resolution_clock::now();
+
+	const double ms = std::chrono::duration<double, std::milli>(end - start).count();
+	const double mops = N / ms / 1000.0;
+
+	std::printf("  %-24s %8.1f Mops/s  (%6.1f ms)\n", name, mops, ms);
+	return mops;
+}
+
+//----------------------------------------------------------------------------------------
+//
+//	RandFill 容器填充吞吐量基准测试
+//
+//----------------------------------------------------------------------------------------
+
+// RandFill 基准测试的单次填充元素数（1M，循环 N/FillN 次凑够 N）
+static constexpr int FillN = 1'000'000;
+
+// 测量 RandFill(engine, first, last, 0, 999999) 填充预分配容器的吞吐量
+template <class Engine>
+static double BenchmarkRandFill(const char* name)
+{
+	Engine rng{ 42 };
+	std::vector<int> buf(static_cast<std::size_t>(FillN));
+
+	const auto start = std::chrono::high_resolution_clock::now();
+	for (int i = 0; i < N / FillN; ++i)
+		xoshiro::RandFill(rng, buf.begin(), buf.end(), 0, 999999);
+	const auto end = std::chrono::high_resolution_clock::now();
+
+	DoNotOptimize(buf[0]);
+
+	const double ms = std::chrono::duration<double, std::milli>(end - start).count();
+	const double mops = N / ms / 1000.0;
+
+	std::printf("  %-24s %8.1f Mops/s  (%6.1f ms)\n", name, mops, ms);
+	return mops;
+}
+
+//----------------------------------------------------------------------------------------
+//
+//	RandVector 生成新 vector 吞吐量基准测试
+//
+//----------------------------------------------------------------------------------------
+
+// 测量 RandVector(engine, 0, 999999, VecN) 生成新 vector 的吞吐量（含分配开销）
+template <class Engine>
+static double BenchmarkRandVector(const char* name)
+{
+	Engine rng{ 42 };
+
+	const auto start = std::chrono::high_resolution_clock::now();
+	for (int i = 0; i < N / FillN; ++i)
+	{
+		auto v = xoshiro::RandVector(rng, 0, 999999, FillN);
+		DoNotOptimize(v[0]);
+	}
 	const auto end = std::chrono::high_resolution_clock::now();
 
 	const double ms = std::chrono::duration<double, std::milli>(end - start).count();
@@ -197,6 +257,32 @@ int main()
 	BenchmarkRandInt<xoshiro::Xoshiro128StarStar>("Xoshiro128StarStar");
 	BenchmarkRandInt<xoshiro::Xoroshiro64Star>("Xoroshiro64Star");
 	BenchmarkRandInt<xoshiro::Xoroshiro64StarStar>("Xoroshiro64StarStar");
+
+	std::printf("\n");
+
+	//----------------------------------------------------------------
+	// 第四部分：RandFill 容器填充吞吐量
+	//----------------------------------------------------------------
+	std::printf("[4] RandFill(engine, first, last, 0, 999999) 容器填充吞吐量\n");
+	std::printf("    (预分配 %d 元素 vector，循环 %d 次)\n", FillN, N / FillN);
+	std::printf("----------------------------------------------------------------\n");
+
+	BenchmarkRandFill<xoshiro::SplitMix64>("SplitMix64");
+	BenchmarkRandFill<xoshiro::Xoshiro256StarStar>("Xoshiro256StarStar");
+	BenchmarkRandFill<xoshiro::SFC64>("SFC64");
+
+	std::printf("\n");
+
+	//----------------------------------------------------------------
+	// 第五部分：RandVector 生成新 vector 吞吐量
+	//----------------------------------------------------------------
+	std::printf("[5] RandVector(engine, 0, 999999, %d) 生成新 vector 吞吐量\n", FillN);
+	std::printf("    (含 vector 分配开销，循环 %d 次)\n", N / FillN);
+	std::printf("----------------------------------------------------------------\n");
+
+	BenchmarkRandVector<xoshiro::SplitMix64>("SplitMix64");
+	BenchmarkRandVector<xoshiro::Xoshiro256StarStar>("Xoshiro256StarStar");
+	BenchmarkRandVector<xoshiro::SFC64>("SFC64");
 
 	std::printf("\n");
 	std::printf("================================================================\n");

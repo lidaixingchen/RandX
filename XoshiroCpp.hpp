@@ -2512,6 +2512,102 @@ namespace XoshiroCpp
 		struct HasJump<Engine, std::void_t<decltype(std::declval<Engine&>().jump())>> : std::true_type {};
 	}
 
+	namespace detail
+	{
+		// 字符类型检测（char/wchar_t/char16_t/char32_t，C++20+ 追加 char8_t）
+		template <class T>
+		struct is_character : std::bool_constant<
+			std::is_same_v<T, char>
+			|| std::is_same_v<T, wchar_t>
+			|| std::is_same_v<T, char16_t>
+			|| std::is_same_v<T, char32_t>
+#	if defined(__cpp_char8_t) || (defined(_MSVC_LANG) && _MSVC_LANG >= 202002L)
+			|| std::is_same_v<T, char8_t>
+#	endif
+		> {};
+
+		template <class T>
+		inline constexpr bool is_character_v = is_character<T>::value;
+
+		// 检测 It 是否为 random_access 迭代器（void_t 包装避免硬错误）
+		template <class It, class = void>
+		struct is_random_access_iterator : std::false_type {};
+
+		template <class It>
+		struct is_random_access_iterator<It, std::void_t<
+			typename std::iterator_traits<It>::iterator_category>>
+			: std::is_base_of<std::random_access_iterator_tag,
+				typename std::iterator_traits<It>::iterator_category> {};
+
+		// 检测 It 是否为 input_iterator（正向检测，自动排除 output_iterator_tag）
+		template <class It, class = void>
+		struct is_input_iterator : std::false_type {};
+
+		template <class It>
+		struct is_input_iterator<It, std::void_t<
+			typename std::iterator_traits<It>::iterator_category>>
+			: std::is_base_of<std::input_iterator_tag,
+				typename std::iterator_traits<It>::iterator_category> {};
+
+		template <class It>
+		inline constexpr bool is_random_access_iterator_v =
+			is_random_access_iterator<It>::value;
+
+		template <class It>
+		inline constexpr bool is_input_iterator_v =
+			is_input_iterator<It>::value;
+
+		// 检测 *first = T 合法性 + T 为数值类型（RandFill 用）
+		template <class It, class T, class = void>
+		struct is_rand_fillable : std::false_type {};
+
+		template <class It, class T>
+		struct is_rand_fillable<It, T, std::void_t<
+			decltype(*std::declval<It&>() = std::declval<T>())
+		>> : std::bool_constant<
+			std::is_integral_v<T> || std::is_floating_point_v<T>
+		> {};
+
+		template <class It, class T>
+		inline constexpr bool is_rand_fillable_v = is_rand_fillable<It, T>::value;
+
+		// 检测 state_type 是否为可索引容器（排除标量如 SplitMix64 的 uint64_t）
+		template <class S, class = void>
+		struct is_indexable_state : std::false_type {};
+
+		template <class S>
+		struct is_indexable_state<S, std::void_t<
+			decltype(std::declval<const S&>().size()),
+			decltype(std::declval<S&>()[std::size_t{}]),
+			typename S::value_type
+		>> : std::is_same<
+			decltype(std::declval<const S&>().size()),
+			std::size_t> {};
+
+		template <class S>
+		inline constexpr bool is_indexable_state_v = is_indexable_state<S>::value;
+
+		// 可序列化引擎检测（serialize/deserialize/state_type + state_type 为可索引容器）
+		template <class E, class = void>
+		struct is_serializable_engine : std::false_type {};
+
+		template <class E>
+		struct is_serializable_engine<E, std::void_t<
+			decltype(std::declval<const E&>().serialize()),
+			decltype(std::declval<E&>().deserialize(
+				std::declval<typename E::state_type>())),
+			typename E::state_type
+		>> : std::bool_constant<
+			std::is_same_v<
+				decltype(std::declval<const E&>().serialize()),
+				typename E::state_type>
+			&& is_indexable_state_v<typename E::state_type>
+		> {};
+
+		template <class E>
+		inline constexpr bool is_serializable_engine_v = is_serializable_engine<E>::value;
+	}
+
 	template <class Engine, std::enable_if_t<detail::HasJump<Engine>::value>* = nullptr>
 	[[nodiscard]]
 	inline constexpr Engine MakeStreamEngine(std::uint64_t streamId, std::uint64_t seed = DefaultSeed)
@@ -2594,6 +2690,49 @@ namespace XoshiroCpp
 		return RandReal<double>(0.0, 1.0) < p;
 	}
 
+	// 生成 [min, max] 范围内的随机字符（类型安全，避免 RandInt 窄化）
+	// 内部用 int64_t 分布以支持 char32_t 全范围
+	template <class CharT,
+		std::enable_if_t<detail::is_character_v<CharT>>* = nullptr>
+	[[nodiscard]]
+	inline CharT RandChar(CharT min, CharT max)
+	{
+		using IntT = std::int64_t;
+		std::uniform_int_distribution<IntT> dist(
+			static_cast<IntT>(min), static_cast<IntT>(max));
+		return static_cast<CharT>(dist(DefaultEngine()));
+	}
+
+	// 生成 [CharT{}, max] 范围内的随机字符
+	template <class CharT,
+		std::enable_if_t<detail::is_character_v<CharT>>* = nullptr>
+	[[nodiscard]]
+	inline CharT RandChar(CharT max)
+	{
+		return RandChar<CharT>(CharT{}, max);
+	}
+
+	// 指定引擎重载：生成 [min, max] 范围内的随机字符
+	template <class CharT, class Engine,
+		std::enable_if_t<detail::is_character_v<CharT>>* = nullptr>
+	[[nodiscard]]
+	inline CharT RandChar(Engine& engine, CharT min, CharT max)
+	{
+		using IntT = std::int64_t;
+		std::uniform_int_distribution<IntT> dist(
+			static_cast<IntT>(min), static_cast<IntT>(max));
+		return static_cast<CharT>(dist(engine));
+	}
+
+	// 指定引擎重载：生成 [CharT{}, max] 范围内的随机字符
+	template <class CharT, class Engine,
+		std::enable_if_t<detail::is_character_v<CharT>>* = nullptr>
+	[[nodiscard]]
+	inline CharT RandChar(Engine& engine, CharT max)
+	{
+		return RandChar<CharT>(engine, CharT{}, max);
+	}
+
 	// 从容器中随机取一个元素
 	template <class Container>
 	[[nodiscard]]
@@ -2603,6 +2742,74 @@ namespace XoshiroCpp
 		if (c.empty())
 			throw std::invalid_argument("RandElement: empty container");
 		return c[RandInt<Size>(static_cast<Size>(c.size() - 1))];
+	}
+
+	// 迭代器版 RandElement：随机访问迭代器，O(1) 直接定位
+	template <class It,
+		std::enable_if_t<detail::is_random_access_iterator_v<It>>* = nullptr>
+	[[nodiscard]]
+	inline It RandElement(It first, It last)
+	{
+		using Diff = typename std::iterator_traits<It>::difference_type;
+		const Diff n = std::distance(first, last);
+		if (n <= 0)
+			throw std::invalid_argument("RandElement: empty range");
+		return std::next(first, RandInt<Diff>(Diff{0}, n - 1));
+	}
+
+	// 迭代器版 RandElement：输入迭代器（非 random_access），O(n) reservoir sampling
+	// is_input_iterator_v 正向检测，自动排除 output_iterator_tag
+	template <class It,
+		std::enable_if_t<detail::is_input_iterator_v<It>
+			&& !detail::is_random_access_iterator_v<It>>* = nullptr>
+	[[nodiscard]]
+	inline It RandElement(It first, It last)
+	{
+		if (first == last)
+			throw std::invalid_argument("RandElement: empty range");
+		It selected = first;
+		++first;
+		for (typename std::iterator_traits<It>::difference_type i = 1;
+			first != last; ++first, ++i)
+		{
+			if (RandInt<typename std::iterator_traits<It>::difference_type>(0, i) == 0)
+				selected = first;
+		}
+		return selected;
+	}
+
+	// 指定引擎重载：随机访问迭代器版 RandElement
+	template <class It, class Engine,
+		std::enable_if_t<detail::is_random_access_iterator_v<It>>* = nullptr>
+	[[nodiscard]]
+	inline It RandElement(Engine& engine, It first, It last)
+	{
+		using Diff = typename std::iterator_traits<It>::difference_type;
+		const Diff n = std::distance(first, last);
+		if (n <= 0)
+			throw std::invalid_argument("RandElement: empty range");
+		return std::next(first, RandInt<Diff>(engine, Diff{0}, n - 1));
+	}
+
+	// 指定引擎重载：输入迭代器版 RandElement（reservoir sampling）
+	template <class It, class Engine,
+		std::enable_if_t<detail::is_input_iterator_v<It>
+			&& !detail::is_random_access_iterator_v<It>>* = nullptr>
+	[[nodiscard]]
+	inline It RandElement(Engine& engine, It first, It last)
+	{
+		if (first == last)
+			throw std::invalid_argument("RandElement: empty range");
+		It selected = first;
+		++first;
+		for (typename std::iterator_traits<It>::difference_type i = 1;
+			first != last; ++first, ++i)
+		{
+			if (RandInt<typename std::iterator_traits<It>::difference_type>(
+				engine, typename std::iterator_traits<It>::difference_type{0}, i) == 0)
+				selected = first;
+		}
+		return selected;
 	}
 
 
@@ -2620,6 +2827,100 @@ namespace XoshiroCpp
 	inline void RandShuffle(Container&& c)
 	{
 		std::shuffle(c.begin(), c.end(), DefaultEngine());
+	}
+
+	// 用随机值填充 [first, last) 范围（STL 风格）
+	// T 从 min/max 推导，须与容器 value_type 一致，否则精度丢失（见 README 警告）
+	template <class It, class T,
+		std::enable_if_t<detail::is_rand_fillable_v<It, T>>* = nullptr>
+	inline void RandFill(It first, It last, T min, T max)
+	{
+		auto& rng = DefaultEngine();
+		if constexpr (std::is_integral_v<T>)
+		{
+			std::uniform_int_distribution<T> dist(min, max);
+			for (; first != last; ++first) *first = dist(rng);
+		}
+		else
+		{
+			std::uniform_real_distribution<T> dist(min, max);
+			for (; first != last; ++first) *first = dist(rng);
+		}
+	}
+
+	// 指定引擎重载：RandFill
+	template <class It, class T, class Engine,
+		std::enable_if_t<detail::is_rand_fillable_v<It, T>>* = nullptr>
+	inline void RandFill(Engine& engine, It first, It last, T min, T max)
+	{
+		if constexpr (std::is_integral_v<T>)
+		{
+			std::uniform_int_distribution<T> dist(min, max);
+			for (; first != last; ++first) *first = dist(engine);
+		}
+		else
+		{
+			std::uniform_real_distribution<T> dist(min, max);
+			for (; first != last; ++first) *first = dist(engine);
+		}
+	}
+
+	// 生成包含 n 个随机整数的 vector（便捷版）
+	template <class T,
+		std::enable_if_t<std::is_integral_v<T>>* = nullptr>
+	[[nodiscard]]
+	inline std::vector<T> RandVector(T min, T max, std::size_t n)
+	{
+		std::vector<T> v;
+		v.reserve(n);
+		auto& rng = DefaultEngine();
+		std::uniform_int_distribution<T> dist(min, max);
+		for (std::size_t i = 0; i < n; ++i)
+			v.push_back(dist(rng));
+		return v;
+	}
+
+	// 生成包含 n 个随机浮点数的 vector（便捷版）
+	template <class T,
+		std::enable_if_t<std::is_floating_point_v<T>>* = nullptr>
+	[[nodiscard]]
+	inline std::vector<T> RandVector(T min, T max, std::size_t n)
+	{
+		std::vector<T> v;
+		v.reserve(n);
+		auto& rng = DefaultEngine();
+		std::uniform_real_distribution<T> dist(min, max);
+		for (std::size_t i = 0; i < n; ++i)
+			v.push_back(dist(rng));
+		return v;
+	}
+
+	// 指定引擎重载：RandVector 整数版
+	template <class T, class Engine,
+		std::enable_if_t<std::is_integral_v<T>>* = nullptr>
+	[[nodiscard]]
+	inline std::vector<T> RandVector(Engine& engine, T min, T max, std::size_t n)
+	{
+		std::vector<T> v;
+		v.reserve(n);
+		std::uniform_int_distribution<T> dist(min, max);
+		for (std::size_t i = 0; i < n; ++i)
+			v.push_back(dist(engine));
+		return v;
+	}
+
+	// 指定引擎重载：RandVector 浮点版
+	template <class T, class Engine,
+		std::enable_if_t<std::is_floating_point_v<T>>* = nullptr>
+	[[nodiscard]]
+	inline std::vector<T> RandVector(Engine& engine, T min, T max, std::size_t n)
+	{
+		std::vector<T> v;
+		v.reserve(n);
+		std::uniform_real_distribution<T> dist(min, max);
+		for (std::size_t i = 0; i < n; ++i)
+			v.push_back(dist(engine));
+		return v;
 	}
 
 	// 按权重随机选取索引（权重容器元素为数值类型）
@@ -2783,5 +3084,53 @@ namespace XoshiroCpp
 	static_assert(Xoroshiro64StarStar::min() < Xoroshiro64StarStar::max());
 	static_assert(SFC64::min() < SFC64::max());
 	static_assert(RomuDuoJr::min() < RomuDuoJr::max());
+
+	// ========================================================================
+	// 流式运算符 operator<< / operator>>
+	// 仅对 state_type 为可索引容器类的引擎生效（is_serializable_engine_v）
+	// SplitMix64（state_type = uint64_t 标量）不支持，由 is_indexable_state_v 排除
+	// 格式兼容 std::random_engine：空格分隔的十进制数序列
+	// ========================================================================
+
+	// 流式输出引擎状态
+	template <class CharT, class Traits, class Engine,
+		std::enable_if_t<detail::is_serializable_engine_v<Engine>>* = nullptr>
+	std::basic_ostream<CharT, Traits>&
+	operator<<(std::basic_ostream<CharT, Traits>& os, const Engine& engine)
+	{
+		auto state = engine.serialize();
+		auto it = state.begin();
+		if (it != state.end())
+		{
+			os << *it;
+			for (++it; it != state.end(); ++it)
+				os << os.widen(' ') << *it;
+		}
+		return os;
+	}
+
+	// 流式恢复引擎状态
+	// 若解析失败（读取不足或流错误），setstate(failbit) 且引擎状态保持不变
+	// （与 std::random_engine 一致：先读取到临时 state，全部成功才 deserialize）
+	template <class CharT, class Traits, class Engine,
+		std::enable_if_t<detail::is_serializable_engine_v<Engine>>* = nullptr>
+	std::basic_istream<CharT, Traits>&
+	operator>>(std::basic_istream<CharT, Traits>& is, Engine& engine)
+	{
+		typename Engine::state_type state{};
+		std::size_t i = 0;
+		for (; i < state.size() && is; ++i)
+			is >> state[i];
+
+		if (i == state.size() && is)
+		{
+			engine.deserialize(state);
+		}
+		else
+		{
+			is.setstate(std::ios_base::failbit);
+		}
+		return is;
+	}
 
 }

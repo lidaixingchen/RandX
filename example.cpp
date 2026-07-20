@@ -1,4 +1,4 @@
-﻿//----------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 //
 //	example.cpp
 //	Random.hpp (C++23) 功能演示
@@ -8,6 +8,8 @@
 # include "Random.hpp"
 # include <iostream>
 # include <array>
+# include <list>
+# include <sstream>
 # include <vector>
 # include <random>
 
@@ -24,6 +26,55 @@ int main()
 	std::vector<int> items = { 10, 20, 30, 40, 50 };
 	std::cout << "RandElement     = " << RandElement(items) << '\n';
 	std::cout << "RandNormal()    = " << RandNormal() << '\n';
+
+	// ===== 新增 API 演示 =====
+	std::cout << "\n=== 新增 API ===\n";
+	{
+		// RandChar：类型安全的字符随机
+		std::cout << "RandChar('a','z') = " << RandChar('a', 'z') << '\n';
+
+		// RandElement 迭代器版：支持非随机访问容器（如 std::list）
+		std::list<int> lst = { 100, 200, 300, 400, 500 };
+		auto it = RandElement(lst.begin(), lst.end());
+		std::cout << "RandElement(list) = " << *it << '\n';
+
+		// RandFill：填充已有容器（STL 风格）
+		std::array<int, 5> arr{};
+		RandFill(arr.begin(), arr.end(), 0, 99);
+		std::cout << "RandFill(array)   = ";
+		for (const auto& v : arr) std::cout << v << ' ';
+		std::cout << '\n';
+
+		// RandVector：直接生成新 vector
+		auto vi = RandVector(0, 99, 5);
+		std::cout << "RandVector(int)   = ";
+		for (const auto& v : vi) std::cout << v << ' ';
+		std::cout << '\n';
+
+		auto vd = RandVector(0.0, 1.0, 3);
+		std::cout << "RandVector(double)= ";
+		for (const auto& v : vd) std::cout << v << ' ';
+		std::cout << '\n';
+
+		// ⚠️ RandFill 类型推导陷阱：min/max 字面量类型须与容器元素一致
+		// std::vector<double> v(5); RandFill(v.begin(), v.end(), 0, 1);   // ❌ T=int，精度丢失
+		// std::vector<double> v(5); RandFill(v.begin(), v.end(), 0.0, 1.0); // ✅ T=double
+	}
+
+	// ===== operator<< / operator>> 流式序列化 =====
+	std::cout << "\n=== operator<< / operator>> ===\n";
+	{
+		Xoshiro256StarStar rng{ 777 };
+		for (int i = 0; i < 3; ++i) (void)rng();
+
+		std::stringstream ss;
+		ss << rng;  // 流式输出引擎状态（空格分隔的十进制数序列）
+		std::cout << "rng state: " << ss.str() << '\n';
+
+		Xoshiro256StarStar rng2{};
+		ss >> rng2;  // 流式恢复
+		std::cout << "restored equal: " << (rng == rng2 ? "true" : "false") << '\n';
+	}
 
 	// ===== 手动管理引擎 =====
 	std::cout << "\n=== 手动引擎 ===\n";

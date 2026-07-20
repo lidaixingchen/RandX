@@ -11,45 +11,64 @@ jobs:
     runs-on: ubuntu-24.04
     strategy:
       matrix:
-        std: [c++17, c++23]
+        std: [c++17, c++20, c++23]
     steps:
       - uses: actions/checkout@v4
       - name: Install GCC 14
         run: |
+          sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
           sudo apt-get update
           sudo apt-get install -y g++-14
-      - name: Build & Test
+      - name: Build & Test (C++23 with doctest)
+        if: matrix.std == 'c++23'
         run: |
-          if [ "${{ matrix.std }}" = "c++23" ]; then
-            g++-14 -std=c++23 -O2 -Wall -Wextra -o test_random test_random.cpp
-            ./test_random
-            g++-14 -std=c++23 -O2 -Wall -Wextra -o benchmark benchmark.cpp
-          else
-            g++-14 -std=c++17 -O2 -Wall -Wextra -o test_xoshirocpp test_xoshirocpp.cpp
-            ./test_xoshirocpp
-          fi
+          g++-14 -std=c++23 -O2 -Wall -Wextra -I third_party \
+            -o test_random test_random.cpp
+          ./test_random
+          g++-14 -std=c++23 -O2 -Wall -Wextra -o benchmark benchmark.cpp
+      - name: Build & Test (C++17 with doctest)
+        if: matrix.std == 'c++17'
+        run: |
+          g++-14 -std=c++17 -O2 -Wall -Wextra -I third_party \
+            -o test_xoshirocpp test_xoshirocpp.cpp
+          ./test_xoshirocpp
+      - name: Build & Test (C++20 char8_t coverage)
+        if: matrix.std == 'c++20'
+        run: |
+          g++-14 -std=c++20 -O2 -Wall -Wextra -I third_party \
+            -o test_xoshirocpp test_xoshirocpp.cpp
+          ./test_xoshirocpp
 
   clang:
     runs-on: ubuntu-24.04
     strategy:
       matrix:
-        std: [c++17, c++23]
+        std: [c++17, c++20, c++23]
     steps:
       - uses: actions/checkout@v4
       - name: Install Clang 18
         run: |
           sudo apt-get update
           sudo apt-get install -y clang-18
-      - name: Build & Test
+      - name: Build & Test (C++23 with doctest)
+        if: matrix.std == 'c++23'
         run: |
-          if [ "${{ matrix.std }}" = "c++23" ]; then
-            clang++-18 -std=c++23 -O2 -Wall -Wextra -o test_random test_random.cpp
-            ./test_random
-            clang++-18 -std=c++23 -O2 -Wall -Wextra -o benchmark benchmark.cpp
-          else
-            clang++-18 -std=c++17 -O2 -Wall -Wextra -o test_xoshirocpp test_xoshirocpp.cpp
-            ./test_xoshirocpp
-          fi
+          clang++-18 -std=c++23 -O2 -Wall -Wextra -I third_party \
+            -o test_random test_random.cpp
+          ./test_random
+          clang++-18 -std=c++23 -O2 -Wall -Wextra -o benchmark benchmark.cpp
+      - name: Build & Test (C++17 with doctest)
+        if: matrix.std == 'c++17'
+        run: |
+          clang++-18 -std=c++17 -O2 -Wall -Wextra -I third_party \
+            -o test_xoshirocpp test_xoshirocpp.cpp
+          ./test_xoshirocpp
+      - name: Build & Test (C++20 char8_t coverage)
+        if: matrix.std == 'c++20'
+        run: |
+          clang++-18 -std=c++20 -O2 -Wall -Wextra -I third_party \
+            -o test_xoshirocpp test_xoshirocpp.cpp
+          ./test_xoshirocpp
 
   msvc:
     runs-on: windows-2025
@@ -59,14 +78,56 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: ilammy/msvc-dev-cmd@v1
-      - name: Build & Test
+      - name: Build & Test (C++23 with doctest)
+        if: matrix.std == 'c++23'
         shell: cmd
         run: |
-          if "${{ matrix.std }}"=="c++23" (
-            cl /std:c++latest /W4 /EHsc /O2 /Fe:test_random.exe test_random.cpp
-            test_random.exe
-            cl /std:c++latest /W4 /EHsc /O2 /Fe:benchmark.exe benchmark.cpp
-          ) else (
-            cl /std:c++17 /W4 /EHsc /O2 /Fe:test_xoshirocpp.exe test_xoshirocpp.cpp
-            test_xoshirocpp.exe
-          )
+          cl /std:c++latest /W4 /EHsc /O2 /I third_party /Fe:test_random.exe test_random.cpp
+          test_random.exe
+          cl /std:c++latest /W4 /EHsc /O2 /Fe:benchmark.exe benchmark.cpp
+      - name: Build & Test (C++17 with doctest)
+        if: matrix.std == 'c++17'
+        shell: cmd
+        run: |
+          cl /std:c++17 /W4 /EHsc /O2 /I third_party /Fe:test_xoshirocpp.exe test_xoshirocpp.cpp
+          test_xoshirocpp.exe
+
+  coverage:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install deps
+        run: |
+          sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
+          sudo apt-get update
+          sudo apt-get install -y g++-14 lcov
+      - name: Build with coverage
+        run: |
+          g++-14 -std=c++23 -O0 -g --coverage -I third_party \
+            -o test_random test_random.cpp
+          g++-14 -std=c++17 -O0 -g --coverage -I third_party \
+            -o test_xoshirocpp test_xoshirocpp.cpp
+      - name: Run tests
+        run: |
+          ./test_random
+          ./test_xoshirocpp
+      - name: Generate coverage report
+        run: |
+          lcov --capture --directory . --output-file coverage.info
+          lcov --remove coverage.info '/usr/*' 'third_party/*' --output-file coverage.info
+          lcov --list coverage.info
+      - name: Check coverage threshold
+        run: |
+          COVERAGE=$(lcov --summary coverage.info | grep -oP 'lines\.*:\s*\K[0-9.]+')
+          echo "Line coverage: ${COVERAGE}%"
+          awk "BEGIN { exit !(${COVERAGE} >= 80) }" || (echo "Coverage ${COVERAGE}% < 80%" && exit 1)
+      - name: Upload coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage.info
+      - name: Upload to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          files: ./coverage.info
+          fail_ci_if_error: false
