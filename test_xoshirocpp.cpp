@@ -92,6 +92,43 @@ int main()
         std::puts("[PASS] SplitMix64");
     }
 
+	// SFC64
+	{
+		SFC64 rng{ 12345 };
+		const std::uint64_t expected[] = {
+			13526236746588683560ULL, 8823148983839225293ULL,
+			5240613241081073383ULL, 17030394482648619497ULL,
+			7698197985592869707ULL
+		};
+		for (auto e : expected) assert(rng() == e);
+		std::puts("[PASS] SFC64");
+	}
+
+	// RomuDuoJr
+	{
+		RomuDuoJr rng{ 12345 };
+		const std::uint64_t expected[] = {
+			2454886589211414944ULL, 12510505629750556783ULL,
+			16962469053573158940ULL, 8350026492023846583ULL,
+			15401281827437905834ULL
+		};
+		for (auto e : expected) assert(rng() == e);
+		std::puts("[PASS] RomuDuoJr");
+	}
+
+	// ===== 多流引擎（MakeStreamEngine）=====
+	{
+		auto s0 = MakeStreamEngine<Xoshiro256StarStar>(0, 12345);
+		auto s1 = MakeStreamEngine<Xoshiro256StarStar>(1, 12345);
+		bool allSame = true;
+		for (int i = 0; i < 10; ++i)
+		{
+			if (s0() != s1()) allSame = false;
+		}
+		assert(!allSame);
+		std::puts("[PASS] MakeStreamEngine");
+	}
+
     // ===== serialize / deserialize =====
     {
         Xoshiro256StarStar rng{ 99999 };

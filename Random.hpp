@@ -72,6 +72,7 @@
 # include <concepts>
 # include <random>
 # include <algorithm>
+# include <cassert>
 # include <type_traits>
 
 namespace xoshiro
@@ -659,6 +660,92 @@ namespace xoshiro
 
 		state_type m_state;
 	};
+
+	// SFC64 (Small Fast Counter)
+	// 输出：64 位
+	// 周期：>= 2^64（counter 保证）
+	// 状态大小：32 字节
+	// 作者：Chris Doty-Humphrey (PractRand)
+	// 特点：通过 PractRand 全部测试，速度极快，无 jump 支持
+	class SFC64
+	{
+	public:
+
+		using state_type	= std::array<std::uint64_t, 4>;
+		using result_type	= std::uint64_t;
+
+		[[nodiscard]]
+		explicit constexpr SFC64(std::uint64_t seed = DefaultSeed) noexcept;
+
+		[[nodiscard]]
+		explicit constexpr SFC64(state_type state) noexcept;
+
+		constexpr result_type operator()() noexcept;
+
+		constexpr void discard(unsigned long long n) noexcept;
+
+		[[nodiscard]]
+		static constexpr result_type min() noexcept;
+
+		[[nodiscard]]
+		static constexpr result_type max() noexcept;
+
+		[[nodiscard]]
+		constexpr state_type serialize() const noexcept;
+
+		constexpr void deserialize(state_type state) noexcept;
+
+		friend auto operator <=>(const SFC64&, const SFC64&) = default;
+
+	private:
+
+		std::uint64_t m_a;
+		std::uint64_t m_b;
+		std::uint64_t m_c;
+		std::uint64_t m_counter;
+	};
+
+	// RomuDuoJr
+	// 输出：64 位
+	// 周期：估计 >= 2^51（非严格证明）
+	// 状态大小：16 字节
+	// 作者：Mark Overton
+	// 特点：极简极快，适合非关键模拟，无 jump 支持，周期无严格保证
+	class RomuDuoJr
+	{
+	public:
+
+		using state_type	= std::array<std::uint64_t, 2>;
+		using result_type	= std::uint64_t;
+
+		[[nodiscard]]
+		explicit constexpr RomuDuoJr(std::uint64_t seed = DefaultSeed) noexcept;
+
+		[[nodiscard]]
+		explicit constexpr RomuDuoJr(state_type state) noexcept;
+
+		constexpr result_type operator()() noexcept;
+
+		constexpr void discard(unsigned long long n) noexcept;
+
+		[[nodiscard]]
+		static constexpr result_type min() noexcept;
+
+		[[nodiscard]]
+		static constexpr result_type max() noexcept;
+
+		[[nodiscard]]
+		constexpr state_type serialize() const noexcept;
+
+		constexpr void deserialize(state_type state) noexcept;
+
+		friend auto operator <=>(const RomuDuoJr&, const RomuDuoJr&) = default;
+
+	private:
+
+		std::uint64_t m_x;
+		std::uint64_t m_y;
+	};
 }
 
 ////////////////////////////////////////////////////////////////
@@ -690,6 +777,24 @@ namespace xoshiro
 		{
 			return (x << s) | (x >> (32 - s));
 		}
+
+		// 检测状态数组是否全零（全零是 xoshiro/xoroshiro 的吸收态）
+		template <std::size_t N>
+		[[nodiscard]]
+		static constexpr bool IsAllZero(const std::array<std::uint64_t, N>& state) noexcept
+		{
+			for (const auto& s : state) { if (s != 0) return false; }
+			return true;
+		}
+
+		template <std::size_t N>
+		[[nodiscard]]
+		static constexpr bool IsAllZero(const std::array<std::uint32_t, N>& state) noexcept
+		{
+			for (const auto& s : state) { if (s != 0) return false; }
+			return true;
+		}
+
 	}
 
 	////////////////////////////////////////////////////////////////
@@ -753,7 +858,10 @@ namespace xoshiro
 		: m_state(SplitMix64{ seed }.generateSeedSequence<4>()) {}
 
 	inline constexpr Xoshiro256Plus::Xoshiro256Plus(const state_type state) noexcept
-		: m_state(state) {}
+		: m_state(state)
+	{
+		assert(!detail::IsAllZero(state) && "全零状态是吸收态，禁止使用");
+	}
 
 	inline constexpr Xoshiro256Plus::result_type Xoshiro256Plus::operator()() noexcept
 	{
@@ -845,6 +953,7 @@ namespace xoshiro
 
 	inline constexpr void Xoshiro256Plus::deserialize(const state_type state) noexcept
 	{
+		assert(!detail::IsAllZero(state) && "全零状态是吸收态，禁止使用");
 		m_state = state;
 	}
 
@@ -861,7 +970,10 @@ namespace xoshiro
 		: m_state(SplitMix64{ seed }.generateSeedSequence<4>()) {}
 
 	inline constexpr Xoshiro256PlusPlus::Xoshiro256PlusPlus(const state_type state) noexcept
-		: m_state(state) {}
+		: m_state(state)
+	{
+		assert(!detail::IsAllZero(state) && "全零状态是吸收态，禁止使用");
+	}
 
 	inline constexpr Xoshiro256PlusPlus::result_type Xoshiro256PlusPlus::operator()() noexcept
 	{
@@ -953,6 +1065,7 @@ namespace xoshiro
 
 	inline constexpr void Xoshiro256PlusPlus::deserialize(const state_type state) noexcept
 	{
+		assert(!detail::IsAllZero(state) && "全零状态是吸收态，禁止使用");
 		m_state = state;
 	}
 
@@ -969,7 +1082,10 @@ namespace xoshiro
 		: m_state(SplitMix64{ seed }.generateSeedSequence<4>()) {}
 
 	inline constexpr Xoshiro256StarStar::Xoshiro256StarStar(const state_type state) noexcept
-		: m_state(state) {}
+		: m_state(state)
+	{
+		assert(!detail::IsAllZero(state) && "全零状态是吸收态，禁止使用");
+	}
 
 	inline constexpr Xoshiro256StarStar::result_type Xoshiro256StarStar::operator()() noexcept
 	{
@@ -1061,6 +1177,7 @@ namespace xoshiro
 
 	inline constexpr void Xoshiro256StarStar::deserialize(const state_type state) noexcept
 	{
+		assert(!detail::IsAllZero(state) && "全零状态是吸收态，禁止使用");
 		m_state = state;
 	}
 
@@ -1077,7 +1194,10 @@ namespace xoshiro
 		: m_state(SplitMix64{ seed }.generateSeedSequence<2>()) {}
 
 	inline constexpr Xoroshiro128Plus::Xoroshiro128Plus(const state_type state) noexcept
-		: m_state(state) {}
+		: m_state(state)
+	{
+		assert(!detail::IsAllZero(state) && "全零状态是吸收态，禁止使用");
+	}
 
 	inline constexpr Xoroshiro128Plus::result_type Xoroshiro128Plus::operator()() noexcept
 	{
@@ -1155,6 +1275,7 @@ namespace xoshiro
 
 	inline constexpr void Xoroshiro128Plus::deserialize(const state_type state) noexcept
 	{
+		assert(!detail::IsAllZero(state) && "全零状态是吸收态，禁止使用");
 		m_state = state;
 	}
 
@@ -1171,7 +1292,10 @@ namespace xoshiro
 		: m_state(SplitMix64{ seed }.generateSeedSequence<2>()) {}
 
 	inline constexpr Xoroshiro128PlusPlus::Xoroshiro128PlusPlus(const state_type state) noexcept
-		: m_state(state) {}
+		: m_state(state)
+	{
+		assert(!detail::IsAllZero(state) && "全零状态是吸收态，禁止使用");
+	}
 
 	inline constexpr Xoroshiro128PlusPlus::result_type Xoroshiro128PlusPlus::operator()() noexcept
 	{
@@ -1249,6 +1373,7 @@ namespace xoshiro
 
 	inline constexpr void Xoroshiro128PlusPlus::deserialize(const state_type state) noexcept
 	{
+		assert(!detail::IsAllZero(state) && "全零状态是吸收态，禁止使用");
 		m_state = state;
 	}
 
@@ -1265,7 +1390,10 @@ namespace xoshiro
 		: m_state(SplitMix64{ seed }.generateSeedSequence<2>()) {}
 
 	inline constexpr Xoroshiro128StarStar::Xoroshiro128StarStar(const state_type state) noexcept
-		: m_state(state) {}
+		: m_state(state)
+	{
+		assert(!detail::IsAllZero(state) && "全零状态是吸收态，禁止使用");
+	}
 
 	inline constexpr Xoroshiro128StarStar::result_type Xoroshiro128StarStar::operator()() noexcept
 	{
@@ -1343,6 +1471,7 @@ namespace xoshiro
 
 	inline constexpr void Xoroshiro128StarStar::deserialize(const state_type state) noexcept
 	{
+		assert(!detail::IsAllZero(state) && "全零状态是吸收态，禁止使用");
 		m_state = state;
 	}
 
@@ -1367,7 +1496,10 @@ namespace xoshiro
 	}
 
 	inline constexpr Xoshiro128Plus::Xoshiro128Plus(const state_type state) noexcept
-		: m_state(state) {}
+		: m_state(state)
+	{
+		assert(!detail::IsAllZero(state) && "全零状态是吸收态，禁止使用");
+	}
 
 	inline constexpr Xoshiro128Plus::result_type Xoshiro128Plus::operator()() noexcept
 	{
@@ -1459,6 +1591,7 @@ namespace xoshiro
 
 	inline constexpr void Xoshiro128Plus::deserialize(const state_type state) noexcept
 	{
+		assert(!detail::IsAllZero(state) && "全零状态是吸收态，禁止使用");
 		m_state = state;
 	}
 
@@ -1483,7 +1616,10 @@ namespace xoshiro
 	}
 
 	inline constexpr Xoshiro128PlusPlus::Xoshiro128PlusPlus(const state_type state) noexcept
-		: m_state(state) {}
+		: m_state(state)
+	{
+		assert(!detail::IsAllZero(state) && "全零状态是吸收态，禁止使用");
+	}
 
 	inline constexpr Xoshiro128PlusPlus::result_type Xoshiro128PlusPlus::operator()() noexcept
 	{
@@ -1575,6 +1711,7 @@ namespace xoshiro
 
 	inline constexpr void Xoshiro128PlusPlus::deserialize(const state_type state) noexcept
 	{
+		assert(!detail::IsAllZero(state) && "全零状态是吸收态，禁止使用");
 		m_state = state;
 	}
 
@@ -1599,7 +1736,10 @@ namespace xoshiro
 	}
 
 	inline constexpr Xoshiro128StarStar::Xoshiro128StarStar(const state_type state) noexcept
-		: m_state(state) {}
+		: m_state(state)
+	{
+		assert(!detail::IsAllZero(state) && "全零状态是吸收态，禁止使用");
+	}
 
 	inline constexpr Xoshiro128StarStar::result_type Xoshiro128StarStar::operator()() noexcept
 	{
@@ -1691,6 +1831,7 @@ namespace xoshiro
 
 	inline constexpr void Xoshiro128StarStar::deserialize(const state_type state) noexcept
 	{
+		assert(!detail::IsAllZero(state) && "全零状态是吸收态，禁止使用");
 		m_state = state;
 	}
 
@@ -1715,7 +1856,10 @@ namespace xoshiro
 	}
 
 	inline constexpr Xoroshiro64Star::Xoroshiro64Star(const state_type state) noexcept
-		: m_state(state) {}
+		: m_state(state)
+	{
+		assert(!detail::IsAllZero(state) && "全零状态是吸收态，禁止使用");
+	}
 
 	inline constexpr Xoroshiro64Star::result_type Xoroshiro64Star::operator()() noexcept
 	{
@@ -1748,6 +1892,7 @@ namespace xoshiro
 
 	inline constexpr void Xoroshiro64Star::deserialize(const state_type state) noexcept
 	{
+		assert(!detail::IsAllZero(state) && "全零状态是吸收态，禁止使用");
 		m_state = state;
 	}
 
@@ -1772,7 +1917,10 @@ namespace xoshiro
 	}
 
 	inline constexpr Xoroshiro64StarStar::Xoroshiro64StarStar(const state_type state) noexcept
-		: m_state(state) {}
+		: m_state(state)
+	{
+		assert(!detail::IsAllZero(state) && "全零状态是吸收态，禁止使用");
+	}
 
 	inline constexpr Xoroshiro64StarStar::result_type Xoroshiro64StarStar::operator()() noexcept
 	{
@@ -1805,10 +1953,122 @@ namespace xoshiro
 
 	inline constexpr void Xoroshiro64StarStar::deserialize(const state_type state) noexcept
 	{
+		assert(!detail::IsAllZero(state) && "全零状态是吸收态，禁止使用");
 		m_state = state;
 	}
 
 	inline constexpr void Xoroshiro64StarStar::discard(const unsigned long long n) noexcept
+	{
+		for (unsigned long long i = 0; i < n; ++i) { operator()(); }
+	}
+
+
+	////////////////////////////////////////////////////////////////
+	//
+	//	SFC64 (Small Fast Counter)
+	//
+	inline constexpr SFC64::SFC64(const std::uint64_t seed) noexcept
+		: m_a(0), m_b(0), m_c(0), m_counter(1)
+	{
+		// 使用 SplitMix64 播种 + 12 轮预热
+		SplitMix64 sm{ seed };
+		m_a = sm();
+		m_b = sm();
+		m_c = sm();
+		for (int i = 0; i < 12; ++i) { operator()(); }
+	}
+
+	inline constexpr SFC64::SFC64(const state_type state) noexcept
+		: m_a(state[0]), m_b(state[1]), m_c(state[2]), m_counter(state[3]) {}
+
+	inline constexpr SFC64::result_type SFC64::operator()() noexcept
+	{
+		const std::uint64_t tmp = m_a + m_b + m_counter++;
+		m_a = m_b ^ (m_b >> 11);
+		m_b = m_c + (m_c << 3);
+		m_c = detail::RotL(m_c, 24) + tmp;
+		return tmp;
+	}
+
+	inline constexpr SFC64::result_type SFC64::min() noexcept
+	{
+		return std::numeric_limits<result_type>::lowest();
+	}
+
+	inline constexpr SFC64::result_type SFC64::max() noexcept
+	{
+		return std::numeric_limits<result_type>::max();
+	}
+
+	inline constexpr SFC64::state_type SFC64::serialize() const noexcept
+	{
+		return { m_a, m_b, m_c, m_counter };
+	}
+
+	inline constexpr void SFC64::deserialize(const state_type state) noexcept
+	{
+		m_a = state[0];
+		m_b = state[1];
+		m_c = state[2];
+		m_counter = state[3];
+	}
+
+	inline constexpr void SFC64::discard(const unsigned long long n) noexcept
+	{
+		for (unsigned long long i = 0; i < n; ++i) { operator()(); }
+	}
+
+	////////////////////////////////////////////////////////////////
+	//
+	//	RomuDuoJr
+	//
+	inline constexpr RomuDuoJr::RomuDuoJr(const std::uint64_t seed) noexcept
+		: m_x(0), m_y(0)
+	{
+		SplitMix64 sm{ seed };
+		m_x = sm();
+		m_y = sm();
+		// 确保不全零
+		if (m_x == 0 && m_y == 0) { m_x = 1; }
+	}
+
+	inline constexpr RomuDuoJr::RomuDuoJr(const state_type state) noexcept
+		: m_x(state[0]), m_y(state[1])
+	{
+		assert(!(m_x == 0 && m_y == 0) && "全零状态是吸收态，禁止使用");
+	}
+
+	inline constexpr RomuDuoJr::result_type RomuDuoJr::operator()() noexcept
+	{
+		const std::uint64_t xp = m_x;
+		m_x = 15241094284759029579ULL * m_y;
+		m_y = detail::RotL(m_y - xp, 27);
+		return xp;
+	}
+
+	inline constexpr RomuDuoJr::result_type RomuDuoJr::min() noexcept
+	{
+		return std::numeric_limits<result_type>::lowest();
+	}
+
+	inline constexpr RomuDuoJr::result_type RomuDuoJr::max() noexcept
+	{
+		return std::numeric_limits<result_type>::max();
+	}
+
+	inline constexpr RomuDuoJr::state_type RomuDuoJr::serialize() const noexcept
+	{
+		return { m_x, m_y };
+	}
+
+	inline constexpr void RomuDuoJr::deserialize(const state_type state) noexcept
+	{
+		assert(!(state[0] == 0 && state[1] == 0) && "全零状态是吸收态，禁止使用");
+		m_x = state[0];
+		m_y = state[1];
+	}
+
+	inline constexpr void RomuDuoJr::discard(const unsigned long long n) noexcept
 	{
 		for (unsigned long long i = 0; i < n; ++i) { operator()(); }
 	}
@@ -1924,19 +2184,62 @@ namespace xoshiro
 	}
 
 
+
+	////////////////////////////////////////////////////////////////
+	//
+	//	多流接口（并行计算）
+	//
+
+	// 从同一种子创建第 streamId 个不重叠子序列的引擎
+	// 每个流之间间隔 2^128 步（xoshiro256）或 2^64 步（xoroshiro128/xoshiro128）
+	// 注意：Xoroshiro64 系列无 jump 函数，不支持多流
+	template <class Engine>
+	[[nodiscard]]
+	inline constexpr Engine MakeStreamEngine(std::uint64_t streamId, std::uint64_t seed = DefaultSeed)
+	{
+		Engine rng{ seed };
+		for (std::uint64_t i = 0; i < streamId; ++i)
+			rng.jump();
+		return rng;
+	}
+
 	////////////////////////////////////////////////////////////////
 	//
 	//	编译期随机（constexpr）
 	//
 
+	namespace detail
+	{
+		// Lemire 快速有界法：返回 [0, range) 内均匀分布的随机数，无模偏差
+		// 使用 __uint128_t（GCC/Clang constexpr 友好）
+		[[nodiscard]]
+		inline constexpr std::uint64_t BoundedRand(Xoshiro256StarStar& rng, std::uint64_t range) noexcept
+		{
+			if (range == 0) return 0;  // range=0 视为无效，返回 0
+			__uint128_t product = static_cast<__uint128_t>(rng()) * range;
+			std::uint64_t low = static_cast<std::uint64_t>(product);
+			if (low < range)
+			{
+				const std::uint64_t threshold = (0ULL - range) % range;
+				while (low < threshold)
+				{
+					product = static_cast<__uint128_t>(rng()) * range;
+					low = static_cast<std::uint64_t>(product);
+				}
+			}
+			return static_cast<std::uint64_t>(product >> 64);
+		}
+	}
+
 	// 编译期生成 [min, max] 范围内的随机整数（使用固定种子，结果在编译期确定）
+	// 使用 Lemire 有界法消除模偏差
 	template <std::integral T = int, std::uint64_t Seed = DefaultSeed>
 	[[nodiscard]]
 	inline constexpr T RandIntCE(T min, T max) noexcept
 	{
 		Xoshiro256StarStar rng{ Seed };
 		const auto range = static_cast<std::uint64_t>(max - min) + 1;
-		return static_cast<T>(static_cast<std::uint64_t>(min) + (rng() % range));
+		return static_cast<T>(static_cast<std::uint64_t>(min) + detail::BoundedRand(rng, range));
 	}
 
 	// 编译期生成 [0, max] 范围内的随机整数
@@ -1965,5 +2268,7 @@ namespace xoshiro
 	static_assert(std::uniform_random_bit_generator<Xoshiro128StarStar>);
 	static_assert(std::uniform_random_bit_generator<Xoroshiro64Star>);
 	static_assert(std::uniform_random_bit_generator<Xoroshiro64StarStar>);
+	static_assert(std::uniform_random_bit_generator<SFC64>);
+	static_assert(std::uniform_random_bit_generator<RomuDuoJr>);
 
 }

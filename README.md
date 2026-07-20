@@ -11,8 +11,8 @@
 
 | 头文件 | 标准 | 命名空间 | 说明 |
 |--------|------|----------|------|
-| **Random.hpp** | C++23 | `xoshiro` | 增强版：concepts 约束、`operator<=>`、便捷 API、`constexpr` 编译期随机、`static_assert` 概念守卫、中文注释 |
-| **XoshiroCpp.hpp** | C++17 / C++20 | `XoshiroCpp` | 兼容版：SFINAE 约束、便捷 API、`discard(n)`、中文注释 |
+| **Random.hpp** | C++23 | `xoshiro` | 增强版：concepts 约束、便捷 API（`RandInt`/`RandReal`/`RandBool`/`RandElement`）、线程局部默认引擎、`discard(n)`、Lemire 无偏 `RandIntCE`、多流接口、14 引擎、中文注释 |
+| **XoshiroCpp.hpp** | C++17 / C++20 | `XoshiroCpp` | 兼容版：SFINAE 约束、便捷 API、`discard(n)`、14 引擎、中文注释 |
 
 > 如果你的编译器支持 C++23，推荐使用 `Random.hpp`；否则使用 `XoshiroCpp.hpp`。
 > 两者算法实现完全一致，输出序列相同（相同种子下），便捷 API 签名一致。
@@ -25,7 +25,11 @@
 - 线程局部默认引擎（`DefaultEngine()`），零配置即用
 - `constexpr` 编译期随机（仅 Random.hpp）：`RandIntCE<Seed>(min, max)`
 - 支持 `jump()` / `longJump()` 并行子序列、`discard(n)` 跳过、`serialize()` / `deserialize()` 状态持久化
-- 12 个引擎全覆盖
+- Lemire 有界法消除模偏差（`RandIntCE`）
+- 全零吸收态防御（`assert` 检测）
+- 多流接口 `MakeStreamEngine<Engine>(streamId, seed)` 用于并行计算
+- 新增 SFC64 / RomuDuoJr 高速引擎
+- 14 个引擎全覆盖
 
 ## 引擎一览
 
@@ -43,6 +47,8 @@
 | Xoroshiro64StarStar | 32-bit | 2^64-1 | 8B | 极端内存受限 |
 | Xoroshiro64Star | 32-bit | 2^64-1 | 8B | 极端内存受限，最快 |
 | SplitMix64 | 64-bit | 2^64 | 8B | 种子扩展 / 哈希，非通用 PRNG |
+| SFC64 | 64-bit | >= 2^64 | 32B | 速度极快，通过 PractRand，无 jump |
+| RomuDuoJr | 64-bit | >= 2^51 (估计) | 16B | 极简极快，非关键模拟，无 jump |
 
 ## 快速上手
 
@@ -136,6 +142,36 @@ int main()
     std::cout << "选中索引: " << idx << '\n';
 }
 ```
+
+## 多流并行
+
+```cpp
+#include "Random.hpp"
+#include <iostream>
+
+int main()
+{
+    // 创建 4 个不重叠的子序列引擎（每个间隔 2^128 步）
+    auto rng0 = xoshiro::MakeStreamEngine<xoshiro::Xoshiro256StarStar>(0);
+    auto rng1 = xoshiro::MakeStreamEngine<xoshiro::Xoshiro256StarStar>(1);
+    auto rng2 = xoshiro::MakeStreamEngine<xoshiro::Xoshiro256StarStar>(2);
+    auto rng3 = xoshiro::MakeStreamEngine<xoshiro::Xoshiro256StarStar>(3);
+
+    // 各流独立生成，互不重叠
+    std::cout << xoshiro::RandInt(rng0, 0, 99) << '\n';
+    std::cout << xoshiro::RandInt(rng1, 0, 99) << '\n';
+}
+```
+
+## 基准测试
+
+编译并运行 benchmark.cpp：
+
+```bash
+g++ -std=c++23 -O2 benchmark.cpp -o benchmark && ./benchmark
+```
+
+输出各引擎的吞吐量（Mops/s、MB/s）、jump 开销和 RandInt API 性能。
 
 ## 编译要求
 
