@@ -21,7 +21,7 @@
 
 - 满足 `std::uniform_random_bit_generator` 概念（Random.hpp 含 `static_assert` 编译期验证）
 - 全 `constexpr`，编译期可用
-- 便捷 API：`RandInt` / `RandReal` / `RandBool` / `RandElement` / `RandNormal` / `RandShuffle` / `RandWeighted`
+- 便捷 API：基础生成（`RandInt`/`RandReal`/`RandBool`/`RandBits`）、分布（`RandNormal`/`RandExp`/`RandPoisson`/`RandGamma`/`RandWeighted`）、容器（`RandElement`/`RandSample`/`RandShuffle`/`RandPermutation`）、字符串（`RandString`/`RandUUID`）
 - 线程局部默认引擎（`DefaultEngine()`），零配置即用
 - `constexpr` 编译期随机（仅 Random.hpp）：`RandIntCE<Seed>(min, max)`
 - 支持 `jump()` / `longJump()` 并行子序列、`discard(n)` 跳过、`serialize()` / `deserialize()` 状态持久化
@@ -36,7 +36,6 @@
 - 硬件种子：`RandomSeed()` 优先使用 RDRAND（x86_64）
 - MSVC 兼容：`RandIntCE` 条件编译（`__uint128_t` / 拒绝采样回退）
 - CMake 安装支持：`find_package(xoshiro)` / `FetchContent`
-- 扩展便捷 API：`RandSample`（无放回抽样）/ `RandPermutation` / `RandString` / `RandExp` / `RandPoisson` / `RandGamma` / `RandBits<N>` / `RandUUID`
 - 包管理器支持：vcpkg / Conan
 - GitHub Actions CI：GCC 14 / Clang 18 / MSVC 三编译器矩阵
 
@@ -75,51 +74,39 @@ int main()
 }
 ```
 
-## 便捷 API 一览
+## API 一览
 
-| 函数 | 说明 |
-|------|------|
-| `RandInt(min, max)` | [min, max] 闭区间整数 |
-| `RandInt(max)` | [0, max] 闭区间整数 |
-| `RandReal(min, max)` | [min, max) 浮点数 |
-| `RandBool(p)` | 概率 p 为 true |
-| `RandElement(container)` | 从容器随机取一个元素 |
-| `RandNormal(mean, stddev)` | 正态分布 |
-| `RandShuffle(container)` | 随机打乱容器 |
-| `RandWeighted(weights)` | 按权重选取索引 |
-| `RandInt(rng, min, max)` | 指定引擎版本 |
-| `RandReal(rng, min, max)` | 指定引擎版本 |
-| `RandIntCE<Seed>(min, max)` | 编译期随机（仅 Random.hpp） |
+| 分类 | 函数 | 说明 |
+|------|------|------|
+| 基础生成 | `RandInt(min, max)` | [min, max] 闭区间整数 |
+| | `RandReal(min, max)` | [min, max) 浮点数 |
+| | `RandBool(p)` | 概率 p 为 true |
+| | `RandBits<N>()` | N 位随机整数 [0, 2^N) |
+| 分布 | `RandNormal(mean, stddev)` | 正态分布 |
+| | `RandExp(lambda)` | 指数分布 |
+| | `RandPoisson(mean)` | 泊松分布 |
+| | `RandGamma(alpha, beta)` | 伽马分布 |
+| | `RandWeighted(weights)` | 按权重选取索引 |
+| 容器 | `RandElement(container)` | 随机取一个元素 |
+| | `RandSample(container, n)` | 无放回抽样 n 个 |
+| | `RandShuffle(container)` | 随机打乱 |
+| | `RandPermutation(n)` | [0, n) 随机排列 |
+| 字符串/ID | `RandString(len, charset)` | 随机字符串 |
+| | `RandUUID()` | UUID v4 |
+| 编译期 | `RandIntCE<Seed>(min, max)` | 编译期随机整数（仅 Random.hpp） |
+| | `ShuffleCE(first, last)` | 编译期洗牌 |
+| | `ShuffledArray<T,N,Seed>(arr)` | 编译期洗牌数组版 |
 
-## 扩展 API
+所有函数默认使用线程局部 `Xoshiro256StarStar` 引擎，也支持传入自定义引擎：`RandInt(rng, min, max)`。
 
 ```cpp
-#include "Random.hpp"
-#include <iostream>
-
-int main()
-{
-    // 无放回抽样
-    std::vector<int> pool = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
-    auto sample = xoshiro::RandSample(pool, 3);
-
-    // 随机排列
-    auto perm = xoshiro::RandPermutation(5);  // {3, 0, 4, 1, 2} 之类
-
-    // 随机字符串
-    auto token = xoshiro::RandString(16);  // 16 位字母数字
-
-    // 分布
-    auto exp = xoshiro::RandExp(2.0);       // 指数分布 λ=2
-    auto poi = xoshiro::RandPoisson(5.0);   // 泊松分布 μ=5
-    auto gam = xoshiro::RandGamma(2.0, 1.0); // 伽马分布
-
-    // N 位随机数
-    auto byte = xoshiro::RandBits<8>();     // [0, 256)
-
-    // UUID v4
-    auto id = xoshiro::RandUUID();  // "a1b2c3d4-e5f6-4789-abcd-ef0123456789"
-}
+// 示例
+xoshiro::RandInt(1, 6);              // 掷骰子
+xoshiro::RandExp(2.0);               // 指数分布 λ=2
+xoshiro::RandSample(pool, 3);        // 无放回抽 3 个
+xoshiro::RandString(16);             // 16 位随机 token
+xoshiro::RandUUID();                 // "a1b2c3d4-e5f6-4789-abcd-..."
+constexpr auto v = xoshiro::RandIntCE(0, 100);  // 编译期确定
 ```
 
 ## 手动管理引擎
