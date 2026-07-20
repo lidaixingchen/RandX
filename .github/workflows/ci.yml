@@ -113,8 +113,9 @@ jobs:
           ./test_xoshirocpp
       - name: Generate coverage report
         run: |
-          lcov --capture --directory . --output-file coverage.info
-          lcov --remove coverage.info '/usr/*' 'third_party/*' --output-file coverage.info
+          # 使用 gcov-14 以匹配 g++-14 生成的 .gcda 格式（B43*），避免与系统 gcov-13（B33*）冲突
+          lcov --capture --directory . --output-file coverage.info --gcov-tool gcov-14
+          lcov --remove coverage.info '/usr/*' 'third_party/*' --output-file coverage.info --gcov-tool gcov-14
           lcov --list coverage.info
       - name: Check coverage threshold
         run: |
