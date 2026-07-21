@@ -175,7 +175,7 @@ int main()
 	std::cout << "\n=== seed_seq 播种 ===\n";
 	{
 		std::seed_seq seq{ 1, 2, 3, 4, 5, 6, 7, 8 };
-		Xoshiro256PlusPlus rng{ seq };
+		Xoshiro256StarStar rng{ seq };
 		std::cout << "from seed_seq = " << rng() << '\n';
 	}
 

@@ -9,10 +9,10 @@
 
 本仓库提供两个头文件，按需选用：
 
-| 头文件 | 标准 | 命名空间 | 说明 |
-|--------|------|----------|------|
-| **RandX.hpp** | C++23 | `RandX` | 增强版：concepts 约束、便捷 API（`RandInt`/`RandReal`/`RandBool`/`RandElement`）、线程局部默认引擎、`discard(n)`、Lemire 无偏 `RandIntCE`、多流接口、14 引擎、中文注释 |
-| **RandX_Cpp17.hpp** | C++17 / C++23 | `RandX` | 兼容版：SFINAE 约束、便捷 API、`discard(n)`、14 引擎、中文注释 |
+| 头文件                 | 标准            | 命名空间    | 说明                                                                                                                                |
+| ------------------- | ------------- | ------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| **RandX.hpp**       | C++23         | `RandX` | 增强版：concepts 约束、便捷 API（`RandInt`/`RandReal`/`RandBool`/`RandElement`）、线程局部默认引擎、`discard(n)`、Lemire 无偏 `RandIntCE`、多流接口、7 引擎、中文注释 |
+| **RandX_Cpp17.hpp** | C++17 | `RandX` | 兼容版：SFINAE 约束、便捷 API、`discard(n)`、7 引擎、中文注释                                                                                      |
 
 > 如果你的编译器支持 C++23，推荐使用 `RandX.hpp`；否则使用 `RandX_Cpp17.hpp`。
 > 两者算法实现完全一致，输出序列相同（相同种子下），便捷 API 签名一致。
@@ -29,10 +29,10 @@
 - 全零吸收态防御（`assert` 检测）
 - 多流接口 `MakeStreamEngine<Engine>(streamId, seed)` 用于并行计算
 - 支持 SFC64 / RomuDuoJr 高速引擎
-- 14 个引擎全覆盖
+- 7 个引擎全覆盖
 - 编译期洗牌 `ShuffleCE` / `ShuffledArray`（`std::shuffle` 的 constexpr 替代）
 - `Reseed(seed)` 重置默认引擎，方便测试复现
-- `std::seed_seq` 播种支持（所有 14 引擎）
+- `std::seed_seq` 播种支持（所有 7 引擎）
 - 硬件种子：`RandomSeed()` 优先使用 RDRAND（x86_64）
 - MSVC 兼容：`RandIntCE` 条件编译（`__uint128_t` / 拒绝采样回退）
 - CMake 安装支持：`find_package(RandX)` / `FetchContent`
@@ -41,22 +41,15 @@
 
 ## 引擎一览
 
-| 引擎 | 输出 | 周期 | 状态 | 适用场景 |
-|------|------|------|------|----------|
-| Xoshiro256StarStar | 64-bit | 2^256-1 | 32B | 通用首选，统计质量最优 |
-| Xoshiro256PlusPlus | 64-bit | 2^256-1 | 32B | 通用，略快于 ** |
-| Xoshiro256Plus | 64-bit | 2^256-1 | 32B | 最快，低位质量稍弱 |
-| Xoroshiro128PlusPlus | 64-bit | 2^128-1 | 16B | 内存受限场景 |
-| Xoroshiro128StarStar | 64-bit | 2^128-1 | 16B | 同上，统计更优 |
-| Xoroshiro128Plus | 64-bit | 2^128-1 | 16B | 同上，最快 |
-| Xoshiro128PlusPlus | 32-bit | 2^128-1 | 16B | 32 位平台 |
-| Xoshiro128StarStar | 32-bit | 2^128-1 | 16B | 32 位平台，统计更优 |
-| Xoshiro128Plus | 32-bit | 2^128-1 | 16B | 32 位平台，最快 |
-| Xoroshiro64StarStar | 32-bit | 2^64-1 | 8B | 极端内存受限 |
-| Xoroshiro64Star | 32-bit | 2^64-1 | 8B | 极端内存受限，最快 |
-| SplitMix64 | 64-bit | 2^64 | 8B | 种子扩展 / 哈希，非通用 PRNG |
-| SFC64 | 64-bit | >= 2^64 | 32B | 速度极快，通过 PractRand，无 jump |
-| RomuDuoJr | 64-bit | >= 2^51 (估计) | 16B | 极简极快，非关键模拟，无 jump |
+| 引擎                   | 输出     | 周期           | 状态  | 适用场景                     |
+| -------------------- | ------ | ------------ | --- | ------------------------ |
+| Xoshiro256StarStar   | 64-bit | 2^256-1      | 32B | 通用首选，统计质量最优              |
+| Xoroshiro128StarStar | 64-bit | 2^128-1      | 16B | 内存受限，统计更优                |
+| Xoshiro128StarStar   | 32-bit | 2^128-1      | 16B | 32 位平台，统计更优              |
+| Xoroshiro64StarStar  | 32-bit | 2^64-1       | 8B  | 极端内存受限                   |
+| SplitMix64           | 64-bit | 2^64         | 8B  | 种子扩展 / 哈希，非通用 PRNG       |
+| SFC64                | 64-bit | >= 2^64      | 32B | 速度极快，通过 PractRand，无 jump |
+| RomuDuoJr            | 64-bit | >= 2^51 (估计) | 16B | 极简极快，非关键模拟，无 jump        |
 
 ## 快速上手
 
@@ -76,50 +69,50 @@ int main()
 
 ## API 一览
 
-| 分类 | 函数 | 说明 | 双标准 |
-|------|------|------|--------|
-| 基础生成 | `RandInt(min, max)` | [min, max] 闭区间整数 | ✅ |
-| | `RandReal(min, max)` | [min, max) 浮点数 | ✅ |
-| | `RandBool(p)` | 概率 p 为 true | ✅ |
-| | `RandChar(min, max)` | [min, max] 范围随机字符（`char`/`wchar_t`/`char16_t`/`char32_t`，C++20+ 含 `char8_t`） | ✅ |
-| | `RandChar(CharSet)` | 从预设字符集随机取一个字符 | ✅ |
-| | `RandBits<N>()` | N 位随机整数 [0, 2^N) | ✅ |
-| 分布 | `RandNormal(mean, stddev)` | 正态分布 | ✅ |
-| | `RandExp(lambda)` | 指数分布 | ✅ |
-| | `RandPoisson(mean)` | 泊松分布 | ✅ |
-| | `RandGamma(alpha, beta)` | 伽马分布 | ✅ |
-| | `RandWeighted(weights)` | 按权重选取索引 | ✅ |
-| | `RandBernoulli(p)` | 伯努利分布（别名封装 `RandBool`） | ✅ |
-| | `RandBinomial(t, p)` | 二项分布 | ✅ |
-| | `RandLogNormal(mean, stddev)` | 对数正态分布 | ✅ |
-| | `RandGeometric(p)` | 几何分布 | ✅ |
-| | `RandCauchy(a, b)` | 柯西分布 | ✅ |
-| | `RandWeibull(a, b)` | 韦布尔分布 | ✅ |
-| | `RandExtremeValue(a, b)` | 极值分布 | ✅ |
-| | `RandChiSquared(n)` | 卡方分布 | ✅ |
-| | `RandStudentT(n)` | 学生 t 分布 | ✅ |
-| | `RandFisherF(m, n)` | Fisher F 分布 | ✅ |
-| | `RandBeta(a, b)` | Beta 分布（自实现） | ✅ |
-| 容器 | `RandElement(container)` | 随机取一个元素（容器版，返回引用） | ✅ |
-| | `RandElement(first, last)` | 随机取一个元素（迭代器版，返回迭代器；随机访问 O(1)，输入迭代器 O(n) reservoir sampling） | ✅ |
-| | `RandSample(container, n)` | 无放回抽样 n 个（容器版） | ✅ |
-| | `RandSample(first, last, n)` | 无放回抽样 n 个（迭代器版；随机访问含 hash-set/索引双分支，输入迭代器用 reservoir sampling O(n) 内存） | ✅ |
-| | `RandShuffle(container)` | 随机打乱 | ✅ |
-| | `RandPermutation(n)` | [0, n) 随机排列 | ✅ |
-| | `RandFill(first, last, min, max)` | 用随机值填充 [first, last) 范围（STL 风格） | ✅ |
-| | `RandVector(min, max, n)` | 生成 n 个随机值构成的 `std::vector` | ✅ |
-| ranges 风格 | `ranges::RandElement(range)` | 随机取一个元素（返回值拷贝，仅 RandX.hpp） | ❌ C++23 专属 |
-| | `ranges::RandSample(range, n)` | 无放回抽样（仅 RandX.hpp） | ❌ C++23 专属 |
-| | `ranges::RandShuffle(range)` | 随机打乱（仅 RandX.hpp） | ❌ C++23 专属 |
-| | `ranges::RandFill(range, min, max)` | 填充（模板化支持 int/double/float，仅 RandX.hpp） | ❌ C++23 专属 |
-| 字符串/ID | `RandString(len, charset)` | 随机字符串（`charset` 为 `string_view`） | ✅ |
-| | `RandString(n, CharSet)` | 从预设字符集生成随机字符串 | ✅ |
-| | `RandUUID()` | UUID v4 | ✅ |
-| 序列化 | `serialize()` / `deserialize(state)` | 状态持久化（主接口，所有引擎） | ✅ |
-| | `operator<<` / `operator>>` | 流式语法糖（仅 `state_type` 为容器类的引擎，排除 `SplitMix64`） | ✅ |
-| 编译期 | `RandIntCE<Seed>(min, max)` | 编译期随机整数（仅 RandX.hpp） | ❌ C++23 专属 |
-| | `ShuffleCE(first, last)` | 编译期洗牌 | ❌ C++23 专属 |
-| | `ShuffledArray<T,N,Seed>(arr)` | 编译期洗牌数组版 | ❌ C++23 专属 |
+| 分类        | 函数                                   | 说明                                                                           | 双标准        |
+| --------- | ------------------------------------ | ---------------------------------------------------------------------------- | ---------- |
+| 基础生成      | `RandInt(min, max)`                  | [min, max] 闭区间整数                                                             | ✅          |
+|           | `RandReal(min, max)`                 | [min, max) 浮点数                                                               | ✅          |
+|           | `RandBool(p)`                        | 概率 p 为 true                                                                  | ✅          |
+|           | `RandChar(min, max)`                 | [min, max] 范围随机字符（`char`/`wchar_t`/`char16_t`/`char32_t`，C++20+ 含 `char8_t`） | ✅          |
+|           | `RandChar(CharSet)`                  | 从预设字符集随机取一个字符                                                                | ✅          |
+|           | `RandBits<N>()`                      | N 位随机整数 [0, 2^N)                                                             | ✅          |
+| 分布        | `RandNormal(mean, stddev)`           | 正态分布                                                                         | ✅          |
+|           | `RandExp(lambda)`                    | 指数分布                                                                         | ✅          |
+|           | `RandPoisson(mean)`                  | 泊松分布                                                                         | ✅          |
+|           | `RandGamma(alpha, beta)`             | 伽马分布                                                                         | ✅          |
+|           | `RandWeighted(weights)`              | 按权重选取索引                                                                      | ✅          |
+|           | `RandBernoulli(p)`                   | 伯努利分布（别名封装 `RandBool`）                                                       | ✅          |
+|           | `RandBinomial(t, p)`                 | 二项分布                                                                         | ✅          |
+|           | `RandLogNormal(mean, stddev)`        | 对数正态分布                                                                       | ✅          |
+|           | `RandGeometric(p)`                   | 几何分布                                                                         | ✅          |
+|           | `RandCauchy(a, b)`                   | 柯西分布                                                                         | ✅          |
+|           | `RandWeibull(a, b)`                  | 韦布尔分布                                                                        | ✅          |
+|           | `RandExtremeValue(a, b)`             | 极值分布                                                                         | ✅          |
+|           | `RandChiSquared(n)`                  | 卡方分布                                                                         | ✅          |
+|           | `RandStudentT(n)`                    | 学生 t 分布                                                                      | ✅          |
+|           | `RandFisherF(m, n)`                  | Fisher F 分布                                                                  | ✅          |
+|           | `RandBeta(a, b)`                     | Beta 分布（自实现）                                                                 | ✅          |
+| 容器        | `RandElement(container)`             | 随机取一个元素（容器版，返回引用）                                                            | ✅          |
+|           | `RandElement(first, last)`           | 随机取一个元素（迭代器版，返回迭代器；随机访问 O(1)，输入迭代器 O(n) reservoir sampling）                  | ✅          |
+|           | `RandSample(container, n)`           | 无放回抽样 n 个（容器版）                                                               | ✅          |
+|           | `RandSample(first, last, n)`         | 无放回抽样 n 个（迭代器版；随机访问含 hash-set/索引双分支，输入迭代器用 reservoir sampling O(n) 内存）       | ✅          |
+|           | `RandShuffle(container)`             | 随机打乱                                                                         | ✅          |
+|           | `RandPermutation(n)`                 | [0, n) 随机排列                                                                  | ✅          |
+|           | `RandFill(first, last, min, max)`    | 用随机值填充 [first, last) 范围（STL 风格）                                              | ✅          |
+|           | `RandVector(min, max, n)`            | 生成 n 个随机值构成的 `std::vector`                                                   | ✅          |
+| ranges 风格 | `ranges::RandElement(range)`         | 随机取一个元素（返回值拷贝，仅 RandX.hpp）                                                   | ❌ C++23 专属 |
+|           | `ranges::RandSample(range, n)`       | 无放回抽样（仅 RandX.hpp）                                                           | ❌ C++23 专属 |
+|           | `ranges::RandShuffle(range)`         | 随机打乱（仅 RandX.hpp）                                                            | ❌ C++23 专属 |
+|           | `ranges::RandFill(range, min, max)`  | 填充（模板化支持 int/double/float，仅 RandX.hpp）                                       | ❌ C++23 专属 |
+| 字符串/ID    | `RandString(len, charset)`           | 随机字符串（`charset` 为 `string_view`）                                             | ✅          |
+|           | `RandString(n, CharSet)`             | 从预设字符集生成随机字符串                                                                | ✅          |
+|           | `RandUUID()`                         | UUID v4                                                                      | ✅          |
+| 序列化       | `serialize()` / `deserialize(state)` | 状态持久化（主接口，所有引擎）                                                              | ✅          |
+|           | `operator<<` / `operator>>`          | 流式语法糖（仅 `state_type` 为容器类的引擎，排除 `SplitMix64`）                                | ✅          |
+| 编译期       | `RandIntCE<Seed>(min, max)`          | 编译期随机整数（仅 RandX.hpp）                                                         | ❌ C++23 专属 |
+|           | `ShuffleCE(first, last)`             | 编译期洗牌                                                                        | ❌ C++23 专属 |
+|           | `ShuffledArray<T,N,Seed>(arr)`       | 编译期洗牌数组版                                                                     | ❌ C++23 专属 |
 
 > **CharSet 枚举**：`Alphanumeric` / `Alpha` / `Lower` / `Upper` / `Digit` / `Hex` / `Printable` / `Base64`，覆盖常见字符集场景。
 
@@ -308,10 +301,10 @@ CMakeToolchain
 
 ## 编译要求
 
-| 头文件 | 最低标准 | 推荐编译器 |
-|--------|----------|------------|
-| RandX.hpp | C++23 | GCC 14+ / Clang 18+ / MSVC 17.10+ |
-| RandX_Cpp17.hpp | C++17 | GCC 9+ / Clang 10+ / MSVC 16.8+ |
+| 头文件             | 最低标准  | 推荐编译器                             |
+| --------------- | ----- | --------------------------------- |
+| RandX.hpp       | C++23 | GCC 14+ / Clang 18+ / MSVC 17.10+ |
+| RandX_Cpp17.hpp | C++17 | GCC 9+ / Clang 10+ / MSVC 16.8+   |
 
 - 无外部依赖，纯头文件，复制即用
 
@@ -334,11 +327,11 @@ g++ -std=c++20 -Wall -Wextra -I third_party -o test_randx_cpp17 test_randx_cpp17
 
 每次 push 自动在以下环境编译 + 运行测试：
 
-| 编译器 | 平台 | 标准 |
-|--------|------|------|
-| GCC 14 | Ubuntu 24.04 | C++17 / C++20 / C++23 |
-| Clang 18 | Ubuntu 24.04 | C++17 / C++20 / C++23 |
-| MSVC (v145) | Windows 2025 | C++17 / C++23 |
+| 编译器         | 平台           | 标准                    |
+| ----------- | ------------ | --------------------- |
+| GCC 14      | Ubuntu 24.04 | C++17 / C++20 / C++23 |
+| Clang 18    | Ubuntu 24.04 | C++17 / C++20 / C++23 |
+| MSVC (v145) | Windows 2025 | C++17 / C++23         |
 
 C++20 矩阵专门覆盖 `char8_t` 条件编译路径。覆盖率任务使用 lcov，阈值 80%。
 

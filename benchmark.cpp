@@ -287,21 +287,14 @@ int main()
 	// 64 位输出引擎
 	std::printf("  --- 64-bit 引擎 ---\n");
 	BenchmarkRaw<RandX::SplitMix64>("SplitMix64");
-	BenchmarkRaw<RandX::Xoshiro256Plus>("Xoshiro256Plus");
-	BenchmarkRaw<RandX::Xoshiro256PlusPlus>("Xoshiro256PlusPlus");
 	BenchmarkRaw<RandX::Xoshiro256StarStar>("Xoshiro256StarStar");
-	BenchmarkRaw<RandX::Xoroshiro128Plus>("Xoroshiro128Plus");
-	BenchmarkRaw<RandX::Xoroshiro128PlusPlus>("Xoroshiro128PlusPlus");
 	BenchmarkRaw<RandX::Xoroshiro128StarStar>("Xoroshiro128StarStar");
 	BenchmarkRaw<RandX::SFC64>("SFC64");
 	BenchmarkRaw<RandX::RomuDuoJr>("RomuDuoJr");
 
 	// 32 位输出引擎
 	std::printf("  --- 32-bit 引擎 ---\n");
-	BenchmarkRaw<RandX::Xoshiro128Plus>("Xoshiro128Plus");
-	BenchmarkRaw<RandX::Xoshiro128PlusPlus>("Xoshiro128PlusPlus");
 	BenchmarkRaw<RandX::Xoshiro128StarStar>("Xoshiro128StarStar");
-	BenchmarkRaw<RandX::Xoroshiro64Star>("Xoroshiro64Star");
 	BenchmarkRaw<RandX::Xoroshiro64StarStar>("Xoroshiro64StarStar");
 
 	std::printf("\n");
@@ -314,20 +307,14 @@ int main()
 
 	// Xoshiro256 系列（jump 等价于 2^128 步）
 	std::printf("  --- Xoshiro256 系列 (jump = 2^128 步) ---\n");
-	BenchmarkJump<RandX::Xoshiro256Plus>("Xoshiro256Plus");
-	BenchmarkJump<RandX::Xoshiro256PlusPlus>("Xoshiro256PlusPlus");
 	BenchmarkJump<RandX::Xoshiro256StarStar>("Xoshiro256StarStar");
 
 	// Xoroshiro128 系列（jump 等价于 2^64 步）
 	std::printf("  --- Xoroshiro128 系列 (jump = 2^64 步) ---\n");
-	BenchmarkJump<RandX::Xoroshiro128Plus>("Xoroshiro128Plus");
-	BenchmarkJump<RandX::Xoroshiro128PlusPlus>("Xoroshiro128PlusPlus");
 	BenchmarkJump<RandX::Xoroshiro128StarStar>("Xoroshiro128StarStar");
 
 	// Xoshiro128 系列（jump 等价于 2^64 步）
 	std::printf("  --- Xoshiro128 系列 (jump = 2^64 步) ---\n");
-	BenchmarkJump<RandX::Xoshiro128Plus>("Xoshiro128Plus");
-	BenchmarkJump<RandX::Xoshiro128PlusPlus>("Xoshiro128PlusPlus");
 	BenchmarkJump<RandX::Xoshiro128StarStar>("Xoshiro128StarStar");
 
 	std::printf("\n");
@@ -341,21 +328,14 @@ int main()
 	// 64 位引擎
 	std::printf("  --- 64-bit 引擎 ---\n");
 	BenchmarkRandInt<RandX::SplitMix64>("SplitMix64");
-	BenchmarkRandInt<RandX::Xoshiro256Plus>("Xoshiro256Plus");
-	BenchmarkRandInt<RandX::Xoshiro256PlusPlus>("Xoshiro256PlusPlus");
 	BenchmarkRandInt<RandX::Xoshiro256StarStar>("Xoshiro256StarStar");
-	BenchmarkRandInt<RandX::Xoroshiro128Plus>("Xoroshiro128Plus");
-	BenchmarkRandInt<RandX::Xoroshiro128PlusPlus>("Xoroshiro128PlusPlus");
 	BenchmarkRandInt<RandX::Xoroshiro128StarStar>("Xoroshiro128StarStar");
 	BenchmarkRandInt<RandX::SFC64>("SFC64");
 	BenchmarkRandInt<RandX::RomuDuoJr>("RomuDuoJr");
 
 	// 32 位引擎
 	std::printf("  --- 32-bit 引擎 ---\n");
-	BenchmarkRandInt<RandX::Xoshiro128Plus>("Xoshiro128Plus");
-	BenchmarkRandInt<RandX::Xoshiro128PlusPlus>("Xoshiro128PlusPlus");
 	BenchmarkRandInt<RandX::Xoshiro128StarStar>("Xoshiro128StarStar");
-	BenchmarkRandInt<RandX::Xoroshiro64Star>("Xoroshiro64Star");
 	BenchmarkRandInt<RandX::Xoroshiro64StarStar>("Xoroshiro64StarStar");
 
 	std::printf("\n");

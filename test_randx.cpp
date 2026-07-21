@@ -34,7 +34,7 @@ namespace
 }
 
 // ============================================================================
-// 已知序列断言（seed=12345）— 14 引擎 KAT
+// 已知序列断言（seed=12345）— 7 引擎 KAT
 // ============================================================================
 TEST_SUITE("已知序列 seed=12345")
 {
@@ -50,37 +50,13 @@ TEST_SUITE("已知序列 seed=12345")
             CHECK(rng() == e);
     }
 
-    TEST_CASE("Xoshiro256PlusPlus")
+    TEST_CASE("Xoroshiro128StarStar")
     {
-        RandX::Xoshiro256PlusPlus rng{ 12345 };
+        RandX::Xoroshiro128StarStar rng{ 12345 };
         const std::uint64_t expected[] = {
-            10201931350592234856ULL, 3780764549115216544ULL,
-            1570246627180645737ULL, 3237956550421933520ULL,
-            4899705286669081817ULL
-        };
-        for (auto e : expected)
-            CHECK(rng() == e);
-    }
-
-    TEST_CASE("Xoshiro256Plus")
-    {
-        RandX::Xoshiro256Plus rng{ 12345 };
-        const std::uint64_t expected[] = {
-            5703686706282124394ULL, 15181128508879479020ULL,
-            11713703072819584576ULL, 2395620858144650628ULL,
-            8055391375587558944ULL
-        };
-        for (auto e : expected)
-            CHECK(rng() == e);
-    }
-
-    TEST_CASE("Xoroshiro128PlusPlus")
-    {
-        RandX::Xoroshiro128PlusPlus rng{ 12345 };
-        const std::uint64_t expected[] = {
-            16181086164699823776ULL, 14214852713950817264ULL,
-            5918739589371211168ULL, 10279317896082661690ULL,
-            3028767600443116799ULL
+            9940793396233540349ULL, 8784320640503919345ULL,
+            16208043774633962581ULL, 11032235639386297630ULL,
+            4698907930579033109ULL
         };
         for (auto e : expected)
             CHECK(rng() == e);
