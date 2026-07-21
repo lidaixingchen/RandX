@@ -1,11 +1,11 @@
 //----------------------------------------------------------------------------------------
 //
 //	example.cpp
-//	Random.hpp (C++23) 功能演示
+//	RandX.hpp (C++23) 功能演示
 //
 //----------------------------------------------------------------------------------------
 
-# include "Random.hpp"
+# include "RandX.hpp"
 # include <iostream>
 # include <array>
 # include <list>
@@ -16,7 +16,7 @@
 
 int main()
 {
-	using namespace xoshiro;
+	using namespace RandX;
 
 	// ===== 便捷 API（零配置）=====
 	std::cout << "=== 便捷 API ===\n";

@@ -1,8 +1,8 @@
-// test_xoshirocpp.cpp — XoshiroCpp.hpp (C++17) 确定性单元测试（doctest 版）
+// test_randx_cpp17.cpp — RandX_Cpp17.hpp (C++17) 确定性单元测试（doctest 版）
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 #include "doctest.h"
 
-#include "XoshiroCpp.hpp"
+#include "RandX_Cpp17.hpp"
 
 #include <array>
 #include <algorithm>
@@ -32,11 +32,11 @@ namespace
     constexpr int MC_TRIALS_100 = 100;
 }
 
-using namespace XoshiroCpp;
+using namespace RandX;
 
 // ============================================================================
 // 已知序列断言（seed=12345）— 14 引擎 KAT
-// 与 test_random.cpp 期望值完全一致（见附录 C 双标准同步策略）
+// 与 test_randx.cpp 期望值完全一致（见附录 C 双标准同步策略）
 // ============================================================================
 TEST_SUITE("已知序列 seed=12345")
 {

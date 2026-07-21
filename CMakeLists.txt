@@ -1,76 +1,76 @@
 cmake_minimum_required(VERSION 3.20)
-project(xoshiro VERSION 1.2.0 LANGUAGES CXX)
+project(RandX VERSION 1.2.0 LANGUAGES CXX)
 
 # 纯头文件库 → INTERFACE target
-add_library(xoshiro INTERFACE)
-add_library(xoshiro::xoshiro ALIAS xoshiro)
+add_library(RandX INTERFACE)
+add_library(RandX::RandX ALIAS RandX)
 
-target_include_directories(xoshiro INTERFACE
+target_include_directories(RandX INTERFACE
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
     $<INSTALL_INTERFACE:include>
 )
 
 # 安装
 include(GNUInstallDirs)
-install(FILES Random.hpp XoshiroCpp.hpp DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
-install(TARGETS xoshiro EXPORT xoshiroTargets)
-install(EXPORT xoshiroTargets
-    NAMESPACE xoshiro::
-    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/xoshiro
+install(FILES RandX.hpp RandX_Cpp17.hpp DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+install(TARGETS RandX EXPORT RandXTargets)
+install(EXPORT RandXTargets
+    NAMESPACE RandX::
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/RandX
 )
 
 # 生成 config 文件
 include(CMakePackageConfigHelpers)
 configure_package_config_file(
-    cmake/xoshiroConfig.cmake.in
-    ${CMAKE_CURRENT_BINARY_DIR}/xoshiroConfig.cmake
-    INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/xoshiro
+    cmake/RandXConfig.cmake.in
+    ${CMAKE_CURRENT_BINARY_DIR}/RandXConfig.cmake
+    INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/RandX
 )
 write_basic_package_version_file(
-    ${CMAKE_CURRENT_BINARY_DIR}/xoshiroConfigVersion.cmake
+    ${CMAKE_CURRENT_BINARY_DIR}/RandXConfigVersion.cmake
     COMPATIBILITY SameMajorVersion
 )
 install(FILES
-    ${CMAKE_CURRENT_BINARY_DIR}/xoshiroConfig.cmake
-    ${CMAKE_CURRENT_BINARY_DIR}/xoshiroConfigVersion.cmake
-    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/xoshiro
+    ${CMAKE_CURRENT_BINARY_DIR}/RandXConfig.cmake
+    ${CMAKE_CURRENT_BINARY_DIR}/RandXConfigVersion.cmake
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/RandX
 )
 
 # 可选：构建测试和 benchmark
-option(XOSHIRO_BUILD_TESTS "Build tests" OFF)
-option(XOSHIRO_BUILD_BENCHMARK "Build benchmark" OFF)
-option(XOSHIRO_ENABLE_COVERAGE "Enable code coverage (GCC/Clang)" OFF)
+option(RANDX_BUILD_TESTS "Build tests" OFF)
+option(RANDX_BUILD_BENCHMARK "Build benchmark" OFF)
+option(RANDX_ENABLE_COVERAGE "Enable code coverage (GCC/Clang)" OFF)
 
-if(XOSHIRO_BUILD_TESTS)
+if(RANDX_BUILD_TESTS)
     enable_testing()
 
     # 共用 doctest 头文件
     set(DOCTEST_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/third_party)
 
-    # C++23 测试（Random.hpp）
-    add_executable(test_random test_random.cpp)
-    target_compile_features(test_random PRIVATE cxx_std_23)
-    target_include_directories(test_random PRIVATE ${DOCTEST_INCLUDE_DIR})
-    target_link_libraries(test_random PRIVATE xoshiro)
-    add_test(NAME test_random COMMAND test_random)
+    # C++23 测试（RandX.hpp）
+    add_executable(test_randx test_randx.cpp)
+    target_compile_features(test_randx PRIVATE cxx_std_23)
+    target_include_directories(test_randx PRIVATE ${DOCTEST_INCLUDE_DIR})
+    target_link_libraries(test_randx PRIVATE RandX)
+    add_test(NAME test_randx COMMAND test_randx)
 
-    # C++17 测试（XoshiroCpp.hpp）
-    add_executable(test_xoshirocpp test_xoshirocpp.cpp)
-    target_compile_features(test_xoshirocpp PRIVATE cxx_std_17)
-    target_include_directories(test_xoshirocpp PRIVATE ${DOCTEST_INCLUDE_DIR})
-    target_link_libraries(test_xoshirocpp PRIVATE xoshiro)
-    add_test(NAME test_xoshirocpp COMMAND test_xoshirocpp)
+    # C++17 测试（RandX_Cpp17.hpp）
+    add_executable(test_randx_cpp17 test_randx_cpp17.cpp)
+    target_compile_features(test_randx_cpp17 PRIVATE cxx_std_17)
+    target_include_directories(test_randx_cpp17 PRIVATE ${DOCTEST_INCLUDE_DIR})
+    target_link_libraries(test_randx_cpp17 PRIVATE RandX)
+    add_test(NAME test_randx_cpp17 COMMAND test_randx_cpp17)
 
-    if(XOSHIRO_ENABLE_COVERAGE AND (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang"))
-        target_compile_options(test_random PRIVATE --coverage -O0 -g)
-        target_link_options(test_random PRIVATE --coverage)
-        target_compile_options(test_xoshirocpp PRIVATE --coverage -O0 -g)
-        target_link_options(test_xoshirocpp PRIVATE --coverage)
+    if(RANDX_ENABLE_COVERAGE AND (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang"))
+        target_compile_options(test_randx PRIVATE --coverage -O0 -g)
+        target_link_options(test_randx PRIVATE --coverage)
+        target_compile_options(test_randx_cpp17 PRIVATE --coverage -O0 -g)
+        target_link_options(test_randx_cpp17 PRIVATE --coverage)
     endif()
 endif()
 
-if(XOSHIRO_BUILD_BENCHMARK)
+if(RANDX_BUILD_BENCHMARK)
     add_executable(benchmark benchmark.cpp)
     target_compile_features(benchmark PRIVATE cxx_std_23)
-    target_link_libraries(benchmark PRIVATE xoshiro)
+    target_link_libraries(benchmark PRIVATE RandX)
 endif()

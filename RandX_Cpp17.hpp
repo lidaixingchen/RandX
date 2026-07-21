@@ -1,37 +1,38 @@
 //----------------------------------------------------------------------------------------
 //
-//	XoshiroCpp.hpp — 基于 Xoshiro 的伪随机数生成器封装库（C++17 / C++23）
+//	RandX_Cpp17.hpp — 基于 Xoshiro 的伪随机数生成器封装库（C++17 / C++23）
 //
 //	原始算法：David Blackman & Sebastiano Vigna (http://prng.di.unimi.it/)
+//	原始 C++ 封装：Ryo Suzuki (https://github.com/Reputeless/Xoshiro-cpp)
 //
 //========================================================================================
 //
 //	快速上手
 //
-//		#include “XoshiroCpp.hpp”
+//		#include “RandX_Cpp17.hpp”
 //
 //		// 最简用法：直接调用便捷函数（内部使用线程局部 Xoshiro256StarStar）
-//		int   dice  = XoshiroCpp::RandInt(1, 6);     // [1, 6] 闭区间整数
-//		double coin = XoshiroCpp::RandReal();         // [0.0, 1.0) 浮点数
-//		bool  flag  = XoshiroCpp::RandBool(0.3);      // 30% 概率为 true
+//		int   dice  = RandX::RandInt(1, 6);     // [1, 6] 闭区间整数
+//		double coin = RandX::RandReal();         // [0.0, 1.0) 浮点数
+//		bool  flag  = RandX::RandBool(0.3);      // 30% 概率为 true
 //
 //		std::vector<int> v = {10, 20, 30, 40};
-//		auto& elem = XoshiroCpp::RandElement(v);      // 随机取一个元素
+//		auto& elem = RandX::RandElement(v);      // 随机取一个元素
 //
 //	扩展 API
 //
-//		auto sample = XoshiroCpp::RandSample(v, 2);   // 无放回抽样 2 个
-//		auto perm   = XoshiroCpp::RandPermutation(10);// [0,10) 随机排列
-//		auto token  = XoshiroCpp::RandString(16);     // 16 位随机字符串
-//		auto uuid   = XoshiroCpp::RandUUID();         // UUID v4
-//		auto byte   = XoshiroCpp::RandBits<8>();      // [0, 256) 随机整数
-//		auto exp    = XoshiroCpp::RandExp(2.0);       // 指数分布 λ=2
-//		auto poi    = XoshiroCpp::RandPoisson(5.0);   // 泊松分布 μ=5
+//		auto sample = RandX::RandSample(v, 2);   // 无放回抽样 2 个
+//		auto perm   = RandX::RandPermutation(10);// [0,10) 随机排列
+//		auto token  = RandX::RandString(16);     // 16 位随机字符串
+//		auto uuid   = RandX::RandUUID();         // UUID v4
+//		auto byte   = RandX::RandBits<8>();      // [0, 256) 随机整数
+//		auto exp    = RandX::RandExp(2.0);       // 指数分布 λ=2
+//		auto poi    = RandX::RandPoisson(5.0);   // 泊松分布 μ=5
 //
 //	手动管理引擎
 //
-//		XoshiroCpp::Xoshiro256StarStar rng{ XoshiroCpp::RandomSeed() };
-//		int val = XoshiroCpp::RandInt(rng, 0, 99);
+//		RandX::Xoshiro256StarStar rng{ RandX::RandomSeed() };
+//		int val = RandX::RandInt(rng, 0, 99);
 //
 //		// 配合标准库 distribution（满足 UniformRandomBitGenerator）
 //		std::normal_distribution<double> norm(0.0, 1.0);
@@ -39,8 +40,8 @@
 //
 //	多流并行
 //
-//		auto s0 = XoshiroCpp::MakeStreamEngine<XoshiroCpp::Xoshiro256StarStar>(0);
-//		auto s1 = XoshiroCpp::MakeStreamEngine<XoshiroCpp::Xoshiro256StarStar>(1);
+//		auto s0 = RandX::MakeStreamEngine<RandX::Xoshiro256StarStar>(0);
+//		auto s1 = RandX::MakeStreamEngine<RandX::Xoshiro256StarStar>(1);
 //
 //	序列化 / 反序列化
 //
@@ -91,12 +92,12 @@
 #	include <immintrin.h>
 # endif
 # if __has_cpp_attribute(nodiscard) >= 201907L
-#	define XOSHIROCPP_NODISCARD_CXX20 [[nodiscard]]
+#	define RANDX_NODISCARD_CXX20 [[nodiscard]]
 # else
-#	define XOSHIROCPP_NODISCARD_CXX20
+#	define RANDX_NODISCARD_CXX20
 # endif
 
-namespace XoshiroCpp
+namespace RandX
 {
 	// 生成器的默认种子值
 	inline constexpr std::uint64_t DefaultSeed = 1234567890ULL;
@@ -125,13 +126,13 @@ namespace XoshiroCpp
 		using state_type	= std::uint64_t;	
 		using result_type	= std::uint64_t;
 		
-		XOSHIROCPP_NODISCARD_CXX20
+		RANDX_NODISCARD_CXX20
 		explicit constexpr SplitMix64(state_type state = DefaultSeed) noexcept;
 
 		// 从 std::seed_seq 播种
 		template <class SeedSeq,
 			std::enable_if_t<!std::is_same_v<std::decay_t<SeedSeq>, SplitMix64>>* = nullptr>
-		XOSHIROCPP_NODISCARD_CXX20
+		RANDX_NODISCARD_CXX20
 		explicit constexpr SplitMix64(SeedSeq& seq);
 
 		constexpr result_type operator()() noexcept;
@@ -183,16 +184,16 @@ namespace XoshiroCpp
 		using state_type	= std::array<std::uint64_t, 4>;
 		using result_type	= std::uint64_t;
 
-		XOSHIROCPP_NODISCARD_CXX20
+		RANDX_NODISCARD_CXX20
 		explicit constexpr Xoshiro256Plus(std::uint64_t seed = DefaultSeed) noexcept;
 
 		// 从 std::seed_seq 播种
 		template <class SeedSeq,
 			std::enable_if_t<!std::is_same_v<std::decay_t<SeedSeq>, Xoshiro256Plus>>* = nullptr>
-		XOSHIROCPP_NODISCARD_CXX20
+		RANDX_NODISCARD_CXX20
 		explicit constexpr Xoshiro256Plus(SeedSeq& seq);
 
-		XOSHIROCPP_NODISCARD_CXX20
+		RANDX_NODISCARD_CXX20
 		explicit constexpr Xoshiro256Plus(state_type state) noexcept;
 
 		constexpr result_type operator()() noexcept;
@@ -251,16 +252,16 @@ namespace XoshiroCpp
 		using state_type	= std::array<std::uint64_t, 4>;
 		using result_type	= std::uint64_t;
 
-		XOSHIROCPP_NODISCARD_CXX20
+		RANDX_NODISCARD_CXX20
 		explicit constexpr Xoshiro256PlusPlus(std::uint64_t seed = DefaultSeed) noexcept;
 
 		// 从 std::seed_seq 播种
 		template <class SeedSeq,
 			std::enable_if_t<!std::is_same_v<std::decay_t<SeedSeq>, Xoshiro256PlusPlus>>* = nullptr>
-		XOSHIROCPP_NODISCARD_CXX20
+		RANDX_NODISCARD_CXX20
 		explicit constexpr Xoshiro256PlusPlus(SeedSeq& seq);
 
-		XOSHIROCPP_NODISCARD_CXX20
+		RANDX_NODISCARD_CXX20
 		explicit constexpr Xoshiro256PlusPlus(state_type state) noexcept;
 
 		constexpr result_type operator()() noexcept;
@@ -319,16 +320,16 @@ namespace XoshiroCpp
 		using state_type	= std::array<std::uint64_t, 4>;
 		using result_type	= std::uint64_t;
 
-		XOSHIROCPP_NODISCARD_CXX20
+		RANDX_NODISCARD_CXX20
 		explicit constexpr Xoshiro256StarStar(std::uint64_t seed = DefaultSeed) noexcept;
 
 		// 从 std::seed_seq 播种
 		template <class SeedSeq,
 			std::enable_if_t<!std::is_same_v<std::decay_t<SeedSeq>, Xoshiro256StarStar>>* = nullptr>
-		XOSHIROCPP_NODISCARD_CXX20
+		RANDX_NODISCARD_CXX20
 		explicit constexpr Xoshiro256StarStar(SeedSeq& seq);
 
-		XOSHIROCPP_NODISCARD_CXX20
+		RANDX_NODISCARD_CXX20
 		explicit constexpr Xoshiro256StarStar(state_type state) noexcept;
 
 		constexpr result_type operator()() noexcept;
@@ -387,16 +388,16 @@ namespace XoshiroCpp
 		using state_type	= std::array<std::uint64_t, 2>;
 		using result_type	= std::uint64_t;
 
-		XOSHIROCPP_NODISCARD_CXX20
+		RANDX_NODISCARD_CXX20
 		explicit constexpr Xoroshiro128Plus(std::uint64_t seed = DefaultSeed) noexcept;
 
 		// 从 std::seed_seq 播种
 		template <class SeedSeq,
 			std::enable_if_t<!std::is_same_v<std::decay_t<SeedSeq>, Xoroshiro128Plus>>* = nullptr>
-		XOSHIROCPP_NODISCARD_CXX20
+		RANDX_NODISCARD_CXX20
 		explicit constexpr Xoroshiro128Plus(SeedSeq& seq);
 
-		XOSHIROCPP_NODISCARD_CXX20
+		RANDX_NODISCARD_CXX20
 		explicit constexpr Xoroshiro128Plus(state_type state) noexcept;
 
 		constexpr result_type operator()() noexcept;
@@ -455,16 +456,16 @@ namespace XoshiroCpp
 		using state_type	= std::array<std::uint64_t, 2>;
 		using result_type	= std::uint64_t;
 
-		XOSHIROCPP_NODISCARD_CXX20
+		RANDX_NODISCARD_CXX20
 		explicit constexpr Xoroshiro128PlusPlus(std::uint64_t seed = DefaultSeed) noexcept;
 
 		// 从 std::seed_seq 播种
 		template <class SeedSeq,
 			std::enable_if_t<!std::is_same_v<std::decay_t<SeedSeq>, Xoroshiro128PlusPlus>>* = nullptr>
-		XOSHIROCPP_NODISCARD_CXX20
+		RANDX_NODISCARD_CXX20
 		explicit constexpr Xoroshiro128PlusPlus(SeedSeq& seq);
 
-		XOSHIROCPP_NODISCARD_CXX20
+		RANDX_NODISCARD_CXX20
 		explicit constexpr Xoroshiro128PlusPlus(state_type state) noexcept;
 
 		constexpr result_type operator()() noexcept;
@@ -523,16 +524,16 @@ namespace XoshiroCpp
 		using state_type	= std::array<std::uint64_t, 2>;
 		using result_type	= std::uint64_t;
 
-		XOSHIROCPP_NODISCARD_CXX20
+		RANDX_NODISCARD_CXX20
 		explicit constexpr Xoroshiro128StarStar(std::uint64_t seed = DefaultSeed) noexcept;
 
 		// 从 std::seed_seq 播种
 		template <class SeedSeq,
 			std::enable_if_t<!std::is_same_v<std::decay_t<SeedSeq>, Xoroshiro128StarStar>>* = nullptr>
-		XOSHIROCPP_NODISCARD_CXX20
+		RANDX_NODISCARD_CXX20
 		explicit constexpr Xoroshiro128StarStar(SeedSeq& seq);
 
-		XOSHIROCPP_NODISCARD_CXX20
+		RANDX_NODISCARD_CXX20
 		explicit constexpr Xoroshiro128StarStar(state_type state) noexcept;
 
 		constexpr result_type operator()() noexcept;
@@ -591,16 +592,16 @@ namespace XoshiroCpp
 		using state_type	= std::array<std::uint32_t, 4>;
 		using result_type	= std::uint32_t;
 
-		XOSHIROCPP_NODISCARD_CXX20
+		RANDX_NODISCARD_CXX20
 		explicit constexpr Xoshiro128Plus(std::uint64_t seed = DefaultSeed) noexcept;
 
 		// 从 std::seed_seq 播种
 		template <class SeedSeq,
 			std::enable_if_t<!std::is_same_v<std::decay_t<SeedSeq>, Xoshiro128Plus>>* = nullptr>
-		XOSHIROCPP_NODISCARD_CXX20
+		RANDX_NODISCARD_CXX20
 		explicit constexpr Xoshiro128Plus(SeedSeq& seq);
 
-		XOSHIROCPP_NODISCARD_CXX20
+		RANDX_NODISCARD_CXX20
 		explicit constexpr Xoshiro128Plus(state_type state) noexcept;
 
 		constexpr result_type operator()() noexcept;
@@ -659,16 +660,16 @@ namespace XoshiroCpp
 		using state_type	= std::array<std::uint32_t, 4>;
 		using result_type	= std::uint32_t;
 
-		XOSHIROCPP_NODISCARD_CXX20
+		RANDX_NODISCARD_CXX20
 		explicit constexpr Xoshiro128PlusPlus(std::uint64_t seed = DefaultSeed) noexcept;
 
 		// 从 std::seed_seq 播种
 		template <class SeedSeq,
 			std::enable_if_t<!std::is_same_v<std::decay_t<SeedSeq>, Xoshiro128PlusPlus>>* = nullptr>
-		XOSHIROCPP_NODISCARD_CXX20
+		RANDX_NODISCARD_CXX20
 		explicit constexpr Xoshiro128PlusPlus(SeedSeq& seq);
 
-		XOSHIROCPP_NODISCARD_CXX20
+		RANDX_NODISCARD_CXX20
 		explicit constexpr Xoshiro128PlusPlus(state_type state) noexcept;
 
 		constexpr result_type operator()() noexcept;
@@ -727,16 +728,16 @@ namespace XoshiroCpp
 		using state_type	= std::array<std::uint32_t, 4>;
 		using result_type	= std::uint32_t;
 
-		XOSHIROCPP_NODISCARD_CXX20
+		RANDX_NODISCARD_CXX20
 		explicit constexpr Xoshiro128StarStar(std::uint64_t seed = DefaultSeed) noexcept;
 
 		// 从 std::seed_seq 播种
 		template <class SeedSeq,
 			std::enable_if_t<!std::is_same_v<std::decay_t<SeedSeq>, Xoshiro128StarStar>>* = nullptr>
-		XOSHIROCPP_NODISCARD_CXX20
+		RANDX_NODISCARD_CXX20
 		explicit constexpr Xoshiro128StarStar(SeedSeq& seq);
 
-		XOSHIROCPP_NODISCARD_CXX20
+		RANDX_NODISCARD_CXX20
 		explicit constexpr Xoshiro128StarStar(state_type state) noexcept;
 
 		constexpr result_type operator()() noexcept;
@@ -794,16 +795,16 @@ namespace XoshiroCpp
 		using state_type = std::array<std::uint32_t, 2>;
 		using result_type = std::uint32_t;
 
-		XOSHIROCPP_NODISCARD_CXX20
+		RANDX_NODISCARD_CXX20
 			explicit constexpr Xoroshiro64Star(std::uint64_t seed = DefaultSeed) noexcept;
 
 		// 从 std::seed_seq 播种
 		template <class SeedSeq,
 			std::enable_if_t<!std::is_same_v<std::decay_t<SeedSeq>, Xoroshiro64Star>>* = nullptr>
-		XOSHIROCPP_NODISCARD_CXX20
+		RANDX_NODISCARD_CXX20
 		explicit constexpr Xoroshiro64Star(SeedSeq& seq);
 
-		XOSHIROCPP_NODISCARD_CXX20
+		RANDX_NODISCARD_CXX20
 			explicit constexpr Xoroshiro64Star(state_type state) noexcept;
 
 		constexpr result_type operator()() noexcept;
@@ -850,16 +851,16 @@ namespace XoshiroCpp
 		using state_type = std::array<std::uint32_t, 2>;
 		using result_type = std::uint32_t;
 
-		XOSHIROCPP_NODISCARD_CXX20
+		RANDX_NODISCARD_CXX20
 			explicit constexpr Xoroshiro64StarStar(std::uint64_t seed = DefaultSeed) noexcept;
 
 		// 从 std::seed_seq 播种
 		template <class SeedSeq,
 			std::enable_if_t<!std::is_same_v<std::decay_t<SeedSeq>, Xoroshiro64StarStar>>* = nullptr>
-		XOSHIROCPP_NODISCARD_CXX20
+		RANDX_NODISCARD_CXX20
 		explicit constexpr Xoroshiro64StarStar(SeedSeq& seq);
 
-		XOSHIROCPP_NODISCARD_CXX20
+		RANDX_NODISCARD_CXX20
 			explicit constexpr Xoroshiro64StarStar(state_type state) noexcept;
 
 		constexpr result_type operator()() noexcept;
@@ -912,7 +913,7 @@ namespace XoshiroCpp
 		// 从 std::seed_seq 播种
 		template <class SeedSeq,
 			std::enable_if_t<!std::is_same_v<std::decay_t<SeedSeq>, SFC64>>* = nullptr>
-		XOSHIROCPP_NODISCARD_CXX20
+		RANDX_NODISCARD_CXX20
 		explicit constexpr SFC64(SeedSeq& seq);
 
 		[[nodiscard]]
@@ -972,7 +973,7 @@ namespace XoshiroCpp
 		// 从 std::seed_seq 播种
 		template <class SeedSeq,
 			std::enable_if_t<!std::is_same_v<std::decay_t<SeedSeq>, RomuDuoJr>>* = nullptr>
-		XOSHIROCPP_NODISCARD_CXX20
+		RANDX_NODISCARD_CXX20
 		explicit constexpr RomuDuoJr(SeedSeq& seq);
 
 		[[nodiscard]]
@@ -1014,7 +1015,7 @@ namespace XoshiroCpp
 
 ////////////////////////////////////////////////////////////////
 
-namespace XoshiroCpp
+namespace RandX
 {
 	template <class Uint32, std::enable_if_t<std::is_same_v<Uint32, std::uint32_t>>*>
 	inline constexpr float FloatFromBits(const Uint32 i) noexcept

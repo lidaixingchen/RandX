@@ -1,4 +1,4 @@
-# Pseudo-random-number-generator-based-on-Xoshiro
+# RandX
 
 基于 **xoshiro/xoroshiro** 算法族的纯头文件伪随机数生成器库。
 
@@ -11,31 +11,31 @@
 
 | 头文件 | 标准 | 命名空间 | 说明 |
 |--------|------|----------|------|
-| **Random.hpp** | C++23 | `xoshiro` | 增强版：concepts 约束、便捷 API（`RandInt`/`RandReal`/`RandBool`/`RandElement`）、线程局部默认引擎、`discard(n)`、Lemire 无偏 `RandIntCE`、多流接口、14 引擎、中文注释 |
-| **XoshiroCpp.hpp** | C++17 / C++23 | `XoshiroCpp` | 兼容版：SFINAE 约束、便捷 API、`discard(n)`、14 引擎、中文注释 |
+| **RandX.hpp** | C++23 | `RandX` | 增强版：concepts 约束、便捷 API（`RandInt`/`RandReal`/`RandBool`/`RandElement`）、线程局部默认引擎、`discard(n)`、Lemire 无偏 `RandIntCE`、多流接口、14 引擎、中文注释 |
+| **RandX_Cpp17.hpp** | C++17 / C++23 | `RandX` | 兼容版：SFINAE 约束、便捷 API、`discard(n)`、14 引擎、中文注释 |
 
-> 如果你的编译器支持 C++23，推荐使用 `Random.hpp`；否则使用 `XoshiroCpp.hpp`。
+> 如果你的编译器支持 C++23，推荐使用 `RandX.hpp`；否则使用 `RandX_Cpp17.hpp`。
 > 两者算法实现完全一致，输出序列相同（相同种子下），便捷 API 签名一致。
 
 ## 特性
 
-- 满足 `std::uniform_random_bit_generator` 概念（Random.hpp 含 `static_assert` 编译期验证）
+- 满足 `std::uniform_random_bit_generator` 概念（RandX.hpp 含 `static_assert` 编译期验证）
 - 全 `constexpr`，编译期可用
-- 便捷 API：基础生成（`RandInt`/`RandReal`/`RandBool`/`RandChar`/`RandBits`）、分布（`RandNormal`/`RandExp`/`RandPoisson`/`RandGamma`/`RandWeighted` + 11 个 v1.2 新分布）、容器（`RandElement` 容器版/迭代器版/`RandSample` 容器版/迭代器版/`RandShuffle`/`RandPermutation`/`RandFill`/`RandVector`）、字符串（`RandString`/`RandUUID`/`RandChar(CharSet)` 预设字符集）、ranges 风格（`xoshiro::ranges::RandElement`/`RandSample`/`RandShuffle`/`RandFill`，仅 Random.hpp）、流式序列化（`operator<<`/`operator>>`）
+- 便捷 API：基础生成（`RandInt`/`RandReal`/`RandBool`/`RandChar`/`RandBits`）、分布（`RandNormal`/`RandExp`/`RandPoisson`/`RandGamma`/`RandWeighted` 等 16 种标准统计分布）、容器（`RandElement` 容器版/迭代器版/`RandSample` 容器版/迭代器版/`RandShuffle`/`RandPermutation`/`RandFill`/`RandVector`）、字符串（`RandString`/`RandUUID`/`RandChar(CharSet)` 预设字符集）、ranges 风格（`RandX::ranges::RandElement`/`RandSample`/`RandShuffle`/`RandFill`，仅 RandX.hpp）、流式序列化（`operator<<`/`operator>>`）
 - 线程局部默认引擎（`DefaultEngine()`），零配置即用
-- `constexpr` 编译期随机（仅 Random.hpp）：`RandIntCE<Seed>(min, max)`
+- `constexpr` 编译期随机（仅 RandX.hpp）：`RandIntCE<Seed>(min, max)`
 - 支持 `jump()` / `longJump()` 并行子序列、`discard(n)` 跳过、`serialize()` / `deserialize()` 状态持久化
 - Lemire 有界法消除模偏差（`RandIntCE`）
 - 全零吸收态防御（`assert` 检测）
 - 多流接口 `MakeStreamEngine<Engine>(streamId, seed)` 用于并行计算
-- 新增 SFC64 / RomuDuoJr 高速引擎
+- 支持 SFC64 / RomuDuoJr 高速引擎
 - 14 个引擎全覆盖
 - 编译期洗牌 `ShuffleCE` / `ShuffledArray`（`std::shuffle` 的 constexpr 替代）
 - `Reseed(seed)` 重置默认引擎，方便测试复现
 - `std::seed_seq` 播种支持（所有 14 引擎）
 - 硬件种子：`RandomSeed()` 优先使用 RDRAND（x86_64）
 - MSVC 兼容：`RandIntCE` 条件编译（`__uint128_t` / 拒绝采样回退）
-- CMake 安装支持：`find_package(xoshiro)` / `FetchContent`
+- CMake 安装支持：`find_package(RandX)` / `FetchContent`
 - 包管理器支持：vcpkg / Conan
 - GitHub Actions CI：GCC 14 / Clang 18 / MSVC 三编译器矩阵
 
@@ -61,16 +61,16 @@
 ## 快速上手
 
 ```cpp
-#include "Random.hpp"
+#include "RandX.hpp"
 #include <iostream>
 
 int main()
 {
     // 最简用法：便捷函数（内部使用线程局部 Xoshiro256StarStar）
-    std::cout << xoshiro::RandInt(1, 6) << '\n';   // 掷骰子 [1, 6]
-    std::cout << xoshiro::RandReal() << '\n';       // [0.0, 1.0)
-    std::cout << xoshiro::RandBool(0.3) << '\n';    // 30% 概率为 true
-    std::cout << xoshiro::RandNormal() << '\n';     // 正态分布 N(0,1)
+    std::cout << RandX::RandInt(1, 6) << '\n';   // 掷骰子 [1, 6]
+    std::cout << RandX::RandReal() << '\n';       // [0.0, 1.0)
+    std::cout << RandX::RandBool(0.3) << '\n';    // 30% 概率为 true
+    std::cout << RandX::RandNormal() << '\n';     // 正态分布 N(0,1)
 }
 ```
 
@@ -82,73 +82,73 @@ int main()
 | | `RandReal(min, max)` | [min, max) 浮点数 | ✅ |
 | | `RandBool(p)` | 概率 p 为 true | ✅ |
 | | `RandChar(min, max)` | [min, max] 范围随机字符（`char`/`wchar_t`/`char16_t`/`char32_t`，C++20+ 含 `char8_t`） | ✅ |
-| | `RandChar(CharSet)` | 从预设字符集随机取一个字符（v1.2 新增） | ✅ |
+| | `RandChar(CharSet)` | 从预设字符集随机取一个字符 | ✅ |
 | | `RandBits<N>()` | N 位随机整数 [0, 2^N) | ✅ |
 | 分布 | `RandNormal(mean, stddev)` | 正态分布 | ✅ |
 | | `RandExp(lambda)` | 指数分布 | ✅ |
 | | `RandPoisson(mean)` | 泊松分布 | ✅ |
 | | `RandGamma(alpha, beta)` | 伽马分布 | ✅ |
 | | `RandWeighted(weights)` | 按权重选取索引 | ✅ |
-| | `RandBernoulli(p)` | 伯努利分布（别名封装 `RandBool`，v1.2 新增） | ✅ |
-| | `RandBinomial(t, p)` | 二项分布（v1.2 新增） | ✅ |
-| | `RandLogNormal(mean, stddev)` | 对数正态分布（v1.2 新增） | ✅ |
-| | `RandGeometric(p)` | 几何分布（v1.2 新增） | ✅ |
-| | `RandCauchy(a, b)` | 柯西分布（v1.2 新增） | ✅ |
-| | `RandWeibull(a, b)` | 韦布尔分布（v1.2 新增） | ✅ |
-| | `RandExtremeValue(a, b)` | 极值分布（v1.2 新增） | ✅ |
-| | `RandChiSquared(n)` | 卡方分布（v1.2 新增） | ✅ |
-| | `RandStudentT(n)` | 学生 t 分布（v1.2 新增） | ✅ |
-| | `RandFisherF(m, n)` | Fisher F 分布（v1.2 新增） | ✅ |
-| | `RandBeta(a, b)` | Beta 分布（自实现，v1.2 新增） | ✅ |
+| | `RandBernoulli(p)` | 伯努利分布（别名封装 `RandBool`） | ✅ |
+| | `RandBinomial(t, p)` | 二项分布 | ✅ |
+| | `RandLogNormal(mean, stddev)` | 对数正态分布 | ✅ |
+| | `RandGeometric(p)` | 几何分布 | ✅ |
+| | `RandCauchy(a, b)` | 柯西分布 | ✅ |
+| | `RandWeibull(a, b)` | 韦布尔分布 | ✅ |
+| | `RandExtremeValue(a, b)` | 极值分布 | ✅ |
+| | `RandChiSquared(n)` | 卡方分布 | ✅ |
+| | `RandStudentT(n)` | 学生 t 分布 | ✅ |
+| | `RandFisherF(m, n)` | Fisher F 分布 | ✅ |
+| | `RandBeta(a, b)` | Beta 分布（自实现） | ✅ |
 | 容器 | `RandElement(container)` | 随机取一个元素（容器版，返回引用） | ✅ |
 | | `RandElement(first, last)` | 随机取一个元素（迭代器版，返回迭代器；随机访问 O(1)，输入迭代器 O(n) reservoir sampling） | ✅ |
 | | `RandSample(container, n)` | 无放回抽样 n 个（容器版） | ✅ |
-| | `RandSample(first, last, n)` | 无放回抽样 n 个（迭代器版，v1.2 新增；随机访问含 hash-set/索引双分支，输入迭代器用 reservoir sampling O(n) 内存） | ✅ |
+| | `RandSample(first, last, n)` | 无放回抽样 n 个（迭代器版；随机访问含 hash-set/索引双分支，输入迭代器用 reservoir sampling O(n) 内存） | ✅ |
 | | `RandShuffle(container)` | 随机打乱 | ✅ |
 | | `RandPermutation(n)` | [0, n) 随机排列 | ✅ |
 | | `RandFill(first, last, min, max)` | 用随机值填充 [first, last) 范围（STL 风格） | ✅ |
 | | `RandVector(min, max, n)` | 生成 n 个随机值构成的 `std::vector` | ✅ |
-| ranges 风格 | `ranges::RandElement(range)` | 随机取一个元素（返回值拷贝；v1.2 新增，仅 Random.hpp） | ❌ C++23 专属 |
-| | `ranges::RandSample(range, n)` | 无放回抽样（v1.2 新增，仅 Random.hpp） | ❌ C++23 专属 |
-| | `ranges::RandShuffle(range)` | 随机打乱（v1.2 新增，仅 Random.hpp） | ❌ C++23 专属 |
-| | `ranges::RandFill(range, min, max)` | 填充（模板化支持 int/double/float；v1.2 新增，仅 Random.hpp） | ❌ C++23 专属 |
+| ranges 风格 | `ranges::RandElement(range)` | 随机取一个元素（返回值拷贝，仅 RandX.hpp） | ❌ C++23 专属 |
+| | `ranges::RandSample(range, n)` | 无放回抽样（仅 RandX.hpp） | ❌ C++23 专属 |
+| | `ranges::RandShuffle(range)` | 随机打乱（仅 RandX.hpp） | ❌ C++23 专属 |
+| | `ranges::RandFill(range, min, max)` | 填充（模板化支持 int/double/float，仅 RandX.hpp） | ❌ C++23 专属 |
 | 字符串/ID | `RandString(len, charset)` | 随机字符串（`charset` 为 `string_view`） | ✅ |
-| | `RandString(n, CharSet)` | 从预设字符集生成随机字符串（v1.2 新增） | ✅ |
+| | `RandString(n, CharSet)` | 从预设字符集生成随机字符串 | ✅ |
 | | `RandUUID()` | UUID v4 | ✅ |
 | 序列化 | `serialize()` / `deserialize(state)` | 状态持久化（主接口，所有引擎） | ✅ |
 | | `operator<<` / `operator>>` | 流式语法糖（仅 `state_type` 为容器类的引擎，排除 `SplitMix64`） | ✅ |
-| 编译期 | `RandIntCE<Seed>(min, max)` | 编译期随机整数（仅 Random.hpp） | ❌ C++23 专属 |
+| 编译期 | `RandIntCE<Seed>(min, max)` | 编译期随机整数（仅 RandX.hpp） | ❌ C++23 专属 |
 | | `ShuffleCE(first, last)` | 编译期洗牌 | ❌ C++23 专属 |
 | | `ShuffledArray<T,N,Seed>(arr)` | 编译期洗牌数组版 | ❌ C++23 专属 |
 
-> **CharSet 枚举**（v1.2 新增）：`Alphanumeric` / `Alpha` / `Lower` / `Upper` / `Digit` / `Hex` / `Printable` / `Base64`，覆盖常见字符集场景。
+> **CharSet 枚举**：`Alphanumeric` / `Alpha` / `Lower` / `Upper` / `Digit` / `Hex` / `Printable` / `Base64`，覆盖常见字符集场景。
 
 所有函数默认使用线程局部 `Xoshiro256StarStar` 引擎，也支持传入自定义引擎：`RandInt(rng, min, max)`。
 
 ```cpp
 // 示例
-xoshiro::RandInt(1, 6);              // 掷骰子
-xoshiro::RandExp(2.0);               // 指数分布 λ=2
-xoshiro::RandSample(pool, 3);        // 无放回抽 3 个
-xoshiro::RandString(16);             // 16 位随机 token
-xoshiro::RandUUID();                 // "a1b2c3d4-e5f6-4789-abcd-..."
-constexpr auto v = xoshiro::RandIntCE(0, 100);  // 编译期确定
+RandX::RandInt(1, 6);              // 掷骰子
+RandX::RandExp(2.0);               // 指数分布 λ=2
+RandX::RandSample(pool, 3);        // 无放回抽 3 个
+RandX::RandString(16);             // 16 位随机 token
+RandX::RandUUID();                 // "a1b2c3d4-e5f6-4789-abcd-..."
+constexpr auto v = RandX::RandIntCE(0, 100);  // 编译期确定
 ```
 
 ## 手动管理引擎
 
 ```cpp
-#include "Random.hpp"
+#include "RandX.hpp"
 #include <random>
 #include <iostream>
 
 int main()
 {
     // 用真随机种子创建引擎
-    xoshiro::Xoshiro256StarStar rng{ xoshiro::RandomSeed() };
+    RandX::Xoshiro256StarStar rng{ RandX::RandomSeed() };
 
     // 指定引擎的便捷函数
-    std::cout << xoshiro::RandInt(rng, 0, 99) << '\n';
+    std::cout << RandX::RandInt(rng, 0, 99) << '\n';
 
     // 配合标准库 distribution
     std::normal_distribution<double> norm(0.0, 1.0);
@@ -167,23 +167,23 @@ int main()
 }
 ```
 
-## 编译期随机（仅 Random.hpp）
+## 编译期随机（仅 RandX.hpp）
 
 ```cpp
-#include "Random.hpp"
+#include "RandX.hpp"
 
 // 编译期确定结果（固定种子）
-constexpr int compileTimeDice = xoshiro::RandIntCE(1, 6);
+constexpr int compileTimeDice = RandX::RandIntCE(1, 6);
 static_assert(compileTimeDice >= 1 && compileTimeDice <= 6);
 
 // 自定义种子
-constexpr auto v = xoshiro::RandIntCE<int, 42>(0, 100);
+constexpr auto v = RandX::RandIntCE<int, 42>(0, 100);
 ```
 
 ## 按权重随机选取
 
 ```cpp
-#include "Random.hpp"
+#include "RandX.hpp"
 #include <vector>
 #include <iostream>
 
@@ -191,7 +191,7 @@ int main()
 {
     // 权重：A=1, B=2, C=7 → C 被选中概率约 70%
     std::vector<double> weights = { 1.0, 2.0, 7.0 };
-    auto idx = xoshiro::RandWeighted(weights);
+    auto idx = RandX::RandWeighted(weights);
     std::cout << "选中索引: " << idx << '\n';
 }
 ```
@@ -199,27 +199,27 @@ int main()
 ## 多流并行
 
 ```cpp
-#include "Random.hpp"
+#include "RandX.hpp"
 #include <iostream>
 
 int main()
 {
     // 创建 4 个不重叠的子序列引擎（每个间隔 2^128 步）
-    auto rng0 = xoshiro::MakeStreamEngine<xoshiro::Xoshiro256StarStar>(0);
-    auto rng1 = xoshiro::MakeStreamEngine<xoshiro::Xoshiro256StarStar>(1);
-    auto rng2 = xoshiro::MakeStreamEngine<xoshiro::Xoshiro256StarStar>(2);
-    auto rng3 = xoshiro::MakeStreamEngine<xoshiro::Xoshiro256StarStar>(3);
+    auto rng0 = RandX::MakeStreamEngine<RandX::Xoshiro256StarStar>(0);
+    auto rng1 = RandX::MakeStreamEngine<RandX::Xoshiro256StarStar>(1);
+    auto rng2 = RandX::MakeStreamEngine<RandX::Xoshiro256StarStar>(2);
+    auto rng3 = RandX::MakeStreamEngine<RandX::Xoshiro256StarStar>(3);
 
     // 各流独立生成，互不重叠
-    std::cout << xoshiro::RandInt(rng0, 0, 99) << '\n';
-    std::cout << xoshiro::RandInt(rng1, 0, 99) << '\n';
+    std::cout << RandX::RandInt(rng0, 0, 99) << '\n';
+    std::cout << RandX::RandInt(rng1, 0, 99) << '\n';
 }
 ```
 
 ## 编译期洗牌
 
 ```cpp
-#include "Random.hpp"
+#include "RandX.hpp"
 #include <array>
 #include <iostream>
 
@@ -228,7 +228,7 @@ int main()
     // 编译期 Fisher-Yates 洗牌
     constexpr auto shuffled = [] {
         std::array<int, 10> a = {0,1,2,3,4,5,6,7,8,9};
-        xoshiro::ShuffleCE(a.begin(), a.end());
+        RandX::ShuffleCE(a.begin(), a.end());
         return a;
     }();
 
@@ -253,12 +253,12 @@ g++ -std=c++23 -O2 benchmark.cpp -o benchmark && ./benchmark
 
 ```cmake
 include(FetchContent)
-FetchContent_Declare(xoshiro
-    GIT_REPOSITORY https://github.com/lidaixingchen/Pseudo-random-number-generator-based-on-Xoshiro.git
+FetchContent_Declare(RandX
+    GIT_REPOSITORY https://github.com/lidaixingchen/RandX.git
     GIT_TAG master
 )
-FetchContent_MakeAvailable(xoshiro)
-target_link_libraries(myapp PRIVATE xoshiro::xoshiro)
+FetchContent_MakeAvailable(RandX)
+target_link_libraries(myapp PRIVATE RandX::RandX)
 ```
 
 ### find_package
@@ -269,14 +269,14 @@ cmake --install .
 ```
 
 ```cmake
-find_package(xoshiro REQUIRED)
-target_link_libraries(myapp PRIVATE xoshiro::xoshiro)
+find_package(RandX REQUIRED)
+target_link_libraries(myapp PRIVATE RandX::RandX)
 ```
 
 ### 构建测试
 
 ```bash
-cmake -B build -DXOSHIRO_BUILD_TESTS=ON -DXOSHIRO_BUILD_BENCHMARK=ON
+cmake -B build -DRANDX_BUILD_TESTS=ON -DRANDX_BUILD_BENCHMARK=ON
 cmake --build build
 ctest --test-dir build
 ```
@@ -287,7 +287,7 @@ ctest --test-dir build
 
 ```bash
 # 自定义注册表方式
-vcpkg install xoshiro-cpp --overlay-ports=path/to/ports
+vcpkg install randx --overlay-ports=path/to/ports
 ```
 
 ### Conan
@@ -299,7 +299,7 @@ conan create . --version=1.2.0
 ```python
 # conanfile.txt
 [requires]
-xoshiro-cpp/1.2.0
+randx/1.2.0
 
 [generators]
 CMakeDeps
@@ -310,8 +310,8 @@ CMakeToolchain
 
 | 头文件 | 最低标准 | 推荐编译器 |
 |--------|----------|------------|
-| Random.hpp | C++23 | GCC 14+ / Clang 18+ / MSVC 17.10+ |
-| XoshiroCpp.hpp | C++17 | GCC 9+ / Clang 10+ / MSVC 16.8+ |
+| RandX.hpp | C++23 | GCC 14+ / Clang 18+ / MSVC 17.10+ |
+| RandX_Cpp17.hpp | C++17 | GCC 9+ / Clang 10+ / MSVC 16.8+ |
 
 - 无外部依赖，纯头文件，复制即用
 
@@ -320,14 +320,14 @@ CMakeToolchain
 仓库包含确定性单元测试（doctest 框架，固定种子 → 断言已知输出序列）：
 
 ```bash
-# C++23 测试（Random.hpp）
-g++ -std=c++23 -Wall -Wextra -I third_party -o test_random test_random.cpp && ./test_random
+# C++23 测试（RandX.hpp）
+g++ -std=c++23 -Wall -Wextra -I third_party -o test_randx test_randx.cpp && ./test_randx
 
-# C++17 测试（XoshiroCpp.hpp）
-g++ -std=c++17 -Wall -Wextra -I third_party -o test_xoshirocpp test_xoshirocpp.cpp && ./test_xoshirocpp
+# C++17 测试（RandX_Cpp17.hpp）
+g++ -std=c++17 -Wall -Wextra -I third_party -o test_randx_cpp17 test_randx_cpp17.cpp && ./test_randx_cpp17
 
 # C++20 测试（验证 char8_t 条件编译路径）
-g++ -std=c++20 -Wall -Wextra -I third_party -o test_xoshirocpp test_xoshirocpp.cpp && ./test_xoshirocpp
+g++ -std=c++20 -Wall -Wextra -I third_party -o test_randx_cpp17 test_randx_cpp17.cpp && ./test_randx_cpp17
 ```
 
 ## CI

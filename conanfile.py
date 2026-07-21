@@ -3,17 +3,17 @@ from conan.tools.cmake import CMake, CMakeToolchain, cmake_layout
 import os
 
 
-class XoshiroCppConan(ConanFile):
-    name = "xoshiro-cpp"
+class RandXConan(ConanFile):
+    name = "randx"
     version = "1.2.0"
-    description = "Header-only C++ PRNG library based on xoshiro/xoroshiro algorithms"
-    homepage = "https://github.com/lidaixingchen/Pseudo-random-number-generator-based-on-Xoshiro"
+    description = "Modern, fast, and header-only C++ pseudo-random number generator and distribution library"
+    homepage = "https://github.com/lidaixingchen/RandX"
     url = homepage
     license = "MIT"
     author = "lidaixingchen"
-    topics = ("random", "prng", "xoshiro", "xoroshiro", "header-only", "constexpr")
+    topics = ("random", "prng", "randx", "sfc64", "xoshiro", "header-only", "constexpr")
     settings = "os", "arch", "compiler", "build_type"
-    exports_sources = "CMakeLists.txt", "Random.hpp", "XoshiroCpp.hpp", "cmake/*"
+    exports_sources = "CMakeLists.txt", "RandX.hpp", "RandX_Cpp17.hpp", "cmake/*"
     no_copy_source = True
 
     def layout(self):
@@ -33,8 +33,8 @@ class XoshiroCppConan(ConanFile):
     def package_info(self):
         self.cpp_info.bindirs = []
         self.cpp_info.libdirs = []
-        self.cpp_info.set_property("cmake_file_name", "xoshiro")
-        self.cpp_info.set_property("cmake_target_name", "xoshiro::xoshiro")
+        self.cpp_info.set_property("cmake_file_name", "RandX")
+        self.cpp_info.set_property("cmake_target_name", "RandX::RandX")
 
     def package_id(self):
         self.info.clear()  # header-only: binary-independent

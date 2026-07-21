@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------------------
 //
-//	benchmark.cpp — Random.hpp 全引擎性能基准测试
+//	benchmark.cpp — RandX.hpp 全引擎性能基准测试
 //
 //	编译：g++ -std=c++23 -O2 benchmark.cpp -o benchmark.exe
 //
@@ -13,7 +13,7 @@
 //
 //----------------------------------------------------------------------------------------
 
-#include "Random.hpp"
+#include "RandX.hpp"
 #include <chrono>
 #include <cstdio>
 #include <list>
@@ -100,7 +100,7 @@ static double BenchmarkRandInt(const char* name)
 
 	const auto start = std::chrono::high_resolution_clock::now();
 	for (int i = 0; i < N; ++i)
-		DoNotOptimize(xoshiro::RandInt(rng, 0, 999999));
+		DoNotOptimize(RandX::RandInt(rng, 0, 999999));
 	const auto end = std::chrono::high_resolution_clock::now();
 
 	const double ms = std::chrono::duration<double, std::milli>(end - start).count();
@@ -128,7 +128,7 @@ static double BenchmarkRandFill(const char* name)
 
 	const auto start = std::chrono::high_resolution_clock::now();
 	for (int i = 0; i < N / FillN; ++i)
-		xoshiro::RandFill(rng, buf.begin(), buf.end(), 0, 999999);
+		RandX::RandFill(rng, buf.begin(), buf.end(), 0, 999999);
 	const auto end = std::chrono::high_resolution_clock::now();
 
 	DoNotOptimize(buf[0]);
@@ -155,7 +155,7 @@ static double BenchmarkRandVector(const char* name)
 	const auto start = std::chrono::high_resolution_clock::now();
 	for (int i = 0; i < N / FillN; ++i)
 	{
-		auto v = xoshiro::RandVector(rng, 0, 999999, FillN);
+		auto v = RandX::RandVector(rng, 0, 999999, FillN);
 		DoNotOptimize(v[0]);
 	}
 	const auto end = std::chrono::high_resolution_clock::now();
@@ -191,7 +191,7 @@ static double BenchmarkRandSampleContainer(const char* name)
 	const auto start = std::chrono::high_resolution_clock::now();
 	for (int t = 0; t < SampleTrials; ++t)
 	{
-		auto s = xoshiro::RandSample(data, static_cast<std::size_t>(SampleN_HashSet));
+		auto s = RandX::RandSample(data, static_cast<std::size_t>(SampleN_HashSet));
 		DoNotOptimize(s[0]);
 	}
 	const auto end = std::chrono::high_resolution_clock::now();
@@ -212,7 +212,7 @@ static double BenchmarkRandSampleHashSet(const char* name)
 	const auto start = std::chrono::high_resolution_clock::now();
 	for (int t = 0; t < SampleTrials; ++t)
 	{
-		auto s = xoshiro::RandSample(data.begin(), data.end(), SampleN_HashSet);
+		auto s = RandX::RandSample(data.begin(), data.end(), SampleN_HashSet);
 		DoNotOptimize(s[0]);
 	}
 	const auto end = std::chrono::high_resolution_clock::now();
@@ -233,7 +233,7 @@ static double BenchmarkRandSampleIndex(const char* name)
 	const auto start = std::chrono::high_resolution_clock::now();
 	for (int t = 0; t < SampleTrials; ++t)
 	{
-		auto s = xoshiro::RandSample(data.begin(), data.end(), SampleN_Index);
+		auto s = RandX::RandSample(data.begin(), data.end(), SampleN_Index);
 		DoNotOptimize(s[0]);
 	}
 	const auto end = std::chrono::high_resolution_clock::now();
@@ -254,7 +254,7 @@ static double BenchmarkRandSampleReservoir(const char* name)
 	const auto start = std::chrono::high_resolution_clock::now();
 	for (int t = 0; t < SampleTrials; ++t)
 	{
-		auto s = xoshiro::RandSample(data.begin(), data.end(), SampleN_HashSet);
+		auto s = RandX::RandSample(data.begin(), data.end(), SampleN_HashSet);
 		DoNotOptimize(s[0]);
 	}
 	const auto end = std::chrono::high_resolution_clock::now();
@@ -275,7 +275,7 @@ static double BenchmarkRandSampleReservoir(const char* name)
 int main()
 {
 	std::printf("================================================================\n");
-	std::printf("  Random.hpp 性能基准测试 (N = %d)\n", N);
+	std::printf("  RandX.hpp 性能基准测试 (N = %d)\n", N);
 	std::printf("================================================================\n\n");
 
 	//----------------------------------------------------------------
@@ -286,23 +286,23 @@ int main()
 
 	// 64 位输出引擎
 	std::printf("  --- 64-bit 引擎 ---\n");
-	BenchmarkRaw<xoshiro::SplitMix64>("SplitMix64");
-	BenchmarkRaw<xoshiro::Xoshiro256Plus>("Xoshiro256Plus");
-	BenchmarkRaw<xoshiro::Xoshiro256PlusPlus>("Xoshiro256PlusPlus");
-	BenchmarkRaw<xoshiro::Xoshiro256StarStar>("Xoshiro256StarStar");
-	BenchmarkRaw<xoshiro::Xoroshiro128Plus>("Xoroshiro128Plus");
-	BenchmarkRaw<xoshiro::Xoroshiro128PlusPlus>("Xoroshiro128PlusPlus");
-	BenchmarkRaw<xoshiro::Xoroshiro128StarStar>("Xoroshiro128StarStar");
-	BenchmarkRaw<xoshiro::SFC64>("SFC64");
-	BenchmarkRaw<xoshiro::RomuDuoJr>("RomuDuoJr");
+	BenchmarkRaw<RandX::SplitMix64>("SplitMix64");
+	BenchmarkRaw<RandX::Xoshiro256Plus>("Xoshiro256Plus");
+	BenchmarkRaw<RandX::Xoshiro256PlusPlus>("Xoshiro256PlusPlus");
+	BenchmarkRaw<RandX::Xoshiro256StarStar>("Xoshiro256StarStar");
+	BenchmarkRaw<RandX::Xoroshiro128Plus>("Xoroshiro128Plus");
+	BenchmarkRaw<RandX::Xoroshiro128PlusPlus>("Xoroshiro128PlusPlus");
+	BenchmarkRaw<RandX::Xoroshiro128StarStar>("Xoroshiro128StarStar");
+	BenchmarkRaw<RandX::SFC64>("SFC64");
+	BenchmarkRaw<RandX::RomuDuoJr>("RomuDuoJr");
 
 	// 32 位输出引擎
 	std::printf("  --- 32-bit 引擎 ---\n");
-	BenchmarkRaw<xoshiro::Xoshiro128Plus>("Xoshiro128Plus");
-	BenchmarkRaw<xoshiro::Xoshiro128PlusPlus>("Xoshiro128PlusPlus");
-	BenchmarkRaw<xoshiro::Xoshiro128StarStar>("Xoshiro128StarStar");
-	BenchmarkRaw<xoshiro::Xoroshiro64Star>("Xoroshiro64Star");
-	BenchmarkRaw<xoshiro::Xoroshiro64StarStar>("Xoroshiro64StarStar");
+	BenchmarkRaw<RandX::Xoshiro128Plus>("Xoshiro128Plus");
+	BenchmarkRaw<RandX::Xoshiro128PlusPlus>("Xoshiro128PlusPlus");
+	BenchmarkRaw<RandX::Xoshiro128StarStar>("Xoshiro128StarStar");
+	BenchmarkRaw<RandX::Xoroshiro64Star>("Xoroshiro64Star");
+	BenchmarkRaw<RandX::Xoroshiro64StarStar>("Xoroshiro64StarStar");
 
 	std::printf("\n");
 
@@ -314,21 +314,21 @@ int main()
 
 	// Xoshiro256 系列（jump 等价于 2^128 步）
 	std::printf("  --- Xoshiro256 系列 (jump = 2^128 步) ---\n");
-	BenchmarkJump<xoshiro::Xoshiro256Plus>("Xoshiro256Plus");
-	BenchmarkJump<xoshiro::Xoshiro256PlusPlus>("Xoshiro256PlusPlus");
-	BenchmarkJump<xoshiro::Xoshiro256StarStar>("Xoshiro256StarStar");
+	BenchmarkJump<RandX::Xoshiro256Plus>("Xoshiro256Plus");
+	BenchmarkJump<RandX::Xoshiro256PlusPlus>("Xoshiro256PlusPlus");
+	BenchmarkJump<RandX::Xoshiro256StarStar>("Xoshiro256StarStar");
 
 	// Xoroshiro128 系列（jump 等价于 2^64 步）
 	std::printf("  --- Xoroshiro128 系列 (jump = 2^64 步) ---\n");
-	BenchmarkJump<xoshiro::Xoroshiro128Plus>("Xoroshiro128Plus");
-	BenchmarkJump<xoshiro::Xoroshiro128PlusPlus>("Xoroshiro128PlusPlus");
-	BenchmarkJump<xoshiro::Xoroshiro128StarStar>("Xoroshiro128StarStar");
+	BenchmarkJump<RandX::Xoroshiro128Plus>("Xoroshiro128Plus");
+	BenchmarkJump<RandX::Xoroshiro128PlusPlus>("Xoroshiro128PlusPlus");
+	BenchmarkJump<RandX::Xoroshiro128StarStar>("Xoroshiro128StarStar");
 
 	// Xoshiro128 系列（jump 等价于 2^64 步）
 	std::printf("  --- Xoshiro128 系列 (jump = 2^64 步) ---\n");
-	BenchmarkJump<xoshiro::Xoshiro128Plus>("Xoshiro128Plus");
-	BenchmarkJump<xoshiro::Xoshiro128PlusPlus>("Xoshiro128PlusPlus");
-	BenchmarkJump<xoshiro::Xoshiro128StarStar>("Xoshiro128StarStar");
+	BenchmarkJump<RandX::Xoshiro128Plus>("Xoshiro128Plus");
+	BenchmarkJump<RandX::Xoshiro128PlusPlus>("Xoshiro128PlusPlus");
+	BenchmarkJump<RandX::Xoshiro128StarStar>("Xoshiro128StarStar");
 
 	std::printf("\n");
 
@@ -340,23 +340,23 @@ int main()
 
 	// 64 位引擎
 	std::printf("  --- 64-bit 引擎 ---\n");
-	BenchmarkRandInt<xoshiro::SplitMix64>("SplitMix64");
-	BenchmarkRandInt<xoshiro::Xoshiro256Plus>("Xoshiro256Plus");
-	BenchmarkRandInt<xoshiro::Xoshiro256PlusPlus>("Xoshiro256PlusPlus");
-	BenchmarkRandInt<xoshiro::Xoshiro256StarStar>("Xoshiro256StarStar");
-	BenchmarkRandInt<xoshiro::Xoroshiro128Plus>("Xoroshiro128Plus");
-	BenchmarkRandInt<xoshiro::Xoroshiro128PlusPlus>("Xoroshiro128PlusPlus");
-	BenchmarkRandInt<xoshiro::Xoroshiro128StarStar>("Xoroshiro128StarStar");
-	BenchmarkRandInt<xoshiro::SFC64>("SFC64");
-	BenchmarkRandInt<xoshiro::RomuDuoJr>("RomuDuoJr");
+	BenchmarkRandInt<RandX::SplitMix64>("SplitMix64");
+	BenchmarkRandInt<RandX::Xoshiro256Plus>("Xoshiro256Plus");
+	BenchmarkRandInt<RandX::Xoshiro256PlusPlus>("Xoshiro256PlusPlus");
+	BenchmarkRandInt<RandX::Xoshiro256StarStar>("Xoshiro256StarStar");
+	BenchmarkRandInt<RandX::Xoroshiro128Plus>("Xoroshiro128Plus");
+	BenchmarkRandInt<RandX::Xoroshiro128PlusPlus>("Xoroshiro128PlusPlus");
+	BenchmarkRandInt<RandX::Xoroshiro128StarStar>("Xoroshiro128StarStar");
+	BenchmarkRandInt<RandX::SFC64>("SFC64");
+	BenchmarkRandInt<RandX::RomuDuoJr>("RomuDuoJr");
 
 	// 32 位引擎
 	std::printf("  --- 32-bit 引擎 ---\n");
-	BenchmarkRandInt<xoshiro::Xoshiro128Plus>("Xoshiro128Plus");
-	BenchmarkRandInt<xoshiro::Xoshiro128PlusPlus>("Xoshiro128PlusPlus");
-	BenchmarkRandInt<xoshiro::Xoshiro128StarStar>("Xoshiro128StarStar");
-	BenchmarkRandInt<xoshiro::Xoroshiro64Star>("Xoroshiro64Star");
-	BenchmarkRandInt<xoshiro::Xoroshiro64StarStar>("Xoroshiro64StarStar");
+	BenchmarkRandInt<RandX::Xoshiro128Plus>("Xoshiro128Plus");
+	BenchmarkRandInt<RandX::Xoshiro128PlusPlus>("Xoshiro128PlusPlus");
+	BenchmarkRandInt<RandX::Xoshiro128StarStar>("Xoshiro128StarStar");
+	BenchmarkRandInt<RandX::Xoroshiro64Star>("Xoroshiro64Star");
+	BenchmarkRandInt<RandX::Xoroshiro64StarStar>("Xoroshiro64StarStar");
 
 	std::printf("\n");
 
@@ -367,9 +367,9 @@ int main()
 	std::printf("    (预分配 %d 元素 vector，循环 %d 次)\n", FillN, N / FillN);
 	std::printf("----------------------------------------------------------------\n");
 
-	BenchmarkRandFill<xoshiro::SplitMix64>("SplitMix64");
-	BenchmarkRandFill<xoshiro::Xoshiro256StarStar>("Xoshiro256StarStar");
-	BenchmarkRandFill<xoshiro::SFC64>("SFC64");
+	BenchmarkRandFill<RandX::SplitMix64>("SplitMix64");
+	BenchmarkRandFill<RandX::Xoshiro256StarStar>("Xoshiro256StarStar");
+	BenchmarkRandFill<RandX::SFC64>("SFC64");
 
 	std::printf("\n");
 
@@ -380,9 +380,9 @@ int main()
 	std::printf("    (含 vector 分配开销，循环 %d 次)\n", N / FillN);
 	std::printf("----------------------------------------------------------------\n");
 
-	BenchmarkRandVector<xoshiro::SplitMix64>("SplitMix64");
-	BenchmarkRandVector<xoshiro::Xoshiro256StarStar>("Xoshiro256StarStar");
-	BenchmarkRandVector<xoshiro::SFC64>("SFC64");
+	BenchmarkRandVector<RandX::SplitMix64>("SplitMix64");
+	BenchmarkRandVector<RandX::Xoshiro256StarStar>("Xoshiro256StarStar");
+	BenchmarkRandVector<RandX::SFC64>("SFC64");
 
 	std::printf("\n");
 

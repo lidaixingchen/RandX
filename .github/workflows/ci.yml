@@ -23,21 +23,21 @@ jobs:
         if: matrix.std == 'c++23'
         run: |
           g++-14 -std=c++23 -O2 -Wall -Wextra -I third_party \
-            -o test_random test_random.cpp
-          ./test_random
+            -o test_randx test_randx.cpp
+          ./test_randx
           g++-14 -std=c++23 -O2 -Wall -Wextra -o benchmark benchmark.cpp
       - name: Build & Test (C++17 with doctest)
         if: matrix.std == 'c++17'
         run: |
           g++-14 -std=c++17 -O2 -Wall -Wextra -I third_party \
-            -o test_xoshirocpp test_xoshirocpp.cpp
-          ./test_xoshirocpp
+            -o test_randx_cpp17 test_randx_cpp17.cpp
+          ./test_randx_cpp17
       - name: Build & Test (C++20 char8_t coverage)
         if: matrix.std == 'c++20'
         run: |
           g++-14 -std=c++20 -O2 -Wall -Wextra -I third_party \
-            -o test_xoshirocpp test_xoshirocpp.cpp
-          ./test_xoshirocpp
+            -o test_randx_cpp17 test_randx_cpp17.cpp
+          ./test_randx_cpp17
 
   clang:
     runs-on: ubuntu-24.04
@@ -54,21 +54,21 @@ jobs:
         if: matrix.std == 'c++23'
         run: |
           clang++-18 -std=c++23 -O2 -Wall -Wextra -I third_party \
-            -o test_random test_random.cpp
-          ./test_random
+            -o test_randx test_randx.cpp
+          ./test_randx
           clang++-18 -std=c++23 -O2 -Wall -Wextra -o benchmark benchmark.cpp
       - name: Build & Test (C++17 with doctest)
         if: matrix.std == 'c++17'
         run: |
           clang++-18 -std=c++17 -O2 -Wall -Wextra -I third_party \
-            -o test_xoshirocpp test_xoshirocpp.cpp
-          ./test_xoshirocpp
+            -o test_randx_cpp17 test_randx_cpp17.cpp
+          ./test_randx_cpp17
       - name: Build & Test (C++20 char8_t coverage)
         if: matrix.std == 'c++20'
         run: |
           clang++-18 -std=c++20 -O2 -Wall -Wextra -I third_party \
-            -o test_xoshirocpp test_xoshirocpp.cpp
-          ./test_xoshirocpp
+            -o test_randx_cpp17 test_randx_cpp17.cpp
+          ./test_randx_cpp17
 
   msvc:
     runs-on: windows-2025
@@ -82,15 +82,15 @@ jobs:
         if: matrix.std == 'c++23'
         shell: cmd
         run: |
-          cl /std:c++latest /W4 /EHsc /O2 /I third_party /Fe:test_random.exe test_random.cpp
-          test_random.exe
+          cl /std:c++latest /W4 /EHsc /O2 /I third_party /Fe:test_randx.exe test_randx.cpp
+          test_randx.exe
           cl /std:c++latest /W4 /EHsc /O2 /Fe:benchmark.exe benchmark.cpp
       - name: Build & Test (C++17 with doctest)
         if: matrix.std == 'c++17'
         shell: cmd
         run: |
-          cl /std:c++17 /W4 /EHsc /O2 /I third_party /Fe:test_xoshirocpp.exe test_xoshirocpp.cpp
-          test_xoshirocpp.exe
+          cl /std:c++17 /W4 /EHsc /O2 /I third_party /Fe:test_randx_cpp17.exe test_randx_cpp17.cpp
+          test_randx_cpp17.exe
 
   coverage:
     runs-on: ubuntu-24.04
@@ -104,13 +104,13 @@ jobs:
       - name: Build with coverage
         run: |
           g++-14 -std=c++23 -O0 -g --coverage -I third_party \
-            -o test_random test_random.cpp
+            -o test_randx test_randx.cpp
           g++-14 -std=c++17 -O0 -g --coverage -I third_party \
-            -o test_xoshirocpp test_xoshirocpp.cpp
+            -o test_randx_cpp17 test_randx_cpp17.cpp
       - name: Run tests
         run: |
-          ./test_random
-          ./test_xoshirocpp
+          ./test_randx
+          ./test_randx_cpp17
       - name: Generate coverage report
         run: |
           # 使用 gcov-14 以匹配 g++-14 生成的 .gcda 格式（B43*），避免与系统 gcov-13（B33*）冲突

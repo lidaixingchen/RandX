@@ -1,40 +1,41 @@
 //----------------------------------------------------------------------------------------
 //
-//	Random.hpp — 基于 Xoshiro 的伪随机数生成器封装库（C++23）
+//	RandX.hpp — 基于 Xoshiro 的伪随机数生成器封装库（C++23）
 //
 //	原始算法：David Blackman & Sebastiano Vigna (http://prng.di.unimi.it/)
+//	原始 C++ 封装：Ryo Suzuki (https://github.com/Reputeless/Xoshiro-cpp)
 //
 //========================================================================================
 //
 //	快速上手
 //
-//		#include "Random.hpp"
+//		#include "RandX.hpp"
 //
 //		// 最简用法：直接调用便捷函数（内部使用线程局部 Xoshiro256StarStar）
-//		int   dice  = xoshiro::RandInt(1, 6);        // [1, 6] 闭区间整数
-//		double coin = xoshiro::RandReal();            // [0.0, 1.0) 浮点数
-//		bool  flag  = xoshiro::RandBool(0.3);         // 30% 概率为 true
+//		int   dice  = RandX::RandInt(1, 6);        // [1, 6] 闭区间整数
+//		double coin = RandX::RandReal();            // [0.0, 1.0) 浮点数
+//		bool  flag  = RandX::RandBool(0.3);         // 30% 概率为 true
 //
 //		std::vector<int> v = {10, 20, 30, 40};
-//		auto& elem = xoshiro::RandElement(v);         // 随机取一个元素
+//		auto& elem = RandX::RandElement(v);         // 随机取一个元素
 //
 //	扩展 API
 //
-//		auto sample = xoshiro::RandSample(v, 2);      // 无放回抽样 2 个
-//		auto perm   = xoshiro::RandPermutation(10);   // [0,10) 随机排列
-//		auto token  = xoshiro::RandString(16);        // 16 位随机字符串
-//		auto uuid   = xoshiro::RandUUID();            // UUID v4
-//		auto byte   = xoshiro::RandBits<8>();         // [0, 256) 随机整数
-//		auto exp    = xoshiro::RandExp(2.0);          // 指数分布 λ=2
-//		auto poi    = xoshiro::RandPoisson(5.0);      // 泊松分布 μ=5
+//		auto sample = RandX::RandSample(v, 2);      // 无放回抽样 2 个
+//		auto perm   = RandX::RandPermutation(10);   // [0,10) 随机排列
+//		auto token  = RandX::RandString(16);        // 16 位随机字符串
+//		auto uuid   = RandX::RandUUID();            // UUID v4
+//		auto byte   = RandX::RandBits<8>();         // [0, 256) 随机整数
+//		auto exp    = RandX::RandExp(2.0);          // 指数分布 λ=2
+//		auto poi    = RandX::RandPoisson(5.0);      // 泊松分布 μ=5
 //
 //	手动管理引擎
 //
 //		// 用真随机种子创建引擎
-//		xoshiro::Xoshiro256StarStar rng{ xoshiro::RandomSeed() };
+//		RandX::Xoshiro256StarStar rng{ RandX::RandomSeed() };
 //
 //		// 指定引擎的便捷函数重载
-//		int val = xoshiro::RandInt(rng, 0, 99);
+//		int val = RandX::RandInt(rng, 0, 99);
 //
 //		// 配合标准库 distribution 使用（满足 UniformRandomBitGenerator）
 //		std::normal_distribution<double> norm(0.0, 1.0);
@@ -42,14 +43,14 @@
 //
 //	多流并行
 //
-//		auto s0 = xoshiro::MakeStreamEngine<xoshiro::Xoshiro256StarStar>(0);
-//		auto s1 = xoshiro::MakeStreamEngine<xoshiro::Xoshiro256StarStar>(1);
+//		auto s0 = RandX::MakeStreamEngine<RandX::Xoshiro256StarStar>(0);
+//		auto s1 = RandX::MakeStreamEngine<RandX::Xoshiro256StarStar>(1);
 //		// 各流间隔 2^128 步，互不重叠
 //
 //	编译期随机（constexpr）
 //
-//		constexpr int v = xoshiro::RandIntCE(0, 100);
-//		constexpr auto shuffled = xoshiro::ShuffledArray<int, 5>({1,2,3,4,5});
+//		constexpr int v = RandX::RandIntCE(0, 100);
+//		constexpr auto shuffled = RandX::ShuffledArray<int, 5>({1,2,3,4,5});
 //
 //	序列化 / 反序列化（保存和恢复状态）
 //
@@ -108,7 +109,7 @@
 #	include <immintrin.h>
 # endif
 
-namespace xoshiro
+namespace RandX
 {
 	// 生成器的默认种子值
 	inline constexpr std::uint64_t DefaultSeed = 1234567890ULL;
@@ -867,7 +868,7 @@ namespace xoshiro
 
 ////////////////////////////////////////////////////////////////
 
-namespace xoshiro
+namespace RandX
 {
 	template <std::same_as<std::uint32_t> Uint32>
 	inline constexpr float FloatFromBits(const Uint32 i) noexcept
@@ -3525,8 +3526,8 @@ namespace xoshiro
 	//	接受整个 range 对象而非迭代器对，与 STL ranges 算法
 	//	（std::views::filter / std::views::transform）无缝组合。
 	//	通过命名空间隔离避免与容器版重载歧义：
-	//	  xoshiro::RandElement(v)         —— 容器版
-	//	  xoshiro::ranges::RandElement(v) —— ranges 版
+	//	  RandX::RandElement(v)         —— 容器版
+	//	  RandX::ranges::RandElement(v) —— ranges 版
 	//
 	namespace ranges
 	{
@@ -3539,7 +3540,7 @@ namespace xoshiro
 		inline std::ranges::range_value_t<R>
 		RandElement(R&& r)
 		{
-			return *xoshiro::RandElement(std::ranges::begin(r), std::ranges::end(r));
+			return *RandX::RandElement(std::ranges::begin(r), std::ranges::end(r));
 		}
 
 		// 无放回抽样（复用迭代器版实现，自动选择 random_access / input 路径）
@@ -3548,7 +3549,7 @@ namespace xoshiro
 		inline std::vector<std::ranges::range_value_t<R>>
 		RandSample(R&& r, std::ranges::range_difference_t<R> n)
 		{
-			return xoshiro::RandSample(std::ranges::begin(r), std::ranges::end(r), n);
+			return RandX::RandSample(std::ranges::begin(r), std::ranges::end(r), n);
 		}
 
 		// 随机打乱（要求 random_access + sized）
@@ -3557,7 +3558,7 @@ namespace xoshiro
 		inline void
 		RandShuffle(R&& r)
 		{
-			std::ranges::shuffle(r, xoshiro::DefaultEngine());
+			std::ranges::shuffle(r, RandX::DefaultEngine());
 		}
 
 		// 填充（模板化，支持任意整型/浮点 T）
@@ -3568,7 +3569,7 @@ namespace xoshiro
 		inline void
 		RandFill(R&& r, T min, T max)
 		{
-			xoshiro::RandFill(std::ranges::begin(r), std::ranges::end(r), min, max);
+			RandX::RandFill(std::ranges::begin(r), std::ranges::end(r), min, max);
 		}
 	}
 
