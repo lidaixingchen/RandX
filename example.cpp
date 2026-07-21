@@ -9,6 +9,7 @@
 # include <iostream>
 # include <array>
 # include <list>
+# include <ranges>
 # include <sstream>
 # include <vector>
 # include <random>
@@ -33,10 +34,32 @@ int main()
 		// RandChar：类型安全的字符随机
 		std::cout << "RandChar('a','z') = " << RandChar('a', 'z') << '\n';
 
+		// RandChar(CharSet)：预设字符集
+		std::cout << "RandChar(Lower)  = " << RandChar(CharSet::Lower) << '\n';
+		std::cout << "RandChar(Hex)    = " << RandChar(CharSet::Hex) << '\n';
+
+		// RandString(n, CharSet)：从预设字符集生成字符串
+		std::cout << "RandString(Hex)  = " << RandString(16, CharSet::Hex) << '\n';
+		std::cout << "RandString(B64)  = " << RandString(12, CharSet::Base64) << '\n';
+
 		// RandElement 迭代器版：支持非随机访问容器（如 std::list）
 		std::list<int> lst = { 100, 200, 300, 400, 500 };
 		auto it = RandElement(lst.begin(), lst.end());
 		std::cout << "RandElement(list) = " << *it << '\n';
+
+		// RandSample 迭代器版：从大容器小抽样，O(n) 内存（hash-set 分支）
+		std::vector<int> bigPool(10000);
+		for (int i = 0; i < 10000; ++i) bigPool[static_cast<std::size_t>(i)] = i;
+		auto sample = RandSample(bigPool.begin(), bigPool.end(), 5);
+		std::cout << "RandSample(5)    = ";
+		for (int x : sample) std::cout << x << ' ';
+		std::cout << "(从 10000 元素中无放回抽 5)\n";
+
+		// RandSample 输入迭代器版：reservoir sampling，支持 std::list / 流
+		auto listSample = RandSample(lst.begin(), lst.end(), 2);
+		std::cout << "RandSample(list) = ";
+		for (int x : listSample) std::cout << x << ' ';
+		std::cout << '\n';
 
 		// RandFill：填充已有容器（STL 风格）
 		std::array<int, 5> arr{};
@@ -59,6 +82,60 @@ int main()
 		// ⚠️ RandFill 类型推导陷阱：min/max 字面量类型须与容器元素一致
 		// std::vector<double> v(5); RandFill(v.begin(), v.end(), 0, 1);   // ❌ T=int，精度丢失
 		// std::vector<double> v(5); RandFill(v.begin(), v.end(), 0.0, 1.0); // ✅ T=double
+	}
+
+	// ===== v1.2 新增：分布扩展 =====
+	std::cout << "\n=== v1.2 分布扩展 ===\n";
+	{
+		std::cout << "RandBinomial(100, 0.3) = " << RandBinomial(100, 0.3) << '\n';
+		std::cout << "RandLogNormal(0, 1)    = " << RandLogNormal(0.0, 1.0) << '\n';
+		std::cout << "RandGeometric(0.5)     = " << RandGeometric(0.5) << '\n';
+		std::cout << "RandCauchy(0, 1)       = " << RandCauchy(0.0, 1.0) << '\n';
+		std::cout << "RandWeibull(1, 1)      = " << RandWeibull(1.0, 1.0) << '\n';
+		std::cout << "RandExtremeValue(0, 1) = " << RandExtremeValue(0.0, 1.0) << '\n';
+		std::cout << "RandChiSquared(5)      = " << RandChiSquared(5.0) << '\n';
+		std::cout << "RandStudentT(10)       = " << RandStudentT(10.0) << '\n';
+		std::cout << "RandFisherF(5, 10)     = " << RandFisherF(5.0, 10.0) << '\n';
+		std::cout << "RandBeta(2, 2)         = " << RandBeta(2.0, 2.0) << " (in [0,1])\n";
+		std::cout << "RandBernoulli(0.3)     = " << RandBernoulli(0.3) << " (== RandBool)\n";
+	}
+
+	// ===== v1.2 新增：ranges 风格 API（C++23 专属）=====
+	std::cout << "\n=== v1.2 ranges 风格 API ===\n";
+	{
+		std::vector<int> v = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
+
+		// 容器直传
+		std::cout << "ranges::RandElement   = " << ranges::RandElement(v) << '\n';
+
+		// 与 views::filter 无缝组合（取偶数中的随机一个）
+		auto evens = v | std::views::filter([](int x) { return x % 2 == 0; });
+		std::cout << "ranges::RandElement(evens) = " << ranges::RandElement(evens) << '\n';
+
+		// ranges::RandSample
+		auto rs = ranges::RandSample(v, 3);
+		std::cout << "ranges::RandSample(3) = ";
+		for (int x : rs) std::cout << x << ' ';
+		std::cout << '\n';
+
+		// ranges::RandShuffle
+		ranges::RandShuffle(v);
+		std::cout << "ranges::RandShuffle   = ";
+		for (int x : v) std::cout << x << ' ';
+		std::cout << '\n';
+
+		// ranges::RandFill 模板推导
+		std::vector<int> ibuf(5);
+		ranges::RandFill(ibuf, 0, 99);
+		std::cout << "ranges::RandFill(int) = ";
+		for (int x : ibuf) std::cout << x << ' ';
+		std::cout << '\n';
+
+		std::vector<double> fbuf(3);
+		ranges::RandFill(fbuf, 0.0, 1.0);
+		std::cout << "ranges::RandFill(dbl) = ";
+		for (double x : fbuf) std::cout << x << ' ';
+		std::cout << '\n';
 	}
 
 	// ===== operator<< / operator>> 流式序列化 =====

@@ -5,7 +5,7 @@ import os
 
 class XoshiroCppConan(ConanFile):
     name = "xoshiro-cpp"
-    version = "1.1.0"
+    version = "1.2.0"
     description = "Header-only C++ PRNG library based on xoshiro/xoroshiro algorithms"
     homepage = "https://github.com/lidaixingchen/Pseudo-random-number-generator-based-on-Xoshiro"
     url = homepage

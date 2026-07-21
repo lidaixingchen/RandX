@@ -21,7 +21,7 @@
 
 - 满足 `std::uniform_random_bit_generator` 概念（Random.hpp 含 `static_assert` 编译期验证）
 - 全 `constexpr`，编译期可用
-- 便捷 API：基础生成（`RandInt`/`RandReal`/`RandBool`/`RandChar`/`RandBits`）、分布（`RandNormal`/`RandExp`/`RandPoisson`/`RandGamma`/`RandWeighted`）、容器（`RandElement` 容器版/迭代器版/`RandSample`/`RandShuffle`/`RandPermutation`/`RandFill`/`RandVector`）、字符串（`RandString`/`RandUUID`）、流式序列化（`operator<<`/`operator>>`）
+- 便捷 API：基础生成（`RandInt`/`RandReal`/`RandBool`/`RandChar`/`RandBits`）、分布（`RandNormal`/`RandExp`/`RandPoisson`/`RandGamma`/`RandWeighted` + 11 个 v1.2 新分布）、容器（`RandElement` 容器版/迭代器版/`RandSample` 容器版/迭代器版/`RandShuffle`/`RandPermutation`/`RandFill`/`RandVector`）、字符串（`RandString`/`RandUUID`/`RandChar(CharSet)` 预设字符集）、ranges 风格（`xoshiro::ranges::RandElement`/`RandSample`/`RandShuffle`/`RandFill`，仅 Random.hpp）、流式序列化（`operator<<`/`operator>>`）
 - 线程局部默认引擎（`DefaultEngine()`），零配置即用
 - `constexpr` 编译期随机（仅 Random.hpp）：`RandIntCE<Seed>(min, max)`
 - 支持 `jump()` / `longJump()` 并行子序列、`discard(n)` 跳过、`serialize()` / `deserialize()` 状态持久化
@@ -76,32 +76,52 @@ int main()
 
 ## API 一览
 
-| 分类 | 函数 | 说明 |
-|------|------|------|
-| 基础生成 | `RandInt(min, max)` | [min, max] 闭区间整数 |
-| | `RandReal(min, max)` | [min, max) 浮点数 |
-| | `RandBool(p)` | 概率 p 为 true |
-| | `RandChar(min, max)` | [min, max] 范围随机字符（`char`/`wchar_t`/`char16_t`/`char32_t`，C++20+ 含 `char8_t`） |
-| | `RandBits<N>()` | N 位随机整数 [0, 2^N) |
-| 分布 | `RandNormal(mean, stddev)` | 正态分布 |
-| | `RandExp(lambda)` | 指数分布 |
-| | `RandPoisson(mean)` | 泊松分布 |
-| | `RandGamma(alpha, beta)` | 伽马分布 |
-| | `RandWeighted(weights)` | 按权重选取索引 |
-| 容器 | `RandElement(container)` | 随机取一个元素（容器版，返回引用） |
-| | `RandElement(first, last)` | 随机取一个元素（迭代器版，返回迭代器；随机访问 O(1)，输入迭代器 O(n) reservoir sampling） |
-| | `RandSample(container, n)` | 无放回抽样 n 个 |
-| | `RandShuffle(container)` | 随机打乱 |
-| | `RandPermutation(n)` | [0, n) 随机排列 |
-| | `RandFill(first, last, min, max)` | 用随机值填充 [first, last) 范围（STL 风格） |
-| | `RandVector(min, max, n)` | 生成 n 个随机值构成的 `std::vector` |
-| 字符串/ID | `RandString(len, charset)` | 随机字符串 |
-| | `RandUUID()` | UUID v4 |
-| 序列化 | `serialize()` / `deserialize(state)` | 状态持久化（主接口，所有引擎） |
-| | `operator<<` / `operator>>` | 流式语法糖（仅 `state_type` 为容器类的引擎，排除 `SplitMix64`） |
-| 编译期 | `RandIntCE<Seed>(min, max)` | 编译期随机整数（仅 Random.hpp） |
-| | `ShuffleCE(first, last)` | 编译期洗牌 |
-| | `ShuffledArray<T,N,Seed>(arr)` | 编译期洗牌数组版 |
+| 分类 | 函数 | 说明 | 双标准 |
+|------|------|------|--------|
+| 基础生成 | `RandInt(min, max)` | [min, max] 闭区间整数 | ✅ |
+| | `RandReal(min, max)` | [min, max) 浮点数 | ✅ |
+| | `RandBool(p)` | 概率 p 为 true | ✅ |
+| | `RandChar(min, max)` | [min, max] 范围随机字符（`char`/`wchar_t`/`char16_t`/`char32_t`，C++20+ 含 `char8_t`） | ✅ |
+| | `RandChar(CharSet)` | 从预设字符集随机取一个字符（v1.2 新增） | ✅ |
+| | `RandBits<N>()` | N 位随机整数 [0, 2^N) | ✅ |
+| 分布 | `RandNormal(mean, stddev)` | 正态分布 | ✅ |
+| | `RandExp(lambda)` | 指数分布 | ✅ |
+| | `RandPoisson(mean)` | 泊松分布 | ✅ |
+| | `RandGamma(alpha, beta)` | 伽马分布 | ✅ |
+| | `RandWeighted(weights)` | 按权重选取索引 | ✅ |
+| | `RandBernoulli(p)` | 伯努利分布（别名封装 `RandBool`，v1.2 新增） | ✅ |
+| | `RandBinomial(t, p)` | 二项分布（v1.2 新增） | ✅ |
+| | `RandLogNormal(mean, stddev)` | 对数正态分布（v1.2 新增） | ✅ |
+| | `RandGeometric(p)` | 几何分布（v1.2 新增） | ✅ |
+| | `RandCauchy(a, b)` | 柯西分布（v1.2 新增） | ✅ |
+| | `RandWeibull(a, b)` | 韦布尔分布（v1.2 新增） | ✅ |
+| | `RandExtremeValue(a, b)` | 极值分布（v1.2 新增） | ✅ |
+| | `RandChiSquared(n)` | 卡方分布（v1.2 新增） | ✅ |
+| | `RandStudentT(n)` | 学生 t 分布（v1.2 新增） | ✅ |
+| | `RandFisherF(m, n)` | Fisher F 分布（v1.2 新增） | ✅ |
+| | `RandBeta(a, b)` | Beta 分布（自实现，v1.2 新增） | ✅ |
+| 容器 | `RandElement(container)` | 随机取一个元素（容器版，返回引用） | ✅ |
+| | `RandElement(first, last)` | 随机取一个元素（迭代器版，返回迭代器；随机访问 O(1)，输入迭代器 O(n) reservoir sampling） | ✅ |
+| | `RandSample(container, n)` | 无放回抽样 n 个（容器版） | ✅ |
+| | `RandSample(first, last, n)` | 无放回抽样 n 个（迭代器版，v1.2 新增；随机访问含 hash-set/索引双分支，输入迭代器用 reservoir sampling O(n) 内存） | ✅ |
+| | `RandShuffle(container)` | 随机打乱 | ✅ |
+| | `RandPermutation(n)` | [0, n) 随机排列 | ✅ |
+| | `RandFill(first, last, min, max)` | 用随机值填充 [first, last) 范围（STL 风格） | ✅ |
+| | `RandVector(min, max, n)` | 生成 n 个随机值构成的 `std::vector` | ✅ |
+| ranges 风格 | `ranges::RandElement(range)` | 随机取一个元素（返回值拷贝；v1.2 新增，仅 Random.hpp） | ❌ C++23 专属 |
+| | `ranges::RandSample(range, n)` | 无放回抽样（v1.2 新增，仅 Random.hpp） | ❌ C++23 专属 |
+| | `ranges::RandShuffle(range)` | 随机打乱（v1.2 新增，仅 Random.hpp） | ❌ C++23 专属 |
+| | `ranges::RandFill(range, min, max)` | 填充（模板化支持 int/double/float；v1.2 新增，仅 Random.hpp） | ❌ C++23 专属 |
+| 字符串/ID | `RandString(len, charset)` | 随机字符串（`charset` 为 `string_view`） | ✅ |
+| | `RandString(n, CharSet)` | 从预设字符集生成随机字符串（v1.2 新增） | ✅ |
+| | `RandUUID()` | UUID v4 | ✅ |
+| 序列化 | `serialize()` / `deserialize(state)` | 状态持久化（主接口，所有引擎） | ✅ |
+| | `operator<<` / `operator>>` | 流式语法糖（仅 `state_type` 为容器类的引擎，排除 `SplitMix64`） | ✅ |
+| 编译期 | `RandIntCE<Seed>(min, max)` | 编译期随机整数（仅 Random.hpp） | ❌ C++23 专属 |
+| | `ShuffleCE(first, last)` | 编译期洗牌 | ❌ C++23 专属 |
+| | `ShuffledArray<T,N,Seed>(arr)` | 编译期洗牌数组版 | ❌ C++23 专属 |
+
+> **CharSet 枚举**（v1.2 新增）：`Alphanumeric` / `Alpha` / `Lower` / `Upper` / `Digit` / `Hex` / `Printable` / `Base64`，覆盖常见字符集场景。
 
 所有函数默认使用线程局部 `Xoshiro256StarStar` 引擎，也支持传入自定义引擎：`RandInt(rng, min, max)`。
 
@@ -273,13 +293,13 @@ vcpkg install xoshiro-cpp --overlay-ports=path/to/ports
 ### Conan
 
 ```bash
-conan create . --version=1.1.0
+conan create . --version=1.2.0
 ```
 
 ```python
 # conanfile.txt
 [requires]
-xoshiro-cpp/2.0.0
+xoshiro-cpp/1.2.0
 
 [generators]
 CMakeDeps

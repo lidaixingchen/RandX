@@ -83,6 +83,8 @@
 # include <algorithm>
 # include <cassert>
 # include <string>
+# include <string_view>
+# include <unordered_set>
 # include <vector>
 # include <stdexcept>
 # if defined(_MSC_VER) && (defined(__x86_64__) || defined(_M_X64))
@@ -2690,6 +2692,30 @@ namespace XoshiroCpp
 		return RandReal<double>(0.0, 1.0) < p;
 	}
 
+	// 指定引擎的重载：生成随机布尔值，为 true 的概率为 p
+	template <class Engine>
+	[[nodiscard]]
+	inline bool RandBool(Engine& engine, double p = 0.5)
+	{
+		std::uniform_real_distribution<double> dist(0.0, 1.0);
+		return dist(engine) < p;
+	}
+
+	// 伯努利分布（RandBool 的别名封装，对齐 <random> 命名）
+	[[nodiscard]]
+	inline bool RandBernoulli(double p = 0.5)
+	{
+		return RandBool(p);
+	}
+
+	// 伯努利分布引擎重载
+	template <class Engine>
+	[[nodiscard]]
+	inline bool RandBernoulli(Engine& engine, double p = 0.5)
+	{
+		return RandBool(engine, p);
+	}
+
 	// 生成 [min, max] 范围内的随机字符（类型安全，避免 RandInt 窄化）
 	// 内部用 int64_t 分布以支持 char32_t 全范围
 	template <class CharT,
@@ -2731,6 +2757,75 @@ namespace XoshiroCpp
 	inline CharT RandChar(Engine& engine, CharT max)
 	{
 		return RandChar<CharT>(engine, CharT{}, max);
+	}
+
+	////////////////////////////////////////////////////////////////
+	//
+	//	RandChar / RandString 预设字符集（v1.2 新增）
+	//
+	//	提供常用字符集枚举，避免手写 ASCII 范围或字符串。
+	//
+
+	// 预设字符集枚举
+	enum class CharSet
+	{
+		Alphanumeric,  // [A-Za-z0-9]    62 个
+		Alpha,         // [A-Za-z]        52 个
+		Lower,         // [a-z]           26 个
+		Upper,         // [A-Z]           26 个
+		Digit,         // [0-9]           10 个
+		Hex,           // [0-9a-fA-F]     16 个
+		Printable,     // [!-~]           94 个可打印 ASCII
+		Base64,        // [A-Za-z0-9+/]   64 个（RFC 4648 标准变体）
+	};
+
+	namespace detail
+	{
+		// 返回预设字符集的字符串视图（零拷贝，指向静态存储）
+		[[nodiscard]]
+		inline std::string_view CharSetString(CharSet cs) noexcept
+		{
+			switch (cs)
+			{
+			case CharSet::Alphanumeric:
+				return "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+			case CharSet::Alpha:
+				return "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+			case CharSet::Lower:
+				return "abcdefghijklmnopqrstuvwxyz";
+			case CharSet::Upper:
+				return "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+			case CharSet::Digit:
+				return "0123456789";
+			case CharSet::Hex:
+				return "0123456789abcdefABCDEF";
+			case CharSet::Printable:
+				return "!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~";
+			case CharSet::Base64:
+				return "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+			}
+			return "";
+		}
+	}
+
+	// 从预设字符集随机取一个字符（固定返回 char：预设集均为 ASCII 范围）
+	[[nodiscard]]
+	inline char RandChar(CharSet cs)
+	{
+		const auto charset = detail::CharSetString(cs);
+		auto& rng = DefaultEngine();
+		std::uniform_int_distribution<std::size_t> dist(0, charset.size() - 1);
+		return charset[dist(rng)];
+	}
+
+	// 引擎重载
+	template <class Engine>
+	[[nodiscard]]
+	inline char RandChar(Engine& engine, CharSet cs)
+	{
+		const auto charset = detail::CharSetString(cs);
+		std::uniform_int_distribution<std::size_t> dist(0, charset.size() - 1);
+		return charset[dist(engine)];
 	}
 
 	// 从容器中随机取一个元素
@@ -2978,6 +3073,193 @@ namespace XoshiroCpp
 		return pool;
 	}
 
+	// ============================================================
+	// RandSample 迭代器版（v1.2 新增）
+	// 路径 1：随机访问迭代器 —— hash-set / 索引数组双分支
+	// 路径 2：输入迭代器 —— reservoir sampling (Algorithm R, i+1 修复)
+	// ============================================================
+
+	// 路径 1：随机访问迭代器（hash-set / 索引数组双分支）
+	template <class It,
+		std::enable_if_t<detail::is_random_access_iterator_v<It>>* = nullptr>
+	[[nodiscard]]
+	inline std::vector<typename std::iterator_traits<It>::value_type>
+	RandSample(It first, It last, typename std::iterator_traits<It>::difference_type n)
+	{
+		using Diff = typename std::iterator_traits<It>::difference_type;
+		using T = typename std::iterator_traits<It>::value_type;
+		const Diff size = std::distance(first, last);
+		if (n <= 0 || size == 0)
+			return {};
+		if (n >= size)
+			return std::vector<T>(first, last);
+
+		auto& rng = DefaultEngine();
+
+		// 分支选择：n² < size 时 hash-set 内存优（O(n)）；否则索引数组常数优（O(N)）
+		const auto nSq = static_cast<std::uint64_t>(n) * static_cast<std::uint64_t>(n);
+		const auto sizeU = static_cast<std::uint64_t>(size);
+		if (nSq < sizeU)
+		{
+			// hash-set 分支：O(n) 内存，O(n) 期望时间
+			std::unordered_set<Diff> selected;
+			selected.reserve(static_cast<std::size_t>(n));
+			std::vector<T> result;
+			result.reserve(static_cast<std::size_t>(n));
+			while (result.size() < static_cast<std::size_t>(n))
+			{
+				std::uniform_int_distribution<Diff> dist(Diff{0}, static_cast<Diff>(sizeU - 1));
+				const Diff idx = dist(rng);
+				if (selected.insert(idx).second)
+					result.push_back(first[idx]);
+			}
+			return result;
+		}
+
+		// 索引数组分支：O(N) 内存，O(N) 时间，无碰撞
+		std::vector<Diff> indices(static_cast<std::size_t>(size));
+		for (Diff i = 0; i < size; ++i)
+			indices[static_cast<std::size_t>(i)] = i;
+
+		// Fisher-Yates 前 n 步：j ∈ [i, size-1]
+		for (Diff i = 0; i < n; ++i)
+		{
+			std::uniform_int_distribution<Diff> dist(i, static_cast<Diff>(size - 1));
+			const Diff j = dist(rng);
+			std::swap(indices[static_cast<std::size_t>(i)],
+			          indices[static_cast<std::size_t>(j)]);
+		}
+
+		std::vector<T> result;
+		result.reserve(static_cast<std::size_t>(n));
+		for (Diff i = 0; i < n; ++i)
+			result.push_back(first[indices[static_cast<std::size_t>(i)]]);
+		return result;
+	}
+
+	// 路径 2：输入迭代器（reservoir sampling, Algorithm R, i+1 修复）
+	template <class It,
+		std::enable_if_t<detail::is_input_iterator_v<It>
+			&& !detail::is_random_access_iterator_v<It>>* = nullptr>
+	[[nodiscard]]
+	inline std::vector<typename std::iterator_traits<It>::value_type>
+	RandSample(It first, It last, typename std::iterator_traits<It>::difference_type n)
+	{
+		using Diff = typename std::iterator_traits<It>::difference_type;
+		using T = typename std::iterator_traits<It>::value_type;
+		if (n <= 0)
+			return {};
+
+		std::vector<T> reservoir;
+		reservoir.reserve(static_cast<std::size_t>(n));
+
+		// 填满蓄水池
+		Diff i = 0;
+		for (; i < n && first != last; ++i, ++first)
+			reservoir.push_back(*first);
+
+		if (first == last)
+			return reservoir;  // 元素不足 n，返回全部
+
+		// Algorithm R：第 i 个元素（i >= n，0-indexed）以 n/(i+1) 概率替换蓄水池随机位置
+		// 关键：j ∈ [0, i]（闭区间），uniform_int_distribution(0, i) 正好是 [0, i] 闭区间
+		auto& rng = DefaultEngine();
+		for (; first != last; ++i, ++first)
+		{
+			std::uniform_int_distribution<Diff> dist(Diff{0}, i);
+			const Diff j = dist(rng);
+			if (j < n)
+				reservoir[static_cast<std::size_t>(j)] = *first;
+		}
+		return reservoir;
+	}
+
+	// 引擎重载 —— 随机访问迭代器
+	template <class It, class Engine,
+		std::enable_if_t<detail::is_random_access_iterator_v<It>>* = nullptr>
+	[[nodiscard]]
+	inline std::vector<typename std::iterator_traits<It>::value_type>
+	RandSample(Engine& engine, It first, It last, typename std::iterator_traits<It>::difference_type n)
+	{
+		using Diff = typename std::iterator_traits<It>::difference_type;
+		using T = typename std::iterator_traits<It>::value_type;
+		const Diff size = std::distance(first, last);
+		if (n <= 0 || size == 0)
+			return {};
+		if (n >= size)
+			return std::vector<T>(first, last);
+
+		const auto nSq = static_cast<std::uint64_t>(n) * static_cast<std::uint64_t>(n);
+		const auto sizeU = static_cast<std::uint64_t>(size);
+		if (nSq < sizeU)
+		{
+			std::unordered_set<Diff> selected;
+			selected.reserve(static_cast<std::size_t>(n));
+			std::vector<T> result;
+			result.reserve(static_cast<std::size_t>(n));
+			while (result.size() < static_cast<std::size_t>(n))
+			{
+				std::uniform_int_distribution<Diff> dist(Diff{0}, static_cast<Diff>(sizeU - 1));
+				const Diff idx = dist(engine);
+				if (selected.insert(idx).second)
+					result.push_back(first[idx]);
+			}
+			return result;
+		}
+
+		std::vector<Diff> indices(static_cast<std::size_t>(size));
+		for (Diff i = 0; i < size; ++i)
+			indices[static_cast<std::size_t>(i)] = i;
+
+		for (Diff i = 0; i < n; ++i)
+		{
+			std::uniform_int_distribution<Diff> dist(i, static_cast<Diff>(size - 1));
+			const Diff j = dist(engine);
+			std::swap(indices[static_cast<std::size_t>(i)],
+			          indices[static_cast<std::size_t>(j)]);
+		}
+
+		std::vector<T> result;
+		result.reserve(static_cast<std::size_t>(n));
+		for (Diff i = 0; i < n; ++i)
+			result.push_back(first[indices[static_cast<std::size_t>(i)]]);
+		return result;
+	}
+
+	// 引擎重载 —— 输入迭代器（reservoir）
+	template <class It, class Engine,
+		std::enable_if_t<detail::is_input_iterator_v<It>
+			&& !detail::is_random_access_iterator_v<It>>* = nullptr>
+	[[nodiscard]]
+	inline std::vector<typename std::iterator_traits<It>::value_type>
+	RandSample(Engine& engine, It first, It last, typename std::iterator_traits<It>::difference_type n)
+	{
+		using Diff = typename std::iterator_traits<It>::difference_type;
+		using T = typename std::iterator_traits<It>::value_type;
+		if (n <= 0)
+			return {};
+
+		std::vector<T> reservoir;
+		reservoir.reserve(static_cast<std::size_t>(n));
+
+		Diff i = 0;
+		for (; i < n && first != last; ++i, ++first)
+			reservoir.push_back(*first);
+
+		if (first == last)
+			return reservoir;
+
+		// Algorithm R：j ∈ [0, i] 闭区间
+		for (; first != last; ++i, ++first)
+		{
+			std::uniform_int_distribution<Diff> dist(Diff{0}, i);
+			const Diff j = dist(engine);
+			if (j < n)
+				reservoir[static_cast<std::size_t>(j)] = *first;
+		}
+		return reservoir;
+	}
+
 	// 生成 [0, n) 的随机排列
 	[[nodiscard]]
 	inline std::vector<std::size_t> RandPermutation(std::size_t n)
@@ -2999,7 +3281,7 @@ namespace XoshiroCpp
 
 	// 生成指定长度的随机字符串
 	[[nodiscard]]
-	inline std::string RandString(std::size_t length, const std::string& charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
+	inline std::string RandString(std::size_t length, std::string_view charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
 	{
 		if (charset.empty())
 			throw std::invalid_argument("RandString: charset is empty");
@@ -3008,6 +3290,28 @@ namespace XoshiroCpp
 		std::uniform_int_distribution<std::size_t> dist(0, charset.size() - 1);
 		for (std::size_t i = 0; i < length; ++i)
 			result[i] = charset[dist(rng)];
+		return result;
+	}
+
+	// 从预设字符集生成随机字符串（委托 string_view 版，零重复代码）
+	[[nodiscard]]
+	inline std::string RandString(std::size_t n, CharSet cs)
+	{
+		return RandString(n, detail::CharSetString(cs));
+	}
+
+	// 引擎重载：从预设字符集生成随机字符串
+	template <class Engine>
+	[[nodiscard]]
+	inline std::string RandString(Engine& engine, std::size_t n, CharSet cs)
+	{
+		const auto charset = detail::CharSetString(cs);
+		if (charset.empty())
+			throw std::invalid_argument("RandString: charset is empty");
+		std::string result(n, '\0');
+		std::uniform_int_distribution<std::size_t> dist(0, charset.size() - 1);
+		for (std::size_t i = 0; i < n; ++i)
+			result[i] = charset[dist(engine)];
 		return result;
 	}
 
@@ -3036,6 +3340,200 @@ namespace XoshiroCpp
 	{
 		std::gamma_distribution<T> dist(alpha, beta);
 		return dist(DefaultEngine());
+	}
+
+	// 二项分布随机数（t 次试验，每次成功概率 p）
+	template <class T = int, std::enable_if_t<std::is_integral_v<T>>* = nullptr>
+	[[nodiscard]]
+	inline T RandBinomial(T t = 1, double p = 0.5)
+	{
+		std::binomial_distribution<T> dist(t, p);
+		return dist(DefaultEngine());
+	}
+
+	// 二项分布引擎重载
+	template <class T = int, class Engine, std::enable_if_t<std::is_integral_v<T>>* = nullptr>
+	[[nodiscard]]
+	inline T RandBinomial(Engine& engine, T t = 1, double p = 0.5)
+	{
+		std::binomial_distribution<T> dist(t, p);
+		return dist(engine);
+	}
+
+	// 对数正态分布随机数（参数 mean, stddev）
+	template <class T = double, std::enable_if_t<std::is_floating_point_v<T>>* = nullptr>
+	[[nodiscard]]
+	inline T RandLogNormal(T mean = T{0}, T stddev = T{1})
+	{
+		std::lognormal_distribution<T> dist(mean, stddev);
+		return dist(DefaultEngine());
+	}
+
+	// 对数正态分布引擎重载
+	template <class T = double, class Engine, std::enable_if_t<std::is_floating_point_v<T>>* = nullptr>
+	[[nodiscard]]
+	inline T RandLogNormal(Engine& engine, T mean = T{0}, T stddev = T{1})
+	{
+		std::lognormal_distribution<T> dist(mean, stddev);
+		return dist(engine);
+	}
+
+	// 几何分布随机数（首次成功前的失败次数，参数 p）
+	template <class T = int, std::enable_if_t<std::is_integral_v<T>>* = nullptr>
+	[[nodiscard]]
+	inline T RandGeometric(double p = 0.5)
+	{
+		std::geometric_distribution<T> dist(p);
+		return dist(DefaultEngine());
+	}
+
+	// 几何分布引擎重载
+	template <class T = int, class Engine, std::enable_if_t<std::is_integral_v<T>>* = nullptr>
+	[[nodiscard]]
+	inline T RandGeometric(Engine& engine, double p = 0.5)
+	{
+		std::geometric_distribution<T> dist(p);
+		return dist(engine);
+	}
+
+	// 柯西分布随机数（位置参数 a，尺度参数 b）
+	template <class T = double, std::enable_if_t<std::is_floating_point_v<T>>* = nullptr>
+	[[nodiscard]]
+	inline T RandCauchy(T a = T{0}, T b = T{1})
+	{
+		std::cauchy_distribution<T> dist(a, b);
+		return dist(DefaultEngine());
+	}
+
+	// 柯西分布引擎重载
+	template <class T = double, class Engine, std::enable_if_t<std::is_floating_point_v<T>>* = nullptr>
+	[[nodiscard]]
+	inline T RandCauchy(Engine& engine, T a = T{0}, T b = T{1})
+	{
+		std::cauchy_distribution<T> dist(a, b);
+		return dist(engine);
+	}
+
+	// 韦布尔分布随机数（形状参数 a，尺度参数 b）
+	template <class T = double, std::enable_if_t<std::is_floating_point_v<T>>* = nullptr>
+	[[nodiscard]]
+	inline T RandWeibull(T a = T{1}, T b = T{1})
+	{
+		std::weibull_distribution<T> dist(a, b);
+		return dist(DefaultEngine());
+	}
+
+	// 韦布尔分布引擎重载
+	template <class T = double, class Engine, std::enable_if_t<std::is_floating_point_v<T>>* = nullptr>
+	[[nodiscard]]
+	inline T RandWeibull(Engine& engine, T a = T{1}, T b = T{1})
+	{
+		std::weibull_distribution<T> dist(a, b);
+		return dist(engine);
+	}
+
+	// 极值分布（Gumbel）随机数（位置参数 a，尺度参数 b）
+	template <class T = double, std::enable_if_t<std::is_floating_point_v<T>>* = nullptr>
+	[[nodiscard]]
+	inline T RandExtremeValue(T a = T{0}, T b = T{1})
+	{
+		std::extreme_value_distribution<T> dist(a, b);
+		return dist(DefaultEngine());
+	}
+
+	// 极值分布引擎重载
+	template <class T = double, class Engine, std::enable_if_t<std::is_floating_point_v<T>>* = nullptr>
+	[[nodiscard]]
+	inline T RandExtremeValue(Engine& engine, T a = T{0}, T b = T{1})
+	{
+		std::extreme_value_distribution<T> dist(a, b);
+		return dist(engine);
+	}
+
+	// 卡方分布随机数（自由度 n）
+	template <class T = double, std::enable_if_t<std::is_floating_point_v<T>>* = nullptr>
+	[[nodiscard]]
+	inline T RandChiSquared(T n = T{1})
+	{
+		std::chi_squared_distribution<T> dist(n);
+		return dist(DefaultEngine());
+	}
+
+	// 卡方分布引擎重载
+	template <class T = double, class Engine, std::enable_if_t<std::is_floating_point_v<T>>* = nullptr>
+	[[nodiscard]]
+	inline T RandChiSquared(Engine& engine, T n = T{1})
+	{
+		std::chi_squared_distribution<T> dist(n);
+		return dist(engine);
+	}
+
+	// 学生 t 分布随机数（自由度 n）
+	template <class T = double, std::enable_if_t<std::is_floating_point_v<T>>* = nullptr>
+	[[nodiscard]]
+	inline T RandStudentT(T n = T{1})
+	{
+		std::student_t_distribution<T> dist(n);
+		return dist(DefaultEngine());
+	}
+
+	// 学生 t 分布引擎重载
+	template <class T = double, class Engine, std::enable_if_t<std::is_floating_point_v<T>>* = nullptr>
+	[[nodiscard]]
+	inline T RandStudentT(Engine& engine, T n = T{1})
+	{
+		std::student_t_distribution<T> dist(n);
+		return dist(engine);
+	}
+
+	// Fisher F 分布随机数（自由度 m, n）
+	template <class T = double, std::enable_if_t<std::is_floating_point_v<T>>* = nullptr>
+	[[nodiscard]]
+	inline T RandFisherF(T m = T{1}, T n = T{1})
+	{
+		std::fisher_f_distribution<T> dist(m, n);
+		return dist(DefaultEngine());
+	}
+
+	// Fisher F 分布引擎重载
+	template <class T = double, class Engine, std::enable_if_t<std::is_floating_point_v<T>>* = nullptr>
+	[[nodiscard]]
+	inline T RandFisherF(Engine& engine, T m = T{1}, T n = T{1})
+	{
+		std::fisher_f_distribution<T> dist(m, n);
+		return dist(engine);
+	}
+
+	// Beta 分布随机数（形状参数 a, b；无 STL，自实现 Gamma(a)/(Gamma(a)+Gamma(b))）
+	template <class T = double, std::enable_if_t<std::is_floating_point_v<T>>* = nullptr>
+	[[nodiscard]]
+	inline T RandBeta(T a = T{1}, T b = T{1})
+	{
+		std::gamma_distribution<T> distA(a, T{1});
+		std::gamma_distribution<T> distB(b, T{1});
+		auto& rng = DefaultEngine();
+		const T x = distA(rng);
+		const T y = distB(rng);
+		const T sum = x + y;
+		// 捕获精确 0 与非正规数，避免除零/除以极小值产生 inf
+		if (sum < std::numeric_limits<T>::min())
+			return T{0};
+		return x / sum;
+	}
+
+	// Beta 分布引擎重载
+	template <class T = double, class Engine, std::enable_if_t<std::is_floating_point_v<T>>* = nullptr>
+	[[nodiscard]]
+	inline T RandBeta(Engine& engine, T a = T{1}, T b = T{1})
+	{
+		std::gamma_distribution<T> distA(a, T{1});
+		std::gamma_distribution<T> distB(b, T{1});
+		const T x = distA(engine);
+		const T y = distB(engine);
+		const T sum = x + y;
+		if (sum < std::numeric_limits<T>::min())
+			return T{0};
+		return x / sum;
 	}
 
 	// 生成 N 位随机整数（结果范围 [0, 2^N)）

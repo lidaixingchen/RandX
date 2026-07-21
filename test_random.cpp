@@ -7,9 +7,12 @@
 #include <array>
 #include <algorithm>
 #include <cinttypes>
+#include <cmath>
 #include <cstdint>
 #include <cstdio>
+#include <iterator>
 #include <list>
+#include <ranges>
 #include <sstream>
 #include <vector>
 
@@ -358,6 +361,127 @@ TEST_SUITE("便捷 API")
         CHECK(uuid[14] == '4');  // 版本号
         CHECK((uuid[19] == '8' || uuid[19] == '9' || uuid[19] == 'a' || uuid[19] == 'b'));
     }
+
+    // ============================================================
+    // 新增分布（v1.2）：Bernoulli/Binomial/LogNormal/Geometric/
+    // Cauchy/Weibull/ExtremeValue/ChiSquared/StudentT/FisherF/Beta
+    // ============================================================
+    TEST_CASE("RandBernoulli 与 RandBool 引擎重载等价")
+    {
+        xoshiro::Xoshiro256StarStar rng1{ 42 }, rng2{ 42 };
+        for (int i = 0; i < MC_TRIALS_100; ++i)
+            CHECK(xoshiro::RandBernoulli(rng1, 0.3) == xoshiro::RandBool(rng2, 0.3));
+    }
+
+    TEST_CASE("RandBinomial 范围与均值")
+    {
+        // t=60, p=0.5：理论均值 30，方差 15
+        double sum = 0;
+        for (int i = 0; i < MC_TRIALS_10K; ++i)
+        {
+            int v = xoshiro::RandBinomial(60, 0.5);
+            CHECK(v >= 0);
+            CHECK(v <= 60);
+            sum += v;
+        }
+        const double mean = sum / MC_TRIALS_10K;
+        CHECK(mean > 25.0);
+        CHECK(mean < 35.0);
+    }
+
+    TEST_CASE("RandLogNormal 正数")
+    {
+        for (int i = 0; i < MC_TRIALS_100; ++i)
+            CHECK(xoshiro::RandLogNormal(0.0, 1.0) > 0.0);
+    }
+
+    TEST_CASE("RandGeometric 非负")
+    {
+        for (int i = 0; i < MC_TRIALS_100; ++i)
+            CHECK(xoshiro::RandGeometric(0.3) >= 0);
+    }
+
+    TEST_CASE("RandCauchy 有限值占绝大多数")
+    {
+        // Cauchy 重尾，理论上 P(|x|<1e6)≈0.99968，inf 极罕见
+        int finiteCount = 0;
+        for (int i = 0; i < MC_TRIALS_100; ++i)
+        {
+            const double v = xoshiro::RandCauchy(0.0, 1.0);
+            if (std::isfinite(v)) ++finiteCount;
+        }
+        CHECK(finiteCount >= MC_TRIALS_100 - 5);
+    }
+
+    TEST_CASE("RandWeibull 非负")
+    {
+        for (int i = 0; i < MC_TRIALS_100; ++i)
+            CHECK(xoshiro::RandWeibull(2.0, 1.0) >= 0.0);
+    }
+
+    TEST_CASE("RandExtremeValue 有限值")
+    {
+        for (int i = 0; i < MC_TRIALS_100; ++i)
+        {
+            const double v = xoshiro::RandExtremeValue(0.0, 1.0);
+            CHECK(std::isfinite(v));
+        }
+    }
+
+    TEST_CASE("RandChiSquared 非负")
+    {
+        for (int i = 0; i < MC_TRIALS_100; ++i)
+            CHECK(xoshiro::RandChiSquared(4.0) >= 0.0);
+    }
+
+    TEST_CASE("RandStudentT 有限值占绝大多数")
+    {
+        // 自由度 4：有限方差但重尾
+        int finiteCount = 0;
+        for (int i = 0; i < MC_TRIALS_100; ++i)
+        {
+            const double v = xoshiro::RandStudentT(4.0);
+            if (std::isfinite(v)) ++finiteCount;
+        }
+        CHECK(finiteCount >= MC_TRIALS_100 - 5);
+    }
+
+    TEST_CASE("RandFisherF 非负")
+    {
+        for (int i = 0; i < MC_TRIALS_100; ++i)
+            CHECK(xoshiro::RandFisherF(5.0, 5.0) >= 0.0);
+    }
+
+    TEST_CASE("RandBeta 范围 [0,1] 与均值")
+    {
+        // a=2, b=2：理论均值 0.5，方差 0.05
+        double sum = 0;
+        for (int i = 0; i < MC_TRIALS_10K; ++i)
+        {
+            const double v = xoshiro::RandBeta(2.0, 2.0);
+            CHECK(v >= 0.0);
+            CHECK(v <= 1.0);
+            sum += v;
+        }
+        const double mean = sum / MC_TRIALS_10K;
+        CHECK(mean > 0.4);
+        CHECK(mean < 0.6);
+    }
+
+    TEST_CASE("新分布引擎重载确定性")
+    {
+        xoshiro::Xoshiro256StarStar rng1{ 12345 }, rng2{ 12345 };
+        CHECK(xoshiro::RandBinomial(rng1, 10, 0.5) == xoshiro::RandBinomial(rng2, 10, 0.5));
+        CHECK(xoshiro::RandLogNormal(rng1, 0.0, 1.0) == xoshiro::RandLogNormal(rng2, 0.0, 1.0));
+        CHECK(xoshiro::RandGeometric(rng1, 0.3) == xoshiro::RandGeometric(rng2, 0.3));
+        CHECK(xoshiro::RandCauchy(rng1, 0.0, 1.0) == xoshiro::RandCauchy(rng2, 0.0, 1.0));
+        CHECK(xoshiro::RandWeibull(rng1, 2.0, 1.0) == xoshiro::RandWeibull(rng2, 2.0, 1.0));
+        CHECK(xoshiro::RandExtremeValue(rng1, 0.0, 1.0) == xoshiro::RandExtremeValue(rng2, 0.0, 1.0));
+        CHECK(xoshiro::RandChiSquared(rng1, 4.0) == xoshiro::RandChiSquared(rng2, 4.0));
+        CHECK(xoshiro::RandStudentT(rng1, 4.0) == xoshiro::RandStudentT(rng2, 4.0));
+        CHECK(xoshiro::RandFisherF(rng1, 5.0, 5.0) == xoshiro::RandFisherF(rng2, 5.0, 5.0));
+        CHECK(xoshiro::RandBeta(rng1, 2.0, 2.0) == xoshiro::RandBeta(rng2, 2.0, 2.0));
+    }
 }
 
 // ============================================================================
@@ -580,6 +704,181 @@ TEST_SUITE("新增 API")
 }
 
 // ============================================================================
+// RandSample 迭代器版（v1.2 新增）
+// ============================================================================
+TEST_SUITE("RandSample 迭代器版")
+{
+    TEST_CASE("随机访问路径（索引分支）：n²>=size 走索引数组")
+    {
+        std::vector<int> v = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
+        // n=5, size=10, n²=25 >= 10 → 索引数组分支
+        auto sample = xoshiro::RandSample(v.begin(), v.end(), 5);
+        CHECK(sample.size() == 5);
+        for (int x : sample)
+        {
+            CHECK(x >= 0);
+            CHECK(x <= 9);
+            // 无放回：检查不重复
+            CHECK(std::count(sample.begin(), sample.end(), x) == 1);
+        }
+    }
+
+    TEST_CASE("随机访问路径（hash-set 分支）：n²<size 走 hash-set")
+    {
+        std::vector<int> v(10000);
+        for (int i = 0; i < 10000; ++i) v[static_cast<std::size_t>(i)] = i;
+        // n=5, size=10000, n²=25 < 10000 → hash-set 分支
+        auto sample = xoshiro::RandSample(v.begin(), v.end(), 5);
+        CHECK(sample.size() == 5);
+        for (int x : sample)
+        {
+            CHECK(x >= 0);
+            CHECK(x <= 9999);
+            CHECK(std::count(sample.begin(), sample.end(), x) == 1);
+        }
+    }
+
+    TEST_CASE("输入路径：std::list 走 reservoir sampling")
+    {
+        std::list<int> lst = { 10, 20, 30, 40, 50, 60, 70, 80, 90, 100 };
+        auto sample = xoshiro::RandSample(lst.begin(), lst.end(), 3);
+        CHECK(sample.size() == 3);
+        for (int x : sample)
+        {
+            bool found = false;
+            for (int e : lst) if (e == x) { found = true; break; }
+            CHECK(found);
+        }
+        // 无放回：不重复
+        std::sort(sample.begin(), sample.end());
+        for (std::size_t i = 1; i < sample.size(); ++i)
+            CHECK(sample[i] != sample[i - 1]);
+    }
+
+    TEST_CASE("流式输入：std::istream_iterator 走 reservoir")
+    {
+        std::istringstream iss("1 2 3 4 5 6 7 8 9 10");
+        std::istream_iterator<int> first(iss);
+        std::istream_iterator<int> last;
+        auto sample = xoshiro::RandSample(first, last, 3);
+        CHECK(sample.size() == 3);
+        for (int x : sample)
+        {
+            CHECK(x >= 1);
+            CHECK(x <= 10);
+        }
+        std::sort(sample.begin(), sample.end());
+        for (std::size_t i = 1; i < sample.size(); ++i)
+            CHECK(sample[i] != sample[i - 1]);
+    }
+
+    TEST_CASE("边界：n=0 返回空")
+    {
+        std::vector<int> v = { 1, 2, 3, 4, 5 };
+        auto s1 = xoshiro::RandSample(v.begin(), v.end(), 0);
+        CHECK(s1.empty());
+        std::list<int> lst = { 1, 2, 3 };
+        auto s2 = xoshiro::RandSample(lst.begin(), lst.end(), 0);
+        CHECK(s2.empty());
+    }
+
+    TEST_CASE("边界：n>=size 返回全部")
+    {
+        std::vector<int> v = { 1, 2, 3, 4, 5 };
+        auto s1 = xoshiro::RandSample(v.begin(), v.end(), 5);
+        CHECK(s1.size() == 5);
+        auto s2 = xoshiro::RandSample(v.begin(), v.end(), 10);
+        CHECK(s2.size() == 5);
+        std::list<int> lst = { 10, 20, 30 };
+        auto s3 = xoshiro::RandSample(lst.begin(), lst.end(), 3);
+        CHECK(s3.size() == 3);
+        // 元素不足 n：返回所有已收集元素
+        auto s4 = xoshiro::RandSample(lst.begin(), lst.end(), 10);
+        CHECK(s4.size() == 3);
+    }
+
+    TEST_CASE("边界：空范围返回空")
+    {
+        std::vector<int> empty;
+        auto s1 = xoshiro::RandSample(empty.begin(), empty.end(), 3);
+        CHECK(s1.empty());
+        std::list<int> emptyLst;
+        auto s2 = xoshiro::RandSample(emptyLst.begin(), emptyLst.end(), 3);
+        CHECK(s2.empty());
+    }
+
+    TEST_CASE("引擎重载确定性（随机访问）")
+    {
+        std::vector<int> v(1000);
+        for (int i = 0; i < 1000; ++i) v[static_cast<std::size_t>(i)] = i;
+        xoshiro::Xoshiro256StarStar rng1{ 42 }, rng2{ 42 };
+        auto s1 = xoshiro::RandSample(rng1, v.begin(), v.end(), 10);
+        auto s2 = xoshiro::RandSample(rng2, v.begin(), v.end(), 10);
+        CHECK(s1 == s2);
+    }
+
+    TEST_CASE("引擎重载确定性（输入迭代器 reservoir）")
+    {
+        std::list<int> lst = { 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19 };
+        xoshiro::Xoshiro256StarStar rng1{ 42 }, rng2{ 42 };
+        auto s1 = xoshiro::RandSample(rng1, lst.begin(), lst.end(), 5);
+        auto s2 = xoshiro::RandSample(rng2, lst.begin(), lst.end(), 5);
+        CHECK(s1 == s2);
+    }
+
+    TEST_CASE("均匀性（reservoir）：前后半段均衡，验证 i+1 修复")
+    {
+        // N=200, n=10, TRIALS=10000；期望各半段被选 50000 次
+        // 修复前 BoundedRand(rng,i) 会使后半段过选；修复后 BoundedRand(rng,i+1) 均匀
+        constexpr int N = 200;
+        constexpr int n = 10;
+        constexpr int TRIALS = 10000;
+        std::vector<int> v(static_cast<std::size_t>(N));
+        for (int i = 0; i < N; ++i) v[static_cast<std::size_t>(i)] = i;
+        int firstHalf = 0, secondHalf = 0;
+        for (int t = 0; t < TRIALS; ++t)
+        {
+            auto s = xoshiro::RandSample(v.begin(), v.end(), n);
+            for (int x : s)
+            {
+                if (x < N / 2) ++firstHalf;
+                else ++secondHalf;
+            }
+        }
+        // ±10% 容差（修复前差值极大，可稳定捕获 BUG）
+        CHECK(firstHalf > 45000);
+        CHECK(firstHalf < 55000);
+        CHECK(secondHalf > 45000);
+        CHECK(secondHalf < 55000);
+    }
+
+    TEST_CASE("均匀性（hash-set）：前后半段均衡")
+    {
+        // n² < size 强制走 hash-set 分支：N=10000, n=5, n²=25<10000
+        constexpr int N = 10000;
+        constexpr int n = 5;
+        constexpr int TRIALS = 10000;
+        std::vector<int> v(static_cast<std::size_t>(N));
+        for (int i = 0; i < N; ++i) v[static_cast<std::size_t>(i)] = i;
+        int firstHalf = 0, secondHalf = 0;
+        for (int t = 0; t < TRIALS; ++t)
+        {
+            auto s = xoshiro::RandSample(v.begin(), v.end(), n);
+            for (int x : s)
+            {
+                if (x < N / 2) ++firstHalf;
+                else ++secondHalf;
+            }
+        }
+        // 期望各 25000，±15% 容差
+        CHECK(firstHalf > 21250);
+        CHECK(firstHalf < 28750);
+        CHECK(secondHalf > 21250);
+        CHECK(secondHalf < 28750);
+    }
+}
+
+// ============================================================================
 // 统计自检（Chi-Square 频率检验）
 // ============================================================================
 TEST_SUITE("Chi-Square 频率检验")
@@ -636,5 +935,243 @@ TEST_SUITE("Chi-Square 频率检验")
             chi2 += diff * diff / EXPECTED;
         }
         CHECK(chi2 < CHI2_CRITICAL_DF127);
+    }
+}
+
+// ============================================================================
+// ranges 风格 API（C++23 专属）
+// ============================================================================
+TEST_SUITE("ranges 风格 API")
+{
+    TEST_CASE("RandElement 容器直传返回值拷贝")
+    {
+        std::vector<int> v = { 10, 20, 30, 40, 50 };
+        for (int i = 0; i < MC_TRIALS_100; ++i)
+        {
+            int x = xoshiro::ranges::RandElement(v);
+            CHECK((x == 10 || x == 20 || x == 30 || x == 40 || x == 50));
+        }
+    }
+
+    TEST_CASE("RandElement 与 views::filter 组合")
+    {
+        std::vector<int> v = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
+        auto evens = v | std::views::filter([](int x) { return x % 2 == 0; });
+        for (int i = 0; i < MC_TRIALS_100; ++i)
+        {
+            int x = xoshiro::ranges::RandElement(evens);
+            CHECK(x % 2 == 0);
+            CHECK(x >= 2);
+            CHECK(x <= 10);
+        }
+    }
+
+    TEST_CASE("RandSample 容器直传")
+    {
+        std::vector<int> v = { 0,1,2,3,4,5,6,7,8,9 };
+        auto s = xoshiro::ranges::RandSample(v, 3);
+        CHECK(s.size() == 3);
+        for (int x : s)
+        {
+            CHECK(x >= 0);
+            CHECK(x <= 9);
+            CHECK(std::find(v.begin(), v.end(), x) != v.end());
+        }
+        // 无放回：3 个元素互不相同
+        CHECK(s[0] != s[1]);
+        CHECK(s[0] != s[2]);
+        CHECK(s[1] != s[2]);
+    }
+
+    TEST_CASE("RandShuffle 容器直传保持元素集合")
+    {
+        std::vector<int> v = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
+        std::vector<int> orig = v;
+        xoshiro::ranges::RandShuffle(v);
+        // 排序后应与原集合一致
+        std::sort(v.begin(), v.end());
+        CHECK(v == orig);
+    }
+
+    TEST_CASE("RandFill 模板推导 int")
+    {
+        std::vector<int> buf(100);
+        xoshiro::ranges::RandFill(buf, 0, 99);
+        for (int x : buf)
+        {
+            CHECK(x >= 0);
+            CHECK(x <= 99);
+        }
+    }
+
+    TEST_CASE("RandFill 模板推导 double")
+    {
+        std::vector<double> buf(100);
+        xoshiro::ranges::RandFill(buf, 0.0, 1.0);
+        for (double x : buf)
+        {
+            CHECK(x >= 0.0);
+            CHECK(x <= 1.0);
+        }
+    }
+
+    TEST_CASE("RandFill 模板推导 float")
+    {
+        std::vector<float> buf(100);
+        xoshiro::ranges::RandFill(buf, 0.0f, 1.0f);
+        for (float x : buf)
+        {
+            CHECK(x >= 0.0f);
+            CHECK(x <= 1.0f);
+        }
+    }
+}
+
+// ============================================================================
+// RandChar / RandString 预设字符集（v1.2 新增）
+// ============================================================================
+TEST_SUITE("RandChar 预设字符集")
+{
+    TEST_CASE("RandChar(CharSet::Lower) 全部属于 [a-z]")
+    {
+        for (int i = 0; i < MC_TRIALS_1K; ++i)
+        {
+            char c = xoshiro::RandChar(xoshiro::CharSet::Lower);
+            CHECK(c >= 'a');
+            CHECK(c <= 'z');
+        }
+    }
+
+    TEST_CASE("RandChar(CharSet::Hex) 全部属于 [0-9a-fA-F]")
+    {
+        const std::string hexSet = "0123456789abcdefABCDEF";
+        for (int i = 0; i < MC_TRIALS_1K; ++i)
+        {
+            char c = xoshiro::RandChar(xoshiro::CharSet::Hex);
+            CHECK(hexSet.find(c) != std::string::npos);
+        }
+    }
+
+    TEST_CASE("RandChar 8 种字符集全覆盖")
+    {
+        using CS = xoshiro::CharSet;
+        const std::string alnum = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+        const std::string alpha = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+        const std::string lower = "abcdefghijklmnopqrstuvwxyz";
+        const std::string upper = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        const std::string digit = "0123456789";
+        const std::string hexS = "0123456789abcdefABCDEF";
+        const std::string printable = "!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~";
+        const std::string base64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+
+        for (int i = 0; i < MC_TRIALS_100; ++i)
+        {
+            CHECK(alnum.find(xoshiro::RandChar(CS::Alphanumeric)) != std::string::npos);
+            CHECK(alpha.find(xoshiro::RandChar(CS::Alpha)) != std::string::npos);
+            CHECK(lower.find(xoshiro::RandChar(CS::Lower)) != std::string::npos);
+            CHECK(upper.find(xoshiro::RandChar(CS::Upper)) != std::string::npos);
+            CHECK(digit.find(xoshiro::RandChar(CS::Digit)) != std::string::npos);
+            CHECK(hexS.find(xoshiro::RandChar(CS::Hex)) != std::string::npos);
+            CHECK(printable.find(xoshiro::RandChar(CS::Printable)) != std::string::npos);
+            CHECK(base64.find(xoshiro::RandChar(CS::Base64)) != std::string::npos);
+        }
+    }
+
+    TEST_CASE("RandChar 引擎重载确定性")
+    {
+        xoshiro::Xoshiro256StarStar rng1{ 42 }, rng2{ 42 };
+        for (int i = 0; i < MC_TRIALS_100; ++i)
+        {
+            CHECK(xoshiro::RandChar(rng1, xoshiro::CharSet::Hex)
+                == xoshiro::RandChar(rng2, xoshiro::CharSet::Hex));
+        }
+    }
+
+    TEST_CASE("RandChar 引擎重载支持非 Xoshiro256StarStar 引擎")
+    {
+        // 验证 RandChar(Engine&, CharSet) 对 SFC64 / RomuDuoJr 等任意引擎均可编译且确定性成立
+        xoshiro::SFC64 sfc1{ 42 }, sfc2{ 42 };
+        xoshiro::RomuDuoJr romu1{ 42 }, romu2{ 42 };
+        for (int i = 0; i < MC_TRIALS_100; ++i)
+        {
+            CHECK(xoshiro::RandChar(sfc1, xoshiro::CharSet::Hex)
+                == xoshiro::RandChar(sfc2, xoshiro::CharSet::Hex));
+            CHECK(xoshiro::RandChar(romu1, xoshiro::CharSet::Lower)
+                == xoshiro::RandChar(romu2, xoshiro::CharSet::Lower));
+        }
+    }
+
+    TEST_CASE("RandString 引擎重载确定性与字符集")
+    {
+        // 验证 RandString(Engine&, n, CharSet) 引擎重载
+        xoshiro::Xoshiro256StarStar rng1{ 42 }, rng2{ 42 };
+        const std::string hexSet = "0123456789abcdefABCDEF";
+        auto s1 = xoshiro::RandString(rng1, 32, xoshiro::CharSet::Hex);
+        auto s2 = xoshiro::RandString(rng2, 32, xoshiro::CharSet::Hex);
+        CHECK(s1.size() == 32);
+        CHECK(s1 == s2);
+        for (char c : s1)
+            CHECK(hexSet.find(c) != std::string::npos);
+
+        // 非默认引擎也应可工作
+        xoshiro::SFC64 sfc{ 7 };
+        auto s3 = xoshiro::RandString(sfc, 16, xoshiro::CharSet::Base64);
+        const std::string base64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+        CHECK(s3.size() == 16);
+        for (char c : s3)
+            CHECK(base64.find(c) != std::string::npos);
+    }
+
+    TEST_CASE("RandString(n, CharSet::Digit) 全部属于 [0-9]")
+    {
+        const std::string digit = "0123456789";
+        auto s = xoshiro::RandString(100, xoshiro::CharSet::Digit);
+        CHECK(s.size() == 100);
+        for (char c : s)
+            CHECK(digit.find(c) != std::string::npos);
+    }
+
+    TEST_CASE("RandString(16, CharSet::Hex) 长度与字符集")
+    {
+        const std::string hexSet = "0123456789abcdefABCDEF";
+        auto s = xoshiro::RandString(16, xoshiro::CharSet::Hex);
+        CHECK(s.size() == 16);
+        for (char c : s)
+            CHECK(hexSet.find(c) != std::string::npos);
+    }
+
+    TEST_CASE("RandString(12, CharSet::Base64) RFC 4648 合规")
+    {
+        const std::string base64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+        auto s = xoshiro::RandString(12, xoshiro::CharSet::Base64);
+        CHECK(s.size() == 12);
+        for (char c : s)
+            CHECK(base64.find(c) != std::string::npos);
+    }
+
+    TEST_CASE("RandChar(CharSet::Hex) 均匀性 ±3σ")
+    {
+        // Hex 字符集 = "0123456789abcdefABCDEF" 共 22 个字符
+        // 各字符期望频率 1/22，N=22000 采样，每字符期望 1000 次
+        // σ = sqrt(N * p * (1-p)) = sqrt(22000 * 1/22 * 21/22) ≈ 30.91
+        const std::string hexSet = "0123456789abcdefABCDEF";
+        const std::size_t cat = hexSet.size();
+        constexpr int N = 22000;
+        const int expected = N / static_cast<int>(cat);
+        const double p = 1.0 / static_cast<double>(cat);
+        const double sigma = std::sqrt(static_cast<double>(N) * p * (1.0 - p));
+        std::vector<int> counts(cat, 0);
+        for (int i = 0; i < N; ++i)
+        {
+            char c = xoshiro::RandChar(xoshiro::CharSet::Hex);
+            auto idx = hexSet.find(c);
+            CHECK(idx != std::string::npos);
+            ++counts[idx];
+        }
+        for (std::size_t i = 0; i < cat; ++i)
+        {
+            const double dev = std::abs(counts[i] - expected);
+            CHECK(dev < 3.0 * sigma);
+        }
     }
 }

@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(xoshiro VERSION 1.1.0 LANGUAGES CXX)
+project(xoshiro VERSION 1.2.0 LANGUAGES CXX)
 
 # 纯头文件库 → INTERFACE target
 add_library(xoshiro INTERFACE)

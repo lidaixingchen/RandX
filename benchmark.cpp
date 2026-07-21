@@ -16,6 +16,7 @@
 #include "Random.hpp"
 #include <chrono>
 #include <cstdio>
+#include <list>
 #include <type_traits>
 #include <vector>
 
@@ -168,6 +169,105 @@ static double BenchmarkRandVector(const char* name)
 
 //----------------------------------------------------------------------------------------
 //
+//	RandSample 迭代器版性能基准测试（v1.2 新增）
+//
+//----------------------------------------------------------------------------------------
+
+// RandSample 基准测试的容器大小（大 N 小 n 场景）
+static constexpr int SampleSize = 1'000'000;
+// 抽样数量（n² < size，强制走 hash-set 分支）
+static constexpr int SampleN_HashSet = 100;
+// 抽样数量（n² >= size，走索引数组分支）
+static constexpr int SampleN_Index = 2000;
+// 测试轮数
+static constexpr int SampleTrials = 100;
+
+// 测量 RandSample 容器版（复制整个容器到 pool）
+static double BenchmarkRandSampleContainer(const char* name)
+{
+	std::vector<int> data(static_cast<std::size_t>(SampleSize));
+	for (int i = 0; i < SampleSize; ++i) data[static_cast<std::size_t>(i)] = i;
+
+	const auto start = std::chrono::high_resolution_clock::now();
+	for (int t = 0; t < SampleTrials; ++t)
+	{
+		auto s = xoshiro::RandSample(data, static_cast<std::size_t>(SampleN_HashSet));
+		DoNotOptimize(s[0]);
+	}
+	const auto end = std::chrono::high_resolution_clock::now();
+
+	const double ms = std::chrono::duration<double, std::milli>(end - start).count();
+	const double opsPerSec = SampleTrials / ms * 1000.0;
+	std::printf("  %-40s %10.1f ops/s  (%6.1f ms / %d trials)\n",
+		name, opsPerSec, ms, SampleTrials);
+	return opsPerSec;
+}
+
+// 测量 RandSample 迭代器版（hash-set 分支：n² < size）
+static double BenchmarkRandSampleHashSet(const char* name)
+{
+	std::vector<int> data(static_cast<std::size_t>(SampleSize));
+	for (int i = 0; i < SampleSize; ++i) data[static_cast<std::size_t>(i)] = i;
+
+	const auto start = std::chrono::high_resolution_clock::now();
+	for (int t = 0; t < SampleTrials; ++t)
+	{
+		auto s = xoshiro::RandSample(data.begin(), data.end(), SampleN_HashSet);
+		DoNotOptimize(s[0]);
+	}
+	const auto end = std::chrono::high_resolution_clock::now();
+
+	const double ms = std::chrono::duration<double, std::milli>(end - start).count();
+	const double opsPerSec = SampleTrials / ms * 1000.0;
+	std::printf("  %-40s %10.1f ops/s  (%6.1f ms / %d trials)\n",
+		name, opsPerSec, ms, SampleTrials);
+	return opsPerSec;
+}
+
+// 测量 RandSample 迭代器版（索引数组分支：n² >= size）
+static double BenchmarkRandSampleIndex(const char* name)
+{
+	std::vector<int> data(static_cast<std::size_t>(SampleSize));
+	for (int i = 0; i < SampleSize; ++i) data[static_cast<std::size_t>(i)] = i;
+
+	const auto start = std::chrono::high_resolution_clock::now();
+	for (int t = 0; t < SampleTrials; ++t)
+	{
+		auto s = xoshiro::RandSample(data.begin(), data.end(), SampleN_Index);
+		DoNotOptimize(s[0]);
+	}
+	const auto end = std::chrono::high_resolution_clock::now();
+
+	const double ms = std::chrono::duration<double, std::milli>(end - start).count();
+	const double opsPerSec = SampleTrials / ms * 1000.0;
+	std::printf("  %-40s %10.1f ops/s  (%6.1f ms / %d trials)\n",
+		name, opsPerSec, ms, SampleTrials);
+	return opsPerSec;
+}
+
+// 测量 RandSample 迭代器版（reservoir：std::list 输入迭代器）
+static double BenchmarkRandSampleReservoir(const char* name)
+{
+	std::list<int> data;
+	for (int i = 0; i < SampleSize; ++i) data.push_back(i);
+
+	const auto start = std::chrono::high_resolution_clock::now();
+	for (int t = 0; t < SampleTrials; ++t)
+	{
+		auto s = xoshiro::RandSample(data.begin(), data.end(), SampleN_HashSet);
+		DoNotOptimize(s[0]);
+	}
+	const auto end = std::chrono::high_resolution_clock::now();
+
+	const double ms = std::chrono::duration<double, std::milli>(end - start).count();
+	const double opsPerSec = SampleTrials / ms * 1000.0;
+	std::printf("  %-40s %10.1f ops/s  (%6.1f ms / %d trials)\n",
+		name, opsPerSec, ms, SampleTrials);
+	return opsPerSec;
+}
+
+//----------------------------------------------------------------------------------------
+//
 //	主函数
 //
 //----------------------------------------------------------------------------------------
@@ -283,6 +383,21 @@ int main()
 	BenchmarkRandVector<xoshiro::SplitMix64>("SplitMix64");
 	BenchmarkRandVector<xoshiro::Xoshiro256StarStar>("Xoshiro256StarStar");
 	BenchmarkRandVector<xoshiro::SFC64>("SFC64");
+
+	std::printf("\n");
+
+	//----------------------------------------------------------------
+	// 第六部分：RandSample 迭代器版性能对比（v1.2 新增）
+	//----------------------------------------------------------------
+	std::printf("[6] RandSample 迭代器版性能对比 (SampleSize=%d, trials=%d)\n", SampleSize, SampleTrials);
+	std::printf("    大 N 小 n 场景：1M 元素中抽 %d（hash-set 分支）/ %d（索引分支）\n",
+		SampleN_HashSet, SampleN_Index);
+	std::printf("----------------------------------------------------------------\n");
+
+	BenchmarkRandSampleContainer("RandSample(container, n=100)");
+	BenchmarkRandSampleHashSet("RandSample(iter, n=100, hash-set)");
+	BenchmarkRandSampleIndex("RandSample(iter, n=2000, index)");
+	BenchmarkRandSampleReservoir("RandSample(list, n=100, reservoir)");
 
 	std::printf("\n");
 	std::printf("================================================================\n");
