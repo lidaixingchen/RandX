@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(RandX VERSION 1.2.1 LANGUAGES CXX)
+project(RandX VERSION 1.3.0 LANGUAGES CXX)
 
 # 纯头文件库 → INTERFACE target
 add_library(RandX INTERFACE)
@@ -9,6 +9,17 @@ target_include_directories(RandX INTERFACE
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
     $<INSTALL_INTERFACE:include>
 )
+
+# v1.3: ChaCha20 CSPRNG 的跨平台 OS 熵源依赖
+# Windows: BCryptGenRandom → bcrypt
+# macOS:   SecRandomCopyBytes → Security framework
+# Linux:   getrandom → libc 内置，无需额外链接
+if(WIN32)
+    target_link_libraries(RandX INTERFACE bcrypt)
+elseif(APPLE)
+    find_library(SECRET_LIBRARY Security REQUIRED)
+    target_link_libraries(RandX INTERFACE ${SECRET_LIBRARY})
+endif()
 
 # 安装
 include(GNUInstallDirs)

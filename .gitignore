@@ -7,6 +7,11 @@
 build/
 out/
 
+# PractRand 工具构建产物（tools/pract_rand/）
+tools/pract_rand/gen_practrand_stream
+tools/pract_rand/PractRand_build/
+tools/pract_rand/PractRand_src/
+
 # IDE
 .vs/
 .vscode/

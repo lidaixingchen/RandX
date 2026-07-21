@@ -1,0 +1,89 @@
+name: PractRand Nightly
+
+# 每晚运行 PractRand 统计质量验证（非 push 触发，因耗时长）
+# 8 引擎全覆盖：7 统计 PRNG 各 1TB + ChaCha20 256GB
+# 失败时自动创建 issue 通知维护者
+on:
+  schedule:
+    # 每天 03:00 UTC（北京 11:00）
+    - cron: '0 3 * * *'
+  workflow_dispatch:
+    inputs:
+      length:
+        description: '测试长度（默认 1TB/256GB；快速验证可用 4GB）'
+        required: false
+        default: ''
+      engine:
+        description: '只测单个引擎（留空测全部 8 个）'
+        required: false
+        default: ''
+        type: choice
+        options:
+          - ''
+          - xoshiro256
+          - xoroshiro128
+          - xoshiro128
+          - xoroshiro64
+          - splitmix64
+          - sfc64
+          - romuduojr
+          - chacha20
+
+permissions:
+  issues: write
+
+jobs:
+  practrand:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 600  # 10 小时上限：8 引擎 × ~1h + 余量
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y g++ make git python3
+
+      - name: Build PractRand
+        working-directory: tools/pract_rand
+        run: bash download_practrand.sh
+
+      - name: Run PractRand tests
+        id: tests
+        working-directory: tools/pract_rand
+        env:
+          INPUT_LENGTH: ${{ github.event.inputs.length }}
+          INPUT_ENGINE: ${{ github.event.inputs.engine }}
+        run: |
+          ARGS=()
+          if [ -n "$INPUT_LENGTH" ]; then ARGS+=(--length "$INPUT_LENGTH"); fi
+          if [ -n "$INPUT_ENGINE" ]; then ARGS+=(--engine "$INPUT_ENGINE"); fi
+          # --keep-going 保证全部引擎跑完（便于 issue 中列出所有失败引擎）
+          python3 run_practrand.py --keep-going "${ARGS[@]}"
+
+      - name: Create issue on failure
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const date = new Date().toISOString().slice(0, 10);
+            const runUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `[PractRand Nightly 失败] ${date} 统计质量回归`,
+              body: [
+                `PractRand nightly 验证失败，详见 [workflow run](${runUrl})。`,
+                '',
+                '可能原因：',
+                '1. 引擎实现回归（统计质量退化）',
+                '2. PractRand 版本变更（见 `tools/pract_rand/download_practrand.sh` 中的 `PRACTRAND_TAG`）',
+                '3. 编译器优化引入的未定义行为',
+                '',
+                '排查建议：',
+                '- 本地复现：`python3 tools/pract_rand/run_practrand.py --engine <name> --length 4GB`',
+                '- 检查最近改动是否触及 RandX.hpp / RandX_Cpp17.hpp 中的引擎实现',
+                '- 查看 CI 日志中各引擎的 PractRand 输出，定位具体失败的测试项',
+              ].join('\n'),
+              labels: ['bug', 'statistics-quality', 'nightly']
+            });

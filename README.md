@@ -5,6 +5,12 @@
 原始算法：[David Blackman & Sebastiano Vigna](http://prng.di.unimi.it/)
 原始 C++ 封装：[Ryo Suzuki (Xoshiro-cpp)](https://github.com/Reputeless/Xoshiro-cpp)
 
+> **⚠️ 安全声明**
+>
+> 本库的 xoshiro / xoroshiro / SFC64 / RomuDuoJr / SplitMix64 引擎**均非 CSPRNG**（非密码学安全伪随机数生成器）。其状态可从输出逆推，**不可用于密码、密钥、会话 token、CSRF 令牌等安全场景**。
+>
+> 此类安全场景请使用 **`ChaCha20`** 引擎（RFC 8439，基于 OS 熵自动播种）或 **`SecureRandomBytes()`** 函数。
+
 ## 版本选择
 
 本仓库提供两个头文件，按需选用：
@@ -29,7 +35,9 @@
 - 全零吸收态防御（`assert` 检测）
 - 多流接口 `MakeStreamEngine<Engine>(streamId, seed)` 用于并行计算
 - 支持 SFC64 / RomuDuoJr 高速引擎
-- 7 个引擎全覆盖
+- **ChaCha20 CSPRNG**（RFC 8439）：密码学安全引擎，OS 熵自动播种，2^20 字节自动 reseed 前向安全
+- **跨平台 OS 熵源**：`SecureRandomBytes()` 优先使用 BCryptGenRandom (Windows) / getrandom (Linux) / SecRandomCopyBytes (macOS)，RDRAND 可选加速
+- 8 个引擎全覆盖（7 非 CSPRNG + 1 CSPRNG）
 - 编译期洗牌 `ShuffleCE` / `ShuffledArray`（`std::shuffle` 的 constexpr 替代）
 - `Reseed(seed)` 重置默认引擎，方便测试复现
 - `std::seed_seq` 播种支持（所有 7 引擎）
@@ -50,6 +58,7 @@
 | SplitMix64           | 64-bit | 2^64         | 8B  | 种子扩展 / 哈希，非通用 PRNG       |
 | SFC64                | 64-bit | >= 2^64      | 32B | 速度极快，通过 PractRand，无 jump |
 | RomuDuoJr            | 64-bit | >= 2^51 (估计) | 16B | 极简极快，非关键模拟，无 jump        |
+| **ChaCha20**         | 64-bit | 无周期 (CSPRNG) | 56B | **密码学安全**，RFC 8439，OS 熵播种 |
 
 ## 快速上手
 
@@ -113,6 +122,13 @@ int main()
 | 编译期       | `RandIntCE<Seed>(min, max)`          | 编译期随机整数（仅 RandX.hpp）                                                         | ❌ C++23 专属 |
 |           | `ShuffleCE(first, last)`             | 编译期洗牌                                                                        | ❌ C++23 专属 |
 |           | `ShuffledArray<T,N,Seed>(arr)`       | 编译期洗牌数组版                                                                     | ❌ C++23 专属 |
+| CSPRNG     | `ChaCha20()`                          | 默认构造（OS 熵自动播种，密码学安全）                                                     | ✅          |
+|           | `ChaCha20(seed)`                      | 显式 64-bit 种子构造（**非密码学安全**，仅测试/复现）                                       | ✅          |
+|           | `ChaCha20(key, klen, nonce, nlen, ctr)` | 显式 key(32B)+nonce(12B)+counter 构造（KAT/高级用法）                              | ✅          |
+|           | `rng.reseed()`                       | 手动从 OS 熵重新播种（重置 counter/缓存）                                              | ✅          |
+| OS 熵源     | `SecureRandomBytes(buf, n)`          | OS 密码学熵填充 n 字节（失败抛 `std::runtime_error`）                                  | ✅          |
+|           | `SecureSeed()`                       | 密码学安全 64-bit 种子（`[[nodiscard]]`）                                            | ✅          |
+|           | `IsOsCryptoEntropyAvailable()`       | 当前是否走 OS 密码学 API（false=降级到 `std::random_device`，非密码学安全）                  | ✅          |
 
 > **CharSet 枚举**：`Alphanumeric` / `Alpha` / `Lower` / `Upper` / `Digit` / `Hex` / `Printable` / `Base64` / `Base64UrlSafe`，覆盖常见字符集场景（`Base64UrlSafe` 为 RFC 4648 §5 URL-safe 变体，字母表 `[A-Za-z0-9-_]`）。
 
@@ -209,6 +225,67 @@ int main()
 }
 ```
 
+## 安全使用指南
+
+不同场景应选择不同引擎，错误选型可能导致安全漏洞或性能浪费：
+
+| 场景                            | 推荐方案                                              | 理由                                  |
+| ----------------------------- | ------------------------------------------------- | ----------------------------------- |
+| 模拟 / 蒙特卡洛 / 游戏                | `Xoshiro256StarStar`                              | 统计质量最优，速度极快                         |
+| 性能极致 / 非关键模拟                  | `SFC64` / `RomuDuoJr`                             | 速度更快，统计质量足够                          |
+| 并行子序列                         | `Xoshiro256StarStar` + `MakeStreamEngine` (jump) | jump 提供不重叠子序列                       |
+| 32 位平台 / 内存受限                 | `Xoroshiro128StarStar` / `Xoshiro128StarStar`     | 状态更小（16B）                            |
+| **密码 / 密钥 / 会话 token / CSRF 令牌** | **`ChaCha20`** 或 **`SecureRandomBytes()`**         | CSPRNG，状态不可逆推，OS 熵播种                 |
+| 一次性安全随机字节                     | **`SecureRandomBytes()`**                         | 直接取 OS 熵，不经 PRNG 算法                  |
+| 密码学安全种子                       | **`SecureSeed()`**                                | 8 字节 OS 熵，可直接喂给统计 PRNG              |
+
+> **核心判别**：如果"输出可预测"会造成损害 → 必须用 CSPRNG（`ChaCha20` 或 `SecureRandomBytes`）；否则用统计 PRNG 即可。
+>
+> **降级检测**：使用 `IsOsCryptoEntropyAvailable()` 在运行时检测是否走 OS 密码学 API。返回 false 表示当前运行在 `std::random_device` 兜底路径（非密码学安全），此时 `ChaCha20()` 默认构造**不可用于安全场景**。
+
+## ChaCha20 CSPRNG（密码学安全）
+
+密码学安全场景（密钥/token/会话密钥/CSRF 令牌等）请使用 `ChaCha20` 引擎或 `SecureRandomBytes()`。
+
+```cpp
+#include "RandX.hpp"
+#include <iostream>
+
+int main()
+{
+    // 1) 默认构造：OS 熵自动播种（密码学安全）
+    RandX::ChaCha20 rng;
+    std::cout << rng() << '\n';           // 64-bit 随机数
+
+    // 2) 直接取 OS 密码学熵字节（不经 ChaCha20，一次性）
+    std::uint8_t key[32];
+    RandX::SecureRandomBytes(key, sizeof(key));
+
+    // 3) 密码学安全种子（8 字节，可直接喂给统计 PRNG）
+    std::uint64_t seed = RandX::SecureSeed();
+
+    // 4) 检测当前平台是否走 OS 密码学 API（true=安全；false=降级兜底）
+    if (!RandX::IsOsCryptoEntropyAvailable())
+        std::cerr << "警告：当前运行在 std::random_device 兜底路径\n";
+
+    // 5) 与便捷 API 配合（rng 满足 UniformRandomBitGenerator）
+    std::cout << RandX::RandInt(rng, 1, 1000) << '\n';
+
+    // 6) 手动 reseed（强制刷新 key/nonce/counter）
+    rng.reseed();
+
+    // 7) 显式 key + nonce + counter（仅测试/KAT 复现，非密码学安全）
+    const std::uint8_t k[32] = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,
+                                 16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31};
+    const std::uint8_t n[12] = {0,0,0,9,0,0,0,0x4a,0,0,0,0};
+    RandX::ChaCha20 kat_rng(k, 32, n, 12, 1);  // counter=1 对应 RFC 8439 §2.3.2
+}
+```
+
+> **安全边界**：`ChaCha20` 单实例非线程安全；不提供 `serialize`/`jump`（状态导出违背 CSPRNG 安全模型）。生成 `2^20` 字节后自动 reseed 提供前向安全；counter 回绕前必然触发 reseed，杜绝 keystream 复用。
+>
+> **降级提示**：当 `IsOsCryptoEntropyAvailable()` 返回 false 时，`ChaCha20()` 默认构造走的 `std::random_device` 路径**非密码学安全**，仅作兜底保证可用性。
+
 ## 编译期洗牌
 
 ```cpp
@@ -286,13 +363,13 @@ vcpkg install randx --overlay-ports=path/to/ports
 ### Conan
 
 ```bash
-conan create . --version=1.2.0
+conan create . --version=1.3.0
 ```
 
 ```python
 # conanfile.txt
 [requires]
-randx/1.2.1
+randx/1.3.0
 
 [generators]
 CMakeDeps
@@ -323,6 +400,16 @@ g++ -std=c++17 -Wall -Wextra -I third_party -o test_randx_cpp17 test_randx_cpp17
 g++ -std=c++20 -Wall -Wextra -I third_party -o test_randx_cpp17 test_randx_cpp17.cpp && ./test_randx_cpp17
 ```
 
+> **OS 熵链接**：v1.3 起 ChaCha20 CSPRNG 依赖 OS 密码学熵源，编译时需链接平台系统库：
+>
+> | 平台      | 链接参数                  | 系统 API              |
+> | ------- | --------------------- | ------------------- |
+> | Windows | `-lbcrypt`            | BCryptGenRandom      |
+> | macOS   | `-framework Security` | SecRandomCopyBytes   |
+> | Linux   | 无                     | getrandom（libc 内置）   |
+>
+> 例：Windows 上 `g++ -std=c++23 -Wall -Wextra -I third_party -o test_randx test_randx.cpp -lbcrypt`。使用 CMake / Conan / vcpkg 时链接自动处理。
+
 ## CI
 
 每次 push 自动在以下环境编译 + 运行测试：
@@ -335,7 +422,18 @@ g++ -std=c++20 -Wall -Wextra -I third_party -o test_randx_cpp17 test_randx_cpp17
 
 C++20 矩阵专门覆盖 `char8_t` 条件编译路径。覆盖率任务使用 lcov，阈值 80%。
 
+另有 **PractRand nightly job**（`.github/workflows/practrand-nightly.yml`）：每天 03:00 UTC 自动运行，验证 8 引擎统计质量（7 统计 PRNG 各 1TB + ChaCha20 256GB）。失败时自动创建 issue 通知。支持 `workflow_dispatch` 手动触发并指定测试长度。
+
 ## 变更记录
+
+### v1.3.0
+
+- **新增 ChaCha20 CSPRNG 引擎**（RFC 8439）：首个密码学安全引擎，OS 熵自动播种，2^20 字节自动 reseed 提供前向安全；counter 回绕前必然 reseed 杜绝 keystream 复用。提供三种构造方式（OS 熵默认 / 64-bit 种子测试复现 / 显式 key+nonce+counter KAT）。不提供 `serialize`/`jump`（状态导出违背 CSPRNG 安全模型）。
+- **新增跨平台 OS 熵源 API**：`SecureRandomBytes(buf, n)`、`SecureSeed()`、`IsOsCryptoEntropyAvailable()`。优先级链 BCryptGenRandom (Windows) / getrandom (Linux) / SecRandomCopyBytes (macOS) → `std::random_device` 兜底（后者非密码学安全，通过 `IsOsCryptoEntropyAvailable()` 暴露）。
+- **安全声明**：README 顶部与头文件注释新增"非 CSPRNG"警告；新增"安全使用指南"小节，给出 7 种场景的引擎选型推荐。
+- **测试**：新增 RFC 8439 §2.3.2 官方 KAT 测试向量、SecureRandomBytes/SecureSeed/IsOsCryptoEntropyAvailable 测试、ChaCha20 字节缓存与 reseed 测试。
+- **构建**：CMakeLists.txt 添加 bcrypt (Windows) / Security (macOS) INTERFACE 链接；conanfile.py / vcpkg.json 版本升至 1.3.0，topics 添加 `chacha20`/`csprng`。
+- **修复**：MinGW 下 `<bcrypt.h>` 依赖 `<windows.h>` 的包含顺序问题；ChaCha20 quarter-round 旋转量按 RFC 8439 §2.1 规定为 16/12/8/7。
 
 ### v1.2.1
 

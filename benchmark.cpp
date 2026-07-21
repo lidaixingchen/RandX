@@ -268,6 +268,39 @@ static double BenchmarkRandSampleReservoir(const char* name)
 
 //----------------------------------------------------------------------------------------
 //
+//	SecureRandomBytes 延迟与吞吐量基准测试（v1.3 新增）
+//
+//----------------------------------------------------------------------------------------
+
+// SecureRandomBytes 延迟基准测试的迭代次数（OS 熵调用较慢，减少次数）
+static constexpr int SecureIterN = 10000;
+
+// SecureRandomBytes 缓冲区大小（1 KB）
+static constexpr int SecureBufSize = 1024;
+
+// 测量 SecureRandomBytes 单次调用延迟与吞吐量（填充 1 KB 缓冲区）
+static double BenchmarkSecureRandomBytesLatency(const char* name)
+{
+	std::vector<std::uint8_t> buf(static_cast<std::size_t>(SecureBufSize));
+
+	const auto start = std::chrono::high_resolution_clock::now();
+	for (int i = 0; i < SecureIterN; ++i)
+		RandX::SecureRandomBytes(buf.data(), buf.size());
+	const auto end = std::chrono::high_resolution_clock::now();
+
+	DoNotOptimize(buf[0]);
+
+	const double ms = std::chrono::duration<double, std::milli>(end - start).count();
+	const double latencyUs = ms * 1000.0 / SecureIterN;
+	const double mbs = static_cast<double>(SecureBufSize) * SecureIterN / ms / 1000.0;
+
+	std::printf("  %-24s %8.2f us/call  %8.1f MB/s  (%6.1f ms / %d calls)\n",
+		name, latencyUs, mbs, ms, SecureIterN);
+	return latencyUs;
+}
+
+//----------------------------------------------------------------------------------------
+//
 //	主函数
 //
 //----------------------------------------------------------------------------------------
@@ -296,6 +329,10 @@ int main()
 	std::printf("  --- 32-bit 引擎 ---\n");
 	BenchmarkRaw<RandX::Xoshiro128StarStar>("Xoshiro128StarStar");
 	BenchmarkRaw<RandX::Xoroshiro64StarStar>("Xoroshiro64StarStar");
+
+	// CSPRNG 引擎（v1.3 新增）
+	std::printf("  --- CSPRNG ---\n");
+	BenchmarkRaw<RandX::ChaCha20>("ChaCha20");
 
 	std::printf("\n");
 
@@ -379,6 +416,16 @@ int main()
 	BenchmarkRandSampleHashSet("RandSample(iter, n=100, hash-set)");
 	BenchmarkRandSampleIndex("RandSample(iter, n=20000, index)");
 	BenchmarkRandSampleReservoir("RandSample(list, n=100, reservoir)");
+
+	std::printf("\n");
+
+	//----------------------------------------------------------------
+	// 第七部分：SecureRandomBytes 延迟与吞吐量（v1.3 新增）
+	//----------------------------------------------------------------
+	std::printf("[7] SecureRandomBytes 延迟与吞吐量 (buf=%d bytes, calls=%d)\n", SecureBufSize, SecureIterN);
+	std::printf("----------------------------------------------------------------\n");
+
+	BenchmarkSecureRandomBytesLatency("SecureRandomBytes");
 
 	std::printf("\n");
 	std::printf("================================================================\n");

@@ -5,13 +5,13 @@ import os
 
 class RandXConan(ConanFile):
     name = "randx"
-    version = "1.2.1"
+    version = "1.3.0"
     description = "Modern, fast, and header-only C++ pseudo-random number generator and distribution library"
     homepage = "https://github.com/lidaixingchen/RandX"
     url = homepage
     license = "MIT"
     author = "lidaixingchen"
-    topics = ("random", "prng", "randx", "sfc64", "xoshiro", "header-only", "constexpr")
+    topics = ("random", "prng", "randx", "sfc64", "xoshiro", "chacha20", "csprng", "header-only", "constexpr")
     settings = "os", "arch", "compiler", "build_type"
     exports_sources = "CMakeLists.txt", "RandX.hpp", "RandX_Cpp17.hpp", "cmake/*"
     no_copy_source = True

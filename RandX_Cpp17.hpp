@@ -65,6 +65,12 @@
 //		SplitMix64             64-bit  2^64        8B    种子扩展 / 哈希，非通用 PRNG
 //		SFC64                  64-bit  >= 2^64    32B    速度极快，通过 PractRand
 //		RomuDuoJr              64-bit  >= 2^51    16B    极简极快，非关键模拟
+//		ChaCha20               64-bit  无周期      56B    密码学安全 CSPRNG（RFC 7539）
+//
+//	⚠️ 安全声明
+//	本库的 xoshiro/xoroshiro/SFC64/RomuDuoJr 引擎均非 CSPRNG。
+//	状态可从输出逆推，不可用于密码/密钥/会话 token 等安全场景。
+//	此类场景请使用 ChaCha20 引擎或 SecureRandomBytes()。
 //
 //----------------------------------------------------------------------------------------
 
@@ -84,6 +90,25 @@
 # if defined(_MSC_VER) && (defined(__x86_64__) || defined(_M_X64))
 #	include <immintrin.h>
 # endif
+// ── A3 跨平台 OS 熵源头文件（条件包含） ──
+# if __has_include(<bcrypt.h>)
+// MinGW 的 <bcrypt.h> 依赖 <windows.h> 提供的 ULONG/NTSTATUS 等类型
+#	if defined(__MINGW32__) || defined(__MINGW64__)
+#		ifndef WIN32_LEAN_AND_MEAN
+#			define WIN32_LEAN_AND_MEAN
+#		endif
+#		include <windows.h>
+#	endif
+#	include <bcrypt.h>
+#	pragma comment(lib, "bcrypt.lib")
+# elif __has_include(<sys/random.h>)
+#	include <sys/random.h>
+#	include <cerrno>
+# elif __has_include(<Security/Security.h>)
+#	include <Security/Security.h>
+# endif
+# include <chrono>   // std::chrono（RandomSeed 时间戳兜底用）
+# include <cstring>  // std::memcpy（std::random_device 回退路径用）
 # if __has_cpp_attribute(nodiscard) >= 201907L
 #	define RANDX_NODISCARD_CXX20 [[nodiscard]]
 # else
@@ -540,6 +565,58 @@ namespace RandX
 		std::uint64_t m_x;
 		std::uint64_t m_y;
 	};
+
+	// ChaCha20 (RFC 7539) — 密码学安全 PRNG (CSPRNG)
+	// 输出：64 位（每次 operator() 返回 8 字节，一个 block 服务 8 次调用）
+	// 状态：key(256-bit) + counter(32-bit) + nonce(96-bit)，自动 reseed（2^20 字节阈值）提供前向安全
+	// 安全边界：不提供 serialize/deserialize/jump（状态导出违背 CSPRNG 安全模型）
+	// 线程安全：非线程安全（与库内其他引擎一致，每线程持有独立实例）
+	class ChaCha20
+	{
+	public:
+
+		using result_type = std::uint64_t;
+
+		// 构造方式 1：从 OS 熵自动播种（密码学安全，默认）
+		ChaCha20();
+
+		// 构造方式 2：显式种子（仅测试/复现，非密码学安全：种子空间仅 64-bit）
+		RANDX_NODISCARD_CXX20
+		explicit ChaCha20(std::uint64_t seed);
+
+		// 构造方式 3：直接指定 key + nonce + counter（高级用法/测试复现）
+		// key 须为 32 字节，nonce 须为 12 字节，否则 throw std::invalid_argument
+		// counter 为 32-bit block 计数器初值（默认 0；KAT 测试时显式传 1）
+		// 注：此构造路径不调用 SecureRandomBytes，调用方须自行保证 key/nonce 的熵源
+		ChaCha20(const std::uint8_t* key, std::size_t keyLen,
+		         const std::uint8_t* nonce, std::size_t nonceLen,
+		         std::uint32_t counter = 0);
+
+		result_type operator()();
+
+		void discard(unsigned long long n);
+
+		// 从 OS 熵重新播种（手动触发，重置 counter 与字节缓存）
+		void reseed();
+
+		RANDX_NODISCARD_CXX20
+		static constexpr result_type min() noexcept { return 0; }
+
+		RANDX_NODISCARD_CXX20
+		static constexpr result_type max() noexcept { return UINT64_MAX; }
+
+		// 不提供：serialize/deserialize, operator<</>>, jump/longJump（CSPRNG 安全约束）
+
+	private:
+
+		std::array<std::uint32_t, 12> m_state;   // key(8) + counter(1) + nonce(3)，常数省略（generateBlock 时补齐）
+		std::array<std::uint8_t, 64>  m_buffer;  // 当前 block 的字节缓存
+		std::size_t                   m_bufferPos;       // 缓存消费位置 [0, 64)，==64 时触发新 block
+		std::uint64_t                 m_bytesSinceReseed; // 自上次 reseed 以来输出的字节数
+
+		void generateBlock();        // 跑一次 ChaCha20 block 函数填充 m_buffer
+		void reseedIfNecessary();    // m_bytesSinceReseed >= 阈值时自动 reseed
+	};
 }
 
 ////////////////////////////////////////////////////////////////
@@ -612,6 +689,94 @@ namespace RandX
 #endif
 			(void)out;
 			return false;
+		}
+
+		// ── A3 跨平台 OS 密码学熵源 ──
+		// 用 OS 密码学 API 填充 [buf, buf+n) 字节；成功返回 true。
+		// 平台优先级：Windows BCryptGenRandom → Linux getrandom → macOS SecRandomCopyBytes → std::random_device 兜底
+		// 注：getrandom 可能短读，内部循环直至填满；BCryptGenRandom/SecRandomCopyBytes 一次填满
+		[[nodiscard]]
+		inline bool GetOsEntropyBytes(void* buf, std::size_t n) noexcept
+		{
+			if (n == 0) return true;
+			auto* p = static_cast<std::uint8_t*>(buf);
+
+#	if __has_include(<bcrypt.h>)
+			// Windows: BCryptGenRandom（一次调用填满）
+			return (::BCryptGenRandom(nullptr, p, static_cast<ULONG>(n),
+			                          BCRYPT_USE_SYSTEM_PREFERRED_RNG) == 0);
+
+#	elif __has_include(<sys/random.h>)
+			// Linux: getrandom（循环处理短读与 EINTR）
+			std::size_t filled = 0;
+			while (filled < n)
+			{
+				const long ret = ::getrandom(p + filled, n - filled, 0);
+				if (ret < 0)
+				{
+					if (errno == EINTR) continue;  // 被信号打断，重试
+					return false;                   // ENOSYS/EFAULT 等不可恢复错误
+				}
+				if (ret == 0) return false;
+				filled += static_cast<std::size_t>(ret);
+			}
+			return true;
+
+#	elif __has_include(<Security/Security.h>)
+			// macOS: SecRandomCopyBytes（一次调用填满）
+			return (::SecRandomCopyBytes(kSecRandomDefault, n, p) == errSecSuccess);
+
+#	else
+			// 回退：std::random_device（标准未保证密码学安全）
+			try
+			{
+				std::random_device rd;
+				std::size_t filled = 0;
+				while (filled < n)
+				{
+					const auto r = rd();
+					const std::size_t chunk = (std::min)(sizeof(r), n - filled);
+					std::memcpy(p + filled, &r, chunk);
+					filled += chunk;
+				}
+				return true;
+			}
+			catch (...)
+			{
+				return false;
+			}
+#	endif
+		}
+
+		// 返回 true 当且仅当编译期检测到 OS 密码学熵源 API（BCryptGenRandom/getrandom/SecRandomCopyBytes）
+		// 返回 false 表示当前运行在 std::random_device 兜底路径，ChaCha20() 默认构造不保证密码学安全
+		[[nodiscard]]
+		inline bool HasCryptoGradeOsEntropy() noexcept
+		{
+#	if __has_include(<bcrypt.h>) || __has_include(<sys/random.h>) || __has_include(<Security/Security.h>)
+			return true;
+#	else
+			return false;
+#	endif
+		}
+
+		// ── A4 ChaCha20 常数与辅助 ──
+		// ChaCha20 常数 "expand 32-byte k"（RFC 7539 §2.3）
+		inline constexpr std::uint32_t ChaCha20Constants[4] = {
+			0x61707865u, 0x3320646eu, 0x79622d32u, 0x6b206574u
+		};
+		// 参考 NIST SP 800-90A reseed_interval 概念（SP 800-90A 涵盖 Hash/HMAC/CTR_DRBG，不含 ChaCha20；
+		// 此处借用其"周期性强制 reseed 提供前向安全"思想，取保守阈值）
+		inline constexpr std::uint64_t ChaCha20ReseedThreshold = 1ULL << 20;  // 1 MB
+
+		// ChaCha20 quarter-round（仅 add/xor/rotl，常时间友好）
+		static void ChaCha20QuarterRound(std::uint32_t& a, std::uint32_t& b,
+		                                 std::uint32_t& c, std::uint32_t& d) noexcept
+		{
+			a += b; d ^= a; d = RotL(d, 16);
+			c += d; b ^= c; b = RotL(b, 12);
+			a += b; d ^= a; d = RotL(d, 8);
+			c += d; b ^= c; b = RotL(b, 7);
 		}
 	}
 
@@ -1378,15 +1543,225 @@ namespace RandX
 		return engine;
 	}
 
-	// 生成非确定性的 64 位种子（优先硬件 RNG）
+	// 生成非确定性的 64 位种子（优先硬件 RNG，用于统计 PRNG 播种）
+	// 优先级链：RDRAND (x86_64) → detail::GetOsEntropyBytes → std::random_device → 时间戳回退
 	[[nodiscard]]
 	inline std::uint64_t RandomSeed()
 	{
 		std::uint64_t hw;
 		if (detail::HardwareRand64(hw))
 			return hw;
+		if (detail::GetOsEntropyBytes(&hw, sizeof(hw)))
+			return hw;
 		std::random_device rd;
-		return (static_cast<std::uint64_t>(rd()) << 32) | rd();
+		try
+		{
+			return (static_cast<std::uint64_t>(rd()) << 32) | rd();
+		}
+		catch (...)
+		{
+			// 最终兜底：时间戳（非密码学，仅保证 RandomSeed 永不抛异常）
+			return static_cast<std::uint64_t>(std::chrono::system_clock::now().time_since_epoch().count());
+		}
+	}
+
+	// ── A3 密码学安全熵源公开 API ──
+
+	// 用 OS 密码学熵源填充 [buf, buf+n) 字节
+	// 失败抛 std::runtime_error（CSPRNG 无熵不可用 = 致命错误）
+	inline void SecureRandomBytes(void* buf, std::size_t n)
+	{
+		if (n == 0) return;
+		if (!detail::GetOsEntropyBytes(buf, n))
+			throw std::runtime_error("SecureRandomBytes: OS entropy source unavailable");
+	}
+
+	// 密码学安全种子（复用 SecureRandomBytes，取前 8 字节）
+	[[nodiscard]]
+	inline std::uint64_t SecureSeed()
+	{
+		std::uint64_t seed;
+		SecureRandomBytes(&seed, sizeof(seed));
+		return seed;
+	}
+
+	// 返回 true 当且仅当 OS 密码学熵源（BCryptGenRandom/getrandom/SecRandomCopyBytes）可用；
+	// 返回 false 表示当前运行在 std::random_device 兜底路径，不保证密码学安全
+	[[nodiscard]]
+	inline bool IsOsCryptoEntropyAvailable() noexcept
+	{
+		return detail::HasCryptoGradeOsEntropy();
+	}
+
+	////////////////////////////////////////////////////////////////
+	//
+	//	ChaCha20 (RFC 7539) — CSPRNG 引擎实现
+	//
+	//  状态矩阵布局（16 × uint32，常数省略存于 m_state[0..11]）：
+	//    0  1  2  3      "expa"  "nd 3"  "2-by"  "te k"   ← 常数（generateBlock 时补齐）
+	//    4  5  6  7      key[0]  key[1]  key[2]  key[3]   ← m_state[0..3]
+	//    8  9 10 11      key[4]  key[5]  key[6]  key[7]   ← m_state[4..7]
+	//   12 13 14 15      ctr    nonce[0] nonce[1] nonce[2]← m_state[8..11]
+	//
+	//  生成流程：operator() → reseedIfNecessary → (缓存耗尽时)generateBlock → 取 8 字节
+	//
+
+	// 构造方式 1：从 OS 熵自动播种（密码学安全，默认）
+	inline ChaCha20::ChaCha20()
+		: m_state{}, m_buffer{}, m_bufferPos(64), m_bytesSinceReseed(0)
+	{
+		reseed();  // 从 OS 熵获取 key + nonce，重置 counter
+	}
+
+	// 构造方式 2：显式种子（仅测试/复现，非密码学安全）
+	// 用 SplitMix64 将 64-bit 种子扩展为 32 字节 key + 12 字节 nonce
+	inline ChaCha20::ChaCha20(const std::uint64_t seed)
+		: m_state{}, m_buffer{}, m_bufferPos(64), m_bytesSinceReseed(0)
+	{
+		SplitMix64 sm{ seed };
+		// key: 前 4 次 SplitMix64 输出，每次 8 字节按小端序拆为 2 个 uint32
+		for (int i = 0; i < 4; ++i)
+		{
+			const std::uint64_t v = sm();
+			m_state[i * 2]     = static_cast<std::uint32_t>(v);
+			m_state[i * 2 + 1] = static_cast<std::uint32_t>(v >> 32);
+		}
+		// nonce: 第 5 次输出（8 字节）+ 第 6 次输出低 4 字节（丢弃高 4 字节）
+		{
+			const std::uint64_t v5 = sm();
+			m_state[9]  = static_cast<std::uint32_t>(v5);
+			m_state[10] = static_cast<std::uint32_t>(v5 >> 32);
+		}
+		m_state[11] = static_cast<std::uint32_t>(sm());
+		m_state[8]  = 0;  // counter 初值 = 0
+	}
+
+	// 构造方式 3：直接指定 key + nonce + counter
+	inline ChaCha20::ChaCha20(const std::uint8_t* key, std::size_t keyLen,
+	                          const std::uint8_t* nonce, std::size_t nonceLen,
+	                          const std::uint32_t counter)
+		: m_state{}, m_buffer{}, m_bufferPos(64), m_bytesSinceReseed(0)
+	{
+		if (keyLen != 32)
+			throw std::invalid_argument("ChaCha20: key must be 32 bytes");
+		if (nonceLen != 12)
+			throw std::invalid_argument("ChaCha20: nonce must be 12 bytes");
+		// key → m_state[0..7]（小端序）
+		for (int i = 0; i < 8; ++i)
+		{
+			m_state[i] = static_cast<std::uint32_t>(key[i * 4])
+			           | (static_cast<std::uint32_t>(key[i * 4 + 1]) << 8)
+			           | (static_cast<std::uint32_t>(key[i * 4 + 2]) << 16)
+			           | (static_cast<std::uint32_t>(key[i * 4 + 3]) << 24);
+		}
+		// nonce → m_state[9..11]（小端序）
+		for (int i = 0; i < 3; ++i)
+		{
+			m_state[9 + i] = static_cast<std::uint32_t>(nonce[i * 4])
+			               | (static_cast<std::uint32_t>(nonce[i * 4 + 1]) << 8)
+			               | (static_cast<std::uint32_t>(nonce[i * 4 + 2]) << 16)
+			               | (static_cast<std::uint32_t>(nonce[i * 4 + 3]) << 24);
+		}
+		m_state[8] = counter;  // counter
+	}
+
+	// 生成一个 ChaCha20 block（64 字节）填充 m_buffer
+	inline void ChaCha20::generateBlock()
+	{
+		// 构造完整 16-word 状态：常数 + key + counter + nonce
+		std::array<std::uint32_t, 16> state{};
+		state[0] = detail::ChaCha20Constants[0];
+		state[1] = detail::ChaCha20Constants[1];
+		state[2] = detail::ChaCha20Constants[2];
+		state[3] = detail::ChaCha20Constants[3];
+		for (int i = 0; i < 8; ++i) state[4 + i] = m_state[i];  // key
+		state[12] = m_state[8];                                  // counter
+		state[13] = m_state[9];                                  // nonce[0]
+		state[14] = m_state[10];                                 // nonce[1]
+		state[15] = m_state[11];                                 // nonce[2]
+
+		std::array<std::uint32_t, 16> working = state;
+
+		// 20 轮 = 10 次 double-round（列轮 + 对角轮）
+		for (int i = 0; i < 10; ++i)
+		{
+			// 列轮 QR 顺序：(0,4,8,12) (1,5,9,13) (2,6,10,14) (3,7,11,15)
+			detail::ChaCha20QuarterRound(working[0],  working[4],  working[8],  working[12]);
+			detail::ChaCha20QuarterRound(working[1],  working[5],  working[9],  working[13]);
+			detail::ChaCha20QuarterRound(working[2],  working[6],  working[10], working[14]);
+			detail::ChaCha20QuarterRound(working[3],  working[7],  working[11], working[15]);
+			// 对角轮 QR 顺序：(0,5,10,15) (1,6,11,12) (2,7,8,13) (3,4,9,14)
+			detail::ChaCha20QuarterRound(working[0],  working[5],  working[10], working[15]);
+			detail::ChaCha20QuarterRound(working[1],  working[6],  working[11], working[12]);
+			detail::ChaCha20QuarterRound(working[2],  working[7],  working[8],  working[13]);
+			detail::ChaCha20QuarterRound(working[3],  working[4],  working[9],  working[14]);
+		}
+
+		// 加初始状态后按小端序输出 64 字节到 m_buffer
+		for (int i = 0; i < 16; ++i)
+		{
+			const std::uint32_t v = working[i] + state[i];
+			m_buffer[i * 4 + 0] = static_cast<std::uint8_t>(v);
+			m_buffer[i * 4 + 1] = static_cast<std::uint8_t>(v >> 8);
+			m_buffer[i * 4 + 2] = static_cast<std::uint8_t>(v >> 16);
+			m_buffer[i * 4 + 3] = static_cast<std::uint8_t>(v >> 24);
+		}
+
+		++m_state[8];   // 递增 counter（2^20 字节阈值远早于 2^32 回绕，自动 reseed 防止复用）
+		m_bufferPos = 0;
+	}
+
+	// 自上次 reseed 以来输出字节数达到阈值时自动 reseed（前向安全）
+	inline void ChaCha20::reseedIfNecessary()
+	{
+		if (m_bytesSinceReseed >= detail::ChaCha20ReseedThreshold)
+			reseed();
+	}
+
+	// 从 OS 熵重新播种：32 字节新 key + 12 字节新 nonce，重置 counter=0、缓存标记耗尽
+	inline void ChaCha20::reseed()
+	{
+		std::array<std::uint8_t, 44> seed;  // 32(key) + 12(nonce)
+		SecureRandomBytes(seed.data(), seed.size());
+		// key → m_state[0..7]（小端序）
+		for (int i = 0; i < 8; ++i)
+		{
+			m_state[i] = static_cast<std::uint32_t>(seed[i * 4])
+			           | (static_cast<std::uint32_t>(seed[i * 4 + 1]) << 8)
+			           | (static_cast<std::uint32_t>(seed[i * 4 + 2]) << 16)
+			           | (static_cast<std::uint32_t>(seed[i * 4 + 3]) << 24);
+		}
+		// nonce → m_state[9..11]（小端序）
+		for (int i = 0; i < 3; ++i)
+		{
+			m_state[9 + i] = static_cast<std::uint32_t>(seed[32 + i * 4])
+			               | (static_cast<std::uint32_t>(seed[32 + i * 4 + 1]) << 8)
+			               | (static_cast<std::uint32_t>(seed[32 + i * 4 + 2]) << 16)
+			               | (static_cast<std::uint32_t>(seed[32 + i * 4 + 3]) << 24);
+		}
+		m_state[8] = 0;            // counter 重置
+		m_bufferPos = 64;          // 强制下次 operator() 触发新 block
+		m_bytesSinceReseed = 0;
+	}
+
+	// 生成一个 64-bit 随机数（从缓存取 8 字节，缓存耗尽时生成新 block）
+	inline ChaCha20::result_type ChaCha20::operator()()
+	{
+		reseedIfNecessary();
+		if (m_bufferPos == 64)
+			generateBlock();
+		// 从缓存取 8 字节，小端序组装为 uint64_t
+		std::uint64_t result = 0;
+		for (int i = 0; i < 8; ++i)
+			result |= static_cast<std::uint64_t>(m_buffer[m_bufferPos + i]) << (8 * i);
+		m_bufferPos += 8;
+		m_bytesSinceReseed += 8;
+		return result;
+	}
+
+	inline void ChaCha20::discard(const unsigned long long n)
+	{
+		for (unsigned long long i = 0; i < n; ++i) operator()();
 	}
 
 	// 重置默认引擎的种子（用于测试复现）
@@ -2329,6 +2704,7 @@ namespace RandX
 	static_assert(std::is_same_v<Xoroshiro64StarStar::result_type, std::uint32_t>);
 	static_assert(std::is_same_v<SFC64::result_type, std::uint64_t>);
 	static_assert(std::is_same_v<RomuDuoJr::result_type, std::uint64_t>);
+	static_assert(std::is_same_v<ChaCha20::result_type, std::uint64_t>);
 	static_assert(SplitMix64::min() < SplitMix64::max());
 	static_assert(Xoshiro256StarStar::min() < Xoshiro256StarStar::max());
 	static_assert(Xoroshiro128StarStar::min() < Xoroshiro128StarStar::max());
@@ -2336,6 +2712,7 @@ namespace RandX
 	static_assert(Xoroshiro64StarStar::min() < Xoroshiro64StarStar::max());
 	static_assert(SFC64::min() < SFC64::max());
 	static_assert(RomuDuoJr::min() < RomuDuoJr::max());
+	static_assert(ChaCha20::min() < ChaCha20::max());
 
 	// ========================================================================
 	// 流式运算符 operator<< / operator>>
