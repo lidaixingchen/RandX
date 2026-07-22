@@ -1,0 +1,8 @@
+<map id="RandX::RandGeometric" name="RandX::RandGeometric">
+<area shape="rect" id="Node000001" title="生成几何分布随机数（首次成功前的失败次数）" alt="" coords="5,5,179,31"/>
+<area shape="rect" id="Node000002" href="$group__engines.html#ga7dba92b95d7c5e6eb2d1db3c6a3b2ddf" title=" " alt="" coords="448,5,612,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="179,15,434,15,434,21,179,21"/>
+<area shape="rect" id="Node000003" href="$group__strings.html#gae5dbf8ea509ac3483dba64ca34eceab9" title="生成几何分布随机数（首次成功前的失败次数）" alt="" coords="227,31,400,56"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="179,25,214,29,213,35,179,31"/>
+<area shape="poly" id="edge3_Node000003_Node000002" title=" " alt="" coords="400,31,434,27,434,32,401,36"/>
+</map>

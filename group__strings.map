@@ -1,0 +1,5 @@
+<map id="字符串与 ID" name="字符串与 ID">
+<area shape="rect" id="Node000003" href="$group__distributions.html" title="16 种标准统计分布便捷函数" alt="" coords="249,5,340,31"/>
+<area shape="rect" id="Node000002" href="$group__engines.html" title="8 个伪随机数生成引擎（7 非 CSPRNG + 1 ChaCha20 CSPRNG）" alt="" coords="267,55,323,80"/>
+<area shape="rect" id="Node000001" title="RandString / RandUUID" alt="" coords="5,31,113,56"/>
+</map>

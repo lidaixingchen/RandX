@@ -1,0 +1,5 @@
+<map id="RandX::ranges::RandShuffle" name="RandX::ranges::RandShuffle">
+<area shape="rect" id="Node000001" title="随机打乱 range（要求 random_access + sized）" alt="" coords="5,5,208,31"/>
+<area shape="rect" id="Node000002" href="$group__engines.html#ga7dba92b95d7c5e6eb2d1db3c6a3b2ddf" title=" " alt="" coords="256,5,420,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="208,15,242,15,242,21,208,21"/>
+</map>

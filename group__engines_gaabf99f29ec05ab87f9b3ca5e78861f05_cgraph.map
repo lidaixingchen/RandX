@@ -1,0 +1,11 @@
+<map id="RandX::ChaCha20::reseed" name="RandX::ChaCha20::reseed">
+<area shape="rect" id="Node000001" title="从 OS 熵重新播种" alt="" coords="5,70,196,95"/>
+<area shape="rect" id="Node000002" href="$group__csprng.html#ga31b80b51d6bc9e44f68c5232803bb6d6" title="用 OS 密码学熵源填充 [buf, buf+n) 字节" alt="" coords="244,45,451,70"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="196,70,230,67,231,72,197,76"/>
+<area shape="rect" id="Node000005" href="$namespaceRandX_1_1detail.html#aea45979fec3d8bd006581404baf9c7a9" title=" " alt="" coords="250,94,445,119"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="197,89,237,93,236,99,196,95"/>
+<area shape="rect" id="Node000003" href="$namespaceRandX_1_1detail.html#a02fce2f64f9c2eb6dbe7390a26aab73a" title=" " alt="" coords="499,5,705,45"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="448,42,484,37,485,43,449,47"/>
+<area shape="rect" id="Node000004" href="$namespaceRandX_1_1detail.html#adaeace943469bf31b9afcd2751b363d9" title=" " alt="" coords="509,69,695,109"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="449,67,496,73,495,79,448,73"/>
+</map>

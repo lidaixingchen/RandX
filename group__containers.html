@@ -1,0 +1,330 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "https://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="zh">
+<head>
+<meta http-equiv="Content-Type" content="text/xhtml;charset=UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=11"/>
+<meta name="generator" content="Doxygen 1.17.0"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>RandX: 容器操作</title>
+<link href="tabs.css" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src="codefolding.js"></script>
+<script type="text/javascript" src="clipboard.js"></script>
+<link href="navtree.css" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src="navtreedata.js"></script>
+<script type="text/javascript" src="navtree.js"></script>
+<script type="text/javascript" src="cookie.js"></script>
+<link href="search/search.css" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src="search/searchdata.js"></script>
+<script type="text/javascript" src="search/search.js"></script>
+<script type="module">
+import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+const theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'default';
+mermaid.initialize({ startOnLoad: true, theme: theme });
+</script>
+<link href="doxygen.css" rel="stylesheet" type="text/css" />
+</head>
+<body>
+<div id="top"><!-- do not remove this div, it is closed by doxygen! -->
+<div id="titlearea">
+<table cellspacing="0" cellpadding="0">
+ <tbody>
+ <tr id="projectrow">
+  <td id="projectalign">
+   <div id="projectname">RandX<span id="projectnumber">&#160;1.3.1</span>
+   </div>
+   <div id="projectbrief">基于 xoshiro/xoroshiro 算法族的纯头文件伪随机数生成器库</div>
+  </td>
+ </tr>
+ </tbody>
+</table>
+</div>
+<!-- end header part -->
+<!-- 制作者 Doxygen 1.17.0 -->
+<script type="text/javascript">
+let searchBox = new SearchBox("searchBox", "search/",'.html');
+</script>
+<script type="text/javascript">
+document.addEventListener('DOMContentLoaded', codefold.init);
+</script>
+<script type="text/javascript" src="menudata.js"></script>
+<script type="text/javascript" src="menu.js"></script>
+<script type="text/javascript">
+document.addEventListener('DOMContentLoaded', () => {
+  initMenu('',true);
+  init_search();
+});
+</script>
+<div id="main-nav-mobile">
+<div class="sm sm-dox"><input id="main-menu-state" type="checkbox"/>
+<label class="main-menu-btn" for="main-menu-state">
+<span class="main-menu-btn-icon"></span> Toggle main menu visibility</label>
+<span id="searchBoxPos1" style="position:absolute;right:8px;top:8px;height:36px;"></span>
+</div>
+</div><!-- main-nav-mobile -->
+<div id="main-nav">
+  <ul class="sm sm-dox" id="main-menu">
+    <li id="searchBoxPos2" style="float:right">
+        <div id="MSearchBox" class="MSearchBoxInactive">
+        <span class="left">
+          <span id="MSearchSelect" class="search-icon" onmouseover="return searchBox.OnSearchSelectShow()" onmouseout="return searchBox.OnSearchSelectHide()"><span class="search-icon-dropdown"></span></span>
+          <input type="text" id="MSearchField" value="" placeholder="搜索" accesskey="S"
+               onfocus="searchBox.OnSearchFieldFocus(true)" 
+               onblur="searchBox.OnSearchFieldFocus(false)" 
+               onkeyup="searchBox.OnSearchFieldChange(event)"/>
+          </span><span class="right">
+            <a id="MSearchClose" href="javascript:searchBox.CloseResultsWindow()"><div id="MSearchCloseImg" class="close-icon"></div></a>
+          </span>
+        </div>
+    </li>
+  </ul>
+</div><!-- main-nav -->
+</div><!-- top -->
+<div id="side-nav" class="ui-resizable side-nav-resizable">
+  <div id="nav-tree">
+    <div id="nav-tree-contents">
+      <div id="nav-sync" class="sync"></div>
+    </div>
+  </div>
+  <div id="splitbar" style="-moz-user-select:none;" 
+       class="ui-resizable-handle">
+  </div>
+</div>
+<script type="text/javascript">
+document.addEventListener('DOMContentLoaded',() => { initNavTree('group__containers.html','',''); });
+</script>
+<div id="container">
+<div id="doc-content">
+<!-- window showing the filter options -->
+<div id="MSearchSelectWindow"
+     onmouseover="return searchBox.OnSearchSelectShow()"
+     onmouseout="return searchBox.OnSearchSelectHide()"
+     onkeydown="return searchBox.OnSearchSelectKey(event)">
+</div>
+
+<!-- iframe showing the search results (closed by default) -->
+<div id="MSearchResultsWindow">
+<div id="MSearchResults">
+<div class="SRPage">
+<div id="SRIndex">
+<div id="SRResults"></div>
+<div class="SRStatus" id="Loading">载入中...</div>
+<div class="SRStatus" id="Searching">搜索中...</div>
+<div class="SRStatus" id="NoMatches">未找到</div>
+</div>
+</div>
+</div>
+</div>
+
+<div class="header">
+  <div class="headertitle"><div class="title">容器操作 </div></div>
+</div><!--header-->
+<div class="contents">
+
+<p>RandElement / RandSample / RandShuffle / RandPermutation / RandFill / RandVector  
+<a href="#details">更多...</a></p>
+<table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 id="header-func-members" class="groupheader"><a id="func-members" name="func-members"></a>
+函数</h2></td></tr>
+<tr class="memitem:ga5674ac381dc3a371506e0861b37da2bc" id="r_ga5674ac381dc3a371506e0861b37da2bc"><td class="memTemplParams" colspan="2">template&lt;class Container&gt; </td></tr>
+<tr class="memitem:ga5674ac381dc3a371506e0861b37da2bc template"><td class="memItemLeft">decltype(auto)&#160;</td><td class="memItemRight"><a class="el" href="#ga5674ac381dc3a371506e0861b37da2bc">RandX::RandElement</a> (Container &amp;&amp;c)</td></tr>
+<tr class="memdesc:ga5674ac381dc3a371506e0861b37da2bc"><td class="mdescLeft">&#160;</td><td class="mdescRight">从容器中随机取一个元素  <br /></td></tr>
+<tr class="memitem:gaffbc9ac3c67e1a1c87e19ec64cea85a4" id="r_gaffbc9ac3c67e1a1c87e19ec64cea85a4"><td class="memTemplParams" colspan="2">template&lt;std::random_access_iterator It&gt; </td></tr>
+<tr class="memitem:gaffbc9ac3c67e1a1c87e19ec64cea85a4 template"><td class="memItemLeft">It&#160;</td><td class="memItemRight"><a class="el" href="#gaffbc9ac3c67e1a1c87e19ec64cea85a4">RandX::RandElement</a> (It first, It last)</td></tr>
+<tr class="memdesc:gaffbc9ac3c67e1a1c87e19ec64cea85a4"><td class="mdescLeft">&#160;</td><td class="mdescRight">从迭代器范围内随机取一个元素（随机访问迭代器：O(1) 直接定位）  <br /></td></tr>
+<tr class="memitem:ga8a769dbd9bc6086f2104106dafd57fca" id="r_ga8a769dbd9bc6086f2104106dafd57fca"><td class="memTemplParams" colspan="2">template&lt;std::random_access_iterator It, class Engine&gt; </td></tr>
+<tr class="memitem:ga8a769dbd9bc6086f2104106dafd57fca template"><td class="memItemLeft">It&#160;</td><td class="memItemRight"><a class="el" href="#ga8a769dbd9bc6086f2104106dafd57fca">RandX::RandElement</a> (Engine &amp;engine, It first, It last)</td></tr>
+<tr class="memdesc:ga8a769dbd9bc6086f2104106dafd57fca"><td class="mdescLeft">&#160;</td><td class="mdescRight">从迭代器范围内随机取一个元素（指定引擎，随机访问迭代器）  <br /></td></tr>
+</table>
+<a name="details" id="details"></a><h2 id="header-details" class="groupheader">详细描述</h2>
+<div class="textblock"><p>RandElement / RandSample / RandShuffle / RandPermutation / RandFill / RandVector </p>
+</div><a name="doc-func-members" id="doc-func-members"></a><h2 id="header-doc-func-members" class="groupheader">函数说明</h2>
+<a id="ga5674ac381dc3a371506e0861b37da2bc" name="ga5674ac381dc3a371506e0861b37da2bc"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga5674ac381dc3a371506e0861b37da2bc">&#9670;&#160;</a></span>RandElement() <span class="overload">[1/3]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;class Container&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">decltype(auto) RandX::RandElement </td>
+          <td>(</td>
+          <td class="paramtype">Container &amp;&amp;</td>          <td class="paramname"><span class="paramname"><em>c</em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel nodiscard">nodiscard</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>从容器中随机取一个元素 </p>
+<dl class="params"><dt>参数</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">c</td><td>源容器（需支持 operator[] 和 size()） </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>返回</dt><dd>容器中随机选取的一个元素的引用 </dd></dl>
+<dl class="exception"><dt>异常</dt><dd>
+  <table class="exception">
+    <tr><td class="paramname">std::invalid_argument</td><td>容器为空时抛出 </td></tr>
+  </table>
+  </dd>
+</dl>
+<div class="dynheader">
+函数调用图:</div>
+<div class="dyncontent">
+<div class="center"><img src="group__containers_ga5674ac381dc3a371506e0861b37da2bc_cgraph.png" border="0" usemap="#agroup__containers_ga5674ac381dc3a371506e0861b37da2bc_cgraph" loading="lazy" alt=""/></div>
+<map name="agroup__containers_ga5674ac381dc3a371506e0861b37da2bc_cgraph" id="agroup__containers_ga5674ac381dc3a371506e0861b37da2bc_cgraph">
+<area shape="rect" title="从容器中随机取一个元素" alt="" coords="5,5,164,31"/>
+<area shape="rect" href="group__basic.html#gace250579fe08f5bdd6b5db6b573ab55c" title="生成 [min, max] 范围内的随机整数" alt="" coords="212,5,335,31"/>
+<area shape="poly" title=" " alt="" coords="164,15,198,15,198,21,164,21"/>
+<area shape="rect" href="group__engines.html#ga7dba92b95d7c5e6eb2d1db3c6a3b2ddf" title=" " alt="" coords="383,5,547,31"/>
+<area shape="poly" title=" " alt="" coords="335,15,369,15,369,21,335,21"/>
+</map>
+</div>
+
+</div>
+</div>
+<a id="ga8a769dbd9bc6086f2104106dafd57fca" name="ga8a769dbd9bc6086f2104106dafd57fca"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga8a769dbd9bc6086f2104106dafd57fca">&#9670;&#160;</a></span>RandElement() <span class="overload">[2/3]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;std::random_access_iterator It, class Engine&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">It RandX::RandElement </td>
+          <td>(</td>
+          <td class="paramtype">Engine &amp;</td>          <td class="paramname"><span class="paramname"><em>engine</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">It</td>          <td class="paramname"><span class="paramname"><em>first</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">It</td>          <td class="paramname"><span class="paramname"><em>last</em></span>&#160;)</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel nodiscard">nodiscard</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>从迭代器范围内随机取一个元素（指定引擎，随机访问迭代器） </p>
+<dl class="params"><dt>参数</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">engine</td><td>自定义随机数引擎 </td></tr>
+    <tr><td class="paramname">first</td><td>范围起始迭代器 </td></tr>
+    <tr><td class="paramname">last</td><td>范围结束迭代器 </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>返回</dt><dd>指向随机选取元素的迭代器 </dd></dl>
+<div class="dynheader">
+函数调用图:</div>
+<div class="dyncontent">
+<div class="center"><img src="group__containers_ga8a769dbd9bc6086f2104106dafd57fca_cgraph.png" border="0" usemap="#agroup__containers_ga8a769dbd9bc6086f2104106dafd57fca_cgraph" loading="lazy" alt=""/></div>
+<map name="agroup__containers_ga8a769dbd9bc6086f2104106dafd57fca_cgraph" id="agroup__containers_ga8a769dbd9bc6086f2104106dafd57fca_cgraph">
+<area shape="rect" title="从迭代器范围内随机取一个元素（指定引擎，随机访问迭代器）" alt="" coords="5,5,164,31"/>
+<area shape="rect" href="group__basic.html#gace250579fe08f5bdd6b5db6b573ab55c" title="生成 [min, max] 范围内的随机整数" alt="" coords="212,5,335,31"/>
+<area shape="poly" title=" " alt="" coords="164,15,198,15,198,21,164,21"/>
+<area shape="rect" href="group__engines.html#ga7dba92b95d7c5e6eb2d1db3c6a3b2ddf" title=" " alt="" coords="383,5,547,31"/>
+<area shape="poly" title=" " alt="" coords="335,15,369,15,369,21,335,21"/>
+</map>
+</div>
+
+</div>
+</div>
+<a id="gaffbc9ac3c67e1a1c87e19ec64cea85a4" name="gaffbc9ac3c67e1a1c87e19ec64cea85a4"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#gaffbc9ac3c67e1a1c87e19ec64cea85a4">&#9670;&#160;</a></span>RandElement() <span class="overload">[3/3]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;std::random_access_iterator It&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">It RandX::RandElement </td>
+          <td>(</td>
+          <td class="paramtype">It</td>          <td class="paramname"><span class="paramname"><em>first</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">It</td>          <td class="paramname"><span class="paramname"><em>last</em></span>&#160;)</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel nodiscard">nodiscard</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>从迭代器范围内随机取一个元素（随机访问迭代器：O(1) 直接定位） </p>
+<dl class="params"><dt>参数</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">first</td><td>范围起始迭代器 </td></tr>
+    <tr><td class="paramname">last</td><td>范围结束迭代器 </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>返回</dt><dd>指向随机选取元素的迭代器 </dd></dl>
+<dl class="exception"><dt>异常</dt><dd>
+  <table class="exception">
+    <tr><td class="paramname">std::invalid_argument</td><td>范围为空时抛出 </td></tr>
+  </table>
+  </dd>
+</dl>
+<div class="dynheader">
+函数调用图:</div>
+<div class="dyncontent">
+<div class="center"><img src="group__containers_gaffbc9ac3c67e1a1c87e19ec64cea85a4_cgraph.png" border="0" usemap="#agroup__containers_gaffbc9ac3c67e1a1c87e19ec64cea85a4_cgraph" loading="lazy" alt=""/></div>
+<map name="agroup__containers_gaffbc9ac3c67e1a1c87e19ec64cea85a4_cgraph" id="agroup__containers_gaffbc9ac3c67e1a1c87e19ec64cea85a4_cgraph">
+<area shape="rect" title="从迭代器范围内随机取一个元素（随机访问迭代器：O(1) 直接定位）" alt="" coords="5,5,164,31"/>
+<area shape="rect" href="group__basic.html#gace250579fe08f5bdd6b5db6b573ab55c" title="生成 [min, max] 范围内的随机整数" alt="" coords="212,5,335,31"/>
+<area shape="poly" title=" " alt="" coords="164,15,198,15,198,21,164,21"/>
+<area shape="rect" href="group__engines.html#ga7dba92b95d7c5e6eb2d1db3c6a3b2ddf" title=" " alt="" coords="383,5,547,31"/>
+<area shape="poly" title=" " alt="" coords="335,15,369,15,369,21,335,21"/>
+</map>
+</div>
+
+</div>
+</div>
+</div><!-- contents -->
+</div><!-- doc-content -->
+<div id="page-nav" class="page-nav-panel">
+<div id="page-nav-resize-handle"></div>
+<div id="page-nav-tree">
+<div id="page-nav-contents">
+</div><!-- page-nav-contents -->
+</div><!-- page-nav-tree -->
+</div><!-- page-nav -->
+</div><!-- container -->
+<!-- start footer part -->
+<div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
+  <ul>
+    <li class="footer">制作者 <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.17.0 </li>
+  </ul>
+</div>
+</body>
+</html>

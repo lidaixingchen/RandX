@@ -1,0 +1,10 @@
+<map id="RandX::RandElement" name="RandX::RandElement">
+<area shape="rect" id="Node000001" title="从迭代器范围内随机取一个元素（指定引擎，随机访问迭代器）" alt="" coords="5,31,164,56"/>
+<area shape="rect" id="Node000002" href="$group__containers.html#ga5674ac381dc3a371506e0861b37da2bc" title="从容器中随机取一个元素" alt="" coords="212,5,371,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="164,31,198,27,199,32,165,36"/>
+<area shape="rect" id="Node000003" href="$group__basic.html#gace250579fe08f5bdd6b5db6b573ab55c" title="生成 [min, max] 范围内的随机整数" alt="" coords="419,31,541,56"/>
+<area shape="poly" id="edge4_Node000001_Node000003" title=" " alt="" coords="164,41,404,41,404,46,164,46"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="371,26,405,31,405,36,371,31"/>
+<area shape="rect" id="Node000004" href="$group__engines.html#ga7dba92b95d7c5e6eb2d1db3c6a3b2ddf" title=" " alt="" coords="589,31,753,56"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="542,41,575,41,575,46,542,46"/>
+</map>

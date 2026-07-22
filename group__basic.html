@@ -1,0 +1,704 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "https://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="zh">
+<head>
+<meta http-equiv="Content-Type" content="text/xhtml;charset=UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=11"/>
+<meta name="generator" content="Doxygen 1.17.0"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>RandX: 基础生成</title>
+<link href="tabs.css" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src="codefolding.js"></script>
+<script type="text/javascript" src="clipboard.js"></script>
+<link href="navtree.css" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src="navtreedata.js"></script>
+<script type="text/javascript" src="navtree.js"></script>
+<script type="text/javascript" src="cookie.js"></script>
+<link href="search/search.css" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src="search/searchdata.js"></script>
+<script type="text/javascript" src="search/search.js"></script>
+<script type="module">
+import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+const theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'default';
+mermaid.initialize({ startOnLoad: true, theme: theme });
+</script>
+<link href="doxygen.css" rel="stylesheet" type="text/css" />
+</head>
+<body>
+<div id="top"><!-- do not remove this div, it is closed by doxygen! -->
+<div id="titlearea">
+<table cellspacing="0" cellpadding="0">
+ <tbody>
+ <tr id="projectrow">
+  <td id="projectalign">
+   <div id="projectname">RandX<span id="projectnumber">&#160;1.3.1</span>
+   </div>
+   <div id="projectbrief">基于 xoshiro/xoroshiro 算法族的纯头文件伪随机数生成器库</div>
+  </td>
+ </tr>
+ </tbody>
+</table>
+</div>
+<!-- end header part -->
+<!-- 制作者 Doxygen 1.17.0 -->
+<script type="text/javascript">
+let searchBox = new SearchBox("searchBox", "search/",'.html');
+</script>
+<script type="text/javascript">
+document.addEventListener('DOMContentLoaded', codefold.init);
+</script>
+<script type="text/javascript" src="menudata.js"></script>
+<script type="text/javascript" src="menu.js"></script>
+<script type="text/javascript">
+document.addEventListener('DOMContentLoaded', () => {
+  initMenu('',true);
+  init_search();
+});
+</script>
+<div id="main-nav-mobile">
+<div class="sm sm-dox"><input id="main-menu-state" type="checkbox"/>
+<label class="main-menu-btn" for="main-menu-state">
+<span class="main-menu-btn-icon"></span> Toggle main menu visibility</label>
+<span id="searchBoxPos1" style="position:absolute;right:8px;top:8px;height:36px;"></span>
+</div>
+</div><!-- main-nav-mobile -->
+<div id="main-nav">
+  <ul class="sm sm-dox" id="main-menu">
+    <li id="searchBoxPos2" style="float:right">
+        <div id="MSearchBox" class="MSearchBoxInactive">
+        <span class="left">
+          <span id="MSearchSelect" class="search-icon" onmouseover="return searchBox.OnSearchSelectShow()" onmouseout="return searchBox.OnSearchSelectHide()"><span class="search-icon-dropdown"></span></span>
+          <input type="text" id="MSearchField" value="" placeholder="搜索" accesskey="S"
+               onfocus="searchBox.OnSearchFieldFocus(true)" 
+               onblur="searchBox.OnSearchFieldFocus(false)" 
+               onkeyup="searchBox.OnSearchFieldChange(event)"/>
+          </span><span class="right">
+            <a id="MSearchClose" href="javascript:searchBox.CloseResultsWindow()"><div id="MSearchCloseImg" class="close-icon"></div></a>
+          </span>
+        </div>
+    </li>
+  </ul>
+</div><!-- main-nav -->
+</div><!-- top -->
+<div id="side-nav" class="ui-resizable side-nav-resizable">
+  <div id="nav-tree">
+    <div id="nav-tree-contents">
+      <div id="nav-sync" class="sync"></div>
+    </div>
+  </div>
+  <div id="splitbar" style="-moz-user-select:none;" 
+       class="ui-resizable-handle">
+  </div>
+</div>
+<script type="text/javascript">
+document.addEventListener('DOMContentLoaded',() => { initNavTree('group__basic.html','',''); });
+</script>
+<div id="container">
+<div id="doc-content">
+<!-- window showing the filter options -->
+<div id="MSearchSelectWindow"
+     onmouseover="return searchBox.OnSearchSelectShow()"
+     onmouseout="return searchBox.OnSearchSelectHide()"
+     onkeydown="return searchBox.OnSearchSelectKey(event)">
+</div>
+
+<!-- iframe showing the search results (closed by default) -->
+<div id="MSearchResultsWindow">
+<div id="MSearchResults">
+<div class="SRPage">
+<div id="SRIndex">
+<div id="SRResults"></div>
+<div class="SRStatus" id="Loading">载入中...</div>
+<div class="SRStatus" id="Searching">搜索中...</div>
+<div class="SRStatus" id="NoMatches">未找到</div>
+</div>
+</div>
+</div>
+</div>
+
+<div class="header">
+  <div class="headertitle"><div class="title">基础生成 </div></div>
+</div><!--header-->
+<div class="contents">
+
+<p>RandInt / RandReal / RandBool / RandChar / RandBits  
+<a href="#details">更多...</a></p>
+<table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 id="header-func-members" class="groupheader"><a id="func-members" name="func-members"></a>
+函数</h2></td></tr>
+<tr class="memitem:gace250579fe08f5bdd6b5db6b573ab55c" id="r_gace250579fe08f5bdd6b5db6b573ab55c"><td class="memTemplParams" colspan="2">template&lt;std::integral T = int&gt; </td></tr>
+<tr class="memitem:gace250579fe08f5bdd6b5db6b573ab55c template"><td class="memItemLeft">T&#160;</td><td class="memItemRight"><a class="el" href="#gace250579fe08f5bdd6b5db6b573ab55c">RandX::RandInt</a> (T min, T max)</td></tr>
+<tr class="memdesc:gace250579fe08f5bdd6b5db6b573ab55c"><td class="mdescLeft">&#160;</td><td class="mdescRight">生成 [min, max] 范围内的随机整数  <br /></td></tr>
+<tr class="memitem:ga80041134ff8e6e4239c2e6ce5bdbcd79" id="r_ga80041134ff8e6e4239c2e6ce5bdbcd79"><td class="memTemplParams" colspan="2">template&lt;std::integral T = int&gt; </td></tr>
+<tr class="memitem:ga80041134ff8e6e4239c2e6ce5bdbcd79 template"><td class="memItemLeft">T&#160;</td><td class="memItemRight"><a class="el" href="#ga80041134ff8e6e4239c2e6ce5bdbcd79">RandX::RandInt</a> (T max)</td></tr>
+<tr class="memdesc:ga80041134ff8e6e4239c2e6ce5bdbcd79"><td class="mdescLeft">&#160;</td><td class="mdescRight">生成 [0, max] 范围内的随机整数  <br /></td></tr>
+<tr class="memitem:ga96850400df9201b2f2bf10c7b36a7ad2" id="r_ga96850400df9201b2f2bf10c7b36a7ad2"><td class="memTemplParams" colspan="2">template&lt;std::floating_point T = double&gt; </td></tr>
+<tr class="memitem:ga96850400df9201b2f2bf10c7b36a7ad2 template"><td class="memItemLeft">T&#160;</td><td class="memItemRight"><a class="el" href="#ga96850400df9201b2f2bf10c7b36a7ad2">RandX::RandReal</a> (T min=T{0}, T max=T{1})</td></tr>
+<tr class="memdesc:ga96850400df9201b2f2bf10c7b36a7ad2"><td class="mdescLeft">&#160;</td><td class="mdescRight">生成 [min, max) 范围内的随机浮点数  <br /></td></tr>
+<tr class="memitem:ga574d6881cf5235d2110373c875f5362f" id="r_ga574d6881cf5235d2110373c875f5362f"><td class="memItemLeft">bool&#160;</td><td class="memItemRight"><a class="el" href="#ga574d6881cf5235d2110373c875f5362f">RandX::RandBool</a> (double p=0.5)</td></tr>
+<tr class="memdesc:ga574d6881cf5235d2110373c875f5362f"><td class="mdescLeft">&#160;</td><td class="mdescRight">生成随机布尔值  <br /></td></tr>
+<tr class="memitem:ga8089e5bd81aeb569104f3edcb4151bb6" id="r_ga8089e5bd81aeb569104f3edcb4151bb6"><td class="memTemplParams" colspan="2">template&lt;class Engine&gt; </td></tr>
+<tr class="memitem:ga8089e5bd81aeb569104f3edcb4151bb6 template"><td class="memItemLeft">bool&#160;</td><td class="memItemRight"><a class="el" href="#ga8089e5bd81aeb569104f3edcb4151bb6">RandX::RandBool</a> (Engine &amp;engine, double p=0.5)</td></tr>
+<tr class="memdesc:ga8089e5bd81aeb569104f3edcb4151bb6"><td class="mdescLeft">&#160;</td><td class="mdescRight">生成随机布尔值（指定引擎重载）  <br /></td></tr>
+<tr class="memitem:ga3072bcf35cf7278c9d190c697905195b" id="r_ga3072bcf35cf7278c9d190c697905195b"><td class="memItemLeft">bool&#160;</td><td class="memItemRight"><a class="el" href="#ga3072bcf35cf7278c9d190c697905195b">RandX::RandBernoulli</a> (double p=0.5)</td></tr>
+<tr class="memdesc:ga3072bcf35cf7278c9d190c697905195b"><td class="mdescLeft">&#160;</td><td class="mdescRight">伯努利分布（RandBool 的别名封装，对齐 &lt;random&gt; 命名）  <br /></td></tr>
+<tr class="memitem:gabb2d8750b105eecaceba50a5a23b8d89" id="r_gabb2d8750b105eecaceba50a5a23b8d89"><td class="memTemplParams" colspan="2">template&lt;class Engine&gt; </td></tr>
+<tr class="memitem:gabb2d8750b105eecaceba50a5a23b8d89 template"><td class="memItemLeft">bool&#160;</td><td class="memItemRight"><a class="el" href="#gabb2d8750b105eecaceba50a5a23b8d89">RandX::RandBernoulli</a> (Engine &amp;engine, double p=0.5)</td></tr>
+<tr class="memdesc:gabb2d8750b105eecaceba50a5a23b8d89"><td class="mdescLeft">&#160;</td><td class="mdescRight">伯努利分布（指定引擎重载）  <br /></td></tr>
+<tr class="memitem:gab0fe55ee4ff4cc8c5ffdbf93f3454cbe" id="r_gab0fe55ee4ff4cc8c5ffdbf93f3454cbe"><td class="memTemplParams" colspan="2">template&lt;detail::Character CharT&gt; </td></tr>
+<tr class="memitem:gab0fe55ee4ff4cc8c5ffdbf93f3454cbe template"><td class="memItemLeft">CharT&#160;</td><td class="memItemRight"><a class="el" href="#gab0fe55ee4ff4cc8c5ffdbf93f3454cbe">RandX::RandChar</a> (CharT min, CharT max)</td></tr>
+<tr class="memdesc:gab0fe55ee4ff4cc8c5ffdbf93f3454cbe"><td class="mdescLeft">&#160;</td><td class="mdescRight">生成 [min, max] 范围内的随机字符  <br /></td></tr>
+<tr class="memitem:ga17db2afa7c5f0d373a82e14ebd3f4a90" id="r_ga17db2afa7c5f0d373a82e14ebd3f4a90"><td class="memTemplParams" colspan="2">template&lt;detail::Character CharT = char&gt; </td></tr>
+<tr class="memitem:ga17db2afa7c5f0d373a82e14ebd3f4a90 template"><td class="memItemLeft">CharT&#160;</td><td class="memItemRight"><a class="el" href="#ga17db2afa7c5f0d373a82e14ebd3f4a90">RandX::RandChar</a> (CharT max)</td></tr>
+<tr class="memdesc:ga17db2afa7c5f0d373a82e14ebd3f4a90"><td class="mdescLeft">&#160;</td><td class="mdescRight">生成 [CharT{}, max] 范围内的随机字符  <br /></td></tr>
+<tr class="memitem:ga6f1d5cd08077178b4788bf9fcf8be8db" id="r_ga6f1d5cd08077178b4788bf9fcf8be8db"><td class="memTemplParams" colspan="2">template&lt;detail::Character CharT, class Engine&gt; </td></tr>
+<tr class="memitem:ga6f1d5cd08077178b4788bf9fcf8be8db template"><td class="memItemLeft">CharT&#160;</td><td class="memItemRight"><a class="el" href="#ga6f1d5cd08077178b4788bf9fcf8be8db">RandX::RandChar</a> (Engine &amp;engine, CharT min, CharT max)</td></tr>
+<tr class="memdesc:ga6f1d5cd08077178b4788bf9fcf8be8db"><td class="mdescLeft">&#160;</td><td class="mdescRight">生成 [min, max] 范围内的随机字符（指定引擎重载）  <br /></td></tr>
+<tr class="memitem:ga19ec6ef8d50fcb8ab4dea5b5355a46ce" id="r_ga19ec6ef8d50fcb8ab4dea5b5355a46ce"><td class="memTemplParams" colspan="2">template&lt;detail::Character CharT = char, class Engine&gt; </td></tr>
+<tr class="memitem:ga19ec6ef8d50fcb8ab4dea5b5355a46ce template"><td class="memItemLeft">CharT&#160;</td><td class="memItemRight"><a class="el" href="#ga19ec6ef8d50fcb8ab4dea5b5355a46ce">RandX::RandChar</a> (Engine &amp;engine, CharT max)</td></tr>
+<tr class="memdesc:ga19ec6ef8d50fcb8ab4dea5b5355a46ce"><td class="mdescLeft">&#160;</td><td class="mdescRight">生成 [CharT{}, max] 范围内的随机字符（指定引擎重载）  <br /></td></tr>
+</table>
+<a name="details" id="details"></a><h2 id="header-details" class="groupheader">详细描述</h2>
+<div class="textblock"><p>RandInt / RandReal / RandBool / RandChar / RandBits </p>
+</div><a name="doc-func-members" id="doc-func-members"></a><h2 id="header-doc-func-members" class="groupheader">函数说明</h2>
+<a id="ga3072bcf35cf7278c9d190c697905195b" name="ga3072bcf35cf7278c9d190c697905195b"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga3072bcf35cf7278c9d190c697905195b">&#9670;&#160;</a></span>RandBernoulli() <span class="overload">[1/2]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">bool RandX::RandBernoulli </td>
+          <td>(</td>
+          <td class="paramtype">double</td>          <td class="paramname"><span class="paramname"><em>p</em></span><span class="paramdefsep"> = </span><span class="paramdefval">0.5</span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel nodiscard">nodiscard</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>伯努利分布（RandBool 的别名封装，对齐 &lt;random&gt; 命名） </p>
+<dl class="params"><dt>参数</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">p</td><td>成功概率（默认 0.5） </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>返回</dt><dd>以概率 p 返回 true </dd></dl>
+<div class="dynheader">
+函数调用图:</div>
+<div class="dyncontent">
+<div class="center"><img src="group__basic_ga3072bcf35cf7278c9d190c697905195b_cgraph.png" border="0" usemap="#agroup__basic_ga3072bcf35cf7278c9d190c697905195b_cgraph" loading="lazy" alt=""/></div>
+<map name="agroup__basic_ga3072bcf35cf7278c9d190c697905195b_cgraph" id="agroup__basic_ga3072bcf35cf7278c9d190c697905195b_cgraph">
+<area shape="rect" title="伯努利分布（RandBool 的别名封装，对齐 &lt;random&gt; 命名）" alt="" coords="5,5,168,31"/>
+<area shape="rect" href="group__basic.html#ga574d6881cf5235d2110373c875f5362f" title="生成随机布尔值" alt="" coords="216,5,351,31"/>
+<area shape="poly" title=" " alt="" coords="168,15,202,15,202,21,168,21"/>
+<area shape="rect" href="group__basic.html#ga96850400df9201b2f2bf10c7b36a7ad2" title="生成 [min, max) 范围内的随机浮点数" alt="" coords="399,5,533,31"/>
+<area shape="poly" title=" " alt="" coords="351,15,384,15,384,21,351,21"/>
+</map>
+</div>
+
+</div>
+</div>
+<a id="gabb2d8750b105eecaceba50a5a23b8d89" name="gabb2d8750b105eecaceba50a5a23b8d89"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#gabb2d8750b105eecaceba50a5a23b8d89">&#9670;&#160;</a></span>RandBernoulli() <span class="overload">[2/2]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;class Engine&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">bool RandX::RandBernoulli </td>
+          <td>(</td>
+          <td class="paramtype">Engine &amp;</td>          <td class="paramname"><span class="paramname"><em>engine</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">double</td>          <td class="paramname"><span class="paramname"><em>p</em></span><span class="paramdefsep"> = </span><span class="paramdefval">0.5</span>&#160;)</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel nodiscard">nodiscard</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>伯努利分布（指定引擎重载） </p>
+<dl class="params"><dt>参数</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">engine</td><td>自定义随机数引擎 </td></tr>
+    <tr><td class="paramname">p</td><td>成功概率（默认 0.5） </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>返回</dt><dd>以概率 p 返回 true </dd></dl>
+<div class="dynheader">
+函数调用图:</div>
+<div class="dyncontent">
+<div class="center"><img src="group__basic_gabb2d8750b105eecaceba50a5a23b8d89_cgraph.png" border="0" usemap="#agroup__basic_gabb2d8750b105eecaceba50a5a23b8d89_cgraph" loading="lazy" alt=""/></div>
+<map name="agroup__basic_gabb2d8750b105eecaceba50a5a23b8d89_cgraph" id="agroup__basic_gabb2d8750b105eecaceba50a5a23b8d89_cgraph">
+<area shape="rect" title="伯努利分布（指定引擎重载）" alt="" coords="5,5,168,31"/>
+<area shape="rect" href="group__basic.html#ga574d6881cf5235d2110373c875f5362f" title="生成随机布尔值" alt="" coords="216,5,351,31"/>
+<area shape="poly" title=" " alt="" coords="168,15,202,15,202,21,168,21"/>
+<area shape="rect" href="group__basic.html#ga96850400df9201b2f2bf10c7b36a7ad2" title="生成 [min, max) 范围内的随机浮点数" alt="" coords="399,5,533,31"/>
+<area shape="poly" title=" " alt="" coords="351,15,384,15,384,21,351,21"/>
+</map>
+</div>
+
+</div>
+</div>
+<a id="ga574d6881cf5235d2110373c875f5362f" name="ga574d6881cf5235d2110373c875f5362f"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga574d6881cf5235d2110373c875f5362f">&#9670;&#160;</a></span>RandBool() <span class="overload">[1/2]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">bool RandX::RandBool </td>
+          <td>(</td>
+          <td class="paramtype">double</td>          <td class="paramname"><span class="paramname"><em>p</em></span><span class="paramdefsep"> = </span><span class="paramdefval">0.5</span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel nodiscard">nodiscard</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>生成随机布尔值 </p>
+<dl class="params"><dt>参数</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">p</td><td>为 true 的概率（默认 0.5） </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>返回</dt><dd>以概率 p 返回 true </dd></dl>
+<div class="dynheader">
+函数调用图:</div>
+<div class="dyncontent">
+<div class="center"><img src="group__basic_ga574d6881cf5235d2110373c875f5362f_cgraph.png" border="0" usemap="#agroup__basic_ga574d6881cf5235d2110373c875f5362f_cgraph" loading="lazy" alt=""/></div>
+<map name="agroup__basic_ga574d6881cf5235d2110373c875f5362f_cgraph" id="agroup__basic_ga574d6881cf5235d2110373c875f5362f_cgraph">
+<area shape="rect" title="生成随机布尔值" alt="" coords="5,5,140,31"/>
+<area shape="rect" href="group__basic.html#ga96850400df9201b2f2bf10c7b36a7ad2" title="生成 [min, max) 范围内的随机浮点数" alt="" coords="188,5,323,31"/>
+<area shape="poly" title=" " alt="" coords="140,15,174,15,174,21,140,21"/>
+</map>
+</div>
+
+</div>
+</div>
+<a id="ga8089e5bd81aeb569104f3edcb4151bb6" name="ga8089e5bd81aeb569104f3edcb4151bb6"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga8089e5bd81aeb569104f3edcb4151bb6">&#9670;&#160;</a></span>RandBool() <span class="overload">[2/2]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;class Engine&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">bool RandX::RandBool </td>
+          <td>(</td>
+          <td class="paramtype">Engine &amp;</td>          <td class="paramname"><span class="paramname"><em>engine</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">double</td>          <td class="paramname"><span class="paramname"><em>p</em></span><span class="paramdefsep"> = </span><span class="paramdefval">0.5</span>&#160;)</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel nodiscard">nodiscard</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>生成随机布尔值（指定引擎重载） </p>
+<dl class="params"><dt>参数</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">engine</td><td>自定义随机数引擎 </td></tr>
+    <tr><td class="paramname">p</td><td>为 true 的概率（默认 0.5） </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>返回</dt><dd>以概率 p 返回 true </dd></dl>
+
+</div>
+</div>
+<a id="ga17db2afa7c5f0d373a82e14ebd3f4a90" name="ga17db2afa7c5f0d373a82e14ebd3f4a90"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga17db2afa7c5f0d373a82e14ebd3f4a90">&#9670;&#160;</a></span>RandChar() <span class="overload">[1/4]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;detail::Character CharT = char&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">CharT RandX::RandChar </td>
+          <td>(</td>
+          <td class="paramtype">CharT</td>          <td class="paramname"><span class="paramname"><em>max</em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel nodiscard">nodiscard</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>生成 [CharT{}, max] 范围内的随机字符 </p>
+<dl class="params"><dt>参数</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">max</td><td>上界字符（含） </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>返回</dt><dd>均匀分布于 [CharT{}, max] 的随机字符 </dd></dl>
+<div class="dynheader">
+函数调用图:</div>
+<div class="dyncontent">
+<div class="center"><img src="group__basic_ga17db2afa7c5f0d373a82e14ebd3f4a90_cgraph.png" border="0" usemap="#agroup__basic_ga17db2afa7c5f0d373a82e14ebd3f4a90_cgraph" loading="lazy" alt=""/></div>
+<map name="agroup__basic_ga17db2afa7c5f0d373a82e14ebd3f4a90_cgraph" id="agroup__basic_ga17db2afa7c5f0d373a82e14ebd3f4a90_cgraph">
+<area shape="rect" title="生成 [CharT{}, max] 范围内的随机字符" alt="" coords="5,5,140,31"/>
+<area shape="rect" href="group__basic.html#gab0fe55ee4ff4cc8c5ffdbf93f3454cbe" title="生成 [min, max] 范围内的随机字符" alt="" coords="188,5,323,31"/>
+<area shape="poly" title=" " alt="" coords="140,15,174,15,174,21,140,21"/>
+<area shape="rect" href="group__engines.html#ga7dba92b95d7c5e6eb2d1db3c6a3b2ddf" title=" " alt="" coords="371,5,535,31"/>
+<area shape="poly" title=" " alt="" coords="323,15,357,15,357,21,323,21"/>
+</map>
+</div>
+
+</div>
+</div>
+<a id="gab0fe55ee4ff4cc8c5ffdbf93f3454cbe" name="gab0fe55ee4ff4cc8c5ffdbf93f3454cbe"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#gab0fe55ee4ff4cc8c5ffdbf93f3454cbe">&#9670;&#160;</a></span>RandChar() <span class="overload">[2/4]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;detail::Character CharT&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">CharT RandX::RandChar </td>
+          <td>(</td>
+          <td class="paramtype">CharT</td>          <td class="paramname"><span class="paramname"><em>min</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">CharT</td>          <td class="paramname"><span class="paramname"><em>max</em></span>&#160;)</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel nodiscard">nodiscard</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>生成 [min, max] 范围内的随机字符 </p>
+<dl class="params"><dt>参数</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">min</td><td>下界字符（含） </td></tr>
+    <tr><td class="paramname">max</td><td>上界字符（含） </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>返回</dt><dd>均匀分布于 [min, max] 的随机字符 </dd></dl>
+<dl class="section note"><dt>注解</dt><dd>内部用 int64_t 避免 char32_t 范围（最大 0xFFFFFFFF）溢出 int32_t </dd></dl>
+<div class="dynheader">
+函数调用图:</div>
+<div class="dyncontent">
+<div class="center"><img src="group__basic_gab0fe55ee4ff4cc8c5ffdbf93f3454cbe_cgraph.png" border="0" usemap="#agroup__basic_gab0fe55ee4ff4cc8c5ffdbf93f3454cbe_cgraph" loading="lazy" alt=""/></div>
+<map name="agroup__basic_gab0fe55ee4ff4cc8c5ffdbf93f3454cbe_cgraph" id="agroup__basic_gab0fe55ee4ff4cc8c5ffdbf93f3454cbe_cgraph">
+<area shape="rect" title="生成 [min, max] 范围内的随机字符" alt="" coords="5,5,140,31"/>
+<area shape="rect" href="group__engines.html#ga7dba92b95d7c5e6eb2d1db3c6a3b2ddf" title=" " alt="" coords="188,5,352,31"/>
+<area shape="poly" title=" " alt="" coords="140,15,174,15,174,21,140,21"/>
+</map>
+</div>
+
+</div>
+</div>
+<a id="ga19ec6ef8d50fcb8ab4dea5b5355a46ce" name="ga19ec6ef8d50fcb8ab4dea5b5355a46ce"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga19ec6ef8d50fcb8ab4dea5b5355a46ce">&#9670;&#160;</a></span>RandChar() <span class="overload">[3/4]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;detail::Character CharT = char, class Engine&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">CharT RandX::RandChar </td>
+          <td>(</td>
+          <td class="paramtype">Engine &amp;</td>          <td class="paramname"><span class="paramname"><em>engine</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">CharT</td>          <td class="paramname"><span class="paramname"><em>max</em></span>&#160;)</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel nodiscard">nodiscard</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>生成 [CharT{}, max] 范围内的随机字符（指定引擎重载） </p>
+<dl class="params"><dt>参数</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">engine</td><td>自定义随机数引擎 </td></tr>
+    <tr><td class="paramname">max</td><td>上界字符（含） </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>返回</dt><dd>均匀分布于 [CharT{}, max] 的随机字符 </dd></dl>
+<div class="dynheader">
+函数调用图:</div>
+<div class="dyncontent">
+<div class="center"><img src="group__basic_ga19ec6ef8d50fcb8ab4dea5b5355a46ce_cgraph.png" border="0" usemap="#agroup__basic_ga19ec6ef8d50fcb8ab4dea5b5355a46ce_cgraph" loading="lazy" alt=""/></div>
+<map name="agroup__basic_ga19ec6ef8d50fcb8ab4dea5b5355a46ce_cgraph" id="agroup__basic_ga19ec6ef8d50fcb8ab4dea5b5355a46ce_cgraph">
+<area shape="rect" title="生成 [CharT{}, max] 范围内的随机字符（指定引擎重载）" alt="" coords="5,5,140,31"/>
+<area shape="rect" href="group__basic.html#gab0fe55ee4ff4cc8c5ffdbf93f3454cbe" title="生成 [min, max] 范围内的随机字符" alt="" coords="188,5,323,31"/>
+<area shape="poly" title=" " alt="" coords="140,15,174,15,174,21,140,21"/>
+<area shape="rect" href="group__engines.html#ga7dba92b95d7c5e6eb2d1db3c6a3b2ddf" title=" " alt="" coords="371,5,535,31"/>
+<area shape="poly" title=" " alt="" coords="323,15,357,15,357,21,323,21"/>
+</map>
+</div>
+
+</div>
+</div>
+<a id="ga6f1d5cd08077178b4788bf9fcf8be8db" name="ga6f1d5cd08077178b4788bf9fcf8be8db"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga6f1d5cd08077178b4788bf9fcf8be8db">&#9670;&#160;</a></span>RandChar() <span class="overload">[4/4]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;detail::Character CharT, class Engine&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">CharT RandX::RandChar </td>
+          <td>(</td>
+          <td class="paramtype">Engine &amp;</td>          <td class="paramname"><span class="paramname"><em>engine</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">CharT</td>          <td class="paramname"><span class="paramname"><em>min</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">CharT</td>          <td class="paramname"><span class="paramname"><em>max</em></span>&#160;)</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel nodiscard">nodiscard</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>生成 [min, max] 范围内的随机字符（指定引擎重载） </p>
+<dl class="params"><dt>参数</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">engine</td><td>自定义随机数引擎 </td></tr>
+    <tr><td class="paramname">min</td><td>下界字符（含） </td></tr>
+    <tr><td class="paramname">max</td><td>上界字符（含） </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>返回</dt><dd>均匀分布于 [min, max] 的随机字符 </dd></dl>
+
+</div>
+</div>
+<a id="ga80041134ff8e6e4239c2e6ce5bdbcd79" name="ga80041134ff8e6e4239c2e6ce5bdbcd79"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga80041134ff8e6e4239c2e6ce5bdbcd79">&#9670;&#160;</a></span>RandInt() <span class="overload">[1/2]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;std::integral T = int&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">T RandX::RandInt </td>
+          <td>(</td>
+          <td class="paramtype">T</td>          <td class="paramname"><span class="paramname"><em>max</em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel nodiscard">nodiscard</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>生成 [0, max] 范围内的随机整数 </p>
+<dl class="params"><dt>参数</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">max</td><td>上界（含） </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>返回</dt><dd>均匀分布于 [0, max] 的随机整数 </dd></dl>
+<div class="dynheader">
+函数调用图:</div>
+<div class="dyncontent">
+<div class="center"><img src="group__basic_ga80041134ff8e6e4239c2e6ce5bdbcd79_cgraph.png" border="0" usemap="#agroup__basic_ga80041134ff8e6e4239c2e6ce5bdbcd79_cgraph" loading="lazy" alt=""/></div>
+<map name="agroup__basic_ga80041134ff8e6e4239c2e6ce5bdbcd79_cgraph" id="agroup__basic_ga80041134ff8e6e4239c2e6ce5bdbcd79_cgraph">
+<area shape="rect" title="生成 [0, max] 范围内的随机整数" alt="" coords="5,5,128,31"/>
+<area shape="rect" href="group__basic.html#gace250579fe08f5bdd6b5db6b573ab55c" title="生成 [min, max] 范围内的随机整数" alt="" coords="176,5,299,31"/>
+<area shape="poly" title=" " alt="" coords="128,15,162,15,162,21,128,21"/>
+<area shape="rect" href="group__engines.html#ga7dba92b95d7c5e6eb2d1db3c6a3b2ddf" title=" " alt="" coords="347,5,511,31"/>
+<area shape="poly" title=" " alt="" coords="299,15,333,15,333,21,299,21"/>
+</map>
+</div>
+
+</div>
+</div>
+<a id="gace250579fe08f5bdd6b5db6b573ab55c" name="gace250579fe08f5bdd6b5db6b573ab55c"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#gace250579fe08f5bdd6b5db6b573ab55c">&#9670;&#160;</a></span>RandInt() <span class="overload">[2/2]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;std::integral T = int&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">T RandX::RandInt </td>
+          <td>(</td>
+          <td class="paramtype">T</td>          <td class="paramname"><span class="paramname"><em>min</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">T</td>          <td class="paramname"><span class="paramname"><em>max</em></span>&#160;)</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel nodiscard">nodiscard</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>生成 [min, max] 范围内的随机整数 </p>
+<dl class="params"><dt>参数</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">min</td><td>下界（含） </td></tr>
+    <tr><td class="paramname">max</td><td>上界（含） </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>返回</dt><dd>均匀分布于 [min, max] 的随机整数 </dd></dl>
+<div class="dynheader">
+函数调用图:</div>
+<div class="dyncontent">
+<div class="center"><img src="group__basic_gace250579fe08f5bdd6b5db6b573ab55c_cgraph.png" border="0" usemap="#agroup__basic_gace250579fe08f5bdd6b5db6b573ab55c_cgraph" loading="lazy" alt=""/></div>
+<map name="agroup__basic_gace250579fe08f5bdd6b5db6b573ab55c_cgraph" id="agroup__basic_gace250579fe08f5bdd6b5db6b573ab55c_cgraph">
+<area shape="rect" title="生成 [min, max] 范围内的随机整数" alt="" coords="5,5,128,31"/>
+<area shape="rect" href="group__engines.html#ga7dba92b95d7c5e6eb2d1db3c6a3b2ddf" title=" " alt="" coords="176,5,340,31"/>
+<area shape="poly" title=" " alt="" coords="128,15,162,15,162,21,128,21"/>
+</map>
+</div>
+
+</div>
+</div>
+<a id="ga96850400df9201b2f2bf10c7b36a7ad2" name="ga96850400df9201b2f2bf10c7b36a7ad2"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga96850400df9201b2f2bf10c7b36a7ad2">&#9670;&#160;</a></span>RandReal()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;std::floating_point T = double&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">T RandX::RandReal </td>
+          <td>(</td>
+          <td class="paramtype">T</td>          <td class="paramname"><span class="paramname"><em>min</em></span><span class="paramdefsep"> = </span><span class="paramdefval">T{0}</span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">T</td>          <td class="paramname"><span class="paramname"><em>max</em></span><span class="paramdefsep"> = </span><span class="paramdefval">T{1}</span>&#160;)</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel nodiscard">nodiscard</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>生成 [min, max) 范围内的随机浮点数 </p>
+<dl class="params"><dt>参数</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">min</td><td>下界（含，默认 0） </td></tr>
+    <tr><td class="paramname">max</td><td>上界（不含，默认 1） </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>返回</dt><dd>均匀分布于 [min, max) 的随机浮点数 </dd></dl>
+
+</div>
+</div>
+</div><!-- contents -->
+</div><!-- doc-content -->
+<div id="page-nav" class="page-nav-panel">
+<div id="page-nav-resize-handle"></div>
+<div id="page-nav-tree">
+<div id="page-nav-contents">
+</div><!-- page-nav-contents -->
+</div><!-- page-nav-tree -->
+</div><!-- page-nav -->
+</div><!-- container -->
+<!-- start footer part -->
+<div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
+  <ul>
+    <li class="footer">制作者 <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.17.0 </li>
+  </ul>
+</div>
+</body>
+</html>

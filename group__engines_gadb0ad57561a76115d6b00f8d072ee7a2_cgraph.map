@@ -1,0 +1,8 @@
+<map id="RandX::Xoroshiro64StarStar::Xoroshiro64StarStar" name="RandX::Xoroshiro64StarStar::Xoroshiro64StarStar">
+<area shape="rect" id="Node000001" title="从 std::seed_seq 播种" alt="" coords="5,5,208,45"/>
+<area shape="rect" id="Node000002" href="$namespaceRandX_1_1detail.html#ab1ba778fb7d25588434f0452cf1fef16" title=" " alt="" coords="507,13,681,38"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="208,20,256,19,459,19,493,19,493,25,459,24,256,24,208,25"/>
+<area shape="rect" id="Node000003" href="$group__engines.html#gab64805aabda891042f75889083fba001" title="以指定种子构造引擎" alt="" coords="256,33,459,73"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="208,34,243,38,242,43,208,39"/>
+<area shape="poly" id="edge3_Node000003_Node000002" title=" " alt="" coords="459,39,493,35,494,40,459,44"/>
+</map>

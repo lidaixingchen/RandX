@@ -1,0 +1,9 @@
+<map id="RandX::ranges::RandElement" name="RandX::ranges::RandElement">
+<area shape="rect" id="Node000001" title="随机选取一个元素（返回值拷贝，非迭代器）" alt="" coords="5,5,216,31"/>
+<area shape="rect" id="Node000002" href="$group__containers.html#ga5674ac381dc3a371506e0861b37da2bc" title="从容器中随机取一个元素" alt="" coords="264,5,423,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="216,15,250,15,250,21,216,21"/>
+<area shape="rect" id="Node000003" href="$group__basic.html#gace250579fe08f5bdd6b5db6b573ab55c" title="生成 [min, max] 范围内的随机整数" alt="" coords="471,5,593,31"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="423,15,457,15,457,21,423,21"/>
+<area shape="rect" id="Node000004" href="$group__engines.html#ga7dba92b95d7c5e6eb2d1db3c6a3b2ddf" title=" " alt="" coords="641,5,805,31"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="594,15,627,15,627,21,594,21"/>
+</map>

@@ -1,0 +1,7 @@
+<map id="RandX::SecureRandomBytes" name="RandX::SecureRandomBytes">
+<area shape="rect" id="Node000001" title="用 OS 密码学熵源填充 [buf, buf+n) 字节" alt="" coords="5,45,212,70"/>
+<area shape="rect" id="Node000002" href="$namespaceRandX_1_1detail.html#a02fce2f64f9c2eb6dbe7390a26aab73a" title=" " alt="" coords="260,5,467,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="210,42,246,37,246,43,210,47"/>
+<area shape="rect" id="Node000003" href="$namespaceRandX_1_1detail.html#adaeace943469bf31b9afcd2751b363d9" title=" " alt="" coords="271,69,456,109"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="210,67,257,73,257,79,210,73"/>
+</map>

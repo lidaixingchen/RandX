@@ -1,0 +1,5 @@
+<map id="RandX::Xoroshiro128StarStar::max" name="RandX::Xoroshiro128StarStar::max">
+<area shape="rect" id="Node000001" title="输出范围上界" alt="" coords="5,5,252,31"/>
+<area shape="rect" id="Node000002" href="$group__engines.html#ga5d8aed9ef8248bccb0ad5aa8384a2081" title="输出范围上界" alt="" coords="300,5,547,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="252,15,286,15,286,21,252,21"/>
+</map>

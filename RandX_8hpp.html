@@ -1,0 +1,555 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "https://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="zh">
+<head>
+<meta http-equiv="Content-Type" content="text/xhtml;charset=UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=11"/>
+<meta name="generator" content="Doxygen 1.17.0"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>RandX: RandX.hpp 文件参考</title>
+<link href="tabs.css" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src="codefolding.js"></script>
+<script type="text/javascript" src="clipboard.js"></script>
+<link href="navtree.css" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src="navtreedata.js"></script>
+<script type="text/javascript" src="navtree.js"></script>
+<script type="text/javascript" src="cookie.js"></script>
+<link href="search/search.css" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src="search/searchdata.js"></script>
+<script type="text/javascript" src="search/search.js"></script>
+<script type="module">
+import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+const theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'default';
+mermaid.initialize({ startOnLoad: true, theme: theme });
+</script>
+<link href="doxygen.css" rel="stylesheet" type="text/css" />
+</head>
+<body>
+<div id="top"><!-- do not remove this div, it is closed by doxygen! -->
+<div id="titlearea">
+<table cellspacing="0" cellpadding="0">
+ <tbody>
+ <tr id="projectrow">
+  <td id="projectalign">
+   <div id="projectname">RandX<span id="projectnumber">&#160;1.3.1</span>
+   </div>
+   <div id="projectbrief">基于 xoshiro/xoroshiro 算法族的纯头文件伪随机数生成器库</div>
+  </td>
+ </tr>
+ </tbody>
+</table>
+</div>
+<!-- end header part -->
+<!-- 制作者 Doxygen 1.17.0 -->
+<script type="text/javascript">
+let searchBox = new SearchBox("searchBox", "search/",'.html');
+</script>
+<script type="text/javascript">
+document.addEventListener('DOMContentLoaded', codefold.init);
+</script>
+<script type="text/javascript" src="menudata.js"></script>
+<script type="text/javascript" src="menu.js"></script>
+<script type="text/javascript">
+document.addEventListener('DOMContentLoaded', () => {
+  initMenu('',true);
+  init_search();
+});
+</script>
+<div id="main-nav-mobile">
+<div class="sm sm-dox"><input id="main-menu-state" type="checkbox"/>
+<label class="main-menu-btn" for="main-menu-state">
+<span class="main-menu-btn-icon"></span> Toggle main menu visibility</label>
+<span id="searchBoxPos1" style="position:absolute;right:8px;top:8px;height:36px;"></span>
+</div>
+</div><!-- main-nav-mobile -->
+<div id="main-nav">
+  <ul class="sm sm-dox" id="main-menu">
+    <li id="searchBoxPos2" style="float:right">
+        <div id="MSearchBox" class="MSearchBoxInactive">
+        <span class="left">
+          <span id="MSearchSelect" class="search-icon" onmouseover="return searchBox.OnSearchSelectShow()" onmouseout="return searchBox.OnSearchSelectHide()"><span class="search-icon-dropdown"></span></span>
+          <input type="text" id="MSearchField" value="" placeholder="搜索" accesskey="S"
+               onfocus="searchBox.OnSearchFieldFocus(true)" 
+               onblur="searchBox.OnSearchFieldFocus(false)" 
+               onkeyup="searchBox.OnSearchFieldChange(event)"/>
+          </span><span class="right">
+            <a id="MSearchClose" href="javascript:searchBox.CloseResultsWindow()"><div id="MSearchCloseImg" class="close-icon"></div></a>
+          </span>
+        </div>
+    </li>
+  </ul>
+</div><!-- main-nav -->
+</div><!-- top -->
+<div id="side-nav" class="ui-resizable side-nav-resizable">
+  <div id="nav-tree">
+    <div id="nav-tree-contents">
+      <div id="nav-sync" class="sync"></div>
+    </div>
+  </div>
+  <div id="splitbar" style="-moz-user-select:none;" 
+       class="ui-resizable-handle">
+  </div>
+</div>
+<script type="text/javascript">
+document.addEventListener('DOMContentLoaded',() => { initNavTree('RandX_8hpp.html','',''); });
+</script>
+<div id="container">
+<div id="doc-content">
+<!-- window showing the filter options -->
+<div id="MSearchSelectWindow"
+     onmouseover="return searchBox.OnSearchSelectShow()"
+     onmouseout="return searchBox.OnSearchSelectHide()"
+     onkeydown="return searchBox.OnSearchSelectKey(event)">
+</div>
+
+<!-- iframe showing the search results (closed by default) -->
+<div id="MSearchResultsWindow">
+<div id="MSearchResults">
+<div class="SRPage">
+<div id="SRIndex">
+<div id="SRResults"></div>
+<div class="SRStatus" id="Loading">载入中...</div>
+<div class="SRStatus" id="Searching">搜索中...</div>
+<div class="SRStatus" id="NoMatches">未找到</div>
+</div>
+</div>
+</div>
+</div>
+
+<div class="header">
+  <div class="headertitle"><div class="title">RandX.hpp 文件参考</div></div>
+</div><!--header-->
+<div class="contents">
+<div class="textblock"><code>#include &lt;cstdint&gt;</code><br />
+<code>#include &lt;array&gt;</code><br />
+<code>#include &lt;limits&gt;</code><br />
+<code>#include &lt;concepts&gt;</code><br />
+<code>#include &lt;random&gt;</code><br />
+<code>#include &lt;algorithm&gt;</code><br />
+<code>#include &lt;cassert&gt;</code><br />
+<code>#include &lt;type_traits&gt;</code><br />
+<code>#include &lt;ranges&gt;</code><br />
+<code>#include &lt;string&gt;</code><br />
+<code>#include &lt;string_view&gt;</code><br />
+<code>#include &lt;unordered_set&gt;</code><br />
+<code>#include &lt;vector&gt;</code><br />
+<code>#include &lt;stdexcept&gt;</code><br />
+<code>#include &lt;chrono&gt;</code><br />
+<code>#include &lt;ios&gt;</code><br />
+<code>#include &lt;istream&gt;</code><br />
+<code>#include &lt;ostream&gt;</code><br />
+<code>#include &lt;cstring&gt;</code><br />
+</div><div class="textblock"><div class="dynheader">
+RandX.hpp 的引用(Include)关系图:</div>
+<div class="dyncontent">
+<div class="center"><img src="RandX_8hpp__incl.png" border="0" usemap="#aRandX_8hpp" loading="lazy" alt=""/></div>
+<map name="aRandX_8hpp" id="aRandX_8hpp">
+<area shape="rect" title=" " alt="" coords="853,5,945,31"/>
+<area shape="rect" title=" " alt="" coords="5,79,72,104"/>
+<area shape="poly" title=" " alt="" coords="852,23,723,26,535,35,314,53,86,81,85,76,314,47,535,30,723,21,852,17"/>
+<area shape="rect" title=" " alt="" coords="96,79,152,104"/>
+<area shape="poly" title=" " alt="" coords="852,23,734,26,566,35,369,53,166,81,165,76,369,48,566,30,734,21,852,17"/>
+<area shape="rect" title=" " alt="" coords="176,79,235,104"/>
+<area shape="poly" title=" " alt="" coords="853,23,599,38,427,55,249,81,248,76,426,50,598,33,852,18"/>
+<area shape="rect" title=" " alt="" coords="259,79,339,104"/>
+<area shape="poly" title=" " alt="" coords="853,25,641,44,499,60,353,81,352,76,499,55,640,39,852,20"/>
+<area shape="rect" title=" " alt="" coords="363,79,435,104"/>
+<area shape="poly" title=" " alt="" coords="853,27,679,46,449,81,448,76,678,41,852,21"/>
+<area shape="rect" title=" " alt="" coords="459,79,544,104"/>
+<area shape="poly" title=" " alt="" coords="853,29,558,81,557,76,852,24"/>
+<area shape="rect" title=" " alt="" coords="568,79,637,104"/>
+<area shape="poly" title=" " alt="" coords="853,33,651,81,650,76,852,28"/>
+<area shape="rect" title=" " alt="" coords="662,79,754,104"/>
+<area shape="poly" title=" " alt="" coords="869,33,753,76,751,71,867,28"/>
+<area shape="rect" title=" " alt="" coords="779,79,845,104"/>
+<area shape="poly" title=" " alt="" coords="886,33,838,72,835,68,883,29"/>
+<area shape="rect" title=" " alt="" coords="869,79,928,104"/>
+<area shape="poly" title=" " alt="" coords="901,31,901,65,896,65,896,31"/>
+<area shape="rect" title=" " alt="" coords="953,79,1050,104"/>
+<area shape="poly" title=" " alt="" coords="917,28,975,68,972,73,914,33"/>
+<area shape="rect" title=" " alt="" coords="1075,79,1189,104"/>
+<area shape="poly" title=" " alt="" coords="937,28,1082,72,1081,77,935,33"/>
+<area shape="rect" title=" " alt="" coords="1214,79,1277,104"/>
+<area shape="poly" title=" " alt="" coords="946,25,1201,76,1200,81,944,30"/>
+<area shape="rect" title=" " alt="" coords="1301,79,1387,104"/>
+<area shape="poly" title=" " alt="" coords="945,23,1094,44,1287,76,1287,81,1093,49,945,28"/>
+<area shape="rect" title=" " alt="" coords="1412,79,1479,104"/>
+<area shape="poly" title=" " alt="" coords="945,20,1139,39,1266,55,1399,76,1398,81,1266,60,1138,44,945,25"/>
+<area shape="rect" title=" " alt="" coords="1503,79,1545,104"/>
+<area shape="poly" title=" " alt="" coords="945,18,1042,22,1176,32,1331,49,1490,77,1489,82,1330,54,1176,37,1042,27,945,23"/>
+<area shape="rect" title=" " alt="" coords="1569,79,1641,104"/>
+<area shape="poly" title=" " alt="" coords="945,19,1201,35,1376,52,1556,76,1556,81,1375,57,1201,40,945,24"/>
+<area shape="rect" title=" " alt="" coords="1666,79,1742,104"/>
+<area shape="poly" title=" " alt="" coords="945,18,1239,33,1442,50,1653,76,1652,82,1442,56,1239,39,945,23"/>
+<area shape="rect" title=" " alt="" coords="1767,79,1833,104"/>
+<area shape="poly" title=" " alt="" coords="945,17,1081,20,1279,29,1512,46,1753,76,1753,81,1511,52,1278,34,1080,25,945,22"/>
+</map>
+</div>
+</div>
+<p><a href="RandX_8hpp_source.html">浏览该文件的源代码.</a></p>
+<table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 id="header-nested-classes" class="groupheader"><a id="nested-classes" name="nested-classes"></a>
+类</h2></td></tr>
+<tr class="memitem:RandX_3A_3ASplitMix64" id="r_RandX_3A_3ASplitMix64"><td class="memItemLeft">class &#160;</td><td class="memItemRight"><a class="el" href="classRandX_1_1SplitMix64.html">RandX::SplitMix64</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight"><a class="el" href="classRandX_1_1SplitMix64.html" title="SplitMix64 伪随机数生成器，64 位输出，周期 2^64。">SplitMix64</a> 伪随机数生成器，64 位输出，周期 2^64。  <a href="classRandX_1_1SplitMix64.html#details">更多...</a><br /></td></tr>
+<tr class="memitem:RandX_3A_3AXoshiro256StarStar" id="r_RandX_3A_3AXoshiro256StarStar"><td class="memItemLeft">class &#160;</td><td class="memItemRight"><a class="el" href="classRandX_1_1Xoshiro256StarStar.html">RandX::Xoshiro256StarStar</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Xoshiro256** 伪随机数生成器，64 位输出，周期 2^256-1。  <a href="classRandX_1_1Xoshiro256StarStar.html#details">更多...</a><br /></td></tr>
+<tr class="memitem:RandX_3A_3AXoroshiro128StarStar" id="r_RandX_3A_3AXoroshiro128StarStar"><td class="memItemLeft">class &#160;</td><td class="memItemRight"><a class="el" href="classRandX_1_1Xoroshiro128StarStar.html">RandX::Xoroshiro128StarStar</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Xoroshiro128** 伪随机数生成器，64 位输出，周期 2^128-1。  <a href="classRandX_1_1Xoroshiro128StarStar.html#details">更多...</a><br /></td></tr>
+<tr class="memitem:RandX_3A_3AXoshiro128StarStar" id="r_RandX_3A_3AXoshiro128StarStar"><td class="memItemLeft">class &#160;</td><td class="memItemRight"><a class="el" href="classRandX_1_1Xoshiro128StarStar.html">RandX::Xoshiro128StarStar</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Xoshiro128** 伪随机数生成器，32 位输出，周期 2^128-1。  <a href="classRandX_1_1Xoshiro128StarStar.html#details">更多...</a><br /></td></tr>
+<tr class="memitem:RandX_3A_3AXoroshiro64StarStar" id="r_RandX_3A_3AXoroshiro64StarStar"><td class="memItemLeft">class &#160;</td><td class="memItemRight"><a class="el" href="classRandX_1_1Xoroshiro64StarStar.html">RandX::Xoroshiro64StarStar</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Xoroshiro64** 伪随机数生成器，32 位输出，周期 2^64-1。  <a href="classRandX_1_1Xoroshiro64StarStar.html#details">更多...</a><br /></td></tr>
+<tr class="memitem:RandX_3A_3ASFC64" id="r_RandX_3A_3ASFC64"><td class="memItemLeft">class &#160;</td><td class="memItemRight"><a class="el" href="classRandX_1_1SFC64.html">RandX::SFC64</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">SFC64（Small Fast Counter）伪随机数生成器，64 位输出，周期 &gt;= 2^64。  <a href="classRandX_1_1SFC64.html#details">更多...</a><br /></td></tr>
+<tr class="memitem:RandX_3A_3ARomuDuoJr" id="r_RandX_3A_3ARomuDuoJr"><td class="memItemLeft">class &#160;</td><td class="memItemRight"><a class="el" href="classRandX_1_1RomuDuoJr.html">RandX::RomuDuoJr</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight"><a class="el" href="classRandX_1_1RomuDuoJr.html" title="RomuDuoJr 伪随机数生成器，64 位输出，周期估计 &gt;= 2^51。">RomuDuoJr</a> 伪随机数生成器，64 位输出，周期估计 &gt;= 2^51。  <a href="classRandX_1_1RomuDuoJr.html#details">更多...</a><br /></td></tr>
+<tr class="memitem:RandX_3A_3AChaCha20" id="r_RandX_3A_3AChaCha20"><td class="memItemLeft">class &#160;</td><td class="memItemRight"><a class="el" href="classRandX_1_1ChaCha20.html">RandX::ChaCha20</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight"><a class="el" href="classRandX_1_1ChaCha20.html" title="ChaCha20 密码学安全伪随机数生成器（CSPRNG），64 位输出，符合 RFC 8439。">ChaCha20</a> 密码学安全伪随机数生成器（CSPRNG），64 位输出，符合 RFC 8439。  <a href="classRandX_1_1ChaCha20.html#details">更多...</a><br /></td></tr>
+</table><table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 id="header-namespaces" class="groupheader"><a id="namespaces" name="namespaces"></a>
+命名空间</h2></td></tr>
+<tr class="memitem:RandX" id="r_RandX"><td class="memItemLeft">namespace &#160;</td><td class="memItemRight"><a class="el" href="namespaceRandX.html">RandX</a></td></tr>
+<tr class="memitem:RandX_3A_3Adetail" id="r_RandX_3A_3Adetail"><td class="memItemLeft">namespace &#160;</td><td class="memItemRight"><a class="el" href="namespaceRandX_1_1detail.html">RandX::detail</a></td></tr>
+<tr class="memitem:RandX_3A_3Aranges" id="r_RandX_3A_3Aranges"><td class="memItemLeft">namespace &#160;</td><td class="memItemRight"><a class="el" href="namespaceRandX_1_1ranges.html">RandX::ranges</a></td></tr>
+</table><table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 id="header-concepts" class="groupheader"><a id="concepts" name="concepts"></a>
+概念</h2></td></tr>
+<tr class="memitem:RandX_3A_3Adetail_3A_3ACharacter" id="r_RandX_3A_3Adetail_3A_3ACharacter"><td class="memItemLeft">concept &#160;</td><td class="memItemRight"><a class="el" href="conceptRandX_1_1detail_1_1Character.html">RandX::detail::Character</a></td></tr>
+<tr class="memitem:RandX_3A_3Adetail_3A_3AIndexableState" id="r_RandX_3A_3Adetail_3A_3AIndexableState"><td class="memItemLeft">concept &#160;</td><td class="memItemRight"><a class="el" href="conceptRandX_1_1detail_1_1IndexableState.html">RandX::detail::IndexableState</a></td></tr>
+<tr class="memitem:RandX_3A_3Adetail_3A_3ASerializableEngine" id="r_RandX_3A_3Adetail_3A_3ASerializableEngine"><td class="memItemLeft">concept &#160;</td><td class="memItemRight"><a class="el" href="conceptRandX_1_1detail_1_1SerializableEngine.html">RandX::detail::SerializableEngine</a></td></tr>
+<tr class="memitem:RandX_3A_3Adetail_3A_3AJumpableEngine" id="r_RandX_3A_3Adetail_3A_3AJumpableEngine"><td class="memItemLeft">concept &#160;</td><td class="memItemRight"><a class="el" href="conceptRandX_1_1detail_1_1JumpableEngine.html">RandX::detail::JumpableEngine</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">可跳跃引擎概念：支持 jump() 前进 2^N 步 <br /></td></tr>
+<tr class="memitem:RandX_3A_3Adetail_3A_3AStreamEngine" id="r_RandX_3A_3Adetail_3A_3AStreamEngine"><td class="memItemLeft">concept &#160;</td><td class="memItemRight"><a class="el" href="conceptRandX_1_1detail_1_1StreamEngine.html">RandX::detail::StreamEngine</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">流式引擎概念：可通过 MakeStreamEngine 创建互不重叠的子序列流 <br /></td></tr>
+<tr class="memitem:RandX_3A_3Adetail_3A_3ARandFillable" id="r_RandX_3A_3Adetail_3A_3ARandFillable"><td class="memItemLeft">concept &#160;</td><td class="memItemRight"><a class="el" href="conceptRandX_1_1detail_1_1RandFillable.html">RandX::detail::RandFillable</a></td></tr>
+</table><table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 id="header-enum-members" class="groupheader"><a id="enum-members" name="enum-members"></a>
+枚举</h2></td></tr>
+<tr class="memitem:gab0df6de2fb7ce10af8e7175c54a186a6" id="r_gab0df6de2fb7ce10af8e7175c54a186a6"><td class="memItemLeft">enum class &#160;</td><td class="memItemRight"><a class="el" href="group__distributions.html#gab0df6de2fb7ce10af8e7175c54a186a6">RandX::CharSet</a> { <br />
+&#160;&#160;<a class="el" href="group__distributions.html#ggab0df6de2fb7ce10af8e7175c54a186a6af47e3bc3b7558713220312ade618a80e">RandX::CharSet::Alphanumeric</a>
+, <a class="el" href="group__distributions.html#ggab0df6de2fb7ce10af8e7175c54a186a6a6132295fcf5570fb8b0a944ef322a598">RandX::CharSet::Alpha</a>
+, <a class="el" href="group__distributions.html#ggab0df6de2fb7ce10af8e7175c54a186a6ab75fcdd2d72d9e000beab48622402d93">RandX::CharSet::Lower</a>
+, <a class="el" href="group__distributions.html#ggab0df6de2fb7ce10af8e7175c54a186a6a19de5b94f7b83900d4b296d9fa491aec">RandX::CharSet::Upper</a>
+, <br />
+&#160;&#160;<a class="el" href="group__distributions.html#ggab0df6de2fb7ce10af8e7175c54a186a6a83d25adab16b42ea36124318d7e6f4c1">RandX::CharSet::Digit</a>
+, <a class="el" href="group__distributions.html#ggab0df6de2fb7ce10af8e7175c54a186a6a92640bd72988395b326c888614f8937a">RandX::CharSet::Hex</a>
+, <a class="el" href="group__distributions.html#ggab0df6de2fb7ce10af8e7175c54a186a6a5a95cfed068976221a07f312018cd741">RandX::CharSet::Printable</a>
+, <a class="el" href="group__distributions.html#ggab0df6de2fb7ce10af8e7175c54a186a6a1eb445fa6bd078346bf63ecac35fa77c">RandX::CharSet::Base64</a>
+, <br />
+&#160;&#160;<a class="el" href="group__distributions.html#ggab0df6de2fb7ce10af8e7175c54a186a6a4c828573bdb3a45e3b72ce543ed4e0e7">RandX::CharSet::Base64UrlSafe</a>
+, <a class="el" href="group__distributions.html#ggab0df6de2fb7ce10af8e7175c54a186a6af47e3bc3b7558713220312ade618a80e">RandX::CharSet::Alphanumeric</a>
+, <a class="el" href="group__distributions.html#ggab0df6de2fb7ce10af8e7175c54a186a6a6132295fcf5570fb8b0a944ef322a598">RandX::CharSet::Alpha</a>
+, <a class="el" href="group__distributions.html#ggab0df6de2fb7ce10af8e7175c54a186a6ab75fcdd2d72d9e000beab48622402d93">RandX::CharSet::Lower</a>
+, <br />
+&#160;&#160;<a class="el" href="group__distributions.html#ggab0df6de2fb7ce10af8e7175c54a186a6a19de5b94f7b83900d4b296d9fa491aec">RandX::CharSet::Upper</a>
+, <a class="el" href="group__distributions.html#ggab0df6de2fb7ce10af8e7175c54a186a6a83d25adab16b42ea36124318d7e6f4c1">RandX::CharSet::Digit</a>
+, <a class="el" href="group__distributions.html#ggab0df6de2fb7ce10af8e7175c54a186a6a92640bd72988395b326c888614f8937a">RandX::CharSet::Hex</a>
+, <a class="el" href="group__distributions.html#ggab0df6de2fb7ce10af8e7175c54a186a6a5a95cfed068976221a07f312018cd741">RandX::CharSet::Printable</a>
+, <br />
+&#160;&#160;<a class="el" href="group__distributions.html#ggab0df6de2fb7ce10af8e7175c54a186a6a1eb445fa6bd078346bf63ecac35fa77c">RandX::CharSet::Base64</a>
+, <a class="el" href="group__distributions.html#ggab0df6de2fb7ce10af8e7175c54a186a6a4c828573bdb3a45e3b72ce543ed4e0e7">RandX::CharSet::Base64UrlSafe</a>
+<br />
+ }</td></tr>
+</table><table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 id="header-func-members" class="groupheader"><a id="func-members" name="func-members"></a>
+函数</h2></td></tr>
+<tr class="memitem:gaac79734ea6021a1ea727376c67a98443" id="r_gaac79734ea6021a1ea727376c67a98443"><td class="memTemplParams" colspan="2">template&lt;std::same_as&lt; std::uint32_t &gt; Uint32&gt; </td></tr>
+<tr class="memitem:gaac79734ea6021a1ea727376c67a98443 template"><td class="memItemLeft">constexpr float&#160;</td><td class="memItemRight"><a class="el" href="group__engines.html#gaac79734ea6021a1ea727376c67a98443">RandX::FloatFromBits</a> (Uint32 i) noexcept</td></tr>
+<tr class="memitem:ga75013a684be97ef5de3539b3f07ce3fb" id="r_ga75013a684be97ef5de3539b3f07ce3fb"><td class="memTemplParams" colspan="2">template&lt;std::same_as&lt; std::uint64_t &gt; Uint64&gt; </td></tr>
+<tr class="memitem:ga75013a684be97ef5de3539b3f07ce3fb template"><td class="memItemLeft">constexpr double&#160;</td><td class="memItemRight"><a class="el" href="group__engines.html#ga75013a684be97ef5de3539b3f07ce3fb">RandX::DoubleFromBits</a> (Uint64 i) noexcept</td></tr>
+<tr class="memitem:aa55ffbc9da991c2c1bfeef4b097d6e91" id="r_aa55ffbc9da991c2c1bfeef4b097d6e91"><td class="memItemLeft">static constexpr std::uint64_t&#160;</td><td class="memItemRight"><a class="el" href="namespaceRandX_1_1detail.html#aa55ffbc9da991c2c1bfeef4b097d6e91">RandX::detail::RotL</a> (const std::uint64_t x, const int s) noexcept</td></tr>
+<tr class="memitem:a30ef6238cc5d5a659b45ac6abb9f3a4d" id="r_a30ef6238cc5d5a659b45ac6abb9f3a4d"><td class="memItemLeft">static constexpr std::uint32_t&#160;</td><td class="memItemRight"><a class="el" href="namespaceRandX_1_1detail.html#a30ef6238cc5d5a659b45ac6abb9f3a4d">RandX::detail::RotL</a> (const std::uint32_t x, const int s) noexcept</td></tr>
+<tr class="memitem:aea45979fec3d8bd006581404baf9c7a9" id="r_aea45979fec3d8bd006581404baf9c7a9"><td class="memItemLeft">static void&#160;</td><td class="memItemRight"><a class="el" href="namespaceRandX_1_1detail.html#aea45979fec3d8bd006581404baf9c7a9">RandX::detail::SecureWipe</a> (void *ptr, std::size_t len) noexcept</td></tr>
+<tr class="memitem:ab1ba778fb7d25588434f0452cf1fef16" id="r_ab1ba778fb7d25588434f0452cf1fef16"><td class="memTemplParams" colspan="2">template&lt;std::size_t N&gt; </td></tr>
+<tr class="memitem:ab1ba778fb7d25588434f0452cf1fef16 template"><td class="memItemLeft">static constexpr bool&#160;</td><td class="memItemRight"><a class="el" href="namespaceRandX_1_1detail.html#ab1ba778fb7d25588434f0452cf1fef16">RandX::detail::IsAllZero</a> (const std::array&lt; std::uint64_t, N &gt; &amp;state) noexcept</td></tr>
+<tr class="memitem:ae159d48e5659cb08c5d611e8d5185f4d" id="r_ae159d48e5659cb08c5d611e8d5185f4d"><td class="memTemplParams" colspan="2">template&lt;std::size_t N&gt; </td></tr>
+<tr class="memitem:ae159d48e5659cb08c5d611e8d5185f4d template"><td class="memItemLeft">static constexpr bool&#160;</td><td class="memItemRight"><a class="el" href="namespaceRandX_1_1detail.html#ae159d48e5659cb08c5d611e8d5185f4d">RandX::detail::IsAllZero</a> (const std::array&lt; std::uint32_t, N &gt; &amp;state) noexcept</td></tr>
+<tr class="memitem:a23a58952bbe85de475f50a4f1e6acfce" id="r_a23a58952bbe85de475f50a4f1e6acfce"><td class="memItemLeft">bool&#160;</td><td class="memItemRight"><a class="el" href="namespaceRandX_1_1detail.html#a23a58952bbe85de475f50a4f1e6acfce">RandX::detail::HardwareRand64</a> (std::uint64_t &amp;out) noexcept</td></tr>
+<tr class="memitem:a02fce2f64f9c2eb6dbe7390a26aab73a" id="r_a02fce2f64f9c2eb6dbe7390a26aab73a"><td class="memItemLeft">bool&#160;</td><td class="memItemRight"><a class="el" href="namespaceRandX_1_1detail.html#a02fce2f64f9c2eb6dbe7390a26aab73a">RandX::detail::GetOsEntropyBytes</a> (void *buf, std::size_t n) noexcept</td></tr>
+<tr class="memitem:adaeace943469bf31b9afcd2751b363d9" id="r_adaeace943469bf31b9afcd2751b363d9"><td class="memItemLeft">bool&#160;</td><td class="memItemRight"><a class="el" href="namespaceRandX_1_1detail.html#adaeace943469bf31b9afcd2751b363d9">RandX::detail::HasCryptoGradeOsEntropy</a> () noexcept</td></tr>
+<tr class="memitem:a2b6b48b8600a944999b297c8c07a51f7" id="r_a2b6b48b8600a944999b297c8c07a51f7"><td class="memItemLeft">static void&#160;</td><td class="memItemRight"><a class="el" href="namespaceRandX_1_1detail.html#a2b6b48b8600a944999b297c8c07a51f7">RandX::detail::ChaCha20QuarterRound</a> (std::uint32_t &amp;a, std::uint32_t &amp;b, std::uint32_t &amp;c, std::uint32_t &amp;d) noexcept</td></tr>
+<tr class="memitem:ga315f8716997942607c4b8917e3691e42" id="r_ga315f8716997942607c4b8917e3691e42"><td class="memTemplParams" colspan="2">template&lt;class CharT, class Traits, detail::SerializableEngine Engine&gt; </td></tr>
+<tr class="memitem:ga315f8716997942607c4b8917e3691e42 template"><td class="memItemLeft">std::basic_ostream&lt; CharT, Traits &gt; &amp;&#160;</td><td class="memItemRight"><a class="el" href="group__engines.html#ga315f8716997942607c4b8917e3691e42">RandX::operator&lt;&lt;</a> (std::basic_ostream&lt; CharT, Traits &gt; &amp;os, const Engine &amp;engine)</td></tr>
+<tr class="memitem:ga47411229740263b9d94ddbf5c50b6127" id="r_ga47411229740263b9d94ddbf5c50b6127"><td class="memTemplParams" colspan="2">template&lt;class CharT, class Traits, detail::SerializableEngine Engine&gt; </td></tr>
+<tr class="memitem:ga47411229740263b9d94ddbf5c50b6127 template"><td class="memItemLeft">std::basic_istream&lt; CharT, Traits &gt; &amp;&#160;</td><td class="memItemRight"><a class="el" href="group__engines.html#ga47411229740263b9d94ddbf5c50b6127">RandX::operator&gt;&gt;</a> (std::basic_istream&lt; CharT, Traits &gt; &amp;is, Engine &amp;engine)</td></tr>
+<tr class="memitem:ga7dba92b95d7c5e6eb2d1db3c6a3b2ddf" id="r_ga7dba92b95d7c5e6eb2d1db3c6a3b2ddf"><td class="memItemLeft"><a class="el" href="classRandX_1_1Xoshiro256StarStar.html">Xoshiro256StarStar</a> &amp;&#160;</td><td class="memItemRight"><a class="el" href="group__engines.html#ga7dba92b95d7c5e6eb2d1db3c6a3b2ddf">RandX::DefaultEngine</a> ()</td></tr>
+<tr class="memitem:gaa82567759ff174faf923397ea9b0c71f" id="r_gaa82567759ff174faf923397ea9b0c71f"><td class="memItemLeft">std::uint64_t&#160;</td><td class="memItemRight"><a class="el" href="group__engines.html#gaa82567759ff174faf923397ea9b0c71f">RandX::RandomSeed</a> ()</td></tr>
+<tr class="memdesc:gaa82567759ff174faf923397ea9b0c71f"><td class="mdescLeft">&#160;</td><td class="mdescRight">生成非确定性的 64 位种子  <br /></td></tr>
+<tr class="memitem:ga31b80b51d6bc9e44f68c5232803bb6d6" id="r_ga31b80b51d6bc9e44f68c5232803bb6d6"><td class="memItemLeft">void&#160;</td><td class="memItemRight"><a class="el" href="group__csprng.html#ga31b80b51d6bc9e44f68c5232803bb6d6">RandX::SecureRandomBytes</a> (void *buf, std::size_t n)</td></tr>
+<tr class="memdesc:ga31b80b51d6bc9e44f68c5232803bb6d6"><td class="mdescLeft">&#160;</td><td class="mdescRight">用 OS 密码学熵源填充 [buf, buf+n) 字节  <br /></td></tr>
+<tr class="memitem:ga2bceeb54896f0c5444e804d3637b3dfd" id="r_ga2bceeb54896f0c5444e804d3637b3dfd"><td class="memItemLeft">std::uint64_t&#160;</td><td class="memItemRight"><a class="el" href="group__csprng.html#ga2bceeb54896f0c5444e804d3637b3dfd">RandX::SecureSeed</a> ()</td></tr>
+<tr class="memdesc:ga2bceeb54896f0c5444e804d3637b3dfd"><td class="mdescLeft">&#160;</td><td class="mdescRight">生成密码学安全的 64 位随机种子  <br /></td></tr>
+<tr class="memitem:gadd29cdc46053e1b54ea52643c71b5144" id="r_gadd29cdc46053e1b54ea52643c71b5144"><td class="memItemLeft">bool&#160;</td><td class="memItemRight"><a class="el" href="group__csprng.html#gadd29cdc46053e1b54ea52643c71b5144">RandX::IsOsCryptoEntropyAvailable</a> () noexcept</td></tr>
+<tr class="memdesc:gadd29cdc46053e1b54ea52643c71b5144"><td class="mdescLeft">&#160;</td><td class="mdescRight">检测 OS 密码学熵源是否可用  <br /></td></tr>
+<tr class="memitem:gaf044f609bc913a55d673bda9979a7e1f" id="r_gaf044f609bc913a55d673bda9979a7e1f"><td class="memItemLeft">void&#160;</td><td class="memItemRight"><a class="el" href="group__csprng.html#gaf044f609bc913a55d673bda9979a7e1f">RandX::Reseed</a> (std::uint64_t seed)</td></tr>
+<tr class="memdesc:gaf044f609bc913a55d673bda9979a7e1f"><td class="mdescLeft">&#160;</td><td class="mdescRight">重置默认引擎的种子（用于测试复现）  <br /></td></tr>
+<tr class="memitem:ga6ae9a1a2e8272929ad0522140f065140" id="r_ga6ae9a1a2e8272929ad0522140f065140"><td class="memItemLeft">void&#160;</td><td class="memItemRight"><a class="el" href="group__csprng.html#ga6ae9a1a2e8272929ad0522140f065140">RandX::ReseedRandom</a> ()</td></tr>
+<tr class="memdesc:ga6ae9a1a2e8272929ad0522140f065140"><td class="mdescLeft">&#160;</td><td class="mdescRight">重置默认引擎为真随机种子  <br /></td></tr>
+<tr class="memitem:gace250579fe08f5bdd6b5db6b573ab55c" id="r_gace250579fe08f5bdd6b5db6b573ab55c"><td class="memTemplParams" colspan="2">template&lt;std::integral T = int&gt; </td></tr>
+<tr class="memitem:gace250579fe08f5bdd6b5db6b573ab55c template"><td class="memItemLeft">T&#160;</td><td class="memItemRight"><a class="el" href="group__basic.html#gace250579fe08f5bdd6b5db6b573ab55c">RandX::RandInt</a> (T min, T max)</td></tr>
+<tr class="memdesc:gace250579fe08f5bdd6b5db6b573ab55c"><td class="mdescLeft">&#160;</td><td class="mdescRight">生成 [min, max] 范围内的随机整数  <br /></td></tr>
+<tr class="memitem:ga80041134ff8e6e4239c2e6ce5bdbcd79" id="r_ga80041134ff8e6e4239c2e6ce5bdbcd79"><td class="memTemplParams" colspan="2">template&lt;std::integral T = int&gt; </td></tr>
+<tr class="memitem:ga80041134ff8e6e4239c2e6ce5bdbcd79 template"><td class="memItemLeft">T&#160;</td><td class="memItemRight"><a class="el" href="group__basic.html#ga80041134ff8e6e4239c2e6ce5bdbcd79">RandX::RandInt</a> (T max)</td></tr>
+<tr class="memdesc:ga80041134ff8e6e4239c2e6ce5bdbcd79"><td class="mdescLeft">&#160;</td><td class="mdescRight">生成 [0, max] 范围内的随机整数  <br /></td></tr>
+<tr class="memitem:ga96850400df9201b2f2bf10c7b36a7ad2" id="r_ga96850400df9201b2f2bf10c7b36a7ad2"><td class="memTemplParams" colspan="2">template&lt;std::floating_point T = double&gt; </td></tr>
+<tr class="memitem:ga96850400df9201b2f2bf10c7b36a7ad2 template"><td class="memItemLeft">T&#160;</td><td class="memItemRight"><a class="el" href="group__basic.html#ga96850400df9201b2f2bf10c7b36a7ad2">RandX::RandReal</a> (T min=T{0}, T max=T{1})</td></tr>
+<tr class="memdesc:ga96850400df9201b2f2bf10c7b36a7ad2"><td class="mdescLeft">&#160;</td><td class="mdescRight">生成 [min, max) 范围内的随机浮点数  <br /></td></tr>
+<tr class="memitem:ga574d6881cf5235d2110373c875f5362f" id="r_ga574d6881cf5235d2110373c875f5362f"><td class="memItemLeft">bool&#160;</td><td class="memItemRight"><a class="el" href="group__basic.html#ga574d6881cf5235d2110373c875f5362f">RandX::RandBool</a> (double p=0.5)</td></tr>
+<tr class="memdesc:ga574d6881cf5235d2110373c875f5362f"><td class="mdescLeft">&#160;</td><td class="mdescRight">生成随机布尔值  <br /></td></tr>
+<tr class="memitem:ga8089e5bd81aeb569104f3edcb4151bb6" id="r_ga8089e5bd81aeb569104f3edcb4151bb6"><td class="memTemplParams" colspan="2">template&lt;class Engine&gt; </td></tr>
+<tr class="memitem:ga8089e5bd81aeb569104f3edcb4151bb6 template"><td class="memItemLeft">bool&#160;</td><td class="memItemRight"><a class="el" href="group__basic.html#ga8089e5bd81aeb569104f3edcb4151bb6">RandX::RandBool</a> (Engine &amp;engine, double p=0.5)</td></tr>
+<tr class="memdesc:ga8089e5bd81aeb569104f3edcb4151bb6"><td class="mdescLeft">&#160;</td><td class="mdescRight">生成随机布尔值（指定引擎重载）  <br /></td></tr>
+<tr class="memitem:ga3072bcf35cf7278c9d190c697905195b" id="r_ga3072bcf35cf7278c9d190c697905195b"><td class="memItemLeft">bool&#160;</td><td class="memItemRight"><a class="el" href="group__basic.html#ga3072bcf35cf7278c9d190c697905195b">RandX::RandBernoulli</a> (double p=0.5)</td></tr>
+<tr class="memdesc:ga3072bcf35cf7278c9d190c697905195b"><td class="mdescLeft">&#160;</td><td class="mdescRight">伯努利分布（RandBool 的别名封装，对齐 &lt;random&gt; 命名）  <br /></td></tr>
+<tr class="memitem:gabb2d8750b105eecaceba50a5a23b8d89" id="r_gabb2d8750b105eecaceba50a5a23b8d89"><td class="memTemplParams" colspan="2">template&lt;class Engine&gt; </td></tr>
+<tr class="memitem:gabb2d8750b105eecaceba50a5a23b8d89 template"><td class="memItemLeft">bool&#160;</td><td class="memItemRight"><a class="el" href="group__basic.html#gabb2d8750b105eecaceba50a5a23b8d89">RandX::RandBernoulli</a> (Engine &amp;engine, double p=0.5)</td></tr>
+<tr class="memdesc:gabb2d8750b105eecaceba50a5a23b8d89"><td class="mdescLeft">&#160;</td><td class="mdescRight">伯努利分布（指定引擎重载）  <br /></td></tr>
+<tr class="memitem:gab0fe55ee4ff4cc8c5ffdbf93f3454cbe" id="r_gab0fe55ee4ff4cc8c5ffdbf93f3454cbe"><td class="memTemplParams" colspan="2">template&lt;detail::Character CharT&gt; </td></tr>
+<tr class="memitem:gab0fe55ee4ff4cc8c5ffdbf93f3454cbe template"><td class="memItemLeft">CharT&#160;</td><td class="memItemRight"><a class="el" href="group__basic.html#gab0fe55ee4ff4cc8c5ffdbf93f3454cbe">RandX::RandChar</a> (CharT min, CharT max)</td></tr>
+<tr class="memdesc:gab0fe55ee4ff4cc8c5ffdbf93f3454cbe"><td class="mdescLeft">&#160;</td><td class="mdescRight">生成 [min, max] 范围内的随机字符  <br /></td></tr>
+<tr class="memitem:ga17db2afa7c5f0d373a82e14ebd3f4a90" id="r_ga17db2afa7c5f0d373a82e14ebd3f4a90"><td class="memTemplParams" colspan="2">template&lt;detail::Character CharT = char&gt; </td></tr>
+<tr class="memitem:ga17db2afa7c5f0d373a82e14ebd3f4a90 template"><td class="memItemLeft">CharT&#160;</td><td class="memItemRight"><a class="el" href="group__basic.html#ga17db2afa7c5f0d373a82e14ebd3f4a90">RandX::RandChar</a> (CharT max)</td></tr>
+<tr class="memdesc:ga17db2afa7c5f0d373a82e14ebd3f4a90"><td class="mdescLeft">&#160;</td><td class="mdescRight">生成 [CharT{}, max] 范围内的随机字符  <br /></td></tr>
+<tr class="memitem:ga6f1d5cd08077178b4788bf9fcf8be8db" id="r_ga6f1d5cd08077178b4788bf9fcf8be8db"><td class="memTemplParams" colspan="2">template&lt;detail::Character CharT, class Engine&gt; </td></tr>
+<tr class="memitem:ga6f1d5cd08077178b4788bf9fcf8be8db template"><td class="memItemLeft">CharT&#160;</td><td class="memItemRight"><a class="el" href="group__basic.html#ga6f1d5cd08077178b4788bf9fcf8be8db">RandX::RandChar</a> (Engine &amp;engine, CharT min, CharT max)</td></tr>
+<tr class="memdesc:ga6f1d5cd08077178b4788bf9fcf8be8db"><td class="mdescLeft">&#160;</td><td class="mdescRight">生成 [min, max] 范围内的随机字符（指定引擎重载）  <br /></td></tr>
+<tr class="memitem:ga19ec6ef8d50fcb8ab4dea5b5355a46ce" id="r_ga19ec6ef8d50fcb8ab4dea5b5355a46ce"><td class="memTemplParams" colspan="2">template&lt;detail::Character CharT = char, class Engine&gt; </td></tr>
+<tr class="memitem:ga19ec6ef8d50fcb8ab4dea5b5355a46ce template"><td class="memItemLeft">CharT&#160;</td><td class="memItemRight"><a class="el" href="group__basic.html#ga19ec6ef8d50fcb8ab4dea5b5355a46ce">RandX::RandChar</a> (Engine &amp;engine, CharT max)</td></tr>
+<tr class="memdesc:ga19ec6ef8d50fcb8ab4dea5b5355a46ce"><td class="mdescLeft">&#160;</td><td class="mdescRight">生成 [CharT{}, max] 范围内的随机字符（指定引擎重载）  <br /></td></tr>
+<tr class="memitem:ga5674ac381dc3a371506e0861b37da2bc" id="r_ga5674ac381dc3a371506e0861b37da2bc"><td class="memTemplParams" colspan="2">template&lt;class Container&gt; </td></tr>
+<tr class="memitem:ga5674ac381dc3a371506e0861b37da2bc template"><td class="memItemLeft">decltype(auto)&#160;</td><td class="memItemRight"><a class="el" href="group__containers.html#ga5674ac381dc3a371506e0861b37da2bc">RandX::RandElement</a> (Container &amp;&amp;c)</td></tr>
+<tr class="memdesc:ga5674ac381dc3a371506e0861b37da2bc"><td class="mdescLeft">&#160;</td><td class="mdescRight">从容器中随机取一个元素  <br /></td></tr>
+<tr class="memitem:gaffbc9ac3c67e1a1c87e19ec64cea85a4" id="r_gaffbc9ac3c67e1a1c87e19ec64cea85a4"><td class="memTemplParams" colspan="2">template&lt;std::random_access_iterator It&gt; </td></tr>
+<tr class="memitem:gaffbc9ac3c67e1a1c87e19ec64cea85a4 template"><td class="memItemLeft">It&#160;</td><td class="memItemRight"><a class="el" href="group__containers.html#gaffbc9ac3c67e1a1c87e19ec64cea85a4">RandX::RandElement</a> (It first, It last)</td></tr>
+<tr class="memdesc:gaffbc9ac3c67e1a1c87e19ec64cea85a4"><td class="mdescLeft">&#160;</td><td class="mdescRight">从迭代器范围内随机取一个元素（随机访问迭代器：O(1) 直接定位）  <br /></td></tr>
+<tr class="memitem:gaffbc9ac3c67e1a1c87e19ec64cea85a4" id="r_gaffbc9ac3c67e1a1c87e19ec64cea85a4"><td class="memTemplParams" colspan="2">template&lt;std::input_iterator It&gt; <br />
+requires (!std::random_access_iterator&lt;It&gt;)</td></tr>
+<tr class="memitem:gaffbc9ac3c67e1a1c87e19ec64cea85a4 template"><td class="memItemLeft">It&#160;</td><td class="memItemRight"><a class="el" href="namespaceRandX.html#gaffbc9ac3c67e1a1c87e19ec64cea85a4">RandX::RandElement</a> (It first, It last)</td></tr>
+<tr class="memdesc:gaffbc9ac3c67e1a1c87e19ec64cea85a4"><td class="mdescLeft">&#160;</td><td class="mdescRight">从迭代器范围内随机取一个元素（输入迭代器：O(n) reservoir sampling）  <br /></td></tr>
+<tr class="memitem:ga8a769dbd9bc6086f2104106dafd57fca" id="r_ga8a769dbd9bc6086f2104106dafd57fca"><td class="memTemplParams" colspan="2">template&lt;std::random_access_iterator It, class Engine&gt; </td></tr>
+<tr class="memitem:ga8a769dbd9bc6086f2104106dafd57fca template"><td class="memItemLeft">It&#160;</td><td class="memItemRight"><a class="el" href="group__containers.html#ga8a769dbd9bc6086f2104106dafd57fca">RandX::RandElement</a> (Engine &amp;engine, It first, It last)</td></tr>
+<tr class="memdesc:ga8a769dbd9bc6086f2104106dafd57fca"><td class="mdescLeft">&#160;</td><td class="mdescRight">从迭代器范围内随机取一个元素（指定引擎，随机访问迭代器）  <br /></td></tr>
+<tr class="memitem:ga8a769dbd9bc6086f2104106dafd57fca" id="r_ga8a769dbd9bc6086f2104106dafd57fca"><td class="memTemplParams" colspan="2">template&lt;std::input_iterator It, class Engine&gt; <br />
+requires (!std::random_access_iterator&lt;It&gt;)</td></tr>
+<tr class="memitem:ga8a769dbd9bc6086f2104106dafd57fca template"><td class="memItemLeft">It&#160;</td><td class="memItemRight"><a class="el" href="namespaceRandX.html#ga8a769dbd9bc6086f2104106dafd57fca">RandX::RandElement</a> (Engine &amp;engine, It first, It last)</td></tr>
+<tr class="memdesc:ga8a769dbd9bc6086f2104106dafd57fca"><td class="mdescLeft">&#160;</td><td class="mdescRight">从迭代器范围内随机取一个元素（指定引擎，输入迭代器）  <br /></td></tr>
+<tr class="memitem:gaf8ebb5f0066bebd89b6c16cdfdb7e1b7" id="r_gaf8ebb5f0066bebd89b6c16cdfdb7e1b7"><td class="memTemplParams" colspan="2">template&lt;std::floating_point T = double&gt; </td></tr>
+<tr class="memitem:gaf8ebb5f0066bebd89b6c16cdfdb7e1b7 template"><td class="memItemLeft">T&#160;</td><td class="memItemRight"><a class="el" href="group__distributions.html#gaf8ebb5f0066bebd89b6c16cdfdb7e1b7">RandX::RandNormal</a> (T mean=T{0}, T stddev=T{1})</td></tr>
+<tr class="memdesc:gaf8ebb5f0066bebd89b6c16cdfdb7e1b7"><td class="mdescLeft">&#160;</td><td class="mdescRight">生成正态分布随机数  <br /></td></tr>
+<tr class="memitem:ga221b39191f4396933c863fce4ace35ac" id="r_ga221b39191f4396933c863fce4ace35ac"><td class="memTemplParams" colspan="2">template&lt;class Engine, std::floating_point T = double&gt; </td></tr>
+<tr class="memitem:ga221b39191f4396933c863fce4ace35ac template"><td class="memItemLeft">T&#160;</td><td class="memItemRight"><a class="el" href="group__distributions.html#ga221b39191f4396933c863fce4ace35ac">RandX::RandNormal</a> (Engine &amp;engine, T mean=T{0}, T stddev=T{1})</td></tr>
+<tr class="memdesc:ga221b39191f4396933c863fce4ace35ac"><td class="mdescLeft">&#160;</td><td class="mdescRight">生成正态分布随机数（指定引擎重载）  <br /></td></tr>
+<tr class="memitem:ga79b20aa5c374bac920aed64c683d00b6" id="r_ga79b20aa5c374bac920aed64c683d00b6"><td class="memTemplParams" colspan="2">template&lt;class Container&gt; </td></tr>
+<tr class="memitem:ga79b20aa5c374bac920aed64c683d00b6 template"><td class="memItemLeft">void&#160;</td><td class="memItemRight"><a class="el" href="group__distributions.html#ga79b20aa5c374bac920aed64c683d00b6">RandX::RandShuffle</a> (Container &amp;&amp;c)</td></tr>
+<tr class="memdesc:ga79b20aa5c374bac920aed64c683d00b6"><td class="mdescLeft">&#160;</td><td class="mdescRight">随机打乱容器  <br /></td></tr>
+<tr class="memitem:ga6728bbbaddc7adc0aaeaaa90d6f43873" id="r_ga6728bbbaddc7adc0aaeaaa90d6f43873"><td class="memTemplParams" colspan="2">template&lt;class It, class T&gt; <br />
+requires detail::RandFillable&lt;It, T&gt;</td></tr>
+<tr class="memitem:ga6728bbbaddc7adc0aaeaaa90d6f43873 template"><td class="memItemLeft">void&#160;</td><td class="memItemRight"><a class="el" href="group__distributions.html#ga6728bbbaddc7adc0aaeaaa90d6f43873">RandX::RandFill</a> (It first, It last, T min, T max)</td></tr>
+<tr class="memdesc:ga6728bbbaddc7adc0aaeaaa90d6f43873"><td class="mdescLeft">&#160;</td><td class="mdescRight">用 [min, max] 范围的随机整数填充迭代器区间  <br /></td></tr>
+<tr class="memitem:ga6728bbbaddc7adc0aaeaaa90d6f43873" id="r_ga6728bbbaddc7adc0aaeaaa90d6f43873"><td class="memTemplParams" colspan="2">template&lt;class It, std::floating_point T&gt; <br />
+requires std::output_iterator&lt;It, T&gt;</td></tr>
+<tr class="memitem:ga6728bbbaddc7adc0aaeaaa90d6f43873 template"><td class="memItemLeft">void&#160;</td><td class="memItemRight"><a class="el" href="namespaceRandX.html#ga6728bbbaddc7adc0aaeaaa90d6f43873">RandX::RandFill</a> (It first, It last, T min, T max)</td></tr>
+<tr class="memdesc:ga6728bbbaddc7adc0aaeaaa90d6f43873"><td class="mdescLeft">&#160;</td><td class="mdescRight">用 [min, max) 范围的随机浮点数填充迭代器区间  <br /></td></tr>
+<tr class="memitem:gab229fa821db2644134e4246063928c73" id="r_gab229fa821db2644134e4246063928c73"><td class="memTemplParams" colspan="2">template&lt;class It, class T, class Engine&gt; <br />
+requires detail::RandFillable&lt;It, T&gt;</td></tr>
+<tr class="memitem:gab229fa821db2644134e4246063928c73 template"><td class="memItemLeft">void&#160;</td><td class="memItemRight"><a class="el" href="group__distributions.html#gab229fa821db2644134e4246063928c73">RandX::RandFill</a> (Engine &amp;engine, It first, It last, T min, T max)</td></tr>
+<tr class="memdesc:gab229fa821db2644134e4246063928c73"><td class="mdescLeft">&#160;</td><td class="mdescRight">用 [min, max] 范围的随机整数填充迭代器区间（指定引擎重载）  <br /></td></tr>
+<tr class="memitem:gab229fa821db2644134e4246063928c73" id="r_gab229fa821db2644134e4246063928c73"><td class="memTemplParams" colspan="2">template&lt;class It, std::floating_point T, class Engine&gt; <br />
+requires std::output_iterator&lt;It, T&gt;</td></tr>
+<tr class="memitem:gab229fa821db2644134e4246063928c73 template"><td class="memItemLeft">void&#160;</td><td class="memItemRight"><a class="el" href="namespaceRandX.html#gab229fa821db2644134e4246063928c73">RandX::RandFill</a> (Engine &amp;engine, It first, It last, T min, T max)</td></tr>
+<tr class="memdesc:gab229fa821db2644134e4246063928c73"><td class="mdescLeft">&#160;</td><td class="mdescRight">用 [min, max) 范围的随机浮点数填充迭代器区间（指定引擎重载）  <br /></td></tr>
+<tr class="memitem:gaf50c23c6326d6be0f77b518fa305577d" id="r_gaf50c23c6326d6be0f77b518fa305577d"><td class="memTemplParams" colspan="2">template&lt;std::integral T = int&gt; </td></tr>
+<tr class="memitem:gaf50c23c6326d6be0f77b518fa305577d template"><td class="memItemLeft">std::vector&lt; T &gt;&#160;</td><td class="memItemRight"><a class="el" href="group__distributions.html#gaf50c23c6326d6be0f77b518fa305577d">RandX::RandVector</a> (T min, T max, std::size_t n)</td></tr>
+<tr class="memdesc:gaf50c23c6326d6be0f77b518fa305577d"><td class="mdescLeft">&#160;</td><td class="mdescRight">生成含 n 个随机整数的 vector  <br /></td></tr>
+<tr class="memitem:gaf50c23c6326d6be0f77b518fa305577d" id="r_gaf50c23c6326d6be0f77b518fa305577d"><td class="memTemplParams" colspan="2">template&lt;std::floating_point T = double&gt; </td></tr>
+<tr class="memitem:gaf50c23c6326d6be0f77b518fa305577d template"><td class="memItemLeft">std::vector&lt; T &gt;&#160;</td><td class="memItemRight"><a class="el" href="namespaceRandX.html#gaf50c23c6326d6be0f77b518fa305577d">RandX::RandVector</a> (T min, T max, std::size_t n)</td></tr>
+<tr class="memdesc:gaf50c23c6326d6be0f77b518fa305577d"><td class="mdescLeft">&#160;</td><td class="mdescRight">生成含 n 个随机浮点数的 vector  <br /></td></tr>
+<tr class="memitem:ga2fd9192928b8c7cd79f7a32266a471c6" id="r_ga2fd9192928b8c7cd79f7a32266a471c6"><td class="memTemplParams" colspan="2">template&lt;std::integral T = int, class Engine&gt; </td></tr>
+<tr class="memitem:ga2fd9192928b8c7cd79f7a32266a471c6 template"><td class="memItemLeft">std::vector&lt; T &gt;&#160;</td><td class="memItemRight"><a class="el" href="group__distributions.html#ga2fd9192928b8c7cd79f7a32266a471c6">RandX::RandVector</a> (Engine &amp;engine, T min, T max, std::size_t n)</td></tr>
+<tr class="memdesc:ga2fd9192928b8c7cd79f7a32266a471c6"><td class="mdescLeft">&#160;</td><td class="mdescRight">生成含 n 个随机整数的 vector（指定引擎重载）  <br /></td></tr>
+<tr class="memitem:ga2fd9192928b8c7cd79f7a32266a471c6" id="r_ga2fd9192928b8c7cd79f7a32266a471c6"><td class="memTemplParams" colspan="2">template&lt;std::floating_point T = double, class Engine&gt; </td></tr>
+<tr class="memitem:ga2fd9192928b8c7cd79f7a32266a471c6 template"><td class="memItemLeft">std::vector&lt; T &gt;&#160;</td><td class="memItemRight"><a class="el" href="namespaceRandX.html#ga2fd9192928b8c7cd79f7a32266a471c6">RandX::RandVector</a> (Engine &amp;engine, T min, T max, std::size_t n)</td></tr>
+<tr class="memdesc:ga2fd9192928b8c7cd79f7a32266a471c6"><td class="mdescLeft">&#160;</td><td class="mdescRight">生成含 n 个随机浮点数的 vector（指定引擎重载）  <br /></td></tr>
+<tr class="memitem:gaa6562463e1b0c5e89d988cfb551f6576" id="r_gaa6562463e1b0c5e89d988cfb551f6576"><td class="memTemplParams" colspan="2">template&lt;class WeightContainer&gt; </td></tr>
+<tr class="memitem:gaa6562463e1b0c5e89d988cfb551f6576 template"><td class="memItemLeft">WeightContainer::size_type&#160;</td><td class="memItemRight"><a class="el" href="group__distributions.html#gaa6562463e1b0c5e89d988cfb551f6576">RandX::RandWeighted</a> (const WeightContainer &amp;weights)</td></tr>
+<tr class="memdesc:gaa6562463e1b0c5e89d988cfb551f6576"><td class="mdescLeft">&#160;</td><td class="mdescRight">按权重随机选取索引  <br /></td></tr>
+<tr class="memitem:ga893f49cdc358986fa4b8519a53fc10b5" id="r_ga893f49cdc358986fa4b8519a53fc10b5"><td class="memTemplParams" colspan="2">template&lt;std::integral T, class Engine&gt; </td></tr>
+<tr class="memitem:ga893f49cdc358986fa4b8519a53fc10b5 template"><td class="memItemLeft">T&#160;</td><td class="memItemRight"><a class="el" href="group__distributions.html#ga893f49cdc358986fa4b8519a53fc10b5">RandX::RandInt</a> (Engine &amp;engine, T min, T max)</td></tr>
+<tr class="memdesc:ga893f49cdc358986fa4b8519a53fc10b5"><td class="mdescLeft">&#160;</td><td class="mdescRight">生成 [min, max] 范围内的随机整数（指定引擎重载）  <br /></td></tr>
+<tr class="memitem:ga594f1e2917b480cabe2e3288b2703d73" id="r_ga594f1e2917b480cabe2e3288b2703d73"><td class="memTemplParams" colspan="2">template&lt;std::floating_point T, class Engine&gt; </td></tr>
+<tr class="memitem:ga594f1e2917b480cabe2e3288b2703d73 template"><td class="memItemLeft">T&#160;</td><td class="memItemRight"><a class="el" href="group__distributions.html#ga594f1e2917b480cabe2e3288b2703d73">RandX::RandReal</a> (Engine &amp;engine, T min=T{0}, T max=T{1})</td></tr>
+<tr class="memdesc:ga594f1e2917b480cabe2e3288b2703d73"><td class="mdescLeft">&#160;</td><td class="mdescRight">生成 [min, max) 范围内的随机浮点数（指定引擎重载）  <br /></td></tr>
+<tr class="memitem:a8f6e6769a7bdbc3689a1ce3e47d9f767" id="r_a8f6e6769a7bdbc3689a1ce3e47d9f767"><td class="memItemLeft">constexpr std::uint64_t&#160;</td><td class="memItemRight"><a class="el" href="namespaceRandX_1_1detail.html#a8f6e6769a7bdbc3689a1ce3e47d9f767">RandX::detail::BoundedRand</a> (<a class="el" href="classRandX_1_1Xoshiro256StarStar.html">Xoshiro256StarStar</a> &amp;rng, std::uint64_t range) noexcept</td></tr>
+<tr class="memitem:a776ed00e598ef1b90a5e29060c7cebc6" id="r_a776ed00e598ef1b90a5e29060c7cebc6"><td class="memItemLeft">std::string_view&#160;</td><td class="memItemRight"><a class="el" href="namespaceRandX_1_1detail.html#a776ed00e598ef1b90a5e29060c7cebc6">RandX::detail::CharSetString</a> (<a class="el" href="group__distributions.html#gab0df6de2fb7ce10af8e7175c54a186a6">CharSet</a> cs) noexcept</td></tr>
+<tr class="memitem:ga405c3eea3617d5cf02beeed64fbd7bd4" id="r_ga405c3eea3617d5cf02beeed64fbd7bd4"><td class="memItemLeft">char&#160;</td><td class="memItemRight"><a class="el" href="group__distributions.html#ga405c3eea3617d5cf02beeed64fbd7bd4">RandX::RandChar</a> (<a class="el" href="group__distributions.html#gab0df6de2fb7ce10af8e7175c54a186a6">CharSet</a> cs)</td></tr>
+<tr class="memdesc:ga405c3eea3617d5cf02beeed64fbd7bd4"><td class="mdescLeft">&#160;</td><td class="mdescRight">从预设字符集随机取一个字符  <br /></td></tr>
+<tr class="memitem:ga7f45ccf278194879c9d6440f7cf49906" id="r_ga7f45ccf278194879c9d6440f7cf49906"><td class="memTemplParams" colspan="2">template&lt;class Engine&gt; </td></tr>
+<tr class="memitem:ga7f45ccf278194879c9d6440f7cf49906 template"><td class="memItemLeft">char&#160;</td><td class="memItemRight"><a class="el" href="group__distributions.html#ga7f45ccf278194879c9d6440f7cf49906">RandX::RandChar</a> (Engine &amp;engine, <a class="el" href="group__distributions.html#gab0df6de2fb7ce10af8e7175c54a186a6">CharSet</a> cs)</td></tr>
+<tr class="memdesc:ga7f45ccf278194879c9d6440f7cf49906"><td class="mdescLeft">&#160;</td><td class="mdescRight">从预设字符集随机取一个字符（指定引擎重载）  <br /></td></tr>
+<tr class="memitem:gacee1e826b9569d547febb29ebc1a301b" id="r_gacee1e826b9569d547febb29ebc1a301b"><td class="memTemplParams" colspan="2">template&lt;class Container&gt; </td></tr>
+<tr class="memitem:gacee1e826b9569d547febb29ebc1a301b template"><td class="memItemLeft">auto&#160;</td><td class="memItemRight"><a class="el" href="group__distributions.html#gacee1e826b9569d547febb29ebc1a301b">RandX::RandSample</a> (const Container &amp;c, typename Container::size_type n)</td></tr>
+<tr class="memdesc:gacee1e826b9569d547febb29ebc1a301b"><td class="mdescLeft">&#160;</td><td class="mdescRight">无放回抽样：从容器中随机抽取 n 个元素（Fisher-Yates 前 n 步）  <br /></td></tr>
+<tr class="memitem:ga60b866201e5c736b30ea7cba6af0ee02" id="r_ga60b866201e5c736b30ea7cba6af0ee02"><td class="memTemplParams" colspan="2">template&lt;std::random_access_iterator It&gt; </td></tr>
+<tr class="memitem:ga60b866201e5c736b30ea7cba6af0ee02 template"><td class="memItemLeft">std::vector&lt; std::iter_value_t&lt; It &gt; &gt;&#160;</td><td class="memItemRight"><a class="el" href="group__distributions.html#ga60b866201e5c736b30ea7cba6af0ee02">RandX::RandSample</a> (It first, It last, std::iter_difference_t&lt; It &gt; n)</td></tr>
+<tr class="memdesc:ga60b866201e5c736b30ea7cba6af0ee02"><td class="mdescLeft">&#160;</td><td class="mdescRight">无放回抽样（随机访问迭代器版，hash-set / 索引数组双分支）  <br /></td></tr>
+<tr class="memitem:ga60b866201e5c736b30ea7cba6af0ee02" id="r_ga60b866201e5c736b30ea7cba6af0ee02"><td class="memTemplParams" colspan="2">template&lt;std::input_iterator It&gt; <br />
+requires (!std::random_access_iterator&lt;It&gt;)</td></tr>
+<tr class="memitem:ga60b866201e5c736b30ea7cba6af0ee02 template"><td class="memItemLeft">std::vector&lt; std::iter_value_t&lt; It &gt; &gt;&#160;</td><td class="memItemRight"><a class="el" href="namespaceRandX.html#ga60b866201e5c736b30ea7cba6af0ee02">RandX::RandSample</a> (It first, It last, std::iter_difference_t&lt; It &gt; n)</td></tr>
+<tr class="memdesc:ga60b866201e5c736b30ea7cba6af0ee02"><td class="mdescLeft">&#160;</td><td class="mdescRight">无放回抽样（输入迭代器版，reservoir sampling Algorithm R）  <br /></td></tr>
+<tr class="memitem:ga6395cc810a813b8f30a2a430b9088ac5" id="r_ga6395cc810a813b8f30a2a430b9088ac5"><td class="memTemplParams" colspan="2">template&lt;std::random_access_iterator It, class Engine&gt; </td></tr>
+<tr class="memitem:ga6395cc810a813b8f30a2a430b9088ac5 template"><td class="memItemLeft">std::vector&lt; std::iter_value_t&lt; It &gt; &gt;&#160;</td><td class="memItemRight"><a class="el" href="group__distributions.html#ga6395cc810a813b8f30a2a430b9088ac5">RandX::RandSample</a> (Engine &amp;engine, It first, It last, std::iter_difference_t&lt; It &gt; n)</td></tr>
+<tr class="memdesc:ga6395cc810a813b8f30a2a430b9088ac5"><td class="mdescLeft">&#160;</td><td class="mdescRight">无放回抽样（指定引擎，随机访问迭代器版）  <br /></td></tr>
+<tr class="memitem:ga6395cc810a813b8f30a2a430b9088ac5" id="r_ga6395cc810a813b8f30a2a430b9088ac5"><td class="memTemplParams" colspan="2">template&lt;std::input_iterator It, class Engine&gt; <br />
+requires (!std::random_access_iterator&lt;It&gt;)</td></tr>
+<tr class="memitem:ga6395cc810a813b8f30a2a430b9088ac5 template"><td class="memItemLeft">std::vector&lt; std::iter_value_t&lt; It &gt; &gt;&#160;</td><td class="memItemRight"><a class="el" href="namespaceRandX.html#ga6395cc810a813b8f30a2a430b9088ac5">RandX::RandSample</a> (Engine &amp;engine, It first, It last, std::iter_difference_t&lt; It &gt; n)</td></tr>
+<tr class="memdesc:ga6395cc810a813b8f30a2a430b9088ac5"><td class="mdescLeft">&#160;</td><td class="mdescRight">无放回抽样（指定引擎，输入迭代器版，reservoir sampling）  <br /></td></tr>
+<tr class="memitem:gabbd1d26164f6ea527610dae10bca2a8e" id="r_gabbd1d26164f6ea527610dae10bca2a8e"><td class="memItemLeft">std::vector&lt; std::size_t &gt;&#160;</td><td class="memItemRight"><a class="el" href="group__distributions.html#gabbd1d26164f6ea527610dae10bca2a8e">RandX::RandPermutation</a> (std::size_t n)</td></tr>
+<tr class="memdesc:gabbd1d26164f6ea527610dae10bca2a8e"><td class="mdescLeft">&#160;</td><td class="mdescRight">生成 [0, n) 的随机排列  <br /></td></tr>
+<tr class="memitem:ga1553d9169f14ad29db99d3b327f40139" id="r_ga1553d9169f14ad29db99d3b327f40139"><td class="memItemLeft">std::string&#160;</td><td class="memItemRight"><a class="el" href="group__strings.html#ga1553d9169f14ad29db99d3b327f40139">RandX::RandString</a> (std::size_t length, std::string_view charset=&quot;abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789&quot;)</td></tr>
+<tr class="memdesc:ga1553d9169f14ad29db99d3b327f40139"><td class="mdescLeft">&#160;</td><td class="mdescRight">生成指定长度的随机字符串  <br /></td></tr>
+<tr class="memitem:ga1e2d323ca5c287e4eb68e89a04be770b" id="r_ga1e2d323ca5c287e4eb68e89a04be770b"><td class="memItemLeft">std::string&#160;</td><td class="memItemRight"><a class="el" href="group__strings.html#ga1e2d323ca5c287e4eb68e89a04be770b">RandX::RandString</a> (std::size_t n, <a class="el" href="group__distributions.html#gab0df6de2fb7ce10af8e7175c54a186a6">CharSet</a> cs)</td></tr>
+<tr class="memdesc:ga1e2d323ca5c287e4eb68e89a04be770b"><td class="mdescLeft">&#160;</td><td class="mdescRight">从预设字符集生成随机字符串  <br /></td></tr>
+<tr class="memitem:ga2665bd8b696d4702296961bded07c157" id="r_ga2665bd8b696d4702296961bded07c157"><td class="memTemplParams" colspan="2">template&lt;class Engine&gt; </td></tr>
+<tr class="memitem:ga2665bd8b696d4702296961bded07c157 template"><td class="memItemLeft">std::string&#160;</td><td class="memItemRight"><a class="el" href="group__strings.html#ga2665bd8b696d4702296961bded07c157">RandX::RandString</a> (Engine &amp;engine, std::size_t n, <a class="el" href="group__distributions.html#gab0df6de2fb7ce10af8e7175c54a186a6">CharSet</a> cs)</td></tr>
+<tr class="memdesc:ga2665bd8b696d4702296961bded07c157"><td class="mdescLeft">&#160;</td><td class="mdescRight">从预设字符集生成随机字符串（指定引擎重载）  <br /></td></tr>
+<tr class="memitem:ga84f65591e0520cf90571687aaadec9b0" id="r_ga84f65591e0520cf90571687aaadec9b0"><td class="memTemplParams" colspan="2">template&lt;std::floating_point T = double&gt; </td></tr>
+<tr class="memitem:ga84f65591e0520cf90571687aaadec9b0 template"><td class="memItemLeft">T&#160;</td><td class="memItemRight"><a class="el" href="group__strings.html#ga84f65591e0520cf90571687aaadec9b0">RandX::RandExp</a> (T lambda=T{1})</td></tr>
+<tr class="memdesc:ga84f65591e0520cf90571687aaadec9b0"><td class="mdescLeft">&#160;</td><td class="mdescRight">生成指数分布随机数  <br /></td></tr>
+<tr class="memitem:gabf50751ab88c47549657a953b26b69c4" id="r_gabf50751ab88c47549657a953b26b69c4"><td class="memTemplParams" colspan="2">template&lt;class Engine, std::floating_point T = double&gt; </td></tr>
+<tr class="memitem:gabf50751ab88c47549657a953b26b69c4 template"><td class="memItemLeft">T&#160;</td><td class="memItemRight"><a class="el" href="group__strings.html#gabf50751ab88c47549657a953b26b69c4">RandX::RandExp</a> (Engine &amp;engine, T lambda=T{1})</td></tr>
+<tr class="memdesc:gabf50751ab88c47549657a953b26b69c4"><td class="mdescLeft">&#160;</td><td class="mdescRight">生成指数分布随机数（指定引擎重载）  <br /></td></tr>
+<tr class="memitem:gaf615853e76fe8ae7fa44d3338d454c73" id="r_gaf615853e76fe8ae7fa44d3338d454c73"><td class="memTemplParams" colspan="2">template&lt;std::integral T = int&gt; </td></tr>
+<tr class="memitem:gaf615853e76fe8ae7fa44d3338d454c73 template"><td class="memItemLeft">T&#160;</td><td class="memItemRight"><a class="el" href="group__strings.html#gaf615853e76fe8ae7fa44d3338d454c73">RandX::RandPoisson</a> (double mean=1.0)</td></tr>
+<tr class="memdesc:gaf615853e76fe8ae7fa44d3338d454c73"><td class="mdescLeft">&#160;</td><td class="mdescRight">生成泊松分布随机数  <br /></td></tr>
+<tr class="memitem:gac9050e60fa480e771b0de83b21a9e387" id="r_gac9050e60fa480e771b0de83b21a9e387"><td class="memTemplParams" colspan="2">template&lt;class Engine, std::integral T = int&gt; </td></tr>
+<tr class="memitem:gac9050e60fa480e771b0de83b21a9e387 template"><td class="memItemLeft">T&#160;</td><td class="memItemRight"><a class="el" href="group__strings.html#gac9050e60fa480e771b0de83b21a9e387">RandX::RandPoisson</a> (Engine &amp;engine, double mean=1.0)</td></tr>
+<tr class="memdesc:gac9050e60fa480e771b0de83b21a9e387"><td class="mdescLeft">&#160;</td><td class="mdescRight">生成泊松分布随机数（指定引擎重载）  <br /></td></tr>
+<tr class="memitem:ga6c97a53f83dcfc1d03623a17a7d4749e" id="r_ga6c97a53f83dcfc1d03623a17a7d4749e"><td class="memTemplParams" colspan="2">template&lt;std::floating_point T = double&gt; </td></tr>
+<tr class="memitem:ga6c97a53f83dcfc1d03623a17a7d4749e template"><td class="memItemLeft">T&#160;</td><td class="memItemRight"><a class="el" href="group__strings.html#ga6c97a53f83dcfc1d03623a17a7d4749e">RandX::RandGamma</a> (T alpha=T{1}, T beta=T{1})</td></tr>
+<tr class="memdesc:ga6c97a53f83dcfc1d03623a17a7d4749e"><td class="mdescLeft">&#160;</td><td class="mdescRight">生成伽马分布随机数  <br /></td></tr>
+<tr class="memitem:ga8daa4c56303dd5ebd59e7928fd685779" id="r_ga8daa4c56303dd5ebd59e7928fd685779"><td class="memTemplParams" colspan="2">template&lt;class Engine, std::floating_point T = double&gt; </td></tr>
+<tr class="memitem:ga8daa4c56303dd5ebd59e7928fd685779 template"><td class="memItemLeft">T&#160;</td><td class="memItemRight"><a class="el" href="group__strings.html#ga8daa4c56303dd5ebd59e7928fd685779">RandX::RandGamma</a> (Engine &amp;engine, T alpha=T{1}, T beta=T{1})</td></tr>
+<tr class="memdesc:ga8daa4c56303dd5ebd59e7928fd685779"><td class="mdescLeft">&#160;</td><td class="mdescRight">生成伽马分布随机数（指定引擎重载）  <br /></td></tr>
+<tr class="memitem:gacc7830c4f73dc75807297085a35be495" id="r_gacc7830c4f73dc75807297085a35be495"><td class="memTemplParams" colspan="2">template&lt;std::integral T = int&gt; </td></tr>
+<tr class="memitem:gacc7830c4f73dc75807297085a35be495 template"><td class="memItemLeft">T&#160;</td><td class="memItemRight"><a class="el" href="group__strings.html#gacc7830c4f73dc75807297085a35be495">RandX::RandBinomial</a> (T t=1, double p=0.5)</td></tr>
+<tr class="memdesc:gacc7830c4f73dc75807297085a35be495"><td class="mdescLeft">&#160;</td><td class="mdescRight">生成二项分布随机数  <br /></td></tr>
+<tr class="memitem:ga0a90f043344ad54269f4bacaeb9d4fdd" id="r_ga0a90f043344ad54269f4bacaeb9d4fdd"><td class="memTemplParams" colspan="2">template&lt;std::integral T = int, class Engine&gt; </td></tr>
+<tr class="memitem:ga0a90f043344ad54269f4bacaeb9d4fdd template"><td class="memItemLeft">T&#160;</td><td class="memItemRight"><a class="el" href="group__strings.html#ga0a90f043344ad54269f4bacaeb9d4fdd">RandX::RandBinomial</a> (Engine &amp;engine, T t=1, double p=0.5)</td></tr>
+<tr class="memdesc:ga0a90f043344ad54269f4bacaeb9d4fdd"><td class="mdescLeft">&#160;</td><td class="mdescRight">生成二项分布随机数（指定引擎重载）  <br /></td></tr>
+<tr class="memitem:ga978800979309fac90094116c70756f69" id="r_ga978800979309fac90094116c70756f69"><td class="memTemplParams" colspan="2">template&lt;std::floating_point T = double&gt; </td></tr>
+<tr class="memitem:ga978800979309fac90094116c70756f69 template"><td class="memItemLeft">T&#160;</td><td class="memItemRight"><a class="el" href="group__strings.html#ga978800979309fac90094116c70756f69">RandX::RandLogNormal</a> (T mean=T{0}, T stddev=T{1})</td></tr>
+<tr class="memdesc:ga978800979309fac90094116c70756f69"><td class="mdescLeft">&#160;</td><td class="mdescRight">生成对数正态分布随机数  <br /></td></tr>
+<tr class="memitem:gaf493d6c0cb4374714b6936b7077955ed" id="r_gaf493d6c0cb4374714b6936b7077955ed"><td class="memTemplParams" colspan="2">template&lt;std::floating_point T = double, class Engine&gt; </td></tr>
+<tr class="memitem:gaf493d6c0cb4374714b6936b7077955ed template"><td class="memItemLeft">T&#160;</td><td class="memItemRight"><a class="el" href="group__strings.html#gaf493d6c0cb4374714b6936b7077955ed">RandX::RandLogNormal</a> (Engine &amp;engine, T mean=T{0}, T stddev=T{1})</td></tr>
+<tr class="memdesc:gaf493d6c0cb4374714b6936b7077955ed"><td class="mdescLeft">&#160;</td><td class="mdescRight">生成对数正态分布随机数（指定引擎重载）  <br /></td></tr>
+<tr class="memitem:gae5dbf8ea509ac3483dba64ca34eceab9" id="r_gae5dbf8ea509ac3483dba64ca34eceab9"><td class="memTemplParams" colspan="2">template&lt;std::integral T = int&gt; </td></tr>
+<tr class="memitem:gae5dbf8ea509ac3483dba64ca34eceab9 template"><td class="memItemLeft">T&#160;</td><td class="memItemRight"><a class="el" href="group__strings.html#gae5dbf8ea509ac3483dba64ca34eceab9">RandX::RandGeometric</a> (double p=0.5)</td></tr>
+<tr class="memdesc:gae5dbf8ea509ac3483dba64ca34eceab9"><td class="mdescLeft">&#160;</td><td class="mdescRight">生成几何分布随机数（首次成功前的失败次数）  <br /></td></tr>
+<tr class="memitem:ga9c6095a869ea2a41d976c7280fb6ccb8" id="r_ga9c6095a869ea2a41d976c7280fb6ccb8"><td class="memTemplParams" colspan="2">template&lt;std::integral T = int, class Engine&gt; </td></tr>
+<tr class="memitem:ga9c6095a869ea2a41d976c7280fb6ccb8 template"><td class="memItemLeft">T&#160;</td><td class="memItemRight"><a class="el" href="group__strings.html#ga9c6095a869ea2a41d976c7280fb6ccb8">RandX::RandGeometric</a> (Engine &amp;engine, double p=0.5)</td></tr>
+<tr class="memdesc:ga9c6095a869ea2a41d976c7280fb6ccb8"><td class="mdescLeft">&#160;</td><td class="mdescRight">生成几何分布随机数（指定引擎重载）  <br /></td></tr>
+<tr class="memitem:ga3735b051072e57f2e1d59cf9b1f20939" id="r_ga3735b051072e57f2e1d59cf9b1f20939"><td class="memTemplParams" colspan="2">template&lt;std::floating_point T = double&gt; </td></tr>
+<tr class="memitem:ga3735b051072e57f2e1d59cf9b1f20939 template"><td class="memItemLeft">T&#160;</td><td class="memItemRight"><a class="el" href="group__strings.html#ga3735b051072e57f2e1d59cf9b1f20939">RandX::RandCauchy</a> (T a=T{0}, T b=T{1})</td></tr>
+<tr class="memdesc:ga3735b051072e57f2e1d59cf9b1f20939"><td class="mdescLeft">&#160;</td><td class="mdescRight">生成柯西分布随机数  <br /></td></tr>
+<tr class="memitem:ga60c04fc44a8d7b3d5a59ca525418fa82" id="r_ga60c04fc44a8d7b3d5a59ca525418fa82"><td class="memTemplParams" colspan="2">template&lt;std::floating_point T = double, class Engine&gt; </td></tr>
+<tr class="memitem:ga60c04fc44a8d7b3d5a59ca525418fa82 template"><td class="memItemLeft">T&#160;</td><td class="memItemRight"><a class="el" href="group__strings.html#ga60c04fc44a8d7b3d5a59ca525418fa82">RandX::RandCauchy</a> (Engine &amp;engine, T a=T{0}, T b=T{1})</td></tr>
+<tr class="memdesc:ga60c04fc44a8d7b3d5a59ca525418fa82"><td class="mdescLeft">&#160;</td><td class="mdescRight">生成柯西分布随机数（指定引擎重载）  <br /></td></tr>
+<tr class="memitem:ga80241942ca9ddd78c01f8676f7eb61a4" id="r_ga80241942ca9ddd78c01f8676f7eb61a4"><td class="memTemplParams" colspan="2">template&lt;std::floating_point T = double&gt; </td></tr>
+<tr class="memitem:ga80241942ca9ddd78c01f8676f7eb61a4 template"><td class="memItemLeft">T&#160;</td><td class="memItemRight"><a class="el" href="group__strings.html#ga80241942ca9ddd78c01f8676f7eb61a4">RandX::RandWeibull</a> (T a=T{1}, T b=T{1})</td></tr>
+<tr class="memdesc:ga80241942ca9ddd78c01f8676f7eb61a4"><td class="mdescLeft">&#160;</td><td class="mdescRight">生成韦布尔分布随机数  <br /></td></tr>
+<tr class="memitem:ga8224b06524dd2f6f1a3677705f07b081" id="r_ga8224b06524dd2f6f1a3677705f07b081"><td class="memTemplParams" colspan="2">template&lt;std::floating_point T = double, class Engine&gt; </td></tr>
+<tr class="memitem:ga8224b06524dd2f6f1a3677705f07b081 template"><td class="memItemLeft">T&#160;</td><td class="memItemRight"><a class="el" href="group__strings.html#ga8224b06524dd2f6f1a3677705f07b081">RandX::RandWeibull</a> (Engine &amp;engine, T a=T{1}, T b=T{1})</td></tr>
+<tr class="memdesc:ga8224b06524dd2f6f1a3677705f07b081"><td class="mdescLeft">&#160;</td><td class="mdescRight">生成韦布尔分布随机数（指定引擎重载）  <br /></td></tr>
+<tr class="memitem:ga1d989e44d569dcede856390f7ff849d7" id="r_ga1d989e44d569dcede856390f7ff849d7"><td class="memTemplParams" colspan="2">template&lt;std::floating_point T = double&gt; </td></tr>
+<tr class="memitem:ga1d989e44d569dcede856390f7ff849d7 template"><td class="memItemLeft">T&#160;</td><td class="memItemRight"><a class="el" href="group__strings.html#ga1d989e44d569dcede856390f7ff849d7">RandX::RandExtremeValue</a> (T a=T{0}, T b=T{1})</td></tr>
+<tr class="memdesc:ga1d989e44d569dcede856390f7ff849d7"><td class="mdescLeft">&#160;</td><td class="mdescRight">生成极值分布（Gumbel）随机数  <br /></td></tr>
+<tr class="memitem:ga7b8d80fae5f564b6e70ad002035f8293" id="r_ga7b8d80fae5f564b6e70ad002035f8293"><td class="memTemplParams" colspan="2">template&lt;std::floating_point T = double, class Engine&gt; </td></tr>
+<tr class="memitem:ga7b8d80fae5f564b6e70ad002035f8293 template"><td class="memItemLeft">T&#160;</td><td class="memItemRight"><a class="el" href="group__strings.html#ga7b8d80fae5f564b6e70ad002035f8293">RandX::RandExtremeValue</a> (Engine &amp;engine, T a=T{0}, T b=T{1})</td></tr>
+<tr class="memdesc:ga7b8d80fae5f564b6e70ad002035f8293"><td class="mdescLeft">&#160;</td><td class="mdescRight">生成极值分布随机数（指定引擎重载）  <br /></td></tr>
+<tr class="memitem:ga08ff333e21d5efbeef2b7f2f616777b9" id="r_ga08ff333e21d5efbeef2b7f2f616777b9"><td class="memTemplParams" colspan="2">template&lt;std::floating_point T = double&gt; </td></tr>
+<tr class="memitem:ga08ff333e21d5efbeef2b7f2f616777b9 template"><td class="memItemLeft">T&#160;</td><td class="memItemRight"><a class="el" href="group__strings.html#ga08ff333e21d5efbeef2b7f2f616777b9">RandX::RandChiSquared</a> (T n=T{1})</td></tr>
+<tr class="memdesc:ga08ff333e21d5efbeef2b7f2f616777b9"><td class="mdescLeft">&#160;</td><td class="mdescRight">生成卡方分布随机数  <br /></td></tr>
+<tr class="memitem:gaaf3897834096b65dd531b983c900e9b2" id="r_gaaf3897834096b65dd531b983c900e9b2"><td class="memTemplParams" colspan="2">template&lt;std::floating_point T = double, class Engine&gt; </td></tr>
+<tr class="memitem:gaaf3897834096b65dd531b983c900e9b2 template"><td class="memItemLeft">T&#160;</td><td class="memItemRight"><a class="el" href="group__strings.html#gaaf3897834096b65dd531b983c900e9b2">RandX::RandChiSquared</a> (Engine &amp;engine, T n=T{1})</td></tr>
+<tr class="memdesc:gaaf3897834096b65dd531b983c900e9b2"><td class="mdescLeft">&#160;</td><td class="mdescRight">生成卡方分布随机数（指定引擎重载）  <br /></td></tr>
+<tr class="memitem:ga65e2051fff406a070e7f749e9c2c66c2" id="r_ga65e2051fff406a070e7f749e9c2c66c2"><td class="memTemplParams" colspan="2">template&lt;std::floating_point T = double&gt; </td></tr>
+<tr class="memitem:ga65e2051fff406a070e7f749e9c2c66c2 template"><td class="memItemLeft">T&#160;</td><td class="memItemRight"><a class="el" href="group__strings.html#ga65e2051fff406a070e7f749e9c2c66c2">RandX::RandStudentT</a> (T n=T{1})</td></tr>
+<tr class="memdesc:ga65e2051fff406a070e7f749e9c2c66c2"><td class="mdescLeft">&#160;</td><td class="mdescRight">生成学生 t 分布随机数  <br /></td></tr>
+<tr class="memitem:ga68a8cb3ec354694ba7a8c386c055756a" id="r_ga68a8cb3ec354694ba7a8c386c055756a"><td class="memTemplParams" colspan="2">template&lt;std::floating_point T = double, class Engine&gt; </td></tr>
+<tr class="memitem:ga68a8cb3ec354694ba7a8c386c055756a template"><td class="memItemLeft">T&#160;</td><td class="memItemRight"><a class="el" href="group__strings.html#ga68a8cb3ec354694ba7a8c386c055756a">RandX::RandStudentT</a> (Engine &amp;engine, T n=T{1})</td></tr>
+<tr class="memdesc:ga68a8cb3ec354694ba7a8c386c055756a"><td class="mdescLeft">&#160;</td><td class="mdescRight">生成学生 t 分布随机数（指定引擎重载）  <br /></td></tr>
+<tr class="memitem:ga2418ef59cfa0aeb82d1920145022e48d" id="r_ga2418ef59cfa0aeb82d1920145022e48d"><td class="memTemplParams" colspan="2">template&lt;std::floating_point T = double&gt; </td></tr>
+<tr class="memitem:ga2418ef59cfa0aeb82d1920145022e48d template"><td class="memItemLeft">T&#160;</td><td class="memItemRight"><a class="el" href="group__strings.html#ga2418ef59cfa0aeb82d1920145022e48d">RandX::RandFisherF</a> (T m=T{1}, T n=T{1})</td></tr>
+<tr class="memdesc:ga2418ef59cfa0aeb82d1920145022e48d"><td class="mdescLeft">&#160;</td><td class="mdescRight">生成 Fisher F 分布随机数  <br /></td></tr>
+<tr class="memitem:ga24a674ef9b02e2e03b056c29f63f7626" id="r_ga24a674ef9b02e2e03b056c29f63f7626"><td class="memTemplParams" colspan="2">template&lt;std::floating_point T = double, class Engine&gt; </td></tr>
+<tr class="memitem:ga24a674ef9b02e2e03b056c29f63f7626 template"><td class="memItemLeft">T&#160;</td><td class="memItemRight"><a class="el" href="group__strings.html#ga24a674ef9b02e2e03b056c29f63f7626">RandX::RandFisherF</a> (Engine &amp;engine, T m=T{1}, T n=T{1})</td></tr>
+<tr class="memdesc:ga24a674ef9b02e2e03b056c29f63f7626"><td class="mdescLeft">&#160;</td><td class="mdescRight">生成 Fisher F 分布随机数（指定引擎重载）  <br /></td></tr>
+<tr class="memitem:ga9ecbcb52bda349da9f833a9eb8923590" id="r_ga9ecbcb52bda349da9f833a9eb8923590"><td class="memTemplParams" colspan="2">template&lt;std::floating_point T = double&gt; </td></tr>
+<tr class="memitem:ga9ecbcb52bda349da9f833a9eb8923590 template"><td class="memItemLeft">T&#160;</td><td class="memItemRight"><a class="el" href="group__strings.html#ga9ecbcb52bda349da9f833a9eb8923590">RandX::RandBeta</a> (T a=T{1}, T b=T{1})</td></tr>
+<tr class="memdesc:ga9ecbcb52bda349da9f833a9eb8923590"><td class="mdescLeft">&#160;</td><td class="mdescRight">生成 Beta 分布随机数  <br /></td></tr>
+<tr class="memitem:ga8dd49aa8cb58216d1069d729d3cbf3d0" id="r_ga8dd49aa8cb58216d1069d729d3cbf3d0"><td class="memTemplParams" colspan="2">template&lt;std::floating_point T = double, class Engine&gt; </td></tr>
+<tr class="memitem:ga8dd49aa8cb58216d1069d729d3cbf3d0 template"><td class="memItemLeft">T&#160;</td><td class="memItemRight"><a class="el" href="group__strings.html#ga8dd49aa8cb58216d1069d729d3cbf3d0">RandX::RandBeta</a> (Engine &amp;engine, T a=T{1}, T b=T{1})</td></tr>
+<tr class="memdesc:ga8dd49aa8cb58216d1069d729d3cbf3d0"><td class="mdescLeft">&#160;</td><td class="mdescRight">生成 Beta 分布随机数（指定引擎重载）  <br /></td></tr>
+<tr class="memitem:ga7e0c2b37642410d0a1d69918dbcd3ee3" id="r_ga7e0c2b37642410d0a1d69918dbcd3ee3"><td class="memTemplParams" colspan="2">template&lt;int N, std::integral T = std::uint64_t&gt; <br />
+requires (N &gt; 0 &amp;&amp; N &lt;= 64 &amp;&amp; N &lt;= std::numeric_limits&lt;T&gt;::digits)</td></tr>
+<tr class="memitem:ga7e0c2b37642410d0a1d69918dbcd3ee3 template"><td class="memItemLeft">T&#160;</td><td class="memItemRight"><a class="el" href="group__strings.html#ga7e0c2b37642410d0a1d69918dbcd3ee3">RandX::RandBits</a> () noexcept</td></tr>
+<tr class="memdesc:ga7e0c2b37642410d0a1d69918dbcd3ee3"><td class="mdescLeft">&#160;</td><td class="mdescRight">生成 N 位随机整数  <br /></td></tr>
+<tr class="memitem:ga735f85ac3914d7f06a06823c579272d1" id="r_ga735f85ac3914d7f06a06823c579272d1"><td class="memItemLeft">std::string&#160;</td><td class="memItemRight"><a class="el" href="group__strings.html#ga735f85ac3914d7f06a06823c579272d1">RandX::RandUUID</a> ()</td></tr>
+<tr class="memdesc:ga735f85ac3914d7f06a06823c579272d1"><td class="mdescLeft">&#160;</td><td class="mdescRight">生成随机 UUID v4 字符串  <br /></td></tr>
+<tr class="memitem:gac722df563360f3f0d5c591daaa92f95c" id="r_gac722df563360f3f0d5c591daaa92f95c"><td class="memTemplParams" colspan="2">template&lt;class Engine&gt; <br />
+requires detail::StreamEngine&lt;Engine&gt;</td></tr>
+<tr class="memitem:gac722df563360f3f0d5c591daaa92f95c template"><td class="memItemLeft">constexpr Engine&#160;</td><td class="memItemRight"><a class="el" href="group__strings.html#gac722df563360f3f0d5c591daaa92f95c">RandX::MakeStreamEngine</a> (std::uint64_t streamId, std::uint64_t seed=<a class="el" href="namespaceRandX.html#a9288902b59860f71275deb0d807f69b6">DefaultSeed</a>)</td></tr>
+<tr class="memdesc:gac722df563360f3f0d5c591daaa92f95c"><td class="mdescLeft">&#160;</td><td class="mdescRight">从同一种子创建第 streamId 个不重叠子序列的引擎  <br /></td></tr>
+<tr class="memitem:ga0d2714aac5e98f049cf41b349be81229" id="r_ga0d2714aac5e98f049cf41b349be81229"><td class="memTemplParams" colspan="2">template&lt;std::integral T = int, std::uint64_t Seed = DefaultSeed&gt; </td></tr>
+<tr class="memitem:ga0d2714aac5e98f049cf41b349be81229 template"><td class="memItemLeft">constexpr T&#160;</td><td class="memItemRight"><a class="el" href="group__strings.html#ga0d2714aac5e98f049cf41b349be81229">RandX::RandIntCE</a> (T min, T max) noexcept</td></tr>
+<tr class="memdesc:ga0d2714aac5e98f049cf41b349be81229"><td class="mdescLeft">&#160;</td><td class="mdescRight">编译期生成 [min, max] 范围内的随机整数  <br /></td></tr>
+<tr class="memitem:ga7d5be4865c4f78cfaeec4e23abcf7c67" id="r_ga7d5be4865c4f78cfaeec4e23abcf7c67"><td class="memTemplParams" colspan="2">template&lt;std::integral T = int, std::uint64_t Seed = DefaultSeed&gt; </td></tr>
+<tr class="memitem:ga7d5be4865c4f78cfaeec4e23abcf7c67 template"><td class="memItemLeft">constexpr T&#160;</td><td class="memItemRight"><a class="el" href="group__strings.html#ga7d5be4865c4f78cfaeec4e23abcf7c67">RandX::RandIntCE</a> (T max) noexcept</td></tr>
+<tr class="memdesc:ga7d5be4865c4f78cfaeec4e23abcf7c67"><td class="mdescLeft">&#160;</td><td class="mdescRight">编译期生成 [0, max] 范围内的随机整数  <br /></td></tr>
+<tr class="memitem:gacaa1f616d409eebaf0dcf2b17fa3357e" id="r_gacaa1f616d409eebaf0dcf2b17fa3357e"><td class="memTemplParams" colspan="2">template&lt;std::random_access_iterator It, std::uint64_t Seed = DefaultSeed&gt; </td></tr>
+<tr class="memitem:gacaa1f616d409eebaf0dcf2b17fa3357e template"><td class="memItemLeft">constexpr void&#160;</td><td class="memItemRight"><a class="el" href="group__strings.html#gacaa1f616d409eebaf0dcf2b17fa3357e">RandX::ShuffleCE</a> (It first, It last) noexcept</td></tr>
+<tr class="memdesc:gacaa1f616d409eebaf0dcf2b17fa3357e"><td class="mdescLeft">&#160;</td><td class="mdescRight">编译期 Fisher-Yates 洗牌  <br /></td></tr>
+<tr class="memitem:ga82d896957fe8dd36ed598e425bcc8db8" id="r_ga82d896957fe8dd36ed598e425bcc8db8"><td class="memTemplParams" colspan="2">template&lt;class T, std::size_t N, std::uint64_t Seed = DefaultSeed&gt; </td></tr>
+<tr class="memitem:ga82d896957fe8dd36ed598e425bcc8db8 template"><td class="memItemLeft">constexpr std::array&lt; T, N &gt;&#160;</td><td class="memItemRight"><a class="el" href="group__strings.html#ga82d896957fe8dd36ed598e425bcc8db8">RandX::ShuffledArray</a> (std::array&lt; T, N &gt; arr) noexcept</td></tr>
+<tr class="memdesc:ga82d896957fe8dd36ed598e425bcc8db8"><td class="mdescLeft">&#160;</td><td class="mdescRight">编译期洗牌数组版本（返回打乱后的副本）  <br /></td></tr>
+<tr class="memitem:a70d130034b5d41041f2af7e9531c83a4" id="r_a70d130034b5d41041f2af7e9531c83a4"><td class="memTemplParams" colspan="2">template&lt;std::ranges::input_range R&gt; <br />
+requires std::ranges::sized_range&lt;R&gt; || std::ranges::forward_range&lt;R&gt;</td></tr>
+<tr class="memitem:a70d130034b5d41041f2af7e9531c83a4 template"><td class="memItemLeft">std::ranges::range_value_t&lt; R &gt;&#160;</td><td class="memItemRight"><a class="el" href="namespaceRandX_1_1ranges.html#a70d130034b5d41041f2af7e9531c83a4">RandX::ranges::RandElement</a> (R &amp;&amp;r)</td></tr>
+<tr class="memdesc:a70d130034b5d41041f2af7e9531c83a4"><td class="mdescLeft">&#160;</td><td class="mdescRight">随机选取一个元素（返回值拷贝，非迭代器）  <br /></td></tr>
+<tr class="memitem:a546a558907818cd12142ee14db9723a0" id="r_a546a558907818cd12142ee14db9723a0"><td class="memTemplParams" colspan="2">template&lt;std::ranges::input_range R&gt; </td></tr>
+<tr class="memitem:a546a558907818cd12142ee14db9723a0 template"><td class="memItemLeft">std::vector&lt; std::ranges::range_value_t&lt; R &gt; &gt;&#160;</td><td class="memItemRight"><a class="el" href="namespaceRandX_1_1ranges.html#a546a558907818cd12142ee14db9723a0">RandX::ranges::RandSample</a> (R &amp;&amp;r, std::ranges::range_difference_t&lt; R &gt; n)</td></tr>
+<tr class="memdesc:a546a558907818cd12142ee14db9723a0"><td class="mdescLeft">&#160;</td><td class="mdescRight">无放回抽样（复用迭代器版实现，自动选择 random_access / input 路径）  <br /></td></tr>
+<tr class="memitem:abed7a367b25e4cd8f93e04a44b07cc07" id="r_abed7a367b25e4cd8f93e04a44b07cc07"><td class="memTemplParams" colspan="2">template&lt;std::ranges::random_access_range R&gt; <br />
+requires std::ranges::sized_range&lt;R&gt;</td></tr>
+<tr class="memitem:abed7a367b25e4cd8f93e04a44b07cc07 template"><td class="memItemLeft">void&#160;</td><td class="memItemRight"><a class="el" href="namespaceRandX_1_1ranges.html#abed7a367b25e4cd8f93e04a44b07cc07">RandX::ranges::RandShuffle</a> (R &amp;&amp;r)</td></tr>
+<tr class="memdesc:abed7a367b25e4cd8f93e04a44b07cc07"><td class="mdescLeft">&#160;</td><td class="mdescRight">随机打乱 range（要求 random_access + sized）  <br /></td></tr>
+<tr class="memitem:a42320e350701b621d0ac3a0b57d4c26f" id="r_a42320e350701b621d0ac3a0b57d4c26f"><td class="memTemplParams" colspan="2">template&lt;class T, std::ranges::output_range&lt; const T &amp; &gt; R&gt; </td></tr>
+<tr class="memitem:a42320e350701b621d0ac3a0b57d4c26f template"><td class="memItemLeft">void&#160;</td><td class="memItemRight"><a class="el" href="namespaceRandX_1_1ranges.html#a42320e350701b621d0ac3a0b57d4c26f">RandX::ranges::RandFill</a> (R &amp;&amp;r, T min, T max)</td></tr>
+<tr class="memdesc:a42320e350701b621d0ac3a0b57d4c26f"><td class="mdescLeft">&#160;</td><td class="mdescRight">用随机数填充 range  <br /></td></tr>
+</table><table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 id="header-var-members" class="groupheader"><a id="var-members" name="var-members"></a>
+变量</h2></td></tr>
+<tr class="memitem:a9288902b59860f71275deb0d807f69b6" id="r_a9288902b59860f71275deb0d807f69b6"><td class="memItemLeft">constexpr std::uint64_t&#160;</td><td class="memItemRight"><a class="el" href="namespaceRandX.html#a9288902b59860f71275deb0d807f69b6">RandX::DefaultSeed</a> = 1234567890ULL</td></tr>
+<tr class="memitem:a065c63284990fd5bc61ba1b0f0901f72" id="r_a065c63284990fd5bc61ba1b0f0901f72"><td class="memItemLeft">constexpr std::uint32_t&#160;</td><td class="memItemRight"><a class="el" href="namespaceRandX_1_1detail.html#a065c63284990fd5bc61ba1b0f0901f72">RandX::detail::ChaCha20Constants</a> [4]</td></tr>
+<tr class="memitem:a28e213ceb49fbad030a97e366bd114db" id="r_a28e213ceb49fbad030a97e366bd114db"><td class="memItemLeft">constexpr std::uint64_t&#160;</td><td class="memItemRight"><a class="el" href="namespaceRandX_1_1detail.html#a28e213ceb49fbad030a97e366bd114db">RandX::detail::ChaCha20ReseedThreshold</a> = 1ULL &lt;&lt; 20</td></tr>
+<tr class="memitem:af8645d137f092519f5b25886cdbc8af6" id="r_af8645d137f092519f5b25886cdbc8af6"><td class="memItemLeft">constexpr std::uint64_t&#160;</td><td class="memItemRight"><a class="el" href="namespaceRandX_1_1detail.html#af8645d137f092519f5b25886cdbc8af6">RandX::detail::HashSetThresholdK</a> = 64</td></tr>
+</table>
+</div><!-- contents -->
+</div><!-- doc-content -->
+<div id="page-nav" class="page-nav-panel">
+<div id="page-nav-resize-handle"></div>
+<div id="page-nav-tree">
+<div id="page-nav-contents">
+</div><!-- page-nav-contents -->
+</div><!-- page-nav-tree -->
+</div><!-- page-nav -->
+</div><!-- container -->
+<!-- start footer part -->
+<div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
+  <ul>
+    <li class="navelem"><a href="RandX_8hpp.html">RandX.hpp</a></li>
+    <li class="footer">制作者 <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.17.0 </li>
+  </ul>
+</div>
+</body>
+</html>

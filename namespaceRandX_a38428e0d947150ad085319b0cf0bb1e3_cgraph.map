@@ -1,0 +1,7 @@
+<map id="RandX::RandPoisson" name="RandX::RandPoisson">
+<area shape="rect" id="Node000001" title="生成泊松分布随机数（指定引擎重载）" alt="" coords="5,5,160,31"/>
+<area shape="rect" id="Node000002" href="$group__strings.html#gaf615853e76fe8ae7fa44d3338d454c73" title="生成泊松分布随机数" alt="" coords="208,5,363,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="160,15,194,15,194,21,160,21"/>
+<area shape="rect" id="Node000003" href="$group__engines.html#ga7dba92b95d7c5e6eb2d1db3c6a3b2ddf" title=" " alt="" coords="411,5,575,31"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="363,15,397,15,397,21,363,21"/>
+</map>

@@ -1,0 +1,7 @@
+<map id="RandX::SFC64::SFC64" name="RandX::SFC64::SFC64">
+<area shape="rect" id="Node000001" title="以指定种子构造引擎" alt="" coords="5,5,168,31"/>
+<area shape="rect" id="Node000002" href="$group__engines.html#ga87af6323951310dc46869756e063b02b" title="生成下一个 64 位随机数" alt="" coords="216,5,403,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="168,15,202,15,202,21,168,21"/>
+<area shape="rect" id="Node000003" href="$namespaceRandX_1_1detail.html#aa55ffbc9da991c2c1bfeef4b097d6e91" title=" " alt="" coords="451,5,597,31"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="403,15,437,15,437,21,403,21"/>
+</map>

@@ -1,0 +1,9 @@
+<map id="RandX::Xoroshiro128StarStar::jump" name="RandX::Xoroshiro128StarStar::jump">
+<area shape="rect" id="Node000001" title="前进 2^64 步，用于创建并行子序列" alt="" coords="5,5,216,45"/>
+<area shape="rect" id="Node000002" href="$group__engines.html#gabdad4e704be0b81705ab153cf7931fa5" title="前进 2^64 步，用于创建并行子序列" alt="" coords="264,5,475,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="216,23,251,23,251,28,216,28"/>
+<area shape="rect" id="Node000003" href="$group__engines.html#ga510df2fdc3a5adebd5e39f2978d3b92f" title="生成下一个 64 位随机数" alt="" coords="523,5,733,45"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="475,23,509,23,509,28,475,28"/>
+<area shape="rect" id="Node000004" href="$namespaceRandX_1_1detail.html#aa55ffbc9da991c2c1bfeef4b097d6e91" title=" " alt="" coords="781,13,928,38"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="733,23,767,23,767,28,733,28"/>
+</map>

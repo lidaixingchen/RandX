@@ -1,0 +1,8 @@
+<map id="RandX::RandVector" name="RandX::RandVector">
+<area shape="rect" id="Node000001" title="生成含 n 个随机整数的 vector" alt="" coords="5,5,152,31"/>
+<area shape="rect" id="Node000002" href="$group__engines.html#ga7dba92b95d7c5e6eb2d1db3c6a3b2ddf" title=" " alt="" coords="395,5,559,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="152,15,381,15,381,21,152,21"/>
+<area shape="rect" id="Node000003" href="$group__distributions.html#gaf50c23c6326d6be0f77b518fa305577d" title="生成含 n 个随机整数的 vector" alt="" coords="200,31,347,56"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="152,25,187,29,186,35,152,30"/>
+<area shape="poly" id="edge3_Node000003_Node000002" title=" " alt="" coords="347,32,381,27,381,33,347,37"/>
+</map>

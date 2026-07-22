@@ -1,0 +1,7 @@
+<map id="RandX::RandInt" name="RandX::RandInt">
+<area shape="rect" id="Node000001" title="生成 [0, max] 范围内的随机整数" alt="" coords="5,5,128,31"/>
+<area shape="rect" id="Node000002" href="$group__basic.html#gace250579fe08f5bdd6b5db6b573ab55c" title="生成 [min, max] 范围内的随机整数" alt="" coords="176,5,299,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="128,15,162,15,162,21,128,21"/>
+<area shape="rect" id="Node000003" href="$group__engines.html#ga7dba92b95d7c5e6eb2d1db3c6a3b2ddf" title=" " alt="" coords="347,5,511,31"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="299,15,333,15,333,21,299,21"/>
+</map>

@@ -1,0 +1,7 @@
+<map id="RandX::RandBinomial" name="RandX::RandBinomial">
+<area shape="rect" id="Node000001" title="生成二项分布随机数（指定引擎重载）" alt="" coords="5,5,168,31"/>
+<area shape="rect" id="Node000002" href="$group__strings.html#gacc7830c4f73dc75807297085a35be495" title="生成二项分布随机数" alt="" coords="216,5,379,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="168,15,202,15,202,21,168,21"/>
+<area shape="rect" id="Node000003" href="$group__engines.html#ga7dba92b95d7c5e6eb2d1db3c6a3b2ddf" title=" " alt="" coords="427,5,591,31"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="379,15,413,15,413,21,379,21"/>
+</map>

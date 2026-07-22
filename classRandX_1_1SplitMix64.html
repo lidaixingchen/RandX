@@ -1,0 +1,700 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "https://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="zh">
+<head>
+<meta http-equiv="Content-Type" content="text/xhtml;charset=UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=11"/>
+<meta name="generator" content="Doxygen 1.17.0"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>RandX: RandX::SplitMix64类 参考</title>
+<link href="tabs.css" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src="codefolding.js"></script>
+<script type="text/javascript" src="clipboard.js"></script>
+<link href="navtree.css" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src="navtreedata.js"></script>
+<script type="text/javascript" src="navtree.js"></script>
+<script type="text/javascript" src="cookie.js"></script>
+<link href="search/search.css" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src="search/searchdata.js"></script>
+<script type="text/javascript" src="search/search.js"></script>
+<script type="module">
+import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+const theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'default';
+mermaid.initialize({ startOnLoad: true, theme: theme });
+</script>
+<link href="doxygen.css" rel="stylesheet" type="text/css" />
+</head>
+<body>
+<div id="top"><!-- do not remove this div, it is closed by doxygen! -->
+<div id="titlearea">
+<table cellspacing="0" cellpadding="0">
+ <tbody>
+ <tr id="projectrow">
+  <td id="projectalign">
+   <div id="projectname">RandX<span id="projectnumber">&#160;1.3.1</span>
+   </div>
+   <div id="projectbrief">基于 xoshiro/xoroshiro 算法族的纯头文件伪随机数生成器库</div>
+  </td>
+ </tr>
+ </tbody>
+</table>
+</div>
+<!-- end header part -->
+<!-- 制作者 Doxygen 1.17.0 -->
+<script type="text/javascript">
+let searchBox = new SearchBox("searchBox", "search/",'.html');
+</script>
+<script type="text/javascript">
+document.addEventListener('DOMContentLoaded', codefold.init);
+</script>
+<script type="text/javascript" src="menudata.js"></script>
+<script type="text/javascript" src="menu.js"></script>
+<script type="text/javascript">
+document.addEventListener('DOMContentLoaded', () => {
+  initMenu('',true);
+  init_search();
+});
+</script>
+<div id="main-nav-mobile">
+<div class="sm sm-dox"><input id="main-menu-state" type="checkbox"/>
+<label class="main-menu-btn" for="main-menu-state">
+<span class="main-menu-btn-icon"></span> Toggle main menu visibility</label>
+<span id="searchBoxPos1" style="position:absolute;right:8px;top:8px;height:36px;"></span>
+</div>
+</div><!-- main-nav-mobile -->
+<div id="main-nav">
+  <ul class="sm sm-dox" id="main-menu">
+    <li id="searchBoxPos2" style="float:right">
+        <div id="MSearchBox" class="MSearchBoxInactive">
+        <span class="left">
+          <span id="MSearchSelect" class="search-icon" onmouseover="return searchBox.OnSearchSelectShow()" onmouseout="return searchBox.OnSearchSelectHide()"><span class="search-icon-dropdown"></span></span>
+          <input type="text" id="MSearchField" value="" placeholder="搜索" accesskey="S"
+               onfocus="searchBox.OnSearchFieldFocus(true)" 
+               onblur="searchBox.OnSearchFieldFocus(false)" 
+               onkeyup="searchBox.OnSearchFieldChange(event)"/>
+          </span><span class="right">
+            <a id="MSearchClose" href="javascript:searchBox.CloseResultsWindow()"><div id="MSearchCloseImg" class="close-icon"></div></a>
+          </span>
+        </div>
+    </li>
+  </ul>
+</div><!-- main-nav -->
+</div><!-- top -->
+<div id="side-nav" class="ui-resizable side-nav-resizable">
+  <div id="nav-tree">
+    <div id="nav-tree-contents">
+      <div id="nav-sync" class="sync"></div>
+    </div>
+  </div>
+  <div id="splitbar" style="-moz-user-select:none;" 
+       class="ui-resizable-handle">
+  </div>
+</div>
+<script type="text/javascript">
+document.addEventListener('DOMContentLoaded',() => { initNavTree('classRandX_1_1SplitMix64.html','','classRandX_1_1SplitMix64-members'); });
+</script>
+<div id="container">
+<div id="doc-content">
+<!-- window showing the filter options -->
+<div id="MSearchSelectWindow"
+     onmouseover="return searchBox.OnSearchSelectShow()"
+     onmouseout="return searchBox.OnSearchSelectHide()"
+     onkeydown="return searchBox.OnSearchSelectKey(event)">
+</div>
+
+<!-- iframe showing the search results (closed by default) -->
+<div id="MSearchResultsWindow">
+<div id="MSearchResults">
+<div class="SRPage">
+<div id="SRIndex">
+<div id="SRResults"></div>
+<div class="SRStatus" id="Loading">载入中...</div>
+<div class="SRStatus" id="Searching">搜索中...</div>
+<div class="SRStatus" id="NoMatches">未找到</div>
+</div>
+</div>
+</div>
+</div>
+
+<div class="header">
+  <div class="headertitle"><div class="title">RandX::SplitMix64类 参考<div class="ingroups"><a class="el" href="group__engines.html">引擎</a></div></div></div>
+</div><!--header-->
+<div class="contents">
+
+<p><a class="el" href="classRandX_1_1SplitMix64.html" title="SplitMix64 伪随机数生成器，64 位输出，周期 2^64。">SplitMix64</a> 伪随机数生成器，64 位输出，周期 2^64。  
+ <a href="#details">更多...</a></p>
+
+<p><code>#include &lt;<a class="el" href="RandX_8hpp_source.html">RandX.hpp</a>&gt;</code></p>
+<table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 id="header-pub-types" class="groupheader"><a id="pub-types" name="pub-types"></a>
+Public 类型</h2></td></tr>
+<tr class="memitem:gade679f83a18ce7451c504090a4379fe9" id="r_gade679f83a18ce7451c504090a4379fe9"><td class="memItemLeft">using&#160;</td><td class="memItemRight"><a class="el" href="group__engines.html#gade679f83a18ce7451c504090a4379fe9">state_type</a> = std::uint64_t</td></tr>
+<tr class="memdesc:gade679f83a18ce7451c504090a4379fe9"><td class="mdescLeft">&#160;</td><td class="mdescRight">状态类型（1×uint64）  <br /></td></tr>
+<tr class="memitem:ga9cabfce1d7f0f03e553edf468c3ad5d5" id="r_ga9cabfce1d7f0f03e553edf468c3ad5d5"><td class="memItemLeft">using&#160;</td><td class="memItemRight"><a class="el" href="group__engines.html#ga9cabfce1d7f0f03e553edf468c3ad5d5">result_type</a> = std::uint64_t</td></tr>
+<tr class="memdesc:ga9cabfce1d7f0f03e553edf468c3ad5d5"><td class="mdescLeft">&#160;</td><td class="mdescRight">输出类型  <br /></td></tr>
+<tr class="memitem:ade679f83a18ce7451c504090a4379fe9" id="r_ade679f83a18ce7451c504090a4379fe9"><td class="memItemLeft">using&#160;</td><td class="memItemRight"><a class="el" href="#ade679f83a18ce7451c504090a4379fe9">state_type</a> = std::uint64_t</td></tr>
+<tr class="memdesc:ade679f83a18ce7451c504090a4379fe9"><td class="mdescLeft">&#160;</td><td class="mdescRight">状态类型（1×uint64）  <br /></td></tr>
+<tr class="memitem:a9cabfce1d7f0f03e553edf468c3ad5d5" id="r_a9cabfce1d7f0f03e553edf468c3ad5d5"><td class="memItemLeft">using&#160;</td><td class="memItemRight"><a class="el" href="#a9cabfce1d7f0f03e553edf468c3ad5d5">result_type</a> = std::uint64_t</td></tr>
+<tr class="memdesc:a9cabfce1d7f0f03e553edf468c3ad5d5"><td class="mdescLeft">&#160;</td><td class="mdescRight">输出类型  <br /></td></tr>
+</table><table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 id="header-pub-methods" class="groupheader"><a id="pub-methods" name="pub-methods"></a>
+Public 成员函数</h2></td></tr>
+<tr class="memitem:ga66f6b33cb3b7559e673f2b97cbd11d3f" id="r_ga66f6b33cb3b7559e673f2b97cbd11d3f"><td class="memItemLeft">constexpr&#160;</td><td class="memItemRight"><a class="el" href="group__engines.html#ga66f6b33cb3b7559e673f2b97cbd11d3f">SplitMix64</a> (<a class="el" href="group__engines.html#gade679f83a18ce7451c504090a4379fe9">state_type</a> state=<a class="el" href="namespaceRandX.html#a9288902b59860f71275deb0d807f69b6">DefaultSeed</a>) noexcept</td></tr>
+<tr class="memdesc:ga66f6b33cb3b7559e673f2b97cbd11d3f"><td class="mdescLeft">&#160;</td><td class="mdescRight">以指定状态构造引擎  <br /></td></tr>
+<tr class="memitem:gadbb568035db4c8770c4f2d4714915f70" id="r_gadbb568035db4c8770c4f2d4714915f70"><td class="memTemplParams" colspan="2">template&lt;class SeedSeq&gt; <br />
+requires (!std::same_as&lt;std::remove_cvref_t&lt;SeedSeq&gt;, SplitMix64&gt;)</td></tr>
+<tr class="memitem:gadbb568035db4c8770c4f2d4714915f70 template"><td class="memItemLeft">constexpr&#160;</td><td class="memItemRight"><a class="el" href="group__engines.html#gadbb568035db4c8770c4f2d4714915f70">SplitMix64</a> (SeedSeq &amp;seq)</td></tr>
+<tr class="memdesc:gadbb568035db4c8770c4f2d4714915f70"><td class="mdescLeft">&#160;</td><td class="mdescRight">从 std::seed_seq 播种  <br /></td></tr>
+<tr class="memitem:ga4da87e9fe812fbb47b35614daa59c464" id="r_ga4da87e9fe812fbb47b35614daa59c464"><td class="memItemLeft">constexpr <a class="el" href="group__engines.html#ga9cabfce1d7f0f03e553edf468c3ad5d5">result_type</a>&#160;</td><td class="memItemRight"><a class="el" href="group__engines.html#ga4da87e9fe812fbb47b35614daa59c464">operator()</a> () noexcept</td></tr>
+<tr class="memdesc:ga4da87e9fe812fbb47b35614daa59c464"><td class="mdescLeft">&#160;</td><td class="mdescRight">生成下一个 64 位随机数  <br /></td></tr>
+<tr class="memitem:ga565ef6815d96d0870fe4891bcd00b735" id="r_ga565ef6815d96d0870fe4891bcd00b735"><td class="memItemLeft">constexpr void&#160;</td><td class="memItemRight"><a class="el" href="group__engines.html#ga565ef6815d96d0870fe4891bcd00b735">discard</a> (unsigned long long n) noexcept</td></tr>
+<tr class="memdesc:ga565ef6815d96d0870fe4891bcd00b735"><td class="mdescLeft">&#160;</td><td class="mdescRight">跳过 n 个输出  <br /></td></tr>
+<tr class="memitem:ga1089dfc6d1d08bc874fb867d10f65500" id="r_ga1089dfc6d1d08bc874fb867d10f65500"><td class="memTemplParams" colspan="2">template&lt;std::size_t N&gt; </td></tr>
+<tr class="memitem:ga1089dfc6d1d08bc874fb867d10f65500 template"><td class="memItemLeft">constexpr std::array&lt; std::uint64_t, N &gt;&#160;</td><td class="memItemRight"><a class="el" href="group__engines.html#ga1089dfc6d1d08bc874fb867d10f65500">generateSeedSequence</a> () noexcept</td></tr>
+<tr class="memdesc:ga1089dfc6d1d08bc874fb867d10f65500"><td class="mdescLeft">&#160;</td><td class="mdescRight">生成 N 个高质量的 64 位种子序列  <br /></td></tr>
+<tr class="memitem:ga0c34adfdb68372729e3232a983a49fdc" id="r_ga0c34adfdb68372729e3232a983a49fdc"><td class="memItemLeft">constexpr <a class="el" href="group__engines.html#gade679f83a18ce7451c504090a4379fe9">state_type</a>&#160;</td><td class="memItemRight"><a class="el" href="group__engines.html#ga0c34adfdb68372729e3232a983a49fdc">serialize</a> () const noexcept</td></tr>
+<tr class="memdesc:ga0c34adfdb68372729e3232a983a49fdc"><td class="mdescLeft">&#160;</td><td class="mdescRight">序列化引擎状态  <br /></td></tr>
+<tr class="memitem:gab5b13d78315ce4bdeb2c092435cb92a5" id="r_gab5b13d78315ce4bdeb2c092435cb92a5"><td class="memItemLeft">constexpr void&#160;</td><td class="memItemRight"><a class="el" href="group__engines.html#gab5b13d78315ce4bdeb2c092435cb92a5">deserialize</a> (<a class="el" href="group__engines.html#gade679f83a18ce7451c504090a4379fe9">state_type</a> state) noexcept</td></tr>
+<tr class="memdesc:gab5b13d78315ce4bdeb2c092435cb92a5"><td class="mdescLeft">&#160;</td><td class="mdescRight">从状态恢复引擎  <br /></td></tr>
+<tr class="memitem:a97b8254476df339820f12c4aaecc9a40" id="r_a97b8254476df339820f12c4aaecc9a40"><td class="memItemLeft"><a class="el" href="RandX__Cpp17_8hpp.html#a653e8f0dfcf2c762230a473bb2f390dc">RANDX_NODISCARD_CXX20</a> constexpr&#160;</td><td class="memItemRight"><a class="el" href="#a97b8254476df339820f12c4aaecc9a40">SplitMix64</a> (<a class="el" href="group__engines.html#gade679f83a18ce7451c504090a4379fe9">state_type</a> state=<a class="el" href="namespaceRandX.html#a9288902b59860f71275deb0d807f69b6">DefaultSeed</a>) noexcept</td></tr>
+<tr class="memdesc:a97b8254476df339820f12c4aaecc9a40"><td class="mdescLeft">&#160;</td><td class="mdescRight">以指定状态构造引擎  <br /></td></tr>
+<tr class="memitem:aca76e9faed8656b531c87b0d9fad226f" id="r_aca76e9faed8656b531c87b0d9fad226f"><td class="memTemplParams" colspan="2">template&lt;class SeedSeq, std::enable_if_t&lt;!std::is_same_v&lt; std::decay_t&lt; SeedSeq &gt;, SplitMix64 &gt; &gt; * = nullptr&gt; </td></tr>
+<tr class="memitem:aca76e9faed8656b531c87b0d9fad226f template"><td class="memItemLeft"><a class="el" href="RandX__Cpp17_8hpp.html#a653e8f0dfcf2c762230a473bb2f390dc">RANDX_NODISCARD_CXX20</a> constexpr&#160;</td><td class="memItemRight"><a class="el" href="#aca76e9faed8656b531c87b0d9fad226f">SplitMix64</a> (SeedSeq &amp;seq)</td></tr>
+<tr class="memdesc:aca76e9faed8656b531c87b0d9fad226f"><td class="mdescLeft">&#160;</td><td class="mdescRight">从 std::seed_seq 播种  <br /></td></tr>
+<tr class="memitem:a78b8575f83998e2b619558a83b72f882" id="r_a78b8575f83998e2b619558a83b72f882"><td class="memItemLeft">constexpr <a class="el" href="group__engines.html#ga9cabfce1d7f0f03e553edf468c3ad5d5">result_type</a>&#160;</td><td class="memItemRight"><a class="el" href="#a78b8575f83998e2b619558a83b72f882">operator()</a> () noexcept</td></tr>
+<tr class="memdesc:a78b8575f83998e2b619558a83b72f882"><td class="mdescLeft">&#160;</td><td class="mdescRight">生成下一个 64 位随机数  <br /></td></tr>
+<tr class="memitem:a565ef6815d96d0870fe4891bcd00b735" id="r_a565ef6815d96d0870fe4891bcd00b735"><td class="memItemLeft">constexpr void&#160;</td><td class="memItemRight"><a class="el" href="#a565ef6815d96d0870fe4891bcd00b735">discard</a> (unsigned long long n) noexcept</td></tr>
+<tr class="memdesc:a565ef6815d96d0870fe4891bcd00b735"><td class="mdescLeft">&#160;</td><td class="mdescRight">跳过 n 个输出  <br /></td></tr>
+<tr class="memitem:a1089dfc6d1d08bc874fb867d10f65500" id="r_a1089dfc6d1d08bc874fb867d10f65500"><td class="memTemplParams" colspan="2">template&lt;std::size_t N&gt; </td></tr>
+<tr class="memitem:a1089dfc6d1d08bc874fb867d10f65500 template"><td class="memItemLeft">constexpr std::array&lt; std::uint64_t, N &gt;&#160;</td><td class="memItemRight"><a class="el" href="#a1089dfc6d1d08bc874fb867d10f65500">generateSeedSequence</a> () noexcept</td></tr>
+<tr class="memdesc:a1089dfc6d1d08bc874fb867d10f65500"><td class="mdescLeft">&#160;</td><td class="mdescRight">生成 N 个高质量的 64 位种子序列  <br /></td></tr>
+<tr class="memitem:abcdec37e1301584dcfd10dc1c2803c22" id="r_abcdec37e1301584dcfd10dc1c2803c22"><td class="memItemLeft">constexpr <a class="el" href="group__engines.html#gade679f83a18ce7451c504090a4379fe9">state_type</a>&#160;</td><td class="memItemRight"><a class="el" href="#abcdec37e1301584dcfd10dc1c2803c22">serialize</a> () const noexcept</td></tr>
+<tr class="memdesc:abcdec37e1301584dcfd10dc1c2803c22"><td class="mdescLeft">&#160;</td><td class="mdescRight">序列化引擎状态  <br /></td></tr>
+<tr class="memitem:ab5b13d78315ce4bdeb2c092435cb92a5" id="r_ab5b13d78315ce4bdeb2c092435cb92a5"><td class="memItemLeft">constexpr void&#160;</td><td class="memItemRight"><a class="el" href="#ab5b13d78315ce4bdeb2c092435cb92a5">deserialize</a> (<a class="el" href="group__engines.html#gade679f83a18ce7451c504090a4379fe9">state_type</a> state) noexcept</td></tr>
+<tr class="memdesc:ab5b13d78315ce4bdeb2c092435cb92a5"><td class="mdescLeft">&#160;</td><td class="mdescRight">从状态恢复引擎  <br /></td></tr>
+<tr class="memitem:ae7b25ea50b2e028aea5f65830d835b98" id="r_ae7b25ea50b2e028aea5f65830d835b98"><td class="memTemplParams" colspan="2">template&lt;class SeedSeq, std::enable_if_t&lt;!std::is_same_v&lt; std::decay_t&lt; SeedSeq &gt;, SplitMix64 &gt; &gt; *&gt; </td></tr>
+<tr class="memitem:ae7b25ea50b2e028aea5f65830d835b98 template"><td class="memItemLeft">constexpr&#160;</td><td class="memItemRight"><a class="el" href="#ae7b25ea50b2e028aea5f65830d835b98">SplitMix64</a> (SeedSeq &amp;seq)</td></tr>
+</table><table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 id="header-pub-static-methods" class="groupheader"><a id="pub-static-methods" name="pub-static-methods"></a>
+静态 Public 成员函数</h2></td></tr>
+<tr class="memitem:ga51e09b03cbc26b28d6832e2bc44f1fba" id="r_ga51e09b03cbc26b28d6832e2bc44f1fba"><td class="memItemLeft">static constexpr <a class="el" href="group__engines.html#ga9cabfce1d7f0f03e553edf468c3ad5d5">result_type</a>&#160;</td><td class="memItemRight"><a class="el" href="group__engines.html#ga51e09b03cbc26b28d6832e2bc44f1fba">min</a> () noexcept</td></tr>
+<tr class="memdesc:ga51e09b03cbc26b28d6832e2bc44f1fba"><td class="mdescLeft">&#160;</td><td class="mdescRight">输出范围下界  <br /></td></tr>
+<tr class="memitem:gae3f2f9751994d0a305d15ab3f927e9a7" id="r_gae3f2f9751994d0a305d15ab3f927e9a7"><td class="memItemLeft">static constexpr <a class="el" href="group__engines.html#ga9cabfce1d7f0f03e553edf468c3ad5d5">result_type</a>&#160;</td><td class="memItemRight"><a class="el" href="group__engines.html#gae3f2f9751994d0a305d15ab3f927e9a7">max</a> () noexcept</td></tr>
+<tr class="memdesc:gae3f2f9751994d0a305d15ab3f927e9a7"><td class="mdescLeft">&#160;</td><td class="mdescRight">输出范围上界  <br /></td></tr>
+<tr class="memitem:a30b9e5eb2eb3a27709a0790e09ae7e7c" id="r_a30b9e5eb2eb3a27709a0790e09ae7e7c"><td class="memItemLeft">static constexpr <a class="el" href="group__engines.html#ga9cabfce1d7f0f03e553edf468c3ad5d5">result_type</a>&#160;</td><td class="memItemRight"><a class="el" href="#a30b9e5eb2eb3a27709a0790e09ae7e7c">min</a> () noexcept</td></tr>
+<tr class="memdesc:a30b9e5eb2eb3a27709a0790e09ae7e7c"><td class="mdescLeft">&#160;</td><td class="mdescRight">输出范围下界  <br /></td></tr>
+<tr class="memitem:a2cd1e9361ca69bed52c303cc4cdc85b9" id="r_a2cd1e9361ca69bed52c303cc4cdc85b9"><td class="memItemLeft">static constexpr <a class="el" href="group__engines.html#ga9cabfce1d7f0f03e553edf468c3ad5d5">result_type</a>&#160;</td><td class="memItemRight"><a class="el" href="#a2cd1e9361ca69bed52c303cc4cdc85b9">max</a> () noexcept</td></tr>
+<tr class="memdesc:a2cd1e9361ca69bed52c303cc4cdc85b9"><td class="mdescLeft">&#160;</td><td class="mdescRight">输出范围上界  <br /></td></tr>
+</table><table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 id="header-friends" class="groupheader"><a id="friends" name="friends"></a>
+友元</h2></td></tr>
+<tr class="memitem:ga6e08f397818c44cb1e1f93c3c89627eb" id="r_ga6e08f397818c44cb1e1f93c3c89627eb"><td class="memItemLeft">auto&#160;</td><td class="memItemRight"><a class="el" href="group__engines.html#ga6e08f397818c44cb1e1f93c3c89627eb">operator&lt;=&gt;</a> (const <a class="el" href="group__engines.html#ga66f6b33cb3b7559e673f2b97cbd11d3f">SplitMix64</a> &amp;, const <a class="el" href="group__engines.html#ga66f6b33cb3b7559e673f2b97cbd11d3f">SplitMix64</a> &amp;)=default</td></tr>
+<tr class="memitem:a6cefc0b8a394fd353061d0773bf01e92" id="r_a6cefc0b8a394fd353061d0773bf01e92"><td class="memItemLeft">bool&#160;</td><td class="memItemRight"><a class="el" href="#a6cefc0b8a394fd353061d0773bf01e92">operator==</a> (const <a class="el" href="group__engines.html#ga66f6b33cb3b7559e673f2b97cbd11d3f">SplitMix64</a> &amp;lhs, const <a class="el" href="group__engines.html#ga66f6b33cb3b7559e673f2b97cbd11d3f">SplitMix64</a> &amp;rhs) noexcept</td></tr>
+<tr class="memitem:aa20edd4a206cff2f177f82d94a520c2c" id="r_aa20edd4a206cff2f177f82d94a520c2c"><td class="memItemLeft">bool&#160;</td><td class="memItemRight"><a class="el" href="#aa20edd4a206cff2f177f82d94a520c2c">operator!=</a> (const <a class="el" href="group__engines.html#ga66f6b33cb3b7559e673f2b97cbd11d3f">SplitMix64</a> &amp;lhs, const <a class="el" href="group__engines.html#ga66f6b33cb3b7559e673f2b97cbd11d3f">SplitMix64</a> &amp;rhs) noexcept</td></tr>
+</table>
+<a name="details" id="details"></a><h2 id="header-details" class="groupheader">详细描述</h2>
+<div class="textblock"><p><a class="el" href="classRandX_1_1SplitMix64.html" title="SplitMix64 伪随机数生成器，64 位输出，周期 2^64。">SplitMix64</a> 伪随机数生成器，64 位输出，周期 2^64。 </p>
+<p>状态 8 字节（1×uint64）。主要用于种子扩展与哈希， 可将单个 64 位种子展开为高质量的状态序列。 原始实现：http://prng.di.unimi.it/splitmix64.c</p>
+<dl class="section note"><dt>注解</dt><dd>非通用 PRNG，无 jump 方法。 </dd></dl>
+<dl class="section see"><dt>参见</dt><dd><a class="el" href="classRandX_1_1Xoshiro256StarStar.html" title="Xoshiro256** 伪随机数生成器，64 位输出，周期 2^256-1。">Xoshiro256StarStar</a>, <a class="el" href="classRandX_1_1Xoroshiro128StarStar.html" title="Xoroshiro128** 伪随机数生成器，64 位输出，周期 2^128-1。">Xoroshiro128StarStar</a> </dd></dl>
+</div><a name="doc-typedef-members" id="doc-typedef-members"></a><h2 id="header-doc-typedef-members" class="groupheader">成员类型定义说明</h2>
+<a id="a9cabfce1d7f0f03e553edf468c3ad5d5" name="a9cabfce1d7f0f03e553edf468c3ad5d5"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a9cabfce1d7f0f03e553edf468c3ad5d5">&#9670;&#160;</a></span>result_type</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">using <a class="el" href="group__engines.html#ga9cabfce1d7f0f03e553edf468c3ad5d5">RandX::SplitMix64::result_type</a> = std::uint64_t</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>输出类型 </p>
+
+</div>
+</div>
+<a id="ade679f83a18ce7451c504090a4379fe9" name="ade679f83a18ce7451c504090a4379fe9"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ade679f83a18ce7451c504090a4379fe9">&#9670;&#160;</a></span>state_type</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">using <a class="el" href="group__engines.html#gade679f83a18ce7451c504090a4379fe9">RandX::SplitMix64::state_type</a> = std::uint64_t</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>状态类型（1×uint64） </p>
+
+</div>
+</div>
+<a name="doc-constructors" id="doc-constructors"></a><h2 id="header-doc-constructors" class="groupheader">构造及析构函数说明</h2>
+<a id="a97b8254476df339820f12c4aaecc9a40" name="a97b8254476df339820f12c4aaecc9a40"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a97b8254476df339820f12c4aaecc9a40">&#9670;&#160;</a></span>SplitMix64() <span class="overload">[1/3]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="RandX__Cpp17_8hpp.html#a653e8f0dfcf2c762230a473bb2f390dc">RANDX_NODISCARD_CXX20</a> constexpr RandX::SplitMix64::SplitMix64 </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="group__engines.html#gade679f83a18ce7451c504090a4379fe9">state_type</a></td>          <td class="paramname"><span class="paramname"><em>state</em></span><span class="paramdefsep"> = </span><span class="paramdefval"><a class="el" href="namespaceRandX.html#a9288902b59860f71275deb0d807f69b6">DefaultSeed</a></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel explicit">explicit</span><span class="mlabel constexpr">constexpr</span><span class="mlabel noexcept">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>以指定状态构造引擎 </p>
+<dl class="params"><dt>参数</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">state</td><td>64 位初始状态值 </td></tr>
+  </table>
+  </dd>
+</dl>
+<div class="dynheader">
+函数调用图:</div>
+<div class="dyncontent">
+<div class="center"><img src="classRandX_1_1SplitMix64_a97b8254476df339820f12c4aaecc9a40_cgraph.png" border="0" usemap="#aclassRandX_1_1SplitMix64_a97b8254476df339820f12c4aaecc9a40_cgraph" loading="lazy" alt=""/></div>
+<map name="aclassRandX_1_1SplitMix64_a97b8254476df339820f12c4aaecc9a40_cgraph" id="aclassRandX_1_1SplitMix64_a97b8254476df339820f12c4aaecc9a40_cgraph">
+<area shape="rect" title="以指定状态构造引擎" alt="" coords="5,5,155,45"/>
+<area shape="rect" href="group__engines.html#ga66f6b33cb3b7559e673f2b97cbd11d3f" title="以指定状态构造引擎" alt="" coords="203,5,352,45"/>
+<area shape="poly" title=" " alt="" coords="155,23,189,23,189,28,155,28"/>
+</map>
+</div>
+
+</div>
+</div>
+<a id="aca76e9faed8656b531c87b0d9fad226f" name="aca76e9faed8656b531c87b0d9fad226f"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aca76e9faed8656b531c87b0d9fad226f">&#9670;&#160;</a></span>SplitMix64() <span class="overload">[2/3]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;class SeedSeq, std::enable_if_t&lt;!std::is_same_v&lt; std::decay_t&lt; SeedSeq &gt;, SplitMix64 &gt; &gt; * = nullptr&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="RandX__Cpp17_8hpp.html#a653e8f0dfcf2c762230a473bb2f390dc">RANDX_NODISCARD_CXX20</a> constexpr RandX::SplitMix64::SplitMix64 </td>
+          <td>(</td>
+          <td class="paramtype">SeedSeq &amp;</td>          <td class="paramname"><span class="paramname"><em>seq</em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel explicit">explicit</span><span class="mlabel constexpr">constexpr</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>从 std::seed_seq 播种 </p>
+<dl class="params"><dt>参数</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">seq</td><td>种子序列对象 </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<a id="ae7b25ea50b2e028aea5f65830d835b98" name="ae7b25ea50b2e028aea5f65830d835b98"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ae7b25ea50b2e028aea5f65830d835b98">&#9670;&#160;</a></span>SplitMix64() <span class="overload">[3/3]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;class SeedSeq, std::enable_if_t&lt;!std::is_same_v&lt; std::decay_t&lt; SeedSeq &gt;, SplitMix64 &gt; &gt; *&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">RandX::SplitMix64::SplitMix64 </td>
+          <td>(</td>
+          <td class="paramtype">SeedSeq &amp;</td>          <td class="paramname"><span class="paramname"><em>seq</em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel constexpr">constexpr</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a name="doc-func-members" id="doc-func-members"></a><h2 id="header-doc-func-members" class="groupheader">成员函数说明</h2>
+<a id="ab5b13d78315ce4bdeb2c092435cb92a5" name="ab5b13d78315ce4bdeb2c092435cb92a5"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ab5b13d78315ce4bdeb2c092435cb92a5">&#9670;&#160;</a></span>deserialize()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">void RandX::SplitMix64::deserialize </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="group__engines.html#gade679f83a18ce7451c504090a4379fe9">state_type</a></td>          <td class="paramname"><span class="paramname"><em>state</em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel constexpr">constexpr</span><span class="mlabel noexcept">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>从状态恢复引擎 </p>
+<dl class="params"><dt>参数</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">state</td><td><a class="el" href="group__engines.html#ga0c34adfdb68372729e3232a983a49fdc" title="序列化引擎状态">serialize()</a> 返回的状态 </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section see"><dt>参见</dt><dd><a class="el" href="group__engines.html#ga0c34adfdb68372729e3232a983a49fdc" title="序列化引擎状态">serialize()</a> </dd></dl>
+<div class="dynheader">
+函数调用图:</div>
+<div class="dyncontent">
+<div class="center"><img src="classRandX_1_1SplitMix64_ab5b13d78315ce4bdeb2c092435cb92a5_cgraph.png" border="0" usemap="#aclassRandX_1_1SplitMix64_ab5b13d78315ce4bdeb2c092435cb92a5_cgraph" loading="lazy" alt=""/></div>
+<map name="aclassRandX_1_1SplitMix64_ab5b13d78315ce4bdeb2c092435cb92a5_cgraph" id="aclassRandX_1_1SplitMix64_ab5b13d78315ce4bdeb2c092435cb92a5_cgraph">
+<area shape="rect" title="从状态恢复引擎" alt="" coords="5,5,155,45"/>
+<area shape="rect" href="group__engines.html#gab5b13d78315ce4bdeb2c092435cb92a5" title="从状态恢复引擎" alt="" coords="203,5,352,45"/>
+<area shape="poly" title=" " alt="" coords="155,23,189,23,189,28,155,28"/>
+</map>
+</div>
+
+</div>
+</div>
+<a id="a565ef6815d96d0870fe4891bcd00b735" name="a565ef6815d96d0870fe4891bcd00b735"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a565ef6815d96d0870fe4891bcd00b735">&#9670;&#160;</a></span>discard()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">void RandX::SplitMix64::discard </td>
+          <td>(</td>
+          <td class="paramtype">unsigned long long</td>          <td class="paramname"><span class="paramname"><em>n</em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel constexpr">constexpr</span><span class="mlabel noexcept">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>跳过 n 个输出 </p>
+<dl class="params"><dt>参数</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">n</td><td>跳过次数 </td></tr>
+  </table>
+  </dd>
+</dl>
+<div class="dynheader">
+函数调用图:</div>
+<div class="dyncontent">
+<div class="center"><img src="classRandX_1_1SplitMix64_a565ef6815d96d0870fe4891bcd00b735_cgraph.png" border="0" usemap="#aclassRandX_1_1SplitMix64_a565ef6815d96d0870fe4891bcd00b735_cgraph" loading="lazy" alt=""/></div>
+<map name="aclassRandX_1_1SplitMix64_a565ef6815d96d0870fe4891bcd00b735_cgraph" id="aclassRandX_1_1SplitMix64_a565ef6815d96d0870fe4891bcd00b735_cgraph">
+<area shape="rect" title="跳过 n 个输出" alt="" coords="5,5,155,45"/>
+<area shape="rect" href="group__engines.html#ga565ef6815d96d0870fe4891bcd00b735" title="跳过 n 个输出" alt="" coords="203,5,352,45"/>
+<area shape="poly" title=" " alt="" coords="155,23,189,23,189,28,155,28"/>
+<area shape="rect" href="group__engines.html#ga4da87e9fe812fbb47b35614daa59c464" title="生成下一个 64 位随机数" alt="" coords="400,5,549,45"/>
+<area shape="poly" title=" " alt="" coords="352,23,386,23,386,28,352,28"/>
+</map>
+</div>
+
+</div>
+</div>
+<a id="a1089dfc6d1d08bc874fb867d10f65500" name="a1089dfc6d1d08bc874fb867d10f65500"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a1089dfc6d1d08bc874fb867d10f65500">&#9670;&#160;</a></span>generateSeedSequence()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;std::size_t N&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">std::array&lt; std::uint64_t, N &gt; RandX::SplitMix64::generateSeedSequence </td>
+          <td>(</td>
+          <td class="paramname"><span class="paramname"><em></em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel nodiscard">nodiscard</span><span class="mlabel constexpr">constexpr</span><span class="mlabel noexcept">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>生成 N 个高质量的 64 位种子序列 </p>
+<dl class="tparams"><dt>模板参数</dt><dd>
+  <table class="tparams">
+    <tr><td class="paramname">N</td><td>生成的种子数量 </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>返回</dt><dd>包含 N 个 uint64 的数组，可用于播种其他引擎 </dd></dl>
+<div class="dynheader">
+函数调用图:</div>
+<div class="dyncontent">
+<div class="center"><img src="classRandX_1_1SplitMix64_a1089dfc6d1d08bc874fb867d10f65500_cgraph.png" border="0" usemap="#aclassRandX_1_1SplitMix64_a1089dfc6d1d08bc874fb867d10f65500_cgraph" loading="lazy" alt=""/></div>
+<map name="aclassRandX_1_1SplitMix64_a1089dfc6d1d08bc874fb867d10f65500_cgraph" id="aclassRandX_1_1SplitMix64_a1089dfc6d1d08bc874fb867d10f65500_cgraph">
+<area shape="rect" title="生成 N 个高质量的 64 位种子序列" alt="" coords="5,5,180,45"/>
+<area shape="rect" href="group__engines.html#ga1089dfc6d1d08bc874fb867d10f65500" title="生成 N 个高质量的 64 位种子序列" alt="" coords="228,5,403,45"/>
+<area shape="poly" title=" " alt="" coords="180,23,214,23,214,28,180,28"/>
+<area shape="rect" href="group__engines.html#ga4da87e9fe812fbb47b35614daa59c464" title="生成下一个 64 位随机数" alt="" coords="451,5,600,45"/>
+<area shape="poly" title=" " alt="" coords="403,23,437,23,437,28,403,28"/>
+</map>
+</div>
+
+</div>
+</div>
+<a id="a2cd1e9361ca69bed52c303cc4cdc85b9" name="a2cd1e9361ca69bed52c303cc4cdc85b9"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a2cd1e9361ca69bed52c303cc4cdc85b9">&#9670;&#160;</a></span>max()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">constexpr <a class="el" href="group__engines.html#ga9cabfce1d7f0f03e553edf468c3ad5d5">result_type</a> RandX::SplitMix64::max </td>
+          <td>(</td>
+          <td class="paramname"><span class="paramname"><em></em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel static">static</span><span class="mlabel nodiscard">nodiscard</span><span class="mlabel constexpr">constexpr</span><span class="mlabel noexcept">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>输出范围上界 </p>
+<dl class="section return"><dt>返回</dt><dd>2^64 - 1 </dd></dl>
+<div class="dynheader">
+函数调用图:</div>
+<div class="dyncontent">
+<div class="center"><img src="classRandX_1_1SplitMix64_a2cd1e9361ca69bed52c303cc4cdc85b9_cgraph.png" border="0" usemap="#aclassRandX_1_1SplitMix64_a2cd1e9361ca69bed52c303cc4cdc85b9_cgraph" loading="lazy" alt=""/></div>
+<map name="aclassRandX_1_1SplitMix64_a2cd1e9361ca69bed52c303cc4cdc85b9_cgraph" id="aclassRandX_1_1SplitMix64_a2cd1e9361ca69bed52c303cc4cdc85b9_cgraph">
+<area shape="rect" title="输出范围上界" alt="" coords="5,5,184,31"/>
+<area shape="rect" href="group__engines.html#gae3f2f9751994d0a305d15ab3f927e9a7" title="输出范围上界" alt="" coords="232,5,411,31"/>
+<area shape="poly" title=" " alt="" coords="185,15,218,15,218,21,185,21"/>
+</map>
+</div>
+
+</div>
+</div>
+<a id="a30b9e5eb2eb3a27709a0790e09ae7e7c" name="a30b9e5eb2eb3a27709a0790e09ae7e7c"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a30b9e5eb2eb3a27709a0790e09ae7e7c">&#9670;&#160;</a></span>min()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">constexpr <a class="el" href="group__engines.html#ga9cabfce1d7f0f03e553edf468c3ad5d5">result_type</a> RandX::SplitMix64::min </td>
+          <td>(</td>
+          <td class="paramname"><span class="paramname"><em></em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel static">static</span><span class="mlabel nodiscard">nodiscard</span><span class="mlabel constexpr">constexpr</span><span class="mlabel noexcept">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>输出范围下界 </p>
+<dl class="section return"><dt>返回</dt><dd>0 </dd></dl>
+<div class="dynheader">
+函数调用图:</div>
+<div class="dyncontent">
+<div class="center"><img src="classRandX_1_1SplitMix64_a30b9e5eb2eb3a27709a0790e09ae7e7c_cgraph.png" border="0" usemap="#aclassRandX_1_1SplitMix64_a30b9e5eb2eb3a27709a0790e09ae7e7c_cgraph" loading="lazy" alt=""/></div>
+<map name="aclassRandX_1_1SplitMix64_a30b9e5eb2eb3a27709a0790e09ae7e7c_cgraph" id="aclassRandX_1_1SplitMix64_a30b9e5eb2eb3a27709a0790e09ae7e7c_cgraph">
+<area shape="rect" title="输出范围下界" alt="" coords="5,5,180,31"/>
+<area shape="rect" href="group__engines.html#ga51e09b03cbc26b28d6832e2bc44f1fba" title="输出范围下界" alt="" coords="228,5,403,31"/>
+<area shape="poly" title=" " alt="" coords="180,15,214,15,214,21,180,21"/>
+</map>
+</div>
+
+</div>
+</div>
+<a id="a78b8575f83998e2b619558a83b72f882" name="a78b8575f83998e2b619558a83b72f882"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a78b8575f83998e2b619558a83b72f882">&#9670;&#160;</a></span>operator()()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="group__engines.html#ga9cabfce1d7f0f03e553edf468c3ad5d5">result_type</a> RandX::SplitMix64::operator() </td>
+          <td>(</td>
+          <td class="paramname"><span class="paramname"><em></em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel constexpr">constexpr</span><span class="mlabel noexcept">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>生成下一个 64 位随机数 </p>
+<dl class="section return"><dt>返回</dt><dd>[<a class="el" href="group__engines.html#ga51e09b03cbc26b28d6832e2bc44f1fba" title="输出范围下界">min()</a>, <a class="el" href="group__engines.html#gae3f2f9751994d0a305d15ab3f927e9a7" title="输出范围上界">max()</a>] 区间内的伪随机数 </dd></dl>
+
+</div>
+</div>
+<a id="abcdec37e1301584dcfd10dc1c2803c22" name="abcdec37e1301584dcfd10dc1c2803c22"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#abcdec37e1301584dcfd10dc1c2803c22">&#9670;&#160;</a></span>serialize()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="group__engines.html#gade679f83a18ce7451c504090a4379fe9">state_type</a> RandX::SplitMix64::serialize </td>
+          <td>(</td>
+          <td class="paramname"><span class="paramname"><em></em></span></td><td>)</td>
+          <td> const</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel nodiscard">nodiscard</span><span class="mlabel constexpr">constexpr</span><span class="mlabel noexcept">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>序列化引擎状态 </p>
+<dl class="section return"><dt>返回</dt><dd>当前状态值 </dd></dl>
+<dl class="section see"><dt>参见</dt><dd><a class="el" href="group__engines.html#gab5b13d78315ce4bdeb2c092435cb92a5" title="从状态恢复引擎">deserialize()</a> </dd></dl>
+<div class="dynheader">
+函数调用图:</div>
+<div class="dyncontent">
+<div class="center"><img src="classRandX_1_1SplitMix64_abcdec37e1301584dcfd10dc1c2803c22_cgraph.png" border="0" usemap="#aclassRandX_1_1SplitMix64_abcdec37e1301584dcfd10dc1c2803c22_cgraph" loading="lazy" alt=""/></div>
+<map name="aclassRandX_1_1SplitMix64_abcdec37e1301584dcfd10dc1c2803c22_cgraph" id="aclassRandX_1_1SplitMix64_abcdec37e1301584dcfd10dc1c2803c22_cgraph">
+<area shape="rect" title="序列化引擎状态" alt="" coords="5,5,155,45"/>
+<area shape="rect" href="group__engines.html#ga0c34adfdb68372729e3232a983a49fdc" title="序列化引擎状态" alt="" coords="203,5,352,45"/>
+<area shape="poly" title=" " alt="" coords="155,23,189,23,189,28,155,28"/>
+</map>
+</div>
+
+</div>
+</div>
+<a name="doc-related-members" id="doc-related-members"></a><h2 id="header-doc-related-members" class="groupheader">友元及相关符号说明</h2>
+<a id="aa20edd4a206cff2f177f82d94a520c2c" name="aa20edd4a206cff2f177f82d94a520c2c"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aa20edd4a206cff2f177f82d94a520c2c">&#9670;&#160;</a></span>operator!=</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">bool operator!= </td>
+          <td>(</td>
+          <td class="paramtype">const <a class="el" href="group__engines.html#ga66f6b33cb3b7559e673f2b97cbd11d3f">SplitMix64</a> &amp;</td>          <td class="paramname"><span class="paramname"><em>lhs</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const <a class="el" href="group__engines.html#ga66f6b33cb3b7559e673f2b97cbd11d3f">SplitMix64</a> &amp;</td>          <td class="paramname"><span class="paramname"><em>rhs</em></span>&#160;)</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel friend">friend</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="a6cefc0b8a394fd353061d0773bf01e92" name="a6cefc0b8a394fd353061d0773bf01e92"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a6cefc0b8a394fd353061d0773bf01e92">&#9670;&#160;</a></span>operator==</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">bool operator== </td>
+          <td>(</td>
+          <td class="paramtype">const <a class="el" href="group__engines.html#ga66f6b33cb3b7559e673f2b97cbd11d3f">SplitMix64</a> &amp;</td>          <td class="paramname"><span class="paramname"><em>lhs</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const <a class="el" href="group__engines.html#ga66f6b33cb3b7559e673f2b97cbd11d3f">SplitMix64</a> &amp;</td>          <td class="paramname"><span class="paramname"><em>rhs</em></span>&#160;)</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel friend">friend</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<hr/>该类的文档由以下文件生成:<ul>
+<li><a class="el" href="RandX_8hpp_source.html">RandX.hpp</a></li>
+<li><a class="el" href="RandX__Cpp17_8hpp_source.html">RandX_Cpp17.hpp</a></li>
+</ul>
+</div><!-- contents -->
+</div><!-- doc-content -->
+<div id="page-nav" class="page-nav-panel">
+<div id="page-nav-resize-handle"></div>
+<div id="page-nav-tree">
+<div id="page-nav-contents">
+</div><!-- page-nav-contents -->
+</div><!-- page-nav-tree -->
+</div><!-- page-nav -->
+</div><!-- container -->
+<!-- start footer part -->
+<div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
+  <ul>
+    <li class="navelem"><a href="namespaceRandX.html">RandX</a></li><li class="navelem"><a href="classRandX_1_1SplitMix64.html">SplitMix64</a></li>
+    <li class="footer">制作者 <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.17.0 </li>
+  </ul>
+</div>
+</body>
+</html>

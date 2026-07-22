@@ -1,0 +1,701 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "https://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="zh">
+<head>
+<meta http-equiv="Content-Type" content="text/xhtml;charset=UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=11"/>
+<meta name="generator" content="Doxygen 1.17.0"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>RandX: RandX::SFC64类 参考</title>
+<link href="tabs.css" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src="codefolding.js"></script>
+<script type="text/javascript" src="clipboard.js"></script>
+<link href="navtree.css" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src="navtreedata.js"></script>
+<script type="text/javascript" src="navtree.js"></script>
+<script type="text/javascript" src="cookie.js"></script>
+<link href="search/search.css" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src="search/searchdata.js"></script>
+<script type="text/javascript" src="search/search.js"></script>
+<script type="module">
+import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+const theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'default';
+mermaid.initialize({ startOnLoad: true, theme: theme });
+</script>
+<link href="doxygen.css" rel="stylesheet" type="text/css" />
+</head>
+<body>
+<div id="top"><!-- do not remove this div, it is closed by doxygen! -->
+<div id="titlearea">
+<table cellspacing="0" cellpadding="0">
+ <tbody>
+ <tr id="projectrow">
+  <td id="projectalign">
+   <div id="projectname">RandX<span id="projectnumber">&#160;1.3.1</span>
+   </div>
+   <div id="projectbrief">基于 xoshiro/xoroshiro 算法族的纯头文件伪随机数生成器库</div>
+  </td>
+ </tr>
+ </tbody>
+</table>
+</div>
+<!-- end header part -->
+<!-- 制作者 Doxygen 1.17.0 -->
+<script type="text/javascript">
+let searchBox = new SearchBox("searchBox", "search/",'.html');
+</script>
+<script type="text/javascript">
+document.addEventListener('DOMContentLoaded', codefold.init);
+</script>
+<script type="text/javascript" src="menudata.js"></script>
+<script type="text/javascript" src="menu.js"></script>
+<script type="text/javascript">
+document.addEventListener('DOMContentLoaded', () => {
+  initMenu('',true);
+  init_search();
+});
+</script>
+<div id="main-nav-mobile">
+<div class="sm sm-dox"><input id="main-menu-state" type="checkbox"/>
+<label class="main-menu-btn" for="main-menu-state">
+<span class="main-menu-btn-icon"></span> Toggle main menu visibility</label>
+<span id="searchBoxPos1" style="position:absolute;right:8px;top:8px;height:36px;"></span>
+</div>
+</div><!-- main-nav-mobile -->
+<div id="main-nav">
+  <ul class="sm sm-dox" id="main-menu">
+    <li id="searchBoxPos2" style="float:right">
+        <div id="MSearchBox" class="MSearchBoxInactive">
+        <span class="left">
+          <span id="MSearchSelect" class="search-icon" onmouseover="return searchBox.OnSearchSelectShow()" onmouseout="return searchBox.OnSearchSelectHide()"><span class="search-icon-dropdown"></span></span>
+          <input type="text" id="MSearchField" value="" placeholder="搜索" accesskey="S"
+               onfocus="searchBox.OnSearchFieldFocus(true)" 
+               onblur="searchBox.OnSearchFieldFocus(false)" 
+               onkeyup="searchBox.OnSearchFieldChange(event)"/>
+          </span><span class="right">
+            <a id="MSearchClose" href="javascript:searchBox.CloseResultsWindow()"><div id="MSearchCloseImg" class="close-icon"></div></a>
+          </span>
+        </div>
+    </li>
+  </ul>
+</div><!-- main-nav -->
+</div><!-- top -->
+<div id="side-nav" class="ui-resizable side-nav-resizable">
+  <div id="nav-tree">
+    <div id="nav-tree-contents">
+      <div id="nav-sync" class="sync"></div>
+    </div>
+  </div>
+  <div id="splitbar" style="-moz-user-select:none;" 
+       class="ui-resizable-handle">
+  </div>
+</div>
+<script type="text/javascript">
+document.addEventListener('DOMContentLoaded',() => { initNavTree('classRandX_1_1SFC64.html','','classRandX_1_1SFC64-members'); });
+</script>
+<div id="container">
+<div id="doc-content">
+<!-- window showing the filter options -->
+<div id="MSearchSelectWindow"
+     onmouseover="return searchBox.OnSearchSelectShow()"
+     onmouseout="return searchBox.OnSearchSelectHide()"
+     onkeydown="return searchBox.OnSearchSelectKey(event)">
+</div>
+
+<!-- iframe showing the search results (closed by default) -->
+<div id="MSearchResultsWindow">
+<div id="MSearchResults">
+<div class="SRPage">
+<div id="SRIndex">
+<div id="SRResults"></div>
+<div class="SRStatus" id="Loading">载入中...</div>
+<div class="SRStatus" id="Searching">搜索中...</div>
+<div class="SRStatus" id="NoMatches">未找到</div>
+</div>
+</div>
+</div>
+</div>
+
+<div class="header">
+  <div class="headertitle"><div class="title">RandX::SFC64类 参考<div class="ingroups"><a class="el" href="group__engines.html">引擎</a></div></div></div>
+</div><!--header-->
+<div class="contents">
+
+<p>SFC64（Small Fast Counter）伪随机数生成器，64 位输出，周期 &gt;= 2^64。  
+ <a href="#details">更多...</a></p>
+
+<p><code>#include &lt;<a class="el" href="RandX_8hpp_source.html">RandX.hpp</a>&gt;</code></p>
+<table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 id="header-pub-types" class="groupheader"><a id="pub-types" name="pub-types"></a>
+Public 类型</h2></td></tr>
+<tr class="memitem:gaa690d14a18a0a8111c4f6e2e91102640" id="r_gaa690d14a18a0a8111c4f6e2e91102640"><td class="memItemLeft">using&#160;</td><td class="memItemRight"><a class="el" href="group__engines.html#gaa690d14a18a0a8111c4f6e2e91102640">state_type</a> = std::array&lt;std::uint64_t, 4&gt;</td></tr>
+<tr class="memdesc:gaa690d14a18a0a8111c4f6e2e91102640"><td class="mdescLeft">&#160;</td><td class="mdescRight">状态类型（4×uint64）  <br /></td></tr>
+<tr class="memitem:gad389f185a85df3d5bde79ee5e6c3c06c" id="r_gad389f185a85df3d5bde79ee5e6c3c06c"><td class="memItemLeft">using&#160;</td><td class="memItemRight"><a class="el" href="group__engines.html#gad389f185a85df3d5bde79ee5e6c3c06c">result_type</a> = std::uint64_t</td></tr>
+<tr class="memdesc:gad389f185a85df3d5bde79ee5e6c3c06c"><td class="mdescLeft">&#160;</td><td class="mdescRight">输出类型  <br /></td></tr>
+<tr class="memitem:aa690d14a18a0a8111c4f6e2e91102640" id="r_aa690d14a18a0a8111c4f6e2e91102640"><td class="memItemLeft">using&#160;</td><td class="memItemRight"><a class="el" href="#aa690d14a18a0a8111c4f6e2e91102640">state_type</a> = std::array&lt;std::uint64_t, 4&gt;</td></tr>
+<tr class="memdesc:aa690d14a18a0a8111c4f6e2e91102640"><td class="mdescLeft">&#160;</td><td class="mdescRight">状态类型（4×uint64）  <br /></td></tr>
+<tr class="memitem:ad389f185a85df3d5bde79ee5e6c3c06c" id="r_ad389f185a85df3d5bde79ee5e6c3c06c"><td class="memItemLeft">using&#160;</td><td class="memItemRight"><a class="el" href="#ad389f185a85df3d5bde79ee5e6c3c06c">result_type</a> = std::uint64_t</td></tr>
+<tr class="memdesc:ad389f185a85df3d5bde79ee5e6c3c06c"><td class="mdescLeft">&#160;</td><td class="mdescRight">输出类型  <br /></td></tr>
+</table><table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 id="header-pub-methods" class="groupheader"><a id="pub-methods" name="pub-methods"></a>
+Public 成员函数</h2></td></tr>
+<tr class="memitem:ga96645eedb5e475db13f668b0ae653714" id="r_ga96645eedb5e475db13f668b0ae653714"><td class="memItemLeft">constexpr&#160;</td><td class="memItemRight"><a class="el" href="group__engines.html#ga96645eedb5e475db13f668b0ae653714">SFC64</a> (std::uint64_t seed=<a class="el" href="namespaceRandX.html#a9288902b59860f71275deb0d807f69b6">DefaultSeed</a>) noexcept</td></tr>
+<tr class="memdesc:ga96645eedb5e475db13f668b0ae653714"><td class="mdescLeft">&#160;</td><td class="mdescRight">以指定种子构造引擎  <br /></td></tr>
+<tr class="memitem:gac469a63f4d84d98187691881341ae03b" id="r_gac469a63f4d84d98187691881341ae03b"><td class="memTemplParams" colspan="2">template&lt;class SeedSeq&gt; <br />
+requires (!std::same_as&lt;std::remove_cvref_t&lt;SeedSeq&gt;, SFC64&gt;)</td></tr>
+<tr class="memitem:gac469a63f4d84d98187691881341ae03b template"><td class="memItemLeft">constexpr&#160;</td><td class="memItemRight"><a class="el" href="group__engines.html#gac469a63f4d84d98187691881341ae03b">SFC64</a> (SeedSeq &amp;seq)</td></tr>
+<tr class="memdesc:gac469a63f4d84d98187691881341ae03b"><td class="mdescLeft">&#160;</td><td class="mdescRight">从 std::seed_seq 播种  <br /></td></tr>
+<tr class="memitem:ga5a9d70fd5d5b96d2986ea37203d165e3" id="r_ga5a9d70fd5d5b96d2986ea37203d165e3"><td class="memItemLeft">constexpr&#160;</td><td class="memItemRight"><a class="el" href="group__engines.html#ga5a9d70fd5d5b96d2986ea37203d165e3">SFC64</a> (<a class="el" href="group__engines.html#gaa690d14a18a0a8111c4f6e2e91102640">state_type</a> state) noexcept</td></tr>
+<tr class="memdesc:ga5a9d70fd5d5b96d2986ea37203d165e3"><td class="mdescLeft">&#160;</td><td class="mdescRight">从状态数组直接构造  <br /></td></tr>
+<tr class="memitem:ga87af6323951310dc46869756e063b02b" id="r_ga87af6323951310dc46869756e063b02b"><td class="memItemLeft">constexpr <a class="el" href="group__engines.html#gad389f185a85df3d5bde79ee5e6c3c06c">result_type</a>&#160;</td><td class="memItemRight"><a class="el" href="group__engines.html#ga87af6323951310dc46869756e063b02b">operator()</a> () noexcept</td></tr>
+<tr class="memdesc:ga87af6323951310dc46869756e063b02b"><td class="mdescLeft">&#160;</td><td class="mdescRight">生成下一个 64 位随机数  <br /></td></tr>
+<tr class="memitem:ga2dd65e11741758d63d0ce19e7aa1a5b8" id="r_ga2dd65e11741758d63d0ce19e7aa1a5b8"><td class="memItemLeft">constexpr void&#160;</td><td class="memItemRight"><a class="el" href="group__engines.html#ga2dd65e11741758d63d0ce19e7aa1a5b8">discard</a> (unsigned long long n) noexcept</td></tr>
+<tr class="memdesc:ga2dd65e11741758d63d0ce19e7aa1a5b8"><td class="mdescLeft">&#160;</td><td class="mdescRight">跳过 n 个输出  <br /></td></tr>
+<tr class="memitem:gad02990dcbcd9da851d6f6404a00944b7" id="r_gad02990dcbcd9da851d6f6404a00944b7"><td class="memItemLeft">constexpr <a class="el" href="group__engines.html#gaa690d14a18a0a8111c4f6e2e91102640">state_type</a>&#160;</td><td class="memItemRight"><a class="el" href="group__engines.html#gad02990dcbcd9da851d6f6404a00944b7">serialize</a> () const noexcept</td></tr>
+<tr class="memdesc:gad02990dcbcd9da851d6f6404a00944b7"><td class="mdescLeft">&#160;</td><td class="mdescRight">序列化引擎状态  <br /></td></tr>
+<tr class="memitem:gac3f0ae094c6cef508a39a57ca5c8dbfa" id="r_gac3f0ae094c6cef508a39a57ca5c8dbfa"><td class="memItemLeft">constexpr void&#160;</td><td class="memItemRight"><a class="el" href="group__engines.html#gac3f0ae094c6cef508a39a57ca5c8dbfa">deserialize</a> (<a class="el" href="group__engines.html#gaa690d14a18a0a8111c4f6e2e91102640">state_type</a> state) noexcept</td></tr>
+<tr class="memdesc:gac3f0ae094c6cef508a39a57ca5c8dbfa"><td class="mdescLeft">&#160;</td><td class="mdescRight">从状态恢复引擎  <br /></td></tr>
+<tr class="memitem:a96645eedb5e475db13f668b0ae653714" id="r_a96645eedb5e475db13f668b0ae653714"><td class="memItemLeft">constexpr&#160;</td><td class="memItemRight"><a class="el" href="#a96645eedb5e475db13f668b0ae653714">SFC64</a> (std::uint64_t seed=<a class="el" href="namespaceRandX.html#a9288902b59860f71275deb0d807f69b6">DefaultSeed</a>) noexcept</td></tr>
+<tr class="memdesc:a96645eedb5e475db13f668b0ae653714"><td class="mdescLeft">&#160;</td><td class="mdescRight">以指定种子构造引擎  <br /></td></tr>
+<tr class="memitem:a1a1657938d5e9968347d6f1f2cb700df" id="r_a1a1657938d5e9968347d6f1f2cb700df"><td class="memTemplParams" colspan="2">template&lt;class SeedSeq, std::enable_if_t&lt;!std::is_same_v&lt; std::decay_t&lt; SeedSeq &gt;, SFC64 &gt; &gt; * = nullptr&gt; </td></tr>
+<tr class="memitem:a1a1657938d5e9968347d6f1f2cb700df template"><td class="memItemLeft"><a class="el" href="RandX__Cpp17_8hpp.html#a653e8f0dfcf2c762230a473bb2f390dc">RANDX_NODISCARD_CXX20</a> constexpr&#160;</td><td class="memItemRight"><a class="el" href="#a1a1657938d5e9968347d6f1f2cb700df">SFC64</a> (SeedSeq &amp;seq)</td></tr>
+<tr class="memdesc:a1a1657938d5e9968347d6f1f2cb700df"><td class="mdescLeft">&#160;</td><td class="mdescRight">从 std::seed_seq 播种  <br /></td></tr>
+<tr class="memitem:a5a9d70fd5d5b96d2986ea37203d165e3" id="r_a5a9d70fd5d5b96d2986ea37203d165e3"><td class="memItemLeft">constexpr&#160;</td><td class="memItemRight"><a class="el" href="#a5a9d70fd5d5b96d2986ea37203d165e3">SFC64</a> (<a class="el" href="group__engines.html#gaa690d14a18a0a8111c4f6e2e91102640">state_type</a> state) noexcept</td></tr>
+<tr class="memdesc:a5a9d70fd5d5b96d2986ea37203d165e3"><td class="mdescLeft">&#160;</td><td class="mdescRight">从状态数组直接构造  <br /></td></tr>
+<tr class="memitem:adcc8d892d0ae072664c9e10ed90783e1" id="r_adcc8d892d0ae072664c9e10ed90783e1"><td class="memItemLeft">constexpr <a class="el" href="group__engines.html#gad389f185a85df3d5bde79ee5e6c3c06c">result_type</a>&#160;</td><td class="memItemRight"><a class="el" href="#adcc8d892d0ae072664c9e10ed90783e1">operator()</a> () noexcept</td></tr>
+<tr class="memdesc:adcc8d892d0ae072664c9e10ed90783e1"><td class="mdescLeft">&#160;</td><td class="mdescRight">生成下一个 64 位随机数  <br /></td></tr>
+<tr class="memitem:a2dd65e11741758d63d0ce19e7aa1a5b8" id="r_a2dd65e11741758d63d0ce19e7aa1a5b8"><td class="memItemLeft">constexpr void&#160;</td><td class="memItemRight"><a class="el" href="#a2dd65e11741758d63d0ce19e7aa1a5b8">discard</a> (unsigned long long n) noexcept</td></tr>
+<tr class="memdesc:a2dd65e11741758d63d0ce19e7aa1a5b8"><td class="mdescLeft">&#160;</td><td class="mdescRight">跳过 n 个输出  <br /></td></tr>
+<tr class="memitem:ae7420f9c7e564abd08dd213b802b5819" id="r_ae7420f9c7e564abd08dd213b802b5819"><td class="memItemLeft">constexpr <a class="el" href="group__engines.html#gaa690d14a18a0a8111c4f6e2e91102640">state_type</a>&#160;</td><td class="memItemRight"><a class="el" href="#ae7420f9c7e564abd08dd213b802b5819">serialize</a> () const noexcept</td></tr>
+<tr class="memdesc:ae7420f9c7e564abd08dd213b802b5819"><td class="mdescLeft">&#160;</td><td class="mdescRight">序列化引擎状态  <br /></td></tr>
+<tr class="memitem:ac3f0ae094c6cef508a39a57ca5c8dbfa" id="r_ac3f0ae094c6cef508a39a57ca5c8dbfa"><td class="memItemLeft">constexpr void&#160;</td><td class="memItemRight"><a class="el" href="#ac3f0ae094c6cef508a39a57ca5c8dbfa">deserialize</a> (<a class="el" href="group__engines.html#gaa690d14a18a0a8111c4f6e2e91102640">state_type</a> state) noexcept</td></tr>
+<tr class="memdesc:ac3f0ae094c6cef508a39a57ca5c8dbfa"><td class="mdescLeft">&#160;</td><td class="mdescRight">从状态恢复引擎  <br /></td></tr>
+<tr class="memitem:ab1c9652f820f862e846dd867004e6480" id="r_ab1c9652f820f862e846dd867004e6480"><td class="memTemplParams" colspan="2">template&lt;class SeedSeq, std::enable_if_t&lt;!std::is_same_v&lt; std::decay_t&lt; SeedSeq &gt;, SFC64 &gt; &gt; *&gt; </td></tr>
+<tr class="memitem:ab1c9652f820f862e846dd867004e6480 template"><td class="memItemLeft">constexpr&#160;</td><td class="memItemRight"><a class="el" href="#ab1c9652f820f862e846dd867004e6480">SFC64</a> (SeedSeq &amp;seq)</td></tr>
+</table><table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 id="header-pub-static-methods" class="groupheader"><a id="pub-static-methods" name="pub-static-methods"></a>
+静态 Public 成员函数</h2></td></tr>
+<tr class="memitem:ga9b51c07a7ccc7fb642d426b01cb09576" id="r_ga9b51c07a7ccc7fb642d426b01cb09576"><td class="memItemLeft">static constexpr <a class="el" href="group__engines.html#gad389f185a85df3d5bde79ee5e6c3c06c">result_type</a>&#160;</td><td class="memItemRight"><a class="el" href="group__engines.html#ga9b51c07a7ccc7fb642d426b01cb09576">min</a> () noexcept</td></tr>
+<tr class="memdesc:ga9b51c07a7ccc7fb642d426b01cb09576"><td class="mdescLeft">&#160;</td><td class="mdescRight">输出范围下界  <br /></td></tr>
+<tr class="memitem:ga2790b1a996c36b54a3fd7317f00bf54f" id="r_ga2790b1a996c36b54a3fd7317f00bf54f"><td class="memItemLeft">static constexpr <a class="el" href="group__engines.html#gad389f185a85df3d5bde79ee5e6c3c06c">result_type</a>&#160;</td><td class="memItemRight"><a class="el" href="group__engines.html#ga2790b1a996c36b54a3fd7317f00bf54f">max</a> () noexcept</td></tr>
+<tr class="memdesc:ga2790b1a996c36b54a3fd7317f00bf54f"><td class="mdescLeft">&#160;</td><td class="mdescRight">输出范围上界  <br /></td></tr>
+<tr class="memitem:a0168bd92a76c68f88e82035e56070749" id="r_a0168bd92a76c68f88e82035e56070749"><td class="memItemLeft">static constexpr <a class="el" href="group__engines.html#gad389f185a85df3d5bde79ee5e6c3c06c">result_type</a>&#160;</td><td class="memItemRight"><a class="el" href="#a0168bd92a76c68f88e82035e56070749">min</a> () noexcept</td></tr>
+<tr class="memdesc:a0168bd92a76c68f88e82035e56070749"><td class="mdescLeft">&#160;</td><td class="mdescRight">输出范围下界  <br /></td></tr>
+<tr class="memitem:a94679504c1538e9d9e742685bf920e1f" id="r_a94679504c1538e9d9e742685bf920e1f"><td class="memItemLeft">static constexpr <a class="el" href="group__engines.html#gad389f185a85df3d5bde79ee5e6c3c06c">result_type</a>&#160;</td><td class="memItemRight"><a class="el" href="#a94679504c1538e9d9e742685bf920e1f">max</a> () noexcept</td></tr>
+<tr class="memdesc:a94679504c1538e9d9e742685bf920e1f"><td class="mdescLeft">&#160;</td><td class="mdescRight">输出范围上界  <br /></td></tr>
+</table><table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 id="header-friends" class="groupheader"><a id="friends" name="friends"></a>
+友元</h2></td></tr>
+<tr class="memitem:ga1bf6623f207aa24b8203325493f23bfc" id="r_ga1bf6623f207aa24b8203325493f23bfc"><td class="memItemLeft">auto&#160;</td><td class="memItemRight"><a class="el" href="group__engines.html#ga1bf6623f207aa24b8203325493f23bfc">operator&lt;=&gt;</a> (const <a class="el" href="group__engines.html#ga96645eedb5e475db13f668b0ae653714">SFC64</a> &amp;, const <a class="el" href="group__engines.html#ga96645eedb5e475db13f668b0ae653714">SFC64</a> &amp;)=default</td></tr>
+<tr class="memitem:acc191af3b59ea4a955accfa0682884db" id="r_acc191af3b59ea4a955accfa0682884db"><td class="memItemLeft">bool&#160;</td><td class="memItemRight"><a class="el" href="#acc191af3b59ea4a955accfa0682884db">operator==</a> (const <a class="el" href="group__engines.html#ga96645eedb5e475db13f668b0ae653714">SFC64</a> &amp;lhs, const <a class="el" href="group__engines.html#ga96645eedb5e475db13f668b0ae653714">SFC64</a> &amp;rhs) noexcept</td></tr>
+<tr class="memitem:a0d8c440a7ad8e73b60b7cd491d8765f5" id="r_a0d8c440a7ad8e73b60b7cd491d8765f5"><td class="memItemLeft">bool&#160;</td><td class="memItemRight"><a class="el" href="#a0d8c440a7ad8e73b60b7cd491d8765f5">operator!=</a> (const <a class="el" href="group__engines.html#ga96645eedb5e475db13f668b0ae653714">SFC64</a> &amp;lhs, const <a class="el" href="group__engines.html#ga96645eedb5e475db13f668b0ae653714">SFC64</a> &amp;rhs) noexcept</td></tr>
+</table>
+<a name="details" id="details"></a><h2 id="header-details" class="groupheader">详细描述</h2>
+<div class="textblock"><p>SFC64（Small Fast Counter）伪随机数生成器，64 位输出，周期 &gt;= 2^64。 </p>
+<p>状态 32 字节（4×uint64）。由 Chris Doty-Humphrey（PractRand）设计， 速度极快，通过 PractRand 全部统计测试。满足 <span class="tt">std::uniform_random_bit_generator</span> 概念。</p>
+<dl class="section note"><dt>注解</dt><dd>周期由 counter 保证 &gt;= 2^64。无 jump 方法。 非 CSPRNG，不可用于密码学场景。安全场景请使用 ChaCha20。 </dd></dl>
+<dl class="section see"><dt>参见</dt><dd><a class="el" href="classRandX_1_1Xoshiro256StarStar.html" title="Xoshiro256** 伪随机数生成器，64 位输出，周期 2^256-1。">Xoshiro256StarStar</a>, <a class="el" href="classRandX_1_1RomuDuoJr.html" title="RomuDuoJr 伪随机数生成器，64 位输出，周期估计 &gt;= 2^51。">RomuDuoJr</a>, <a class="el" href="classRandX_1_1ChaCha20.html" title="ChaCha20 密码学安全伪随机数生成器（CSPRNG），64 位输出，符合 RFC 8439。">ChaCha20</a> </dd></dl>
+</div><a name="doc-typedef-members" id="doc-typedef-members"></a><h2 id="header-doc-typedef-members" class="groupheader">成员类型定义说明</h2>
+<a id="ad389f185a85df3d5bde79ee5e6c3c06c" name="ad389f185a85df3d5bde79ee5e6c3c06c"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ad389f185a85df3d5bde79ee5e6c3c06c">&#9670;&#160;</a></span>result_type</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">using <a class="el" href="group__engines.html#gad389f185a85df3d5bde79ee5e6c3c06c">RandX::SFC64::result_type</a> = std::uint64_t</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>输出类型 </p>
+
+</div>
+</div>
+<a id="aa690d14a18a0a8111c4f6e2e91102640" name="aa690d14a18a0a8111c4f6e2e91102640"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aa690d14a18a0a8111c4f6e2e91102640">&#9670;&#160;</a></span>state_type</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">using <a class="el" href="group__engines.html#gaa690d14a18a0a8111c4f6e2e91102640">RandX::SFC64::state_type</a> = std::array&lt;std::uint64_t, 4&gt;</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>状态类型（4×uint64） </p>
+
+</div>
+</div>
+<a name="doc-constructors" id="doc-constructors"></a><h2 id="header-doc-constructors" class="groupheader">构造及析构函数说明</h2>
+<a id="a96645eedb5e475db13f668b0ae653714" name="a96645eedb5e475db13f668b0ae653714"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a96645eedb5e475db13f668b0ae653714">&#9670;&#160;</a></span>SFC64() <span class="overload">[1/4]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">RandX::SFC64::SFC64 </td>
+          <td>(</td>
+          <td class="paramtype">std::uint64_t</td>          <td class="paramname"><span class="paramname"><em>seed</em></span><span class="paramdefsep"> = </span><span class="paramdefval"><a class="el" href="namespaceRandX.html#a9288902b59860f71275deb0d807f69b6">DefaultSeed</a></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel explicit">explicit</span><span class="mlabel nodiscard">nodiscard</span><span class="mlabel constexpr">constexpr</span><span class="mlabel noexcept">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>以指定种子构造引擎 </p>
+<dl class="params"><dt>参数</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">seed</td><td>64 位种子值 </td></tr>
+  </table>
+  </dd>
+</dl>
+<div class="dynheader">
+函数调用图:</div>
+<div class="dyncontent">
+<div class="center"><img src="classRandX_1_1SFC64_a96645eedb5e475db13f668b0ae653714_cgraph.png" border="0" usemap="#aclassRandX_1_1SFC64_a96645eedb5e475db13f668b0ae653714_cgraph" loading="lazy" alt=""/></div>
+<map name="aclassRandX_1_1SFC64_a96645eedb5e475db13f668b0ae653714_cgraph" id="aclassRandX_1_1SFC64_a96645eedb5e475db13f668b0ae653714_cgraph">
+<area shape="rect" title="以指定种子构造引擎" alt="" coords="5,5,168,31"/>
+<area shape="rect" href="group__engines.html#ga96645eedb5e475db13f668b0ae653714" title="以指定种子构造引擎" alt="" coords="216,5,379,31"/>
+<area shape="poly" title=" " alt="" coords="168,15,202,15,202,21,168,21"/>
+<area shape="rect" href="group__engines.html#ga87af6323951310dc46869756e063b02b" title="生成下一个 64 位随机数" alt="" coords="427,5,613,31"/>
+<area shape="poly" title=" " alt="" coords="379,15,413,15,413,21,379,21"/>
+<area shape="rect" href="namespaceRandX_1_1detail.html#aa55ffbc9da991c2c1bfeef4b097d6e91" title=" " alt="" coords="661,5,808,31"/>
+<area shape="poly" title=" " alt="" coords="614,15,648,15,648,21,614,21"/>
+</map>
+</div>
+
+</div>
+</div>
+<a id="a1a1657938d5e9968347d6f1f2cb700df" name="a1a1657938d5e9968347d6f1f2cb700df"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a1a1657938d5e9968347d6f1f2cb700df">&#9670;&#160;</a></span>SFC64() <span class="overload">[2/4]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;class SeedSeq, std::enable_if_t&lt;!std::is_same_v&lt; std::decay_t&lt; SeedSeq &gt;, SFC64 &gt; &gt; * = nullptr&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="RandX__Cpp17_8hpp.html#a653e8f0dfcf2c762230a473bb2f390dc">RANDX_NODISCARD_CXX20</a> constexpr RandX::SFC64::SFC64 </td>
+          <td>(</td>
+          <td class="paramtype">SeedSeq &amp;</td>          <td class="paramname"><span class="paramname"><em>seq</em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel explicit">explicit</span><span class="mlabel constexpr">constexpr</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>从 std::seed_seq 播种 </p>
+<dl class="params"><dt>参数</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">seq</td><td>种子序列对象 </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<a id="a5a9d70fd5d5b96d2986ea37203d165e3" name="a5a9d70fd5d5b96d2986ea37203d165e3"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a5a9d70fd5d5b96d2986ea37203d165e3">&#9670;&#160;</a></span>SFC64() <span class="overload">[3/4]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">RandX::SFC64::SFC64 </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="group__engines.html#gaa690d14a18a0a8111c4f6e2e91102640">state_type</a></td>          <td class="paramname"><span class="paramname"><em>state</em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel explicit">explicit</span><span class="mlabel nodiscard">nodiscard</span><span class="mlabel constexpr">constexpr</span><span class="mlabel noexcept">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>从状态数组直接构造 </p>
+<dl class="params"><dt>参数</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">state</td><td><a class="el" href="group__engines.html#gad02990dcbcd9da851d6f6404a00944b7" title="序列化引擎状态">serialize()</a> 返回的状态 </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<a id="ab1c9652f820f862e846dd867004e6480" name="ab1c9652f820f862e846dd867004e6480"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ab1c9652f820f862e846dd867004e6480">&#9670;&#160;</a></span>SFC64() <span class="overload">[4/4]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;class SeedSeq, std::enable_if_t&lt;!std::is_same_v&lt; std::decay_t&lt; SeedSeq &gt;, SFC64 &gt; &gt; *&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">RandX::SFC64::SFC64 </td>
+          <td>(</td>
+          <td class="paramtype">SeedSeq &amp;</td>          <td class="paramname"><span class="paramname"><em>seq</em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel constexpr">constexpr</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<div class="dynheader">
+函数调用图:</div>
+<div class="dyncontent">
+<div class="center"><img src="classRandX_1_1SFC64_ab1c9652f820f862e846dd867004e6480_cgraph.png" border="0" usemap="#aclassRandX_1_1SFC64_ab1c9652f820f862e846dd867004e6480_cgraph" loading="lazy" alt=""/></div>
+<map name="aclassRandX_1_1SFC64_ab1c9652f820f862e846dd867004e6480_cgraph" id="aclassRandX_1_1SFC64_ab1c9652f820f862e846dd867004e6480_cgraph">
+<area shape="rect" title=" " alt="" coords="5,5,168,31"/>
+<area shape="rect" href="group__engines.html#ga87af6323951310dc46869756e063b02b" title="生成下一个 64 位随机数" alt="" coords="216,5,403,31"/>
+<area shape="poly" title=" " alt="" coords="168,15,202,15,202,21,168,21"/>
+<area shape="rect" href="namespaceRandX_1_1detail.html#aa55ffbc9da991c2c1bfeef4b097d6e91" title=" " alt="" coords="451,5,597,31"/>
+<area shape="poly" title=" " alt="" coords="403,15,437,15,437,21,403,21"/>
+</map>
+</div>
+
+</div>
+</div>
+<a name="doc-func-members" id="doc-func-members"></a><h2 id="header-doc-func-members" class="groupheader">成员函数说明</h2>
+<a id="ac3f0ae094c6cef508a39a57ca5c8dbfa" name="ac3f0ae094c6cef508a39a57ca5c8dbfa"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ac3f0ae094c6cef508a39a57ca5c8dbfa">&#9670;&#160;</a></span>deserialize()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">void RandX::SFC64::deserialize </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="group__engines.html#gaa690d14a18a0a8111c4f6e2e91102640">state_type</a></td>          <td class="paramname"><span class="paramname"><em>state</em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel constexpr">constexpr</span><span class="mlabel noexcept">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>从状态恢复引擎 </p>
+<dl class="params"><dt>参数</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">state</td><td><a class="el" href="group__engines.html#gad02990dcbcd9da851d6f6404a00944b7" title="序列化引擎状态">serialize()</a> 返回的状态 </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section see"><dt>参见</dt><dd><a class="el" href="group__engines.html#gad02990dcbcd9da851d6f6404a00944b7" title="序列化引擎状态">serialize()</a> </dd></dl>
+<div class="dynheader">
+函数调用图:</div>
+<div class="dyncontent">
+<div class="center"><img src="classRandX_1_1SFC64_ac3f0ae094c6cef508a39a57ca5c8dbfa_cgraph.png" border="0" usemap="#aclassRandX_1_1SFC64_ac3f0ae094c6cef508a39a57ca5c8dbfa_cgraph" loading="lazy" alt=""/></div>
+<map name="aclassRandX_1_1SFC64_ac3f0ae094c6cef508a39a57ca5c8dbfa_cgraph" id="aclassRandX_1_1SFC64_ac3f0ae094c6cef508a39a57ca5c8dbfa_cgraph">
+<area shape="rect" title="从状态恢复引擎" alt="" coords="5,5,197,31"/>
+<area shape="rect" href="group__engines.html#gac3f0ae094c6cef508a39a57ca5c8dbfa" title="从状态恢复引擎" alt="" coords="245,5,437,31"/>
+<area shape="poly" title=" " alt="" coords="197,15,232,15,232,21,197,21"/>
+</map>
+</div>
+
+</div>
+</div>
+<a id="a2dd65e11741758d63d0ce19e7aa1a5b8" name="a2dd65e11741758d63d0ce19e7aa1a5b8"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a2dd65e11741758d63d0ce19e7aa1a5b8">&#9670;&#160;</a></span>discard()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">void RandX::SFC64::discard </td>
+          <td>(</td>
+          <td class="paramtype">unsigned long long</td>          <td class="paramname"><span class="paramname"><em>n</em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel constexpr">constexpr</span><span class="mlabel noexcept">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>跳过 n 个输出 </p>
+<dl class="params"><dt>参数</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">n</td><td>跳过次数 </td></tr>
+  </table>
+  </dd>
+</dl>
+<div class="dynheader">
+函数调用图:</div>
+<div class="dyncontent">
+<div class="center"><img src="classRandX_1_1SFC64_a2dd65e11741758d63d0ce19e7aa1a5b8_cgraph.png" border="0" usemap="#aclassRandX_1_1SFC64_a2dd65e11741758d63d0ce19e7aa1a5b8_cgraph" loading="lazy" alt=""/></div>
+<map name="aclassRandX_1_1SFC64_a2dd65e11741758d63d0ce19e7aa1a5b8_cgraph" id="aclassRandX_1_1SFC64_a2dd65e11741758d63d0ce19e7aa1a5b8_cgraph">
+<area shape="rect" title="跳过 n 个输出" alt="" coords="5,5,173,31"/>
+<area shape="rect" href="group__engines.html#ga2dd65e11741758d63d0ce19e7aa1a5b8" title="跳过 n 个输出" alt="" coords="221,5,389,31"/>
+<area shape="poly" title=" " alt="" coords="174,15,208,15,208,21,174,21"/>
+<area shape="rect" href="group__engines.html#ga87af6323951310dc46869756e063b02b" title="生成下一个 64 位随机数" alt="" coords="437,5,624,31"/>
+<area shape="poly" title=" " alt="" coords="390,15,424,15,424,21,390,21"/>
+<area shape="rect" href="namespaceRandX_1_1detail.html#aa55ffbc9da991c2c1bfeef4b097d6e91" title=" " alt="" coords="672,5,819,31"/>
+<area shape="poly" title=" " alt="" coords="624,15,658,15,658,21,624,21"/>
+</map>
+</div>
+
+</div>
+</div>
+<a id="a94679504c1538e9d9e742685bf920e1f" name="a94679504c1538e9d9e742685bf920e1f"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a94679504c1538e9d9e742685bf920e1f">&#9670;&#160;</a></span>max()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">constexpr <a class="el" href="group__engines.html#gad389f185a85df3d5bde79ee5e6c3c06c">result_type</a> RandX::SFC64::max </td>
+          <td>(</td>
+          <td class="paramname"><span class="paramname"><em></em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel static">static</span><span class="mlabel nodiscard">nodiscard</span><span class="mlabel constexpr">constexpr</span><span class="mlabel noexcept">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>输出范围上界 </p>
+<dl class="section return"><dt>返回</dt><dd>2^64 - 1 </dd></dl>
+<div class="dynheader">
+函数调用图:</div>
+<div class="dyncontent">
+<div class="center"><img src="classRandX_1_1SFC64_a94679504c1538e9d9e742685bf920e1f_cgraph.png" border="0" usemap="#aclassRandX_1_1SFC64_a94679504c1538e9d9e742685bf920e1f_cgraph" loading="lazy" alt=""/></div>
+<map name="aclassRandX_1_1SFC64_a94679504c1538e9d9e742685bf920e1f_cgraph" id="aclassRandX_1_1SFC64_a94679504c1538e9d9e742685bf920e1f_cgraph">
+<area shape="rect" title="输出范围上界" alt="" coords="5,5,156,31"/>
+<area shape="rect" href="group__engines.html#ga2790b1a996c36b54a3fd7317f00bf54f" title="输出范围上界" alt="" coords="204,5,355,31"/>
+<area shape="poly" title=" " alt="" coords="156,15,190,15,190,21,156,21"/>
+</map>
+</div>
+
+</div>
+</div>
+<a id="a0168bd92a76c68f88e82035e56070749" name="a0168bd92a76c68f88e82035e56070749"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a0168bd92a76c68f88e82035e56070749">&#9670;&#160;</a></span>min()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">constexpr <a class="el" href="group__engines.html#gad389f185a85df3d5bde79ee5e6c3c06c">result_type</a> RandX::SFC64::min </td>
+          <td>(</td>
+          <td class="paramname"><span class="paramname"><em></em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel static">static</span><span class="mlabel nodiscard">nodiscard</span><span class="mlabel constexpr">constexpr</span><span class="mlabel noexcept">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>输出范围下界 </p>
+<dl class="section return"><dt>返回</dt><dd>0 </dd></dl>
+<div class="dynheader">
+函数调用图:</div>
+<div class="dyncontent">
+<div class="center"><img src="classRandX_1_1SFC64_a0168bd92a76c68f88e82035e56070749_cgraph.png" border="0" usemap="#aclassRandX_1_1SFC64_a0168bd92a76c68f88e82035e56070749_cgraph" loading="lazy" alt=""/></div>
+<map name="aclassRandX_1_1SFC64_a0168bd92a76c68f88e82035e56070749_cgraph" id="aclassRandX_1_1SFC64_a0168bd92a76c68f88e82035e56070749_cgraph">
+<area shape="rect" title="输出范围下界" alt="" coords="5,5,152,31"/>
+<area shape="rect" href="group__engines.html#ga9b51c07a7ccc7fb642d426b01cb09576" title="输出范围下界" alt="" coords="200,5,347,31"/>
+<area shape="poly" title=" " alt="" coords="152,15,186,15,186,21,152,21"/>
+</map>
+</div>
+
+</div>
+</div>
+<a id="adcc8d892d0ae072664c9e10ed90783e1" name="adcc8d892d0ae072664c9e10ed90783e1"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#adcc8d892d0ae072664c9e10ed90783e1">&#9670;&#160;</a></span>operator()()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="group__engines.html#gad389f185a85df3d5bde79ee5e6c3c06c">result_type</a> RandX::SFC64::operator() </td>
+          <td>(</td>
+          <td class="paramname"><span class="paramname"><em></em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel constexpr">constexpr</span><span class="mlabel noexcept">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>生成下一个 64 位随机数 </p>
+<dl class="section return"><dt>返回</dt><dd>[<a class="el" href="group__engines.html#ga9b51c07a7ccc7fb642d426b01cb09576" title="输出范围下界">min()</a>, <a class="el" href="group__engines.html#ga2790b1a996c36b54a3fd7317f00bf54f" title="输出范围上界">max()</a>] 区间内的伪随机数 </dd></dl>
+
+</div>
+</div>
+<a id="ae7420f9c7e564abd08dd213b802b5819" name="ae7420f9c7e564abd08dd213b802b5819"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ae7420f9c7e564abd08dd213b802b5819">&#9670;&#160;</a></span>serialize()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="group__engines.html#gaa690d14a18a0a8111c4f6e2e91102640">state_type</a> RandX::SFC64::serialize </td>
+          <td>(</td>
+          <td class="paramname"><span class="paramname"><em></em></span></td><td>)</td>
+          <td> const</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel nodiscard">nodiscard</span><span class="mlabel constexpr">constexpr</span><span class="mlabel noexcept">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>序列化引擎状态 </p>
+<dl class="section return"><dt>返回</dt><dd>状态数组（4 个 uint64） </dd></dl>
+<dl class="section see"><dt>参见</dt><dd><a class="el" href="group__engines.html#gac3f0ae094c6cef508a39a57ca5c8dbfa" title="从状态恢复引擎">deserialize()</a> </dd></dl>
+<div class="dynheader">
+函数调用图:</div>
+<div class="dyncontent">
+<div class="center"><img src="classRandX_1_1SFC64_ae7420f9c7e564abd08dd213b802b5819_cgraph.png" border="0" usemap="#aclassRandX_1_1SFC64_ae7420f9c7e564abd08dd213b802b5819_cgraph" loading="lazy" alt=""/></div>
+<map name="aclassRandX_1_1SFC64_ae7420f9c7e564abd08dd213b802b5819_cgraph" id="aclassRandX_1_1SFC64_ae7420f9c7e564abd08dd213b802b5819_cgraph">
+<area shape="rect" title="序列化引擎状态" alt="" coords="5,5,181,31"/>
+<area shape="rect" href="group__engines.html#gad02990dcbcd9da851d6f6404a00944b7" title="序列化引擎状态" alt="" coords="229,5,405,31"/>
+<area shape="poly" title=" " alt="" coords="182,15,215,15,215,21,182,21"/>
+</map>
+</div>
+
+</div>
+</div>
+<a name="doc-related-members" id="doc-related-members"></a><h2 id="header-doc-related-members" class="groupheader">友元及相关符号说明</h2>
+<a id="a0d8c440a7ad8e73b60b7cd491d8765f5" name="a0d8c440a7ad8e73b60b7cd491d8765f5"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a0d8c440a7ad8e73b60b7cd491d8765f5">&#9670;&#160;</a></span>operator!=</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">bool operator!= </td>
+          <td>(</td>
+          <td class="paramtype">const <a class="el" href="group__engines.html#ga96645eedb5e475db13f668b0ae653714">SFC64</a> &amp;</td>          <td class="paramname"><span class="paramname"><em>lhs</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const <a class="el" href="group__engines.html#ga96645eedb5e475db13f668b0ae653714">SFC64</a> &amp;</td>          <td class="paramname"><span class="paramname"><em>rhs</em></span>&#160;)</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel friend">friend</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="acc191af3b59ea4a955accfa0682884db" name="acc191af3b59ea4a955accfa0682884db"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#acc191af3b59ea4a955accfa0682884db">&#9670;&#160;</a></span>operator==</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">bool operator== </td>
+          <td>(</td>
+          <td class="paramtype">const <a class="el" href="group__engines.html#ga96645eedb5e475db13f668b0ae653714">SFC64</a> &amp;</td>          <td class="paramname"><span class="paramname"><em>lhs</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const <a class="el" href="group__engines.html#ga96645eedb5e475db13f668b0ae653714">SFC64</a> &amp;</td>          <td class="paramname"><span class="paramname"><em>rhs</em></span>&#160;)</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel friend">friend</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<hr/>该类的文档由以下文件生成:<ul>
+<li><a class="el" href="RandX_8hpp_source.html">RandX.hpp</a></li>
+<li><a class="el" href="RandX__Cpp17_8hpp_source.html">RandX_Cpp17.hpp</a></li>
+</ul>
+</div><!-- contents -->
+</div><!-- doc-content -->
+<div id="page-nav" class="page-nav-panel">
+<div id="page-nav-resize-handle"></div>
+<div id="page-nav-tree">
+<div id="page-nav-contents">
+</div><!-- page-nav-contents -->
+</div><!-- page-nav-tree -->
+</div><!-- page-nav -->
+</div><!-- container -->
+<!-- start footer part -->
+<div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
+  <ul>
+    <li class="navelem"><a href="namespaceRandX.html">RandX</a></li><li class="navelem"><a href="classRandX_1_1SFC64.html">SFC64</a></li>
+    <li class="footer">制作者 <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.17.0 </li>
+  </ul>
+</div>
+</body>
+</html>

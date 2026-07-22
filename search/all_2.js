@@ -1,0 +1,11 @@
+var searchData=
+[
+  ['chacha20_0',['ChaCha20',['../classRandX_1_1ChaCha20.html',1,'RandX::ChaCha20'],['../group__engines.html#ga2e62d75b07086490beb256baf624ba3c',1,'RandX::ChaCha20::ChaCha20()'],['../group__engines.html#ga511360d879b1c3180145e6aaf0ef0005',1,'RandX::ChaCha20::ChaCha20(std::uint64_t seed)'],['../group__engines.html#gae2350365c60e78dc535e353304144b76',1,'RandX::ChaCha20::ChaCha20(const std::uint8_t *key, std::size_t keyLen, const std::uint8_t *nonce, std::size_t nonceLen, std::uint32_t counter=0)'],['../classRandX_1_1ChaCha20.html#a2e62d75b07086490beb256baf624ba3c',1,'RandX::ChaCha20::ChaCha20()'],['../classRandX_1_1ChaCha20.html#aa9eb763a88c22af978f27551e279af90',1,'RandX::ChaCha20::ChaCha20(std::uint64_t seed)'],['../classRandX_1_1ChaCha20.html#ae2350365c60e78dc535e353304144b76',1,'RandX::ChaCha20::ChaCha20(const std::uint8_t *key, std::size_t keyLen, const std::uint8_t *nonce, std::size_t nonceLen, std::uint32_t counter=0)']]],
+  ['chacha20constants_1',['ChaCha20Constants',['../namespaceRandX_1_1detail.html#a065c63284990fd5bc61ba1b0f0901f72',1,'RandX::detail']]],
+  ['chacha20quarterround_2',['ChaCha20QuarterRound',['../namespaceRandX_1_1detail.html#a2b6b48b8600a944999b297c8c07a51f7',1,'RandX::detail::ChaCha20QuarterRound(std::uint32_t &amp;a, std::uint32_t &amp;b, std::uint32_t &amp;c, std::uint32_t &amp;d) noexcept'],['../namespaceRandX_1_1detail.html#a2b6b48b8600a944999b297c8c07a51f7',1,'RandX::detail::ChaCha20QuarterRound(std::uint32_t &amp;a, std::uint32_t &amp;b, std::uint32_t &amp;c, std::uint32_t &amp;d) noexcept']]],
+  ['chacha20reseedthreshold_3',['ChaCha20ReseedThreshold',['../namespaceRandX_1_1detail.html#a28e213ceb49fbad030a97e366bd114db',1,'RandX::detail']]],
+  ['character_4',['Character',['../conceptRandX_1_1detail_1_1Character.html',1,'RandX::detail']]],
+  ['charset_5',['CharSet',['../group__distributions.html#gab0df6de2fb7ce10af8e7175c54a186a6',1,'RandX::CharSet'],['../namespaceRandX.html#ab0df6de2fb7ce10af8e7175c54a186a6',1,'RandX::CharSet']]],
+  ['charsetstring_6',['CharSetString',['../namespaceRandX_1_1detail.html#a776ed00e598ef1b90a5e29060c7cebc6',1,'RandX::detail']]],
+  ['cmake_20fetchcontent（推荐）_7',['CMake FetchContent（推荐）',['../index.html#autotoc_md9',1,'']]]
+];
