@@ -353,28 +353,73 @@ ctest --test-dir build
 
 ## 包管理器
 
-### vcpkg
+> **状态**：尚未发布到 vcpkg 官方 ports / xmake-repo。当前仅以 overlay / 本地仓库形式可用。本仓库已就绪 PR 模板与 CI 预演，待提交后即可被官方收录。提交进度详见 `packaging/` 目录与下方"发布流程"小节。
+
+### CMake FetchContent（零依赖推荐）
+
+适合所有 CMake 3.11+ 用户，无需安装任何包管理器：
+
+```cmake
+include(FetchContent)
+FetchContent_Declare(
+    randx
+    URL https://github.com/lidaixingchen/RandX/archive/refs/tags/v1.3.1.tar.gz
+)
+FetchContent_MakeAvailable(randx)
+
+target_link_libraries(your_target PRIVATE RandX::RandX)
+```
+
+### vcpkg（overlay 模式，当前可用）
 
 ```bash
-# 自定义注册表方式
-vcpkg install randx --overlay-ports=path/to/ports
+# 自定义注册表方式：将本仓库的 ports/ 作为 overlay
+vcpkg install randx --overlay-ports=path/to/this/repo/ports
 ```
 
-### Conan
+### xrepo / xmake（本地仓库，当前可用）
 
 ```bash
-conan create . --version=1.3.0
+# 注册本地 xmake-repo 后即可安装
+xrepo add-repo local-randx path/to/this/repo/packaging/xmake-repo
+xrepo install randx
 ```
 
-```python
-# conanfile.txt
-[requires]
-randx/1.3.0
+在 xmake 工程中使用：
 
-[generators]
-CMakeDeps
-CMakeToolchain
+```lua
+add_repositories("local-randx path/to/this/repo/packaging/xmake-repo")
+add_requires("randx")
+
+target("your_target")
+    set_languages("c++23")
+    add_packages("randx")
 ```
+
+### 发布流程（维护者）
+
+> CI 工作流 [`packaging-validation.yml`](.github/workflows/packaging-validation.yml) 会在推送 `v*` 标签时自动验证 port 是否能正常构建；通过后仍需手动提交 PR——官方 registry 不接受 CI 自动推送。
+
+**首次发布到 vcpkg 官方 ports**：
+
+1. Fork [microsoft/vcpkg](https://github.com/microsoft/vcpkg)
+2. 复制本仓库 `ports/randx/` 到 fork 仓库的 `ports/randx/`
+3. 在 fork 中执行 `vcpkg x-add-version randx` 自动生成 `versions/r-/randx.json` 和更新 `versions/baseline.json`（参考 `packaging/vcpkg/versions/` 下的模板）
+4. 提交 PR，等待 vcpkg 维护者 review
+
+**首次发布到 xmake-repo**：
+
+1. Fork [xmake-io/xmake-repo](https://github.com/xmake-io/xmake-repo)
+2. 复制本仓库 `packaging/xmake-repo/packages/r/randx/` 到 fork 仓库的 `packages/r/randx/`
+3. 在 fork 中执行 `xrepo install randx` 本地验证
+4. 提交 PR，等待 xmake 维护者 review
+
+**后续版本发布**：
+
+1. 推送新版本 tag（如 `v1.4.0`），CI 会自动验证
+2. 更新 `vcpkg.json`、`ports/randx/vcpkg.json`、`CMakeLists.txt` 中的 `version` 字段
+3. 下载新版本 GitHub tarball 计算 SHA512（更新到 `ports/randx/portfile.cmake`）与 SHA256（更新到 `packaging/xmake-repo/packages/r/randx/xmake.lua` 的 `add_versions`）
+4. 重新执行上述 PR 流程，在 `versions/r-/randx.json` 中追加新版本记录
 
 ## 编译要求
 

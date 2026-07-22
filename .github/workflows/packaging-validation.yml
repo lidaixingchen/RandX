@@ -1,0 +1,149 @@
+name: Packaging Validation
+
+# 触发条件：推送 v* 标签时；或手动触发
+# vcpkg 官方 ports / xmake-repo 都不接受 CI 自动推送，本工作流仅做本地预演，
+# 验证 port 能在新版本上正常构建，提示维护者手动提交 PR。
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to validate (without leading v)"
+        required: true
+        default: "1.3.1"
+
+jobs:
+  vcpkg-validate:
+    name: vcpkg port
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve version
+        id: ver
+        shell: pwsh
+        run: |
+          $ver = "${{ inputs.version }}"
+          if ([string]::IsNullOrEmpty($ver)) {
+            $tagName = "${{ github.ref_name }}"
+            $ver = $tagName.Substring(1)  # 去掉前缀 v
+          }
+          "version=$ver" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+
+      - name: Verify port version matches tag
+        shell: pwsh
+        run: |
+          $portVer = (Get-Content ports/randx/vcpkg.json | ConvertFrom-Json).version
+          $tagVer = "${{ steps.ver.outputs.version }}"
+          if ($portVer -ne $tagVer) {
+            Write-Error "Version mismatch: ports/randx/vcpkg.json=$portVer vs tag=$tagVer"
+            exit 1
+          }
+          Write-Host "Port version $portVer matches tag $tagVer"
+
+      - name: Install vcpkg
+        uses: lukka/run-vcpkg@v11
+        with:
+          vcpkgGitCommitId: "f7423ee2bf0b34341cd5738d3a6c3236a32a4d13"
+
+      - name: Install randx via overlay port
+        # --classic: 项目根 vcpkg.json 会让 vcpkg 进入 manifest mode，
+        # classic mode 强制按命令行参数安装
+        run: |
+          vcpkg install randx --classic `
+            --overlay-ports=ports `
+            --triplet x64-windows
+
+      - name: Verify headers installed
+        shell: pwsh
+        run: |
+          $inc = "vcpkg_installed/x64-windows/include"
+          foreach ($h in @("RandX.hpp", "RandX_Cpp17.hpp")) {
+            if (-not (Test-Path "$inc/$h")) {
+              Write-Error "Header not installed: $h"
+              exit 1
+            }
+            Write-Host "OK: $h installed"
+          }
+
+  xrepo-validate:
+    name: xmake-repo port
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install GCC 14 (for C++23 support required by RandX.hpp on_test)
+        run: |
+          sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
+          sudo apt-get update
+          sudo apt-get install -y g++-14
+
+      - name: Set up xmake
+        uses: xmake-io/github-actions-setup-xmake@v1
+        with:
+          xmake-version: latest
+
+      - name: Resolve version
+        id: ver
+        run: |
+          if [ -n "${{ inputs.version }}" ]; then
+            echo "version=${{ inputs.version }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Verify port version matches tag
+        run: |
+          PORT_VER=$(grep -E '^\s*add_versions' packaging/xmake-repo/packages/r/randx/xmake.lua | head -1 | sed -E 's/.*"([^"]+)".*/\1/')
+          TAG_VER="${{ steps.ver.outputs.version }}"
+          echo "Port version: $PORT_VER"
+          echo "Tag version:   $TAG_VER"
+          if [ "$PORT_VER" != "$TAG_VER" ]; then
+            echo "::error::Version mismatch: xmake.lua=$PORT_VER vs tag=$TAG_VER"
+            exit 1
+          fi
+
+      - name: Register local xmake-repo
+        run: |
+          xrepo add-repo local-randx "$PWD/packaging/xmake-repo"
+
+      - name: Install randx via xrepo (triggers on_test snippet compile)
+        env:
+          CC: gcc-14
+          CXX: g++-14
+        run: |
+          xrepo install -y randx
+
+      - name: Verify headers installed
+        run: |
+          INSTALLED_DIR=$(xrepo fetch --pkg-config randx 2>/dev/null | head -1 || true)
+          echo "Installed to: $INSTALLED_DIR"
+          # 直接检查全局 packages 目录
+          PKG_INC="$HOME/.xmake/packages/r/randx"
+          FOUND_CPP23=$(find "$PKG_INC" -name "RandX.hpp" | head -1)
+          FOUND_CPP17=$(find "$PKG_INC" -name "RandX_Cpp17.hpp" | head -1)
+          [ -z "$FOUND_CPP23" ] && { echo "::error::RandX.hpp not found"; exit 1; }
+          [ -z "$FOUND_CPP17" ] && { echo "::error::RandX_Cpp17.hpp not found"; exit 1; }
+          echo "OK: RandX.hpp installed at $FOUND_CPP23"
+          echo "OK: RandX_Cpp17.hpp installed at $FOUND_CPP17"
+
+  summary:
+    name: Summary
+    needs: [vcpkg-validate, xrepo-validate]
+    runs-on: ubuntu-24.04
+    if: always()
+    steps:
+      - name: Print result
+        run: |
+          echo "## Packaging Validation Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Job | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| vcpkg port     | ${{ needs.vcpkg-validate.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| xmake-repo port | ${{ needs.xrepo-validate.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "If both jobs succeeded, please manually submit PRs to:" >> $GITHUB_STEP_SUMMARY
+          echo "- https://github.com/microsoft/vcpkg (copy \`ports/randx/\` and run \`vcpkg x-add-version randx\`)" >> $GITHUB_STEP_SUMMARY
+          echo "- https://github.com/xmake-io/xmake-repo (copy \`packaging/xmake-repo/packages/r/randx/\`)" >> $GITHUB_STEP_SUMMARY

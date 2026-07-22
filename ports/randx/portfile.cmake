@@ -2,7 +2,7 @@ vcpkg_from_github(
     OUT_SOURCE_PATH SOURCE_PATH
     REPO lidaixingchen/RandX
     REF v${VERSION}
-    SHA512 d211fa88e420dc086e8c5e19ccd59fc0d7ec264269da52bfd9383504f46b471b6eed26e66b5d436955b3189f97fb1e7fa27e60468cf8ec5b30db2b3d06f40fab
+    SHA512 5d7fd608b59d0ea107b69039d9bd99ccc59d7f48c5ae7d1ee9098b911faeb1ea877edc94f72b2b80e64558b67e7668f184b35c666686bfea73f2cc12fc434cfe
     HEAD_REF master
 )
 
