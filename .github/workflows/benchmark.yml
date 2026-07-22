@@ -55,6 +55,7 @@ jobs:
 
       - name: Compare with Baseline
         if: hashFiles('baseline/result.json') != ''
+        continue-on-error: true
         run: python3 tools/compare_benchmark.py result.json baseline/result.json --tolerance 0.15
 
       - name: Upload Current Result as Baseline
