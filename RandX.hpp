@@ -2345,7 +2345,7 @@ namespace RandX
 		Lower,         // [a-z]           26 个
 		Upper,         // [A-Z]           26 个
 		Digit,         // [0-9]           10 个
-		Hex,           // [0-9a-fA-F]     16 个
+		Hex,           // [0-9a-f]        16 个
 		Printable,     // [!-~]           94 个可打印 ASCII
 		Base64,        // [A-Za-z0-9+/]   64 个（RFC 4648 §4 标准变体）
 		Base64UrlSafe, // [A-Za-z0-9-_]   64 个（RFC 4648 §5 URL-safe 变体）
@@ -2370,7 +2370,7 @@ namespace RandX
 			case CharSet::Digit:
 				return "0123456789";
 			case CharSet::Hex:
-				return "0123456789abcdefABCDEF";
+				return "0123456789abcdef";
 			case CharSet::Printable:
 				return "!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~";
 			case CharSet::Base64:
@@ -2393,8 +2393,8 @@ namespace RandX
 		if (charset.empty())
 			throw std::invalid_argument("RandChar: charset is empty");
 		auto& rng = DefaultEngine();
-		return charset[static_cast<std::size_t>(
-			detail::BoundedRand(rng, static_cast<std::uint64_t>(charset.size())))];
+		std::uniform_int_distribution<std::size_t> dist(0, charset.size() - 1);
+		return charset[dist(rng)];
 	}
 
 	/// @brief 从预设字符集随机取一个字符（指定引擎重载）
@@ -2426,13 +2426,15 @@ namespace RandX
 	inline auto RandSample(const Container& c, typename Container::size_type n)
 	{
 		using T = typename Container::value_type;
+		using Size = typename Container::size_type;
 		std::vector<T> pool(c.begin(), c.end());
-		const auto size = static_cast<std::uint64_t>(pool.size());
-		if (n >= pool.size()) return pool;
+		const Size size = static_cast<Size>(pool.size());
+		if (n >= size) return pool;
 		auto& rng = DefaultEngine();
-		for (std::uint64_t i = 0; i < n; ++i)
+		for (Size i = 0; i < n; ++i)
 		{
-			const auto j = i + detail::BoundedRand(rng, size - i);
+			std::uniform_int_distribution<Size> dist(i, size - 1);
+			const Size j = dist(rng);
 			auto tmp = std::move(pool[i]);
 			pool[i] = std::move(pool[j]);
 			pool[j] = std::move(tmp);
@@ -2481,8 +2483,8 @@ namespace RandX
 			result.reserve(static_cast<std::size_t>(n));
 			while (result.size() < static_cast<std::size_t>(n))
 			{
-				const Diff idx = static_cast<Diff>(
-					detail::BoundedRand(rng, sizeU));
+				std::uniform_int_distribution<Diff> dist(Diff{0}, static_cast<Diff>(sizeU - 1));
+				const Diff idx = dist(rng);
 				if (selected.insert(idx).second)
 					result.push_back(first[idx]);
 			}
@@ -2494,11 +2496,11 @@ namespace RandX
 		for (Diff i = 0; i < size; ++i)
 			indices[static_cast<std::size_t>(i)] = i;
 
-		// Fisher-Yates 前 n 步：j ∈ [i, size)
+		// Fisher-Yates 前 n 步：j ∈ [i, size-1]
 		for (Diff i = 0; i < n; ++i)
 		{
-			const Diff j = i + static_cast<Diff>(
-				detail::BoundedRand(rng, static_cast<std::uint64_t>(size - i)));
+			std::uniform_int_distribution<Diff> dist(i, static_cast<Diff>(size - 1));
+			const Diff j = dist(rng);
 			std::swap(indices[static_cast<std::size_t>(i)],
 			          indices[static_cast<std::size_t>(j)]);
 		}
@@ -2539,12 +2541,12 @@ namespace RandX
 			return reservoir;  // 元素不足 n，返回全部
 
 		// Algorithm R：第 i 个元素（i >= n，0-indexed）以 n/(i+1) 概率替换蓄水池随机位置
-		// 关键：j ∈ [0, i]（闭区间，i+1 个取值），故 BoundedRand(rng, i+1)
+		// 关键：j ∈ [0, i]（闭区间），uniform_int_distribution(0, i) 正好是 [0, i] 闭区间
 		auto& rng = DefaultEngine();
 		for (; first != last; ++i, ++first)
 		{
-			const Diff j = static_cast<Diff>(
-				detail::BoundedRand(rng, static_cast<std::uint64_t>(i + 1)));
+			std::uniform_int_distribution<Diff> dist(Diff{0}, i);
+			const Diff j = dist(rng);
 			if (j < n)
 				reservoir[static_cast<std::size_t>(j)] = *first;
 		}
@@ -2656,9 +2658,10 @@ namespace RandX
 		for (std::size_t i = 0; i < n; ++i) perm[i] = i;
 		if (n < 2) return perm;
 		auto& rng = DefaultEngine();
-		for (std::uint64_t i = static_cast<std::uint64_t>(n) - 1; i > 0; --i)
+		for (std::size_t i = n - 1; i > 0; --i)
 		{
-			const auto j = detail::BoundedRand(rng, i + 1);
+			std::uniform_int_distribution<std::size_t> dist(0, i);
+			const std::size_t j = dist(rng);
 			auto tmp = perm[i];
 			perm[i] = perm[j];
 			perm[j] = tmp;
@@ -2684,9 +2687,9 @@ namespace RandX
 			throw std::invalid_argument("RandString: charset is empty");
 		std::string result(length, '\0');
 		auto& rng = DefaultEngine();
-		const auto range = static_cast<std::uint64_t>(charset.size());
+		std::uniform_int_distribution<std::size_t> dist(0, charset.size() - 1);
 		for (std::size_t i = 0; i < length; ++i)
-			result[i] = charset[detail::BoundedRand(rng, range)];
+			result[i] = charset[dist(rng)];
 		return result;
 	}
 
@@ -3116,8 +3119,9 @@ namespace RandX
 	inline constexpr T RandIntCE(T min, T max) noexcept
 	{
 		Xoshiro256StarStar rng{ Seed };
-		const auto range = static_cast<std::uint64_t>(max - min) + 1;
-		return static_cast<T>(static_cast<std::uint64_t>(min) + detail::BoundedRand(rng, range));
+		using U = std::make_unsigned_t<T>;
+		const auto range = static_cast<std::uint64_t>(static_cast<U>(max) - static_cast<U>(min)) + 1;
+		return static_cast<T>(static_cast<U>(min) + static_cast<U>(detail::BoundedRand(rng, range)));
 	}
 
 	/// @brief 编译期生成 [0, max] 范围内的随机整数

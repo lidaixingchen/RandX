@@ -896,9 +896,9 @@ TEST_SUITE("RandChar 预设字符集")
         }
     }
 
-    TEST_CASE("RandChar(CharSet::Hex) 全部属于 [0-9a-fA-F]")
+    TEST_CASE("RandChar(CharSet::Hex) 全部属于 [0-9a-f]")
     {
-        const std::string hexSet = "0123456789abcdefABCDEF";
+        const std::string hexSet = "0123456789abcdef";
         for (int i = 0; i < MC_TRIALS_1K; ++i)
         {
             char c = RandChar(CharSet::Hex);
@@ -914,7 +914,7 @@ TEST_SUITE("RandChar 预设字符集")
         const std::string lower = "abcdefghijklmnopqrstuvwxyz";
         const std::string upper = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
         const std::string digit = "0123456789";
-        const std::string hexS = "0123456789abcdefABCDEF";
+        const std::string hexS = "0123456789abcdef";
         const std::string printable = "!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~";
         const std::string base64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
         const std::string base64UrlSafe = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
@@ -958,7 +958,7 @@ TEST_SUITE("RandChar 预设字符集")
     {
         // 验证 RandString(Engine&, n, CharSet) 引擎重载
         Xoshiro256StarStar rng1{ 42 }, rng2{ 42 };
-        const std::string hexSet = "0123456789abcdefABCDEF";
+        const std::string hexSet = "0123456789abcdef";
         auto s1 = RandString(rng1, 32, CharSet::Hex);
         auto s2 = RandString(rng2, 32, CharSet::Hex);
         CHECK(s1.size() == 32);
@@ -986,7 +986,7 @@ TEST_SUITE("RandChar 预设字符集")
 
     TEST_CASE("RandString(16, CharSet::Hex) 长度与字符集")
     {
-        const std::string hexSet = "0123456789abcdefABCDEF";
+        const std::string hexSet = "0123456789abcdef";
         auto s = RandString(16, CharSet::Hex);
         CHECK(s.size() == 16);
         for (char c : s)
@@ -1048,10 +1048,10 @@ TEST_SUITE("RandChar 预设字符集")
 
     TEST_CASE("RandChar(CharSet::Hex) 均匀性 ±3σ")
     {
-        // Hex 字符集 = "0123456789abcdefABCDEF" 共 22 个字符
-        // 各字符期望频率 1/22，N=22000 采样，每字符期望 1000 次
-        // σ = sqrt(N * p * (1-p)) = sqrt(22000 * 1/22 * 21/22) ≈ 30.91
-        const std::string hexSet = "0123456789abcdefABCDEF";
+        // Hex 字符集 = "0123456789abcdef" 共 16 个字符（标准小写 hex）
+        // 各字符期望频率 1/16，N=22000 采样，每字符期望 1375 次
+        // σ = sqrt(N * p * (1-p)) = sqrt(22000 * 1/16 * 15/16) ≈ 35.90
+        const std::string hexSet = "0123456789abcdef";
         const std::size_t cat = hexSet.size();
         constexpr int N = 22000;
         const int expected = N / static_cast<int>(cat);

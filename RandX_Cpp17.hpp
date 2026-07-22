@@ -2103,7 +2103,7 @@ namespace RandX
 		Lower,         // [a-z]           26 个
 		Upper,         // [A-Z]           26 个
 		Digit,         // [0-9]           10 个
-		Hex,           // [0-9a-fA-F]     16 个
+		Hex,           // [0-9a-f]        16 个
 		Printable,     // [!-~]           94 个可打印 ASCII
 		Base64,        // [A-Za-z0-9+/]   64 个（RFC 4648 §4 标准变体）
 		Base64UrlSafe, // [A-Za-z0-9-_]   64 个（RFC 4648 §5 URL-safe 变体）
@@ -2131,7 +2131,7 @@ namespace RandX
 			case CharSet::Digit:
 				return "0123456789";
 			case CharSet::Hex:
-				return "0123456789abcdefABCDEF";
+				return "0123456789abcdef";
 			case CharSet::Printable:
 				return "!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~";
 			case CharSet::Base64:
