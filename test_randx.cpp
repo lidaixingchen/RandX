@@ -31,6 +31,8 @@ namespace
     constexpr int MC_TRIALS_1K = 1000;
     constexpr int MC_TRIALS_10K = 10000;
     constexpr int MC_TRIALS_100 = 100;
+    // ChaCha20 卡方检验样本数：须 < 2^20/8 = 131072 以避免触发自动 reseed（保持确定性）
+    constexpr int CHACHA20_CHI2_N = 100'000;
 }
 
 // ============================================================================
@@ -1289,11 +1291,12 @@ TEST_SUITE("ChaCha20 CSPRNG")
 
     TEST_CASE("原始输出均匀性 df=127")
     {
-        constexpr double EXPECTED = static_cast<double>(STAT_N) / STAT_BINS_128;
+        // 使用 CHACHA20_CHI2_N（非 STAT_N）以避免触发自动 reseed，保持确定性
+        constexpr double EXPECTED = static_cast<double>(CHACHA20_CHI2_N) / STAT_BINS_128;
 
         RandX::ChaCha20 rng{ 54321 };
         std::array<int, STAT_BINS_128> counts{};
-        for (int i = 0; i < STAT_N; ++i)
+        for (int i = 0; i < CHACHA20_CHI2_N; ++i)
             ++counts[rng() & 127];
 
         double chi2 = 0.0;
