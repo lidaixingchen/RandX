@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(RandX VERSION 1.3.1 LANGUAGES CXX)
+project(RandX VERSION 1.4.0 LANGUAGES CXX)
 
 # 纯头文件库 → INTERFACE target
 add_library(RandX INTERFACE)

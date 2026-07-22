@@ -4,6 +4,17 @@
 
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/)。
 
+## v1.4.0 - 2026-07-23
+
+- **新增分布函数引擎重载**：`RandNormal`/`RandExp`/`RandPoisson`/`RandGamma` 支持传入自定义引擎实例（此前仅使用线程局部默认引擎）。
+- **新增 jumpable/stream engine concepts**：`JumpableEngine`、`StreamEngine` 概念约束，为多流并行提供编译期类型检查。
+- **新增 Google Benchmark 结构化基准套件**：替代原手工计时，支持 JSON 输出与跨 run 基线对比。
+- **安全加固**：修复便捷 API 双头文件输出序列不一致（高危）、`RandBits` 位宽越界、ChaCha20 reseed 后状态擦除不完整、平台熵源回退路径等多项缺陷。
+- **CMake 改进**：传播最低 C++ 标准要求（`target_compile_features`）；标记版本文件架构无关（`ARCH_INDEPENDENT`）；benchmark 目标重命名避免与 Google Benchmark 冲突。
+- **发布渠道**：移除 Conan，新增 xmake-repo (xrepo) 支持；vcpkg port 改用 CMake 导出目标安装。
+- **文档**：新增 Doxygen API 参考（GitHub Pages 部署）；补全注释组块与概念文档。
+- **CI**：添加 concurrency/paths 过滤、issue 查重、benchmark 对比 continue-on-error。
+
 ## v1.3.0 - 2026-07-22
 
 - **新增 ChaCha20 CSPRNG 引擎**（RFC 8439）：首个密码学安全引擎，OS 熵自动播种，2^20 字节自动 reseed 提供前向安全；counter 回绕前必然 reseed 杜绝 keystream 复用。提供三种构造方式（OS 熵默认 / 64-bit 种子测试复现 / 显式 key+nonce+counter KAT）。不提供 `serialize`/`jump`（状态导出违背 CSPRNG 安全模型）。
