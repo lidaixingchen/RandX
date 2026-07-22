@@ -46,7 +46,7 @@ jobs:
       - name: Install vcpkg
         uses: lukka/run-vcpkg@v11
         with:
-          vcpkgGitCommitId: "f7423ee2bf0b34341cd5738d3a6c3236a32a4d13"
+          vcpkgGitCommitId: "d99b2e01ef73a34daa2e6ef7983c70a890d9f31b"
 
       - name: Install randx via overlay port
         # --classic: 项目根 vcpkg.json 会让 vcpkg 进入 manifest mode，
@@ -96,7 +96,7 @@ jobs:
 
       - name: Verify port version matches tag
         run: |
-          PORT_VER=$(grep -E '^\s*add_versions' packaging/xmake-repo/packages/r/randx/xmake.lua | head -1 | sed -E 's/.*"([^"]+)".*/\1/')
+          PORT_VER=$(grep -E '^\s*add_versions' packaging/xmake-repo/packages/r/randx/xmake.lua | head -1 | sed -E 's/.*add_versions\("([^"]+)".*/\1/')
           TAG_VER="${{ steps.ver.outputs.version }}"
           echo "Port version: $PORT_VER"
           echo "Tag version:   $TAG_VER"
