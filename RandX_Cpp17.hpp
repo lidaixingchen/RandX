@@ -876,8 +876,9 @@ namespace RandX
 
 #	if __has_include(<bcrypt.h>)
 			// Windows: BCryptGenRandom（一次调用填满）
+			// NTSTATUS >= 0 即 NT_SUCCESS（不能 == 0，正向 informational code 也属成功）
 			return (::BCryptGenRandom(nullptr, p, static_cast<ULONG>(n),
-			                          BCRYPT_USE_SYSTEM_PREFERRED_RNG) == 0);
+			                          BCRYPT_USE_SYSTEM_PREFERRED_RNG) >= 0);
 
 #	elif __has_include(<sys/random.h>)
 			// Linux: getrandom（循环处理短读与 EINTR）
