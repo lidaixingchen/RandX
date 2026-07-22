@@ -92,13 +92,11 @@
 # endif
 // ── A3 跨平台 OS 熵源头文件（条件包含） ──
 # if __has_include(<bcrypt.h>)
-// MinGW 的 <bcrypt.h> 依赖 <windows.h> 提供的 ULONG/NTSTATUS 等类型
-#	if defined(__MINGW32__) || defined(__MINGW64__)
-#		ifndef WIN32_LEAN_AND_MEAN
-#			define WIN32_LEAN_AND_MEAN
-#		endif
-#		include <windows.h>
+// bcrypt.h 依赖 <windows.h> 提供的 ULONG/NTSTATUS 等类型（MSVC 和 MinGW 均需）
+#	ifndef WIN32_LEAN_AND_MEAN
+#		define WIN32_LEAN_AND_MEAN
 #	endif
+#	include <windows.h>
 #	include <bcrypt.h>
 #	pragma comment(lib, "bcrypt.lib")
 # elif __has_include(<sys/random.h>)
@@ -711,7 +709,7 @@ namespace RandX
 			std::size_t filled = 0;
 			while (filled < n)
 			{
-				const long ret = ::getrandom(p + filled, n - filled, 0);
+				const ssize_t ret = ::getrandom(p + filled, n - filled, 0);
 				if (ret < 0)
 				{
 					if (errno == EINTR) continue;  // 被信号打断，重试
