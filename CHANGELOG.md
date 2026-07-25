@@ -4,6 +4,13 @@
 
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/)。
 
+## v1.4.2 - 2026-07-25
+
+- **修复 `RandUUID` 高位置零缺陷**：适配 32 位引擎通过拼接两次 32-bit 输出生成 64 位整数，避免直接使用 32 位引擎时 UUID 高位恒为零。
+- **修复 `RandBeta` 极值退化**：处理伯努利极值参数下的退化情形，并为全部分布补充 `std::isfinite` 断言防范非有限值。
+- **C++17 兼容性补全**：补全 C++17 容器 Type Traits，完善 `RandShuffle`/`RandSample` 模板约束。
+- **性能优化**：优化 `RandBool` 伯努利分布实现；新增 `RandWeighted` 高频采样重载。
+
 ## v1.4.1 - 2026-07-25
 
 - **CSPRNG 安全加固**：禁用 `ChaCha20` 拷贝构造与赋值，添加显示移动语义并在转移后调用 `SecureWipe` 安全擦除缓冲区；修复 Windows `BCryptGenRandom` 超大缓冲区时的 `ULONG` 截断隐患。
