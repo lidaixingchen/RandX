@@ -2059,6 +2059,7 @@ namespace RandX
 	[[nodiscard]]
 	inline T RandReal(T min = T{0}, T max = T{1})
 	{
+		assert(min <= max);
 		std::uniform_real_distribution<T> dist(min, max);
 		return dist(DefaultEngine());
 	}
@@ -2255,14 +2256,14 @@ namespace RandX
 	/// @param c 源容器（需支持 operator[] 和 size()）
 	/// @return 容器中随机选取的一个元素的引用
 	/// @throw std::invalid_argument 容器为空时抛出
-	template <class Container>
+	template <class Container,
+		std::enable_if_t<detail::is_random_access_container_v<Container>>* = nullptr>
 	[[nodiscard]]
 	inline decltype(auto) RandElement(Container&& c)
 	{
-		using Size = typename std::remove_reference_t<Container>::size_type;
-		if (c.empty())
+		if (std::empty(c))
 			throw std::invalid_argument("RandElement: empty container");
-		return c[RandInt<Size>(static_cast<Size>(c.size() - 1))];
+		return c[RandInt<std::size_t>(static_cast<std::size_t>(std::size(c) - 1))];
 	}
 
 	/// @brief 从迭代器范围内随机取一个元素（随机访问迭代器：O(1) 直接定位）
@@ -2398,6 +2399,7 @@ namespace RandX
 		std::enable_if_t<detail::is_rand_fillable_v<It, T>>* = nullptr>
 	inline void RandFill(It first, It last, T min, T max)
 	{
+		assert(min <= max);
 		auto& rng = DefaultEngine();
 		if constexpr (std::is_integral_v<T>)
 		{
@@ -2421,6 +2423,7 @@ namespace RandX
 		std::enable_if_t<detail::is_rand_fillable_v<It, T>>* = nullptr>
 	inline void RandFill(Engine& engine, It first, It last, T min, T max)
 	{
+		assert(min <= max);
 		if constexpr (std::is_integral_v<T>)
 		{
 			std::uniform_int_distribution<T> dist(min, max);
@@ -2443,6 +2446,7 @@ namespace RandX
 	[[nodiscard]]
 	inline std::vector<T> RandVector(T min, T max, std::size_t n)
 	{
+		assert(min <= max);
 		std::vector<T> v;
 		v.reserve(n);
 		auto& rng = DefaultEngine();
@@ -2462,6 +2466,7 @@ namespace RandX
 	[[nodiscard]]
 	inline std::vector<T> RandVector(T min, T max, std::size_t n)
 	{
+		assert(min <= max);
 		std::vector<T> v;
 		v.reserve(n);
 		auto& rng = DefaultEngine();
@@ -2482,6 +2487,7 @@ namespace RandX
 	[[nodiscard]]
 	inline std::vector<T> RandVector(Engine& engine, T min, T max, std::size_t n)
 	{
+		assert(min <= max);
 		std::vector<T> v;
 		v.reserve(n);
 		std::uniform_int_distribution<T> dist(min, max);
@@ -2501,6 +2507,7 @@ namespace RandX
 	[[nodiscard]]
 	inline std::vector<T> RandVector(Engine& engine, T min, T max, std::size_t n)
 	{
+		assert(min <= max);
 		std::vector<T> v;
 		v.reserve(n);
 		std::uniform_real_distribution<T> dist(min, max);

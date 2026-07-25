@@ -1330,3 +1330,13 @@ TEST_SUITE("缺陷修复回归测试 - 数学算法 C++17")
         CHECK(betaVal > 0.0);
     }
 }
+
+TEST_SUITE("缺陷修复回归测试 - 容器与边界 C++17")
+{
+    TEST_CASE("RandElement 支持原生 C 风格数组")
+    {
+        int arr[5] = { 10, 20, 30, 40, 50 };
+        int val = RandX::RandElement(arr);
+        CHECK((val >= 10 && val <= 50));
+    }
+}
