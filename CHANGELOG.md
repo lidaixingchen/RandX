@@ -4,6 +4,13 @@
 
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/)。
 
+## v1.4.1 - 2026-07-25
+
+- **CSPRNG 安全加固**：禁用 `ChaCha20` 拷贝构造与赋值，添加显示移动语义并在转移后调用 `SecureWipe` 安全擦除缓冲区；修复 Windows `BCryptGenRandom` 超大缓冲区时的 `ULONG` 截断隐患。
+- **核心算法与 UB 修复**：修复 C++23 `RandIntCE` 64 位无符号全范围溢出退化缺陷；修复 `RandBeta` 下溢错判；优化 `RotL` 移位消解 C++ 未定义行为。
+- **API 优化与原生数组支持**：`RandElement` 替换为全局 `std::empty`/`std::size` 以原生兼容 C 风格数组；`RandUUID` 优化为 2 次 64-bit PRNG 调用并支持指定 `Engine&`；`RandBool` 切换为 `std::bernoulli_distribution`。
+- **边界防范断言**：`RandReal` / `RandVector` / `RandFill` 补充 `assert(min <= max)` 校验。
+
 ## v1.4.0 - 2026-07-23
 
 - **新增分布函数引擎重载**：`RandNormal`/`RandExp`/`RandPoisson`/`RandGamma` 支持传入自定义引擎实例（此前仅使用线程局部默认引擎）。
