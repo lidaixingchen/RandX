@@ -1,18 +1,18 @@
 name: Packaging Validation
 
-# 触发条件：推送 v* 标签时；或手动触发
+# 触发条件：仅手动触发。
+# 原因：git archive 内嵌 commit hash，移动 tag 后 tarball SHA 必变，
+# tag 触发的 CI checkout 到 tag 本身，portfile 中 SHA 永远滞后一步（循环依赖）。
+# workflow_dispatch checkout 默认分支（master），portfile SHA 已更新，可正常验证。
 # vcpkg 官方 ports / xmake-repo 都不接受 CI 自动推送，本工作流仅做本地预演，
 # 验证 port 能在新版本上正常构建，提示维护者手动提交 PR。
 on:
-  push:
-    tags:
-      - "v*"
   workflow_dispatch:
     inputs:
       version:
         description: "Version to validate (without leading v)"
         required: true
-        default: "1.3.1"
+        default: "1.4.2"
 
 jobs:
   vcpkg-validate:
