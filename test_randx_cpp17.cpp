@@ -1391,3 +1391,91 @@ TEST_SUITE("缺陷修复回归测试 - 性能与API C++17")
     }
 
 }
+
+TEST_SUITE("边界用例")
+{
+    TEST_CASE("RandInt(min, min) 始终返回 min")
+    {
+        RandX::Reseed(42);
+        for (int i = 0; i < 100; ++i)
+            CHECK(RandX::RandInt(7, 7) == 7);
+        for (int i = 0; i < 100; ++i)
+            CHECK(RandX::RandInt(-3, -3) == -3);
+    }
+
+    TEST_CASE("RandReal(min, min) 始终返回 min")
+    {
+        RandX::Reseed(42);
+        for (int i = 0; i < 100; ++i)
+            CHECK(RandX::RandReal(2.5, 2.5) == 2.5);
+    }
+
+    TEST_CASE("RandBool(0.0) 始终 false / RandBool(1.0) 始终 true")
+    {
+        RandX::Reseed(42);
+        for (int i = 0; i < 100; ++i)
+            CHECK_FALSE(RandX::RandBool(0.0));
+        for (int i = 0; i < 100; ++i)
+            CHECK(RandX::RandBool(1.0));
+    }
+
+    TEST_CASE("RandElement 单元素容器始终返回该元素")
+    {
+        RandX::Reseed(42);
+        std::vector<int> single = { 99 };
+        for (int i = 0; i < 50; ++i)
+            CHECK(RandX::RandElement(single) == 99);
+    }
+
+    TEST_CASE("RandElement 右值容器按值返回（不悬垂）")
+    {
+        RandX::Reseed(42);
+        int val = RandX::RandElement(std::vector<int>{10, 20, 30});
+        CHECK((val == 10 || val == 20 || val == 30));
+    }
+
+    TEST_CASE("RandString(0) 返回空字符串")
+    {
+        CHECK(RandX::RandString(0).empty());
+        CHECK(RandX::RandString(0, RandX::CharSet::Hex).empty());
+    }
+
+    TEST_CASE("RandVector(..., 0) 返回空容器")
+    {
+        auto v = RandX::RandVector<int>(0, 10, 0);
+        CHECK(v.empty());
+    }
+
+    TEST_CASE("RandSample(n=0) 返回空容器")
+    {
+        std::vector<int> src = {1, 2, 3, 4, 5};
+        auto s = RandX::RandSample(src, 0);
+        CHECK(s.empty());
+    }
+
+    TEST_CASE("RandInt 全范围 [min, max] 不溢出")
+    {
+        RandX::Reseed(42);
+        auto v = RandX::RandInt<std::uint64_t>(0, (std::numeric_limits<std::uint64_t>::max)());
+        CHECK(v >= 0);
+        auto v2 = RandX::RandInt<std::int32_t>((std::numeric_limits<std::int32_t>::min)(), (std::numeric_limits<std::int32_t>::max)());
+        CHECK(v2 >= (std::numeric_limits<std::int32_t>::min)());
+    }
+
+    TEST_CASE("RandWeighted 单元素权重始终返回 0")
+    {
+        RandX::Reseed(42);
+        std::vector<double> w = {1.0};
+        for (int i = 0; i < 50; ++i)
+            CHECK(RandX::RandWeighted(w) == 0);
+    }
+
+    TEST_CASE("RandPermutation(0) 和 RandPermutation(1)")
+    {
+        auto p0 = RandX::RandPermutation(0);
+        CHECK(p0.empty());
+        auto p1 = RandX::RandPermutation(1);
+        REQUIRE(p1.size() == 1);
+        CHECK(p1[0] == 0);
+    }
+}
