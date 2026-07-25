@@ -12,7 +12,7 @@ package("randx")
     if is_plat("windows", "mingw") then
         add_syslinks("bcrypt")
     elseif is_plat("macosx") then
-        add_syslinks("Security")
+        add_frameworks("Security")
     end
 
     on_install(function (package)
@@ -22,11 +22,11 @@ package("randx")
 
     on_test(function (package)
         assert(package:check_cxxsnippets({test = [[
-            #include <RandX.hpp>
+            #include <RandX_Cpp17.hpp>
             #include <cstdint>
             static void test() {
                 std::uint64_t v = RandX::RandInt<std::uint64_t>(0, 1000);
                 (void)v;
             }
-        ]]}, {configs = {languages = "c++23"}}))
+        ]]}, {configs = {languages = "c++17"}}))
     end)
