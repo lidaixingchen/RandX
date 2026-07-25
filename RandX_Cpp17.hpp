@@ -738,6 +738,12 @@ namespace RandX
 
 		using result_type = std::uint64_t;	///< 输出类型
 
+		ChaCha20(const ChaCha20&) = delete;
+		ChaCha20& operator=(const ChaCha20&) = delete;
+		ChaCha20(ChaCha20&& other) noexcept;
+		ChaCha20& operator=(ChaCha20&& other) noexcept;
+		~ChaCha20() noexcept;
+
 		/// @brief 构造方式 1：从 OS 熵自动播种（密码学安全，默认）
 		/// @note 推荐用于生产环境的密码学安全场景
 		ChaCha20();
@@ -1669,6 +1675,32 @@ namespace RandX
 		inline constexpr bool is_input_iterator_v =
 			is_input_iterator<It>::value;
 
+		// 检测 C 是否为 random_access 容器
+		template <class C, class = void>
+		struct is_random_access_container : std::false_type {};
+
+		template <class C>
+		struct is_random_access_container<C, std::void_t<
+			decltype(std::begin(std::declval<C&>())),
+			decltype(std::end(std::declval<C&>()))>>
+			: is_random_access_iterator<decltype(std::begin(std::declval<C&>()))> {};
+
+		template <class C>
+		inline constexpr bool is_random_access_container_v =
+			is_random_access_container<C>::value;
+
+		template <class Engine>
+		[[nodiscard]]
+		inline std::uint64_t Generate64Bits(Engine& engine)
+		{
+			std::uint64_t val = static_cast<std::uint64_t>(engine());
+			if (sizeof(typename Engine::result_type) < 8)
+			{
+				val = (val << 32) | static_cast<std::uint64_t>(engine());
+			}
+			return val;
+		}
+
 		// 检测 *first = T 合法性 + T 为数值类型（RandFill 用）
 		template <class It, class T, class = void>
 		struct is_rand_fillable : std::false_type {};
@@ -1953,6 +1985,10 @@ namespace RandX
 			m_buffer[i * 4 + 3] = static_cast<std::uint8_t>(v >> 24);
 		}
 
+		if (m_state[8] == 0xFFFFFFFFU)
+		{
+			throw std::overflow_error("ChaCha20: 32-bit block counter overflow");
+		}
 		++m_state[8];   // 递增 counter（2^20 字节阈值远早于 2^32 回绕，自动 reseed 防止复用）
 		m_bufferPos = 0;
 	}
@@ -2059,7 +2095,7 @@ namespace RandX
 	[[nodiscard]]
 	inline T RandReal(T min = T{0}, T max = T{1})
 	{
-		assert(min <= max);
+		assert(std::isfinite(min) && std::isfinite(max) && min <= max);
 		std::uniform_real_distribution<T> dist(min, max);
 		return dist(DefaultEngine());
 	}
@@ -2070,8 +2106,9 @@ namespace RandX
 	[[nodiscard]]
 	inline bool RandBool(double p = 0.5)
 	{
-		assert(p >= 0.0 && p <= 1.0);
-		return RandReal<double>(0.0, 1.0) < p;
+		assert(std::isfinite(p) && p >= 0.0 && p <= 1.0);
+		std::bernoulli_distribution dist(p);
+		return dist(DefaultEngine());
 	}
 
 	/// @brief 生成随机布尔值（指定引擎重载）
@@ -2082,9 +2119,9 @@ namespace RandX
 	[[nodiscard]]
 	inline bool RandBool(Engine& engine, double p = 0.5)
 	{
-		assert(p >= 0.0 && p <= 1.0);
-		std::uniform_real_distribution<double> dist(0.0, 1.0);
-		return dist(engine) < p;
+		assert(std::isfinite(p) && p >= 0.0 && p <= 1.0);
+		std::bernoulli_distribution dist(p);
+		return dist(engine);
 	}
 
 	/// @brief 伯努利分布（RandBool 的别名封装，对齐 \<random\> 命名）
@@ -2361,7 +2398,7 @@ namespace RandX
 	[[nodiscard]]
 	inline T RandNormal(T mean = T{0}, T stddev = T{1})
 	{
-		assert(stddev > T{0});
+		assert(std::isfinite(mean) && std::isfinite(stddev) && stddev > T{0});
 		std::normal_distribution<T> dist(mean, stddev);
 		return dist(DefaultEngine());
 	}
@@ -2375,14 +2412,15 @@ namespace RandX
 	[[nodiscard]]
 	inline T RandNormal(Engine& engine, T mean = T{0}, T stddev = T{1})
 	{
-		assert(stddev > T{0});
+		assert(std::isfinite(mean) && std::isfinite(stddev) && stddev > T{0});
 		std::normal_distribution<T> dist(mean, stddev);
 		return dist(engine);
 	}
 
 	/// @brief 随机打乱容器
 	/// @param c 待打乱的容器
-	template <class Container>
+	template <class Container,
+		std::enable_if_t<detail::is_random_access_container_v<Container>>* = nullptr>
 	inline void RandShuffle(Container&& c)
 	{
 		std::shuffle(c.begin(), c.end(), DefaultEngine());
@@ -2529,6 +2567,41 @@ namespace RandX
 		return dist(DefaultEngine());
 	}
 
+	/// @brief 按权重随机选取索引（指定引擎重载）
+	/// @param engine 自定义随机数引擎
+	/// @param weights 权重容器（元素为数值类型）
+	/// @return 按权重概率选中的索引值
+	template <class Engine, class WeightContainer>
+	[[nodiscard]]
+	inline typename WeightContainer::size_type RandWeighted(Engine& engine, const WeightContainer& weights)
+	{
+		assert(!weights.empty() && std::all_of(weights.begin(), weights.end(), [](auto w) { return w >= 0; }));
+		using Size = typename WeightContainer::size_type;
+		std::discrete_distribution<Size> dist(weights.begin(), weights.end());
+		return dist(engine);
+	}
+
+	/// @brief 按预构建权重分布随机选取索引（支持高频抽取复用，O(1) 复杂度）
+	/// @param dist 预构建的 std::discrete_distribution 对象
+	/// @return 按权重概率选中的索引值
+	template <class IntType>
+	[[nodiscard]]
+	inline IntType RandWeighted(std::discrete_distribution<IntType>& dist)
+	{
+		return dist(DefaultEngine());
+	}
+
+	/// @brief 按预构建权重分布随机选取索引（指定引擎，支持高频抽取复用，O(1) 复杂度）
+	/// @param engine 自定义随机数引擎
+	/// @param dist 预构建的 std::discrete_distribution 对象
+	/// @return 按权重概率选中的索引值
+	template <class Engine, class IntType>
+	[[nodiscard]]
+	inline IntType RandWeighted(Engine& engine, std::discrete_distribution<IntType>& dist)
+	{
+		return dist(engine);
+	}
+
 	/// @brief 生成 [min, max] 范围内的随机整数（指定引擎重载）
 	/// @param engine 自定义随机数引擎
 	/// @param min 下界（含）
@@ -2565,7 +2638,8 @@ namespace RandX
 	/// @param c 源容器
 	/// @param n 抽取数量（若 n >= 容器大小则返回全部元素的副本）
 	/// @return 含 n 个随机选取元素的 vector
-	template <class Container>
+	template <class Container,
+		std::enable_if_t<detail::is_random_access_container_v<Container>>* = nullptr>
 	[[nodiscard]]
 	inline auto RandSample(const Container& c, typename Container::size_type n)
 	{
@@ -2877,7 +2951,8 @@ namespace RandX
 	[[nodiscard]]
 	inline T RandPoisson(double mean = 1.0)
 	{
-		assert(mean > 0.0);
+		assert(std::isfinite(mean) && mean >= 0.0);
+		if (mean == 0.0) return T{0};
 		std::poisson_distribution<T> dist(mean);
 		return dist(DefaultEngine());
 	}
@@ -2890,7 +2965,8 @@ namespace RandX
 	[[nodiscard]]
 	inline T RandPoisson(Engine& engine, double mean = 1.0)
 	{
-		assert(mean > 0.0);
+		assert(std::isfinite(mean) && mean >= 0.0);
+		if (mean == 0.0) return T{0};
 		std::poisson_distribution<T> dist(mean);
 		return dist(engine);
 	}
@@ -3168,16 +3244,15 @@ namespace RandX
 	[[nodiscard]]
 	inline T RandBeta(T a = T{1}, T b = T{1})
 	{
-		assert(a > T{0} && b > T{0});
+		assert(std::isfinite(a) && std::isfinite(b) && a > T{0} && b > T{0});
 		std::gamma_distribution<T> distA(a, T{1});
 		std::gamma_distribution<T> distB(b, T{1});
 		auto& rng = DefaultEngine();
 		const T x = distA(rng);
 		const T y = distB(rng);
 		const T sum = x + y;
-		// 捕获精确 0 与非正规数，避免除零/除以极小值产生 inf
 		if (sum == T{0})
-			return T{0};
+			return RandBool(rng, static_cast<double>(a) / static_cast<double>(a + b)) ? T{1} : T{0};
 		return x / sum;
 	}
 
@@ -3190,14 +3265,14 @@ namespace RandX
 	[[nodiscard]]
 	inline T RandBeta(Engine& engine, T a = T{1}, T b = T{1})
 	{
-		assert(a > T{0} && b > T{0});
+		assert(std::isfinite(a) && std::isfinite(b) && a > T{0} && b > T{0});
 		std::gamma_distribution<T> distA(a, T{1});
 		std::gamma_distribution<T> distB(b, T{1});
 		const T x = distA(engine);
 		const T y = distB(engine);
 		const T sum = x + y;
-		if (sum < std::numeric_limits<T>::min())
-			return T{0};
+		if (sum == T{0})
+			return RandBool(engine, static_cast<double>(a) / static_cast<double>(a + b)) ? T{1} : T{0};
 		return x / sum;
 	}
 
@@ -3225,8 +3300,8 @@ namespace RandX
 	{
 		static constexpr char hex[] = "0123456789abcdef";
 		std::string uuid(36, '-');
-		const std::uint64_t u1 = engine();
-		const std::uint64_t u2 = engine();
+		const std::uint64_t u1 = detail::Generate64Bits(engine);
+		const std::uint64_t u2 = detail::Generate64Bits(engine);
 
 		for (int i = 0; i < 8; ++i)
 			uuid[i] = hex[(u1 >> (i * 4)) & 0xFU];
