@@ -1477,3 +1477,18 @@ TEST_SUITE("密码学安全熵源")
         }
     }
 }
+
+TEST_SUITE("缺陷修复回归测试 - CSPRNG")
+{
+    TEST_CASE("ChaCha20 只移动不可拷贝")
+    {
+        static_assert(!std::is_copy_constructible_v<RandX::ChaCha20>);
+        static_assert(!std::is_copy_assignable_v<RandX::ChaCha20>);
+        static_assert(std::is_move_constructible_v<RandX::ChaCha20>);
+        static_assert(std::is_move_assignable_v<RandX::ChaCha20>);
+
+        RandX::ChaCha20 rng1(12345ULL);
+        RandX::ChaCha20 rng2 = std::move(rng1);
+        (void)rng2();
+    }
+}

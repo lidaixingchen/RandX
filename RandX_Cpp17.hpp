@@ -885,10 +885,19 @@ namespace RandX
 			auto* p = static_cast<std::uint8_t*>(buf);
 
 #	if defined(_WIN32) && __has_include(<bcrypt.h>)
-			// Windows: BCryptGenRandom（一次调用填满）
+			// Windows: BCryptGenRandom（分块处理 >4GB 时的 ULONG 截断）
 			// NTSTATUS >= 0 即 NT_SUCCESS（不能 == 0，正向 informational code 也属成功）
-			return (::BCryptGenRandom(nullptr, p, static_cast<ULONG>(n),
-			                          BCRYPT_USE_SYSTEM_PREFERRED_RNG) >= 0);
+			std::size_t filled = 0;
+			while (filled < n)
+			{
+				const ULONG chunkSize = static_cast<ULONG>((std::min)(n - filled, static_cast<std::size_t>((std::numeric_limits<ULONG>::max)())));
+				if (::BCryptGenRandom(nullptr, p + filled, chunkSize, BCRYPT_USE_SYSTEM_PREFERRED_RNG) < 0)
+				{
+					return false;
+				}
+				filled += chunkSize;
+			}
+			return true;
 
 #	elif defined(__linux__) && __has_include(<sys/random.h>)
 			// Linux: getrandom（循环处理短读与 EINTR）
@@ -1767,8 +1776,6 @@ namespace RandX
 	inline void SecureRandomBytes(void* buf, std::size_t n)
 	{
 		if (n == 0) return;
-		if (!detail::HasCryptoGradeOsEntropy())
-			throw std::runtime_error("SecureRandomBytes: no OS cryptographic entropy source available");
 		if (!detail::GetOsEntropyBytes(buf, n))
 			throw std::runtime_error("SecureRandomBytes: OS entropy source failed");
 	}
@@ -1804,6 +1811,44 @@ namespace RandX
 	//
 	//  生成流程：operator() → reseedIfNecessary → (缓存耗尽时)generateBlock → 取 8 字节
 	//
+
+	inline ChaCha20::ChaCha20(ChaCha20&& other) noexcept
+		: m_state(other.m_state),
+		  m_buffer(other.m_buffer),
+		  m_bufferPos(other.m_bufferPos),
+		  m_bytesSinceReseed(other.m_bytesSinceReseed)
+	{
+		detail::SecureWipe(other.m_state.data(), sizeof(other.m_state));
+		detail::SecureWipe(other.m_buffer.data(), sizeof(other.m_buffer));
+		other.m_bufferPos = 64;
+		other.m_bytesSinceReseed = 0;
+	}
+
+	inline ChaCha20& ChaCha20::operator=(ChaCha20&& other) noexcept
+	{
+		if (this != &other)
+		{
+			detail::SecureWipe(m_state.data(), sizeof(m_state));
+			detail::SecureWipe(m_buffer.data(), sizeof(m_buffer));
+
+			m_state = other.m_state;
+			m_buffer = other.m_buffer;
+			m_bufferPos = other.m_bufferPos;
+			m_bytesSinceReseed = other.m_bytesSinceReseed;
+
+			detail::SecureWipe(other.m_state.data(), sizeof(other.m_state));
+			detail::SecureWipe(other.m_buffer.data(), sizeof(other.m_buffer));
+			other.m_bufferPos = 64;
+			other.m_bytesSinceReseed = 0;
+		}
+		return *this;
+	}
+
+	inline ChaCha20::~ChaCha20() noexcept
+	{
+		detail::SecureWipe(m_state.data(), sizeof(m_state));
+		detail::SecureWipe(m_buffer.data(), sizeof(m_buffer));
+	}
 
 	// 构造方式 1：从 OS 熵自动播种（密码学安全，默认）
 	inline ChaCha20::ChaCha20()
