@@ -1492,3 +1492,22 @@ TEST_SUITE("缺陷修复回归测试 - CSPRNG")
         (void)rng2();
     }
 }
+
+TEST_SUITE("缺陷修复回归测试 - 数学算法")
+{
+    TEST_CASE("RandIntCE 64位无符号整数全范围未退化为0")
+    {
+        constexpr std::uint64_t v1 = RandX::RandIntCE<std::uint64_t, 12345ULL>(0ULL, std::numeric_limits<std::uint64_t>::max());
+        constexpr std::uint64_t v2 = RandX::RandIntCE<std::uint64_t, 67890ULL>(0ULL, std::numeric_limits<std::uint64_t>::max());
+        CHECK(v1 != 0ULL);
+        CHECK(v2 != 0ULL);
+        CHECK(v1 != v2);
+    }
+
+    TEST_CASE("RandBeta 极端非正规数参数不坍缩为0")
+    {
+        RandX::Xoshiro256StarStar rng(123);
+        double betaVal = RandX::RandBeta(rng, 1.0, 1e-300);
+        CHECK(betaVal > 0.0);
+    }
+}

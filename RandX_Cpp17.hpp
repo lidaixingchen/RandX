@@ -816,13 +816,15 @@ namespace RandX
 		[[nodiscard]]
 		static constexpr std::uint64_t RotL(const std::uint64_t x, const int s) noexcept
 		{
-			return (x << s) | (x >> (64 - s));
+			const int count = s & 63;
+			return count == 0 ? x : ((x << count) | (x >> (64 - count)));
 		}
 
 		[[nodiscard]]
 		static constexpr std::uint32_t RotL(const std::uint32_t x, const int s) noexcept
 		{
-			return (x << s) | (x >> (32 - s));
+			const int count = s & 31;
+			return count == 0 ? x : ((x << count) | (x >> (32 - count)));
 		}
 
 		// 安全擦除内存（volatile 防止编译器死存储消除）
@@ -3167,7 +3169,7 @@ namespace RandX
 		const T y = distB(rng);
 		const T sum = x + y;
 		// 捕获精确 0 与非正规数，避免除零/除以极小值产生 inf
-		if (sum < std::numeric_limits<T>::min())
+		if (sum == T{0})
 			return T{0};
 		return x / sum;
 	}

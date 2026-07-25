@@ -1320,3 +1320,13 @@ TEST_SUITE("缺陷修复回归测试 - CSPRNG C++17")
         (void)rng2();
     }
 }
+
+TEST_SUITE("缺陷修复回归测试 - 数学算法 C++17")
+{
+    TEST_CASE("RandBeta 极端非正规数参数不坍缩为0")
+    {
+        RandX::Xoshiro256StarStar rng(123);
+        double betaVal = RandX::RandBeta(rng, 1.0, 1e-300);
+        CHECK(betaVal > 0.0);
+    }
+}

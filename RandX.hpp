@@ -93,6 +93,7 @@
 # include <concepts>
 # include <random>
 # include <algorithm>
+# include <bit>
 # include <cassert>
 # include <type_traits>
 # include <ranges>
@@ -755,13 +756,13 @@ namespace RandX
 		[[nodiscard]]
 		static constexpr std::uint64_t RotL(const std::uint64_t x, const int s) noexcept
 		{
-			return (x << s) | (x >> (64 - s));
+			return std::rotl(x, s);
 		}
 
 		[[nodiscard]]
 		static constexpr std::uint32_t RotL(const std::uint32_t x, const int s) noexcept
 		{
-			return (x << s) | (x >> (32 - s));
+			return std::rotl(x, s);
 		}
 
 		// 安全擦除内存（volatile 防止编译器死存储消除）
@@ -3140,7 +3141,7 @@ namespace RandX
 		const T y = distB(rng);
 		const T sum = x + y;
 		// 捕获精确 0 与非正规数，避免除零/除以极小值产生 inf
-		if (sum < std::numeric_limits<T>::min())
+		if (sum == T{0})
 			return T{0};
 		return x / sum;
 	}
@@ -3272,8 +3273,15 @@ namespace RandX
 	{
 		Xoshiro256StarStar rng{ Seed };
 		using U = std::make_unsigned_t<T>;
-		const auto range = static_cast<std::uint64_t>(static_cast<U>(max) - static_cast<U>(min)) + 1;
-		return static_cast<T>(static_cast<U>(min) + static_cast<U>(detail::BoundedRand(rng, range)));
+		const U u_min = static_cast<U>(min);
+		const U u_max = static_cast<U>(max);
+		const U diff = u_max - u_min;
+		if (diff == (std::numeric_limits<U>::max)())
+		{
+			return static_cast<T>(u_min + static_cast<U>(rng()));
+		}
+		const auto range = static_cast<std::uint64_t>(diff) + 1;
+		return static_cast<T>(u_min + static_cast<U>(detail::BoundedRand(rng, range)));
 	}
 
 	/// @brief 编译期生成 [0, max] 范围内的随机整数
