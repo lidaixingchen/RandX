@@ -1365,4 +1365,9 @@ TEST_SUITE("缺陷修复回归测试 - 性能与API C++17")
         CHECK(u.substr(0, 8) != "00000000");
         CHECK(u.substr(24, 8) != "00000000");
     }
+
+    TEST_CASE("RandPoisson 期望为 0 时合法返回 0")
+    {
+        CHECK(RandX::RandPoisson(0.0) == 0);
+    }
 }
