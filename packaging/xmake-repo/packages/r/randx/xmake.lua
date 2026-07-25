@@ -6,6 +6,7 @@ package("randx")
 
     add_urls("https://github.com/lidaixingchen/RandX/archive/refs/tags/v$(version).tar.gz")
 
+    add_versions("1.4.3", "2227db348490f72e0aa8aaff923b24b773dec268656ef60bec3fe997e2fbac61")
     add_versions("1.4.2", "25badb73e98b2e83456bea63bb60b1f335091576ec1d1c06ec2649ed92fc84bf")
     add_versions("1.4.1", "COMMIT_HASH")
     add_versions("1.4.0", "ecf611c6f340986df2abf3191def2222a3287f5e20ec4280c88996770a95eec7")
