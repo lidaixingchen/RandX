@@ -1340,3 +1340,20 @@ TEST_SUITE("缺陷修复回归测试 - 容器与边界 C++17")
         CHECK((val >= 10 && val <= 50));
     }
 }
+
+TEST_SUITE("缺陷修复回归测试 - 性能与API C++17")
+{
+    TEST_CASE("RandUUID 格式正确与随机性")
+    {
+        std::string u1 = RandX::RandUUID();
+        std::string u2 = RandX::RandUUID();
+        CHECK(u1.length() == 36);
+        CHECK(u1[8] == '-');
+        CHECK(u1[13] == '-');
+        CHECK(u1[14] == '4');
+        CHECK(u1[18] == '-');
+        CHECK((u1[19] == '8' || u1[19] == '9' || u1[19] == 'a' || u1[19] == 'b'));
+        CHECK(u1[23] == '-');
+        CHECK(u1 != u2);
+    }
+}

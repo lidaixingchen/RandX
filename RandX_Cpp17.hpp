@@ -3219,20 +3219,35 @@ namespace RandX
 	/// @return 格式为 xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx 的 UUID 字符串
 	/// @warning 使用默认 PRNG（非 CSPRNG），不适用于安全敏感标识符；
 	///          安全场景请改用 ChaCha20 引擎重载或 SecureRandomBytes
+	template <class Engine>
+	[[nodiscard]]
+	inline std::string RandUUID(Engine& engine)
+	{
+		static constexpr char hex[] = "0123456789abcdef";
+		std::string uuid(36, '-');
+		const std::uint64_t u1 = engine();
+		const std::uint64_t u2 = engine();
+
+		for (int i = 0; i < 8; ++i)
+			uuid[i] = hex[(u1 >> (i * 4)) & 0xFU];
+		for (int i = 0; i < 4; ++i)
+			uuid[9 + i] = hex[(u1 >> ((8 + i) * 4)) & 0xFU];
+		uuid[14] = '4';
+		for (int i = 1; i < 4; ++i)
+			uuid[14 + i] = hex[(u1 >> ((12 + i) * 4)) & 0xFU];
+		uuid[19] = hex[8 + ((u2 >> 0) & 0x3U)];
+		for (int i = 1; i < 4; ++i)
+			uuid[19 + i] = hex[(u2 >> (i * 4)) & 0xFU];
+		for (int i = 0; i < 12; ++i)
+			uuid[24 + i] = hex[(u2 >> ((4 + i) * 4)) & 0xFU];
+
+		return uuid;
+	}
+
 	[[nodiscard]]
 	inline std::string RandUUID()
 	{
-		auto& rng = DefaultEngine();
-		static constexpr char hex[] = "0123456789abcdef";
-		std::string uuid(36, '-');
-		for (int i = 0; i < 36; ++i)
-		{
-			if (i == 8 || i == 13 || i == 18 || i == 23) continue;
-			if (i == 14) { uuid[i] = '4'; continue; }
-			if (i == 19) { uuid[i] = hex[8 + (rng() & 3)]; continue; }
-			uuid[i] = hex[rng() & 15];
-		}
-		return uuid;
+		return RandUUID(DefaultEngine());
 	}
 
 	////////////////////////////////////////////////////////////////
