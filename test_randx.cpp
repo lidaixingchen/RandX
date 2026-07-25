@@ -1537,4 +1537,13 @@ TEST_SUITE("缺陷修复回归测试 - 性能与API")
         CHECK(u1[23] == '-');
         CHECK(u1 != u2);
     }
+
+    TEST_CASE("RandUUID 在 32 位引擎下无高位置零损坏")
+    {
+        RandX::Xoshiro128StarStar rng32{ 12345 };
+        std::string u = RandX::RandUUID(rng32);
+        CHECK(u.length() == 36);
+        CHECK(u.substr(0, 8) != "00000000");
+        CHECK(u.substr(24, 8) != "00000000");
+    }
 }

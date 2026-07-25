@@ -1701,6 +1701,18 @@ namespace RandX
 			return val;
 		}
 
+		template <class Engine>
+		[[nodiscard]]
+		inline std::uint64_t Generate64Bits(Engine& engine)
+		{
+			std::uint64_t val = static_cast<std::uint64_t>(engine());
+			if (sizeof(typename Engine::result_type) < 8)
+			{
+				val = (val << 32) | static_cast<std::uint64_t>(engine());
+			}
+			return val;
+		}
+
 		// 检测 *first = T 合法性 + T 为数值类型（RandFill 用）
 		template <class It, class T, class = void>
 		struct is_rand_fillable : std::false_type {};

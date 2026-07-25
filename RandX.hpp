@@ -934,6 +934,22 @@ namespace RandX
 		}
 	}
 
+	template <class Engine>
+	[[nodiscard]]
+	inline std::uint64_t Generate64Bits(Engine& engine)
+	{
+		if constexpr (sizeof(typename Engine::result_type) >= 8)
+		{
+			return static_cast<std::uint64_t>(engine());
+		}
+		else
+		{
+			const std::uint64_t lo = static_cast<std::uint64_t>(engine());
+			const std::uint64_t hi = static_cast<std::uint64_t>(engine());
+			return (hi << 32) | lo;
+		}
+	}
+
 	// 字符类型 concept（char/wchar_t/char8_t/char16_t/char32_t）
 	// char8_t 仅在 C++20+ 编译器下为基本类型，用特性检测宏条件启用
 	template <class T>
