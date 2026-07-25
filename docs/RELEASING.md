@@ -40,7 +40,7 @@ vcpkg version           # 任意受支持版本
 
 本仓库的 `ports/randx/` 目录已就绪：
 - [`vcpkg.json`](ports/randx/vcpkg.json) — port manifest
-- [`portfile.cmake`](ports/randx/portfile.cmake) — 安装脚本（含 v1.3.1 tarball 的 SHA512）
+- [`portfile.cmake`](ports/randx/portfile.cmake) — 安装脚本（含 v1.4.2 tarball 的 SHA512）
 
 ### 2. 复制到 vcpkg fork
 
@@ -82,10 +82,10 @@ vcpkg 要求每个 port 在 `versions/` 下登记版本信息：
 ### 5. 提交 PR
 
 ```powershell
-git checkout -b add-randx-1.3.1
+git checkout -b add-randx-1.4.2
 git add ports/randx versions/r-/randx.json versions/baseline.json
-git commit -m "New port: randx/1.3.1"
-git push origin add-randx-1.3.1
+git commit -m "New port: randx/1.4.2"
+git push origin add-randx-1.4.2
 ```
 
 在 GitHub 上向 `microsoft/vcpkg:master` 发起 PR。等待维护者 review（通常 1~5 天）。
@@ -99,7 +99,7 @@ git push origin add-randx-1.3.1
 本仓库的 `packaging/xmake-repo/packages/r/randx/xmake.lua` 已就绪：
 - 含跨平台 OS 熵源链接（Windows `bcrypt` / macOS `Security`）
 - 含 `on_test` snippet（C++23 编译验证）
-- 含 v1.3.1 tarball 的 SHA256
+- 含 v1.4.2 tarball 的 SHA256
 
 ### 2. 复制到 xmake-repo fork
 
@@ -121,16 +121,16 @@ xrepo add-repo local-randx "$PWD"
 # 安装并触发 on_test
 xrepo install -y randx
 
-# 期望输出：=> install randx 1.3.1 .. ok
+# 期望输出：=> install randx 1.4.2 .. ok
 ```
 
 ### 4. 提交 PR
 
 ```powershell
-git checkout -b add-randx-1.3.1
+git checkout -b add-randx-1.4.2
 git add packages/r/randx/xmake.lua
-git commit -m "Add package randx 1.3.1"
-git push origin add-randx-1.3.1
+git commit -m "Add package randx 1.4.2"
+git push origin add-randx-1.4.2
 ```
 
 在 GitHub 上向 `xmake-io/xmake-repo:master` 发起 PR。
@@ -160,7 +160,7 @@ git push origin v1.4.0
 
 ### 步骤 2：等待 CI 验证
 
-推送 `v*` tag 会自动触发 [Packaging Validation](.github/workflows/packaging-validation.yml) 工作流：
+在 GitHub Actions 页面用 `workflow_dispatch` 触发 [Packaging Validation](.github/workflows/packaging-validation.yml) 工作流（可指定 version 参数）：
 
 - **vcpkg-validate**（windows-latest）：用 overlay port 安装 + 验证头文件
 - **xrepo-validate**（ubuntu-24.04）：注册本地 xmake-repo + 安装 + 触发 on_test
@@ -229,8 +229,7 @@ git push origin bump-randx-1.4.0
 文件：[`.github/workflows/packaging-validation.yml`](.github/workflows/packaging-validation.yml)
 
 **触发条件**：
-- 自动：推送 `v*` 格式的 tag
-- 手动：在 GitHub Actions 页面用 `workflow_dispatch` 触发，可指定 version
+- 手动：在 GitHub Actions 页面用 `workflow_dispatch` 触发，可指定 version 参数
 
 **Jobs**：
 

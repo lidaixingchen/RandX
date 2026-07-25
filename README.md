@@ -66,7 +66,7 @@
 | SplitMix64 | 64-bit | 2^64 | 8B | 种子扩展 / 哈希 |
 | SFC64 | 64-bit | >= 2^64 | 32B | 速度极快，无 jump |
 | RomuDuoJr | 64-bit | >= 2^51 | 16B | 极简极快，无 jump |
-| **ChaCha20** | 64-bit | 无周期 | 56B | **密码学安全**，RFC 8439 |
+| **ChaCha20** | 64-bit | 无周期 | 48B+ | **密码学安全**，RFC 8439 |
 
 ## 快速上手
 
@@ -125,7 +125,7 @@ int main()
 > CharSet 枚举：`Alphanumeric` / `Alpha` / `Lower` / `Upper` / `Digit` / `Hex` / `Printable` / `Base64` / `Base64UrlSafe`。
 > 所有函数默认使用线程局部 `Xoshiro256StarStar`，也支持传入自定义引擎：`RandInt(rng, min, max)`。
 
-完整签名与参数说明见 [docs/API.md](docs/API.md)。
+完整签名与参数说明见 [Doxygen API 参考](https://lidaixingchen.github.io/RandX/)。
 
 ## 安全选型
 

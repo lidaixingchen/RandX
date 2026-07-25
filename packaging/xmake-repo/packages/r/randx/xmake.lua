@@ -7,6 +7,7 @@ package("randx")
     add_urls("https://github.com/lidaixingchen/RandX/archive/refs/tags/v$(version).tar.gz")
 
     add_versions("1.4.2", "25badb73e98b2e83456bea63bb60b1f335091576ec1d1c06ec2649ed92fc84bf")
+    add_versions("1.4.1", "COMMIT_HASH")
     add_versions("1.4.0", "ecf611c6f340986df2abf3191def2222a3287f5e20ec4280c88996770a95eec7")
 
     if is_plat("windows", "mingw") then
@@ -28,11 +29,11 @@ package("randx")
 
     on_test(function (package)
         assert(package:check_cxxsnippets({test = [[
-            #include <RandX_Cpp17.hpp>
+            #include <RandX.hpp>
             #include <cstdint>
             static void test() {
                 std::uint64_t v = RandX::RandInt<std::uint64_t>(0, 1000);
                 (void)v;
             }
-        ]]}, {configs = {languages = "c++17"}}))
+        ]]}, {configs = {languages = "c++latest"}}))
     end)

@@ -77,7 +77,7 @@
 //		SplitMix64             64-bit  2^64        8B    种子扩展 / 哈希，非通用 PRNG
 //		SFC64                  64-bit  >= 2^64    32B    速度极快，通过 PractRand
 //		RomuDuoJr              64-bit  >= 2^51    16B    极简极快，非关键模拟
-//		ChaCha20               64-bit  无周期      56B    密码学安全 CSPRNG（RFC 8439）
+//		ChaCha20               64-bit  无周期      48B+   密码学安全 CSPRNG（RFC 8439）
 //
 //	⚠️ 安全声明
 //	本库的 xoshiro/xoroshiro/SFC64/RomuDuoJr 引擎均非 CSPRNG。
@@ -121,7 +121,11 @@
 #	endif
 #	include <windows.h>
 #	include <bcrypt.h>
-#	pragma comment(lib, "bcrypt.lib")
+#	pragma comment(lib, "bcrypt.lib")  // 仅 MSVC 生效
+// MinGW 不支持 #pragma comment(lib)，须手动添加 -lbcrypt 链接选项
+#	if(defined(__MINGW32__) || defined(__MINGW64__)) && !defined(RANDX_SUPPRESS_LINK_HINT)
+#		pragma message("RandX: MinGW 需手动链接 bcrypt（编译命令添加 -lbcrypt）")
+#	endif
 # elif defined(__linux__) && __has_include(<sys/random.h>)
 #	include <sys/random.h>
 #	include <cerrno>
