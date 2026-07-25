@@ -4,6 +4,18 @@
 
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/)。
 
+## v1.4.3 - 2026-07-26
+
+- **修复 `Generate64Bits` 双文件位序不一致（P0）**：C++17 版 32 位引擎拼接顺序改为 lo/hi，与 C++23 版一致，消除 `RandUUID` 等函数跨头文件输出差异。
+- **修复 `RandWeighted` 全零权重 UB（P0）**：assert 增加 `any_of(w > 0)` 检查，防止 `std::discrete_distribution` 未定义行为。
+- **修复 `DefaultEngine()` 播种（P1）**：改用 `RandomSeed()` 回退链（RDRAND → OS API → random_device → 时间戳），替代裸 `std::random_device`。
+- **修复 `RandElement` 右值悬垂引用（P1）**：拆分为左值（返回引用）和右值（按值返回）两个重载。
+- **安全加固 `SecureRandomBytes`（P1）**：无 OS 密码学 API 时不再静默降级为 `std::random_device`，改为返回 false 触发异常。
+- **参数校验补全**：`RandReal` 引擎重载、`RandChar`、10 个分布函数补 `std::isfinite` 校验；`RandIntCE` 增加编译期 `min > max` 契约检查。
+- **约束修正**：`RandFill` 整数重载增加 `std::integral<T>` 约束，消除与浮点重载的歧义。
+- **CI/文档**：benchmark.yml 移除 continue-on-error；RFC 7539→8439；ChaCha20 状态大小 56B→48B+；ci.yml paths 补 benchmark_gbench.cpp；MinGW 编译提示 `-lbcrypt`。
+- **测试**：新增 11 个边界用例（双文件同步）。
+
 ## v1.4.2 - 2026-07-25
 
 - **修复 `RandUUID` 高位置零缺陷**：适配 32 位引擎通过拼接两次 32-bit 输出生成 64 位整数，避免直接使用 32 位引擎时 UUID 高位恒为零。

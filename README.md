@@ -147,7 +147,7 @@ int main()
 include(FetchContent)
 FetchContent_Declare(RandX
     GIT_REPOSITORY https://github.com/lidaixingchen/RandX.git
-    GIT_TAG v1.4.2
+    GIT_TAG v1.4.3
 )
 FetchContent_MakeAvailable(RandX)
 target_link_libraries(myapp PRIVATE RandX::RandX)
