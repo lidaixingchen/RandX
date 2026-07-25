@@ -1693,12 +1693,13 @@ namespace RandX
 		[[nodiscard]]
 		inline std::uint64_t Generate64Bits(Engine& engine)
 		{
-			std::uint64_t val = static_cast<std::uint64_t>(engine());
-			if (sizeof(typename Engine::result_type) < 8)
+			if (sizeof(typename Engine::result_type) >= 8)
 			{
-				val = (val << 32) | static_cast<std::uint64_t>(engine());
+				return static_cast<std::uint64_t>(engine());
 			}
-			return val;
+			const std::uint64_t lo = static_cast<std::uint64_t>(engine());
+			const std::uint64_t hi = static_cast<std::uint64_t>(engine());
+			return (hi << 32) | lo;
 		}
 
 		// 检测 *first = T 合法性 + T 为数值类型（RandFill 用）
@@ -1767,17 +1768,6 @@ namespace RandX
 	//	便捷工具函数
 	//
 
-	// 默认线程局部引擎，使用 std::random_device 播种
-	[[nodiscard]]
-	inline Xoshiro256StarStar& DefaultEngine()
-	{
-		thread_local Xoshiro256StarStar engine{ [] {
-			std::random_device rd;
-			return (static_cast<std::uint64_t>(rd()) << 32) | rd();
-		}() };
-		return engine;
-	}
-
 	// 生成非确定性的 64 位种子（优先硬件 RNG，用于统计 PRNG 播种）
 	// 优先级链：RDRAND (x86_64) → detail::GetOsEntropyBytes → std::random_device → 时间戳回退
 	[[nodiscard]]
@@ -1798,6 +1788,14 @@ namespace RandX
 			// 最终兜底：时间戳（非密码学，仅保证 RandomSeed 永不抛异常）
 			return static_cast<std::uint64_t>(std::chrono::system_clock::now().time_since_epoch().count());
 		}
+	}
+
+	// 默认线程局部引擎，使用 RandomSeed() 播种（含 RDRAND → OS API → random_device → 时间戳回退链）
+	[[nodiscard]]
+	inline Xoshiro256StarStar& DefaultEngine()
+	{
+		thread_local Xoshiro256StarStar engine{ RandomSeed() };
+		return engine;
 	}
 
 	/// @defgroup csprng 密码学安全
@@ -2289,14 +2287,28 @@ namespace RandX
 	/// @defgroup containers 容器操作
 	/// @brief RandElement / RandSample / RandShuffle / RandPermutation / RandFill / RandVector
 
-	/// @brief 从容器中随机取一个元素
+	/// @brief 从容器中随机取一个元素（左值容器，返回引用）
 	/// @param c 源容器（需支持 operator[] 和 size()）
 	/// @return 容器中随机选取的一个元素的引用
 	/// @throw std::invalid_argument 容器为空时抛出
 	template <class Container,
 		std::enable_if_t<detail::is_random_access_container_v<Container>>* = nullptr>
 	[[nodiscard]]
-	inline decltype(auto) RandElement(Container&& c)
+	inline decltype(auto) RandElement(Container& c)
+	{
+		if (std::empty(c))
+			throw std::invalid_argument("RandElement: empty container");
+		return c[RandInt<std::size_t>(static_cast<std::size_t>(std::size(c) - 1))];
+	}
+
+	/// @brief 从容器中随机取一个元素（右值容器，按值返回以避免悬垂引用）
+	/// @param c 源容器（需支持 operator[] 和 size()）
+	/// @return 容器中随机选取的一个元素的副本
+	/// @throw std::invalid_argument 容器为空时抛出
+	template <class Container,
+		std::enable_if_t<detail::is_random_access_container_v<std::decay_t<Container>>>* = nullptr>
+	[[nodiscard]]
+	inline typename std::decay_t<Container>::value_type RandElement(Container&& c)
 	{
 		if (std::empty(c))
 			throw std::invalid_argument("RandElement: empty container");
@@ -2561,7 +2573,7 @@ namespace RandX
 	[[nodiscard]]
 	inline typename WeightContainer::size_type RandWeighted(const WeightContainer& weights)
 	{
-		assert(!weights.empty() && std::all_of(weights.begin(), weights.end(), [](auto w) { return w >= 0; }));
+		assert(!weights.empty() && std::all_of(weights.begin(), weights.end(), [](auto w) { return w >= 0; }) && std::any_of(weights.begin(), weights.end(), [](auto w) { return w > 0; }));
 		using Size = typename WeightContainer::size_type;
 		std::discrete_distribution<Size> dist(weights.begin(), weights.end());
 		return dist(DefaultEngine());
@@ -2575,7 +2587,7 @@ namespace RandX
 	[[nodiscard]]
 	inline typename WeightContainer::size_type RandWeighted(Engine& engine, const WeightContainer& weights)
 	{
-		assert(!weights.empty() && std::all_of(weights.begin(), weights.end(), [](auto w) { return w >= 0; }));
+		assert(!weights.empty() && std::all_of(weights.begin(), weights.end(), [](auto w) { return w >= 0; }) && std::any_of(weights.begin(), weights.end(), [](auto w) { return w > 0; }));
 		using Size = typename WeightContainer::size_type;
 		std::discrete_distribution<Size> dist(weights.begin(), weights.end());
 		return dist(engine);
