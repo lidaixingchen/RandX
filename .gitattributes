@@ -1,0 +1,5 @@
+# 从 GitHub archive tarball 中排除打包/CI 相关文件，
+# 使 tarball SHA 不受 port 文件更新影响（解决循环依赖）
+ports/ export-ignore
+packaging/ export-ignore
+.github/ export-ignore
