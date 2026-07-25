@@ -77,7 +77,7 @@
 //		SplitMix64             64-bit  2^64        8B    种子扩展 / 哈希，非通用 PRNG
 //		SFC64                  64-bit  >= 2^64    32B    速度极快，通过 PractRand
 //		RomuDuoJr              64-bit  >= 2^51    16B    极简极快，非关键模拟
-//		ChaCha20               64-bit  无周期      56B    密码学安全 CSPRNG（RFC 7539）
+//		ChaCha20               64-bit  无周期      56B    密码学安全 CSPRNG（RFC 8439）
 //
 //	⚠️ 安全声明
 //	本库的 xoshiro/xoroshiro/SFC64/RomuDuoJr 引擎均非 CSPRNG。
@@ -866,24 +866,10 @@ namespace RandX
 		return (::SecRandomCopyBytes(kSecRandomDefault, n, p) == errSecSuccess);
 
 #	else
-		// 回退：std::random_device（标准未保证密码学安全）
-		try
-		{
-			std::random_device rd;
-			std::size_t filled = 0;
-			while (filled < n)
-			{
-				const auto r = rd();
-				const std::size_t chunk = (std::min)(sizeof(r), n - filled);
-				std::memcpy(p + filled, &r, chunk);
-				filled += chunk;
-			}
-			return true;
-		}
-		catch (...)
-		{
-			return false;
-		}
+		// 无可用 OS 密码学熵源 → 返回 false，SecureRandomBytes 将抛出异常
+		// 非安全场景的播种请使用 RandomSeed()（含 random_device → 时间戳回退链）
+		(void)p; (void)n;
+		return false;
 #	endif
 	}
 
@@ -900,7 +886,7 @@ namespace RandX
 	}
 
 	// ── A4 ChaCha20 常数与辅助 ──
-	// ChaCha20 常数 "expand 32-byte k"（RFC 7539 §2.3）
+	// ChaCha20 常数 "expand 32-byte k"（RFC 8439 §2.3）
 	inline constexpr std::uint32_t ChaCha20Constants[4] = {
 		0x61707865u, 0x3320646eu, 0x79622d32u, 0x6b206574u
 	};
@@ -1755,7 +1741,7 @@ namespace RandX
 
 	////////////////////////////////////////////////////////////////
 	//
-	//	ChaCha20 (RFC 7539) — CSPRNG 引擎实现
+	//	ChaCha20 (RFC 8439) — CSPRNG 引擎实现
 	//
 	//  状态矩阵布局（16 × uint32，常数省略存于 m_state[0..11]）：
 	//    0  1  2  3      "expa"  "nd 3"  "2-by"  "te k"   ← 常数（generateBlock 时补齐）
@@ -2079,6 +2065,7 @@ namespace RandX
 	[[nodiscard]]
 	inline CharT RandChar(CharT min, CharT max)
 	{
+		assert(min <= max);
 		std::uniform_int_distribution<std::int64_t> dist(
 			static_cast<std::int64_t>(min),
 			static_cast<std::int64_t>(max));
@@ -2104,6 +2091,7 @@ namespace RandX
 	[[nodiscard]]
 	inline CharT RandChar(Engine& engine, CharT min, CharT max)
 	{
+		assert(min <= max);
 		std::uniform_int_distribution<std::int64_t> dist(
 			static_cast<std::int64_t>(min),
 			static_cast<std::int64_t>(max));
@@ -2281,7 +2269,7 @@ namespace RandX
 	/// @note T 从 min/max 推导，不从迭代器 value_type 推导。
 	///       若容器元素类型与 min/max 字面量类型不一致，需显式指定 T 或用匹配类型的字面量。
 	template <class It, class T>
-		requires detail::RandFillable<It, T>
+		requires detail::RandFillable<It, T> && std::integral<T>
 	inline void RandFill(It first, It last, T min, T max)
 	{
 		assert(min <= max);
@@ -2312,7 +2300,7 @@ namespace RandX
 	/// @param min 随机数下界（含）
 	/// @param max 随机数上界（含）
 	template <class It, class T, class Engine>
-		requires detail::RandFillable<It, T>
+		requires detail::RandFillable<It, T> && std::integral<T>
 	inline void RandFill(Engine& engine, It first, It last, T min, T max)
 	{
 		assert(min <= max);
@@ -2484,6 +2472,7 @@ namespace RandX
 	[[nodiscard]]
 	inline T RandReal(Engine& engine, T min = T{0}, T max = T{1})
 	{
+		assert(std::isfinite(min) && std::isfinite(max) && min <= max);
 		std::uniform_real_distribution<T> dist(min, max);
 		return dist(engine);
 	}
@@ -2899,7 +2888,7 @@ namespace RandX
 	[[nodiscard]]
 	inline T RandExp(T lambda = T{1})
 	{
-		assert(lambda > T{0});
+		assert(std::isfinite(lambda) && lambda > T{0});
 		std::exponential_distribution<T> dist(lambda);
 		return dist(DefaultEngine());
 	}
@@ -2912,7 +2901,7 @@ namespace RandX
 	[[nodiscard]]
 	inline T RandExp(Engine& engine, T lambda = T{1})
 	{
-		assert(lambda > T{0});
+		assert(std::isfinite(lambda) && lambda > T{0});
 		std::exponential_distribution<T> dist(lambda);
 		return dist(engine);
 	}
@@ -2952,7 +2941,7 @@ namespace RandX
 	[[nodiscard]]
 	inline T RandGamma(T alpha = T{1}, T beta = T{1})
 	{
-		assert(alpha > T{0} && beta > T{0});
+		assert(std::isfinite(alpha) && std::isfinite(beta) && alpha > T{0} && beta > T{0});
 		std::gamma_distribution<T> dist(alpha, beta);
 		return dist(DefaultEngine());
 	}
@@ -2966,7 +2955,7 @@ namespace RandX
 	[[nodiscard]]
 	inline T RandGamma(Engine& engine, T alpha = T{1}, T beta = T{1})
 	{
-		assert(alpha > T{0} && beta > T{0});
+		assert(std::isfinite(alpha) && std::isfinite(beta) && alpha > T{0} && beta > T{0});
 		std::gamma_distribution<T> dist(alpha, beta);
 		return dist(engine);
 	}
@@ -2979,7 +2968,7 @@ namespace RandX
 	[[nodiscard]]
 	inline T RandBinomial(T t = 1, double p = 0.5)
 	{
-		assert(t >= 0 && p >= 0.0 && p <= 1.0);
+		assert(t >= 0 && std::isfinite(p) && p >= 0.0 && p <= 1.0);
 		std::binomial_distribution<T> dist(t, p);
 		return dist(DefaultEngine());
 	}
@@ -2993,7 +2982,7 @@ namespace RandX
 	[[nodiscard]]
 	inline T RandBinomial(Engine& engine, T t = 1, double p = 0.5)
 	{
-		assert(t >= 0 && p >= 0.0 && p <= 1.0);
+		assert(t >= 0 && std::isfinite(p) && p >= 0.0 && p <= 1.0);
 		std::binomial_distribution<T> dist(t, p);
 		return dist(engine);
 	}
@@ -3006,7 +2995,7 @@ namespace RandX
 	[[nodiscard]]
 	inline T RandLogNormal(T mean = T{0}, T stddev = T{1})
 	{
-		assert(stddev > T{0});
+		assert(std::isfinite(mean) && std::isfinite(stddev) && stddev > T{0});
 		std::lognormal_distribution<T> dist(mean, stddev);
 		return dist(DefaultEngine());
 	}
@@ -3020,7 +3009,7 @@ namespace RandX
 	[[nodiscard]]
 	inline T RandLogNormal(Engine& engine, T mean = T{0}, T stddev = T{1})
 	{
-		assert(stddev > T{0});
+		assert(std::isfinite(mean) && std::isfinite(stddev) && stddev > T{0});
 		std::lognormal_distribution<T> dist(mean, stddev);
 		return dist(engine);
 	}
@@ -3058,7 +3047,7 @@ namespace RandX
 	[[nodiscard]]
 	inline T RandCauchy(T a = T{0}, T b = T{1})
 	{
-		assert(b > T{0});
+		assert(std::isfinite(a) && std::isfinite(b) && b > T{0});
 		std::cauchy_distribution<T> dist(a, b);
 		return dist(DefaultEngine());
 	}
@@ -3072,7 +3061,7 @@ namespace RandX
 	[[nodiscard]]
 	inline T RandCauchy(Engine& engine, T a = T{0}, T b = T{1})
 	{
-		assert(b > T{0});
+		assert(std::isfinite(a) && std::isfinite(b) && b > T{0});
 		std::cauchy_distribution<T> dist(a, b);
 		return dist(engine);
 	}
@@ -3085,7 +3074,7 @@ namespace RandX
 	[[nodiscard]]
 	inline T RandWeibull(T a = T{1}, T b = T{1})
 	{
-		assert(a > T{0} && b > T{0});
+		assert(std::isfinite(a) && std::isfinite(b) && a > T{0} && b > T{0});
 		std::weibull_distribution<T> dist(a, b);
 		return dist(DefaultEngine());
 	}
@@ -3099,7 +3088,7 @@ namespace RandX
 	[[nodiscard]]
 	inline T RandWeibull(Engine& engine, T a = T{1}, T b = T{1})
 	{
-		assert(a > T{0} && b > T{0});
+		assert(std::isfinite(a) && std::isfinite(b) && a > T{0} && b > T{0});
 		std::weibull_distribution<T> dist(a, b);
 		return dist(engine);
 	}
@@ -3112,7 +3101,7 @@ namespace RandX
 	[[nodiscard]]
 	inline T RandExtremeValue(T a = T{0}, T b = T{1})
 	{
-		assert(b > T{0});
+		assert(std::isfinite(a) && std::isfinite(b) && b > T{0});
 		std::extreme_value_distribution<T> dist(a, b);
 		return dist(DefaultEngine());
 	}
@@ -3126,7 +3115,7 @@ namespace RandX
 	[[nodiscard]]
 	inline T RandExtremeValue(Engine& engine, T a = T{0}, T b = T{1})
 	{
-		assert(b > T{0});
+		assert(std::isfinite(a) && std::isfinite(b) && b > T{0});
 		std::extreme_value_distribution<T> dist(a, b);
 		return dist(engine);
 	}
@@ -3138,7 +3127,7 @@ namespace RandX
 	[[nodiscard]]
 	inline T RandChiSquared(T n = T{1})
 	{
-		assert(n > T{0});
+		assert(std::isfinite(n) && n > T{0});
 		std::chi_squared_distribution<T> dist(n);
 		return dist(DefaultEngine());
 	}
@@ -3151,7 +3140,7 @@ namespace RandX
 	[[nodiscard]]
 	inline T RandChiSquared(Engine& engine, T n = T{1})
 	{
-		assert(n > T{0});
+		assert(std::isfinite(n) && n > T{0});
 		std::chi_squared_distribution<T> dist(n);
 		return dist(engine);
 	}
@@ -3163,7 +3152,7 @@ namespace RandX
 	[[nodiscard]]
 	inline T RandStudentT(T n = T{1})
 	{
-		assert(n > T{0});
+		assert(std::isfinite(n) && n > T{0});
 		std::student_t_distribution<T> dist(n);
 		return dist(DefaultEngine());
 	}
@@ -3176,7 +3165,7 @@ namespace RandX
 	[[nodiscard]]
 	inline T RandStudentT(Engine& engine, T n = T{1})
 	{
-		assert(n > T{0});
+		assert(std::isfinite(n) && n > T{0});
 		std::student_t_distribution<T> dist(n);
 		return dist(engine);
 	}
@@ -3189,7 +3178,7 @@ namespace RandX
 	[[nodiscard]]
 	inline T RandFisherF(T m = T{1}, T n = T{1})
 	{
-		assert(m > T{0} && n > T{0});
+		assert(std::isfinite(m) && std::isfinite(n) && m > T{0} && n > T{0});
 		std::fisher_f_distribution<T> dist(m, n);
 		return dist(DefaultEngine());
 	}
@@ -3203,7 +3192,7 @@ namespace RandX
 	[[nodiscard]]
 	inline T RandFisherF(Engine& engine, T m = T{1}, T n = T{1})
 	{
-		assert(m > T{0} && n > T{0});
+		assert(std::isfinite(m) && std::isfinite(n) && m > T{0} && n > T{0});
 		std::fisher_f_distribution<T> dist(m, n);
 		return dist(engine);
 	}
@@ -3367,8 +3356,9 @@ namespace RandX
 	/// @return 使用固定种子在编译期确定的随机整数（Lemire 有界法，无模偏差）
 	template <std::integral T = int, std::uint64_t Seed = DefaultSeed>
 	[[nodiscard]]
-	inline constexpr T RandIntCE(T min, T max) noexcept
+	inline constexpr T RandIntCE(T min, T max)
 	{
+		if (min > max) throw std::invalid_argument("RandIntCE: min > max");
 		Xoshiro256StarStar rng{ Seed };
 		using U = std::make_unsigned_t<T>;
 		const U u_min = static_cast<U>(min);
@@ -3387,7 +3377,7 @@ namespace RandX
 	/// @return 使用固定种子在编译期确定的随机整数
 	template <std::integral T = int, std::uint64_t Seed = DefaultSeed>
 	[[nodiscard]]
-	inline constexpr T RandIntCE(T max) noexcept
+	inline constexpr T RandIntCE(T max)
 	{
 		return RandIntCE<T, Seed>(T{0}, max);
 	}

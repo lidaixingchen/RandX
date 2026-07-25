@@ -51,7 +51,6 @@ jobs:
           path: baseline
           run-id: ${{ steps.baseline-run.outputs.run-id }}
           github-token: ${{ github.token }}
-        continue-on-error: true
 
       - name: Compare with Baseline
         if: hashFiles('baseline/result.json') != ''
