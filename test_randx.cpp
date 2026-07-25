@@ -1538,6 +1538,14 @@ TEST_SUITE("缺陷修复回归测试 - 性能与API")
         CHECK(u1 != u2);
     }
 
+    TEST_CASE("ChaCha20 不可拷贝但可移动")
+    {
+        CHECK(!std::is_copy_constructible_v<RandX::ChaCha20>);
+        CHECK(!std::is_copy_assignable_v<RandX::ChaCha20>);
+        CHECK(std::is_move_constructible_v<RandX::ChaCha20>);
+        CHECK(std::is_move_assignable_v<RandX::ChaCha20>);
+    }
+
     TEST_CASE("RandUUID 在 32 位引擎下无高位置零损坏")
     {
         RandX::Xoshiro128StarStar rng32{ 12345 };
@@ -1551,4 +1559,24 @@ TEST_SUITE("缺陷修复回归测试 - 性能与API")
     {
         CHECK(RandX::RandPoisson(0.0) == 0);
     }
+
+    TEST_CASE("RandWeighted 引擎重载与分布对象高频复用")
+    {
+        RandX::Xoshiro256StarStar rng{ 42 };
+        std::vector<double> weights = { 10.0, 0.0, 0.0 };
+        CHECK(RandX::RandWeighted(rng, weights) == 0);
+
+        std::discrete_distribution<std::size_t> dist(weights.begin(), weights.end());
+        CHECK(RandX::RandWeighted(dist) == 0);
+        CHECK(RandX::RandWeighted(rng, dist) == 0);
+    }
+
+    TEST_CASE("ShuffledArray 自定义 Seed 生成不同编译期结果")
+    {
+        constexpr std::array<int, 5> arr = { 1, 2, 3, 4, 5 };
+        constexpr auto res1 = RandX::ShuffledArray<int, 5, 11111ULL>(arr);
+        constexpr auto res2 = RandX::ShuffledArray<int, 5, 99999ULL>(arr);
+        CHECK(res1 != res2);
+    }
+
 }

@@ -1701,18 +1701,6 @@ namespace RandX
 			return val;
 		}
 
-		template <class Engine>
-		[[nodiscard]]
-		inline std::uint64_t Generate64Bits(Engine& engine)
-		{
-			std::uint64_t val = static_cast<std::uint64_t>(engine());
-			if (sizeof(typename Engine::result_type) < 8)
-			{
-				val = (val << 32) | static_cast<std::uint64_t>(engine());
-			}
-			return val;
-		}
-
 		// 检测 *first = T 合法性 + T 为数值类型（RandFill 用）
 		template <class It, class T, class = void>
 		struct is_rand_fillable : std::false_type {};
@@ -2083,7 +2071,7 @@ namespace RandX
 	[[nodiscard]]
 	inline T RandInt(T min, T max)
 	{
-		assert(std::isfinite(min) && std::isfinite(max) && min <= max);
+		assert(min <= max);
 		std::uniform_int_distribution<T> dist(min, max);
 		return dist(DefaultEngine());
 	}
@@ -2449,7 +2437,7 @@ namespace RandX
 		std::enable_if_t<detail::is_rand_fillable_v<It, T>>* = nullptr>
 	inline void RandFill(It first, It last, T min, T max)
 	{
-		assert(std::isfinite(min) && std::isfinite(max) && min <= max);
+		assert(min <= max);
 		auto& rng = DefaultEngine();
 		if constexpr (std::is_integral_v<T>)
 		{
@@ -2473,7 +2461,7 @@ namespace RandX
 		std::enable_if_t<detail::is_rand_fillable_v<It, T>>* = nullptr>
 	inline void RandFill(Engine& engine, It first, It last, T min, T max)
 	{
-		assert(std::isfinite(min) && std::isfinite(max) && min <= max);
+		assert(min <= max);
 		if constexpr (std::is_integral_v<T>)
 		{
 			std::uniform_int_distribution<T> dist(min, max);
@@ -2496,7 +2484,7 @@ namespace RandX
 	[[nodiscard]]
 	inline std::vector<T> RandVector(T min, T max, std::size_t n)
 	{
-		assert(std::isfinite(min) && std::isfinite(max) && min <= max);
+		assert(min <= max);
 		std::vector<T> v;
 		v.reserve(n);
 		auto& rng = DefaultEngine();
@@ -2516,7 +2504,7 @@ namespace RandX
 	[[nodiscard]]
 	inline std::vector<T> RandVector(T min, T max, std::size_t n)
 	{
-		assert(std::isfinite(min) && std::isfinite(max) && min <= max);
+		assert(min <= max);
 		std::vector<T> v;
 		v.reserve(n);
 		auto& rng = DefaultEngine();
@@ -2537,7 +2525,7 @@ namespace RandX
 	[[nodiscard]]
 	inline std::vector<T> RandVector(Engine& engine, T min, T max, std::size_t n)
 	{
-		assert(std::isfinite(min) && std::isfinite(max) && min <= max);
+		assert(min <= max);
 		std::vector<T> v;
 		v.reserve(n);
 		std::uniform_int_distribution<T> dist(min, max);
@@ -2557,7 +2545,7 @@ namespace RandX
 	[[nodiscard]]
 	inline std::vector<T> RandVector(Engine& engine, T min, T max, std::size_t n)
 	{
-		assert(std::isfinite(min) && std::isfinite(max) && min <= max);
+		assert(min <= max);
 		std::vector<T> v;
 		v.reserve(n);
 		std::uniform_real_distribution<T> dist(min, max);
@@ -2623,7 +2611,7 @@ namespace RandX
 	[[nodiscard]]
 	inline T RandInt(Engine& engine, T min, T max)
 	{
-		assert(std::isfinite(min) && std::isfinite(max) && min <= max);
+		assert(min <= max);
 		std::uniform_int_distribution<T> dist(min, max);
 		return dist(engine);
 	}
@@ -3045,7 +3033,7 @@ namespace RandX
 	[[nodiscard]]
 	inline T RandLogNormal(T mean = T{0}, T stddev = T{1})
 	{
-		assert(std::isfinite(mean) && std::isfinite(stddev) && stddev > T{0});
+		assert(stddev > T{0});
 		std::lognormal_distribution<T> dist(mean, stddev);
 		return dist(DefaultEngine());
 	}
@@ -3059,7 +3047,7 @@ namespace RandX
 	[[nodiscard]]
 	inline T RandLogNormal(Engine& engine, T mean = T{0}, T stddev = T{1})
 	{
-		assert(std::isfinite(mean) && std::isfinite(stddev) && stddev > T{0});
+		assert(stddev > T{0});
 		std::lognormal_distribution<T> dist(mean, stddev);
 		return dist(engine);
 	}
