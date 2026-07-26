@@ -44,8 +44,8 @@ int main()
 
 		// RandElement 迭代器版：支持非随机访问容器（如 std::list）
 		std::list<int> lst = { 100, 200, 300, 400, 500 };
-		auto it = RandElement(lst.begin(), lst.end());
-		std::cout << "RandElement(list) = " << *it << '\n';
+		auto elem = RandElement(lst.begin(), lst.end());
+		std::cout << "RandElement(list) = " << elem << '\n';
 
 		// RandSample 迭代器版：从大容器小抽样，O(n) 内存（hash-set 分支）
 		std::vector<int> bigPool(10000);
