@@ -104,6 +104,9 @@
 # include <vector>
 # include <stdexcept>
 # include <chrono>    // std::chrono（RandomSeed 时间戳兜底用）
+# include <atomic>    // std::atomic（RandomSeed 兜底计数）
+# include <functional>// std::hash（RandomSeed 线程 Hash）
+# include <thread>    // std::this_thread（RandomSeed 线程 ID）
 # include <ios>       // std::ios_base::failbit（流状态标志完整定义）
 # include <istream>   // std::basic_istream（operator>> 所需完整类型）
 # include <ostream>   // std::basic_ostream（operator<< 所需完整类型）
@@ -748,6 +751,7 @@ namespace RandX
 		std::array<std::uint8_t, 64>  m_buffer;  // 当前 block 的字节缓存
 		std::size_t                   m_bufferPos;       // 缓存消费位置 [0, 64)，==64 时触发新 block
 		std::uint64_t                 m_bytesSinceReseed; // 自上次 reseed 以来输出的字节数
+		bool                          m_autoReseed{ false }; // 是否在满 1MB 后自动从 OS 熵重新播种（仅默认无参构造函数启用）
 
 		void generateBlock();        // 跑一次 ChaCha20 block 函数填充 m_buffer
 		void reseedIfNecessary();    // m_bytesSinceReseed >= 阈值时自动 reseed
@@ -1732,8 +1736,18 @@ namespace RandX
 		}
 		catch (...)
 		{
-			// 最终兜底：时间戳（非密码学，仅保证 RandomSeed 永不抛异常）
-			return static_cast<std::uint64_t>(std::chrono::system_clock::now().time_since_epoch().count());
+			// 最终兜底：多维熵源（非密码学，仅保证 RandomSeed 永不抛异常，且防止 MSVC 15.6ms 时钟窗口下并发种子碰撞）
+			const auto t1 = std::chrono::high_resolution_clock::now().time_since_epoch().count();
+			const auto t2 = std::chrono::steady_clock::now().time_since_epoch().count();
+			const auto threadId = std::hash<std::thread::id>{}(std::this_thread::get_id());
+			static std::atomic<std::uint64_t> counter{0};
+			std::uint64_t stackVar = 0;
+			const std::uint64_t addr = reinterpret_cast<std::uint64_t>(&stackVar);
+
+			const std::uint64_t rawSeed = static_cast<std::uint64_t>(t1) ^ static_cast<std::uint64_t>(t2)
+			                              ^ threadId ^ addr ^ counter.fetch_add(1, std::memory_order_relaxed);
+			SplitMix64 sm{ rawSeed };
+			return sm();
 		}
 	}
 
@@ -1804,7 +1818,8 @@ namespace RandX
 		: m_state(other.m_state),
 		  m_buffer(other.m_buffer),
 		  m_bufferPos(other.m_bufferPos),
-		  m_bytesSinceReseed(other.m_bytesSinceReseed)
+		  m_bytesSinceReseed(other.m_bytesSinceReseed),
+		  m_autoReseed(other.m_autoReseed)
 	{
 		detail::SecureWipe(other.m_state.data(), sizeof(other.m_state));
 		detail::SecureWipe(other.m_buffer.data(), sizeof(other.m_buffer));
@@ -1822,6 +1837,7 @@ namespace RandX
 			m_buffer = other.m_buffer;
 			m_bufferPos = other.m_bufferPos;
 			m_bytesSinceReseed = other.m_bytesSinceReseed;
+			m_autoReseed = other.m_autoReseed;
 
 			detail::SecureWipe(other.m_state.data(), sizeof(other.m_state));
 			detail::SecureWipe(other.m_buffer.data(), sizeof(other.m_buffer));
@@ -1838,7 +1854,7 @@ namespace RandX
 
 	// 构造方式 1：从 OS 熵自动播种（密码学安全，默认）
 	inline ChaCha20::ChaCha20()
-		: m_state{}, m_buffer{}, m_bufferPos(64), m_bytesSinceReseed(0)
+		: m_state{}, m_buffer{}, m_bufferPos(64), m_bytesSinceReseed(0), m_autoReseed(true)
 	{
 		reseed();  // 从 OS 熵获取 key + nonce，重置 counter
 	}
@@ -1846,7 +1862,7 @@ namespace RandX
 	// 构造方式 2：显式种子（仅测试/复现，非密码学安全）
 	// 用 SplitMix64 将 64-bit 种子扩展为 32 字节 key + 12 字节 nonce
 	inline ChaCha20::ChaCha20(const std::uint64_t seed)
-		: m_state{}, m_buffer{}, m_bufferPos(64), m_bytesSinceReseed(0)
+		: m_state{}, m_buffer{}, m_bufferPos(64), m_bytesSinceReseed(0), m_autoReseed(false)
 	{
 		SplitMix64 sm{ seed };
 		// key: 前 4 次 SplitMix64 输出，每次 8 字节按小端序拆为 2 个 uint32
@@ -1870,7 +1886,7 @@ namespace RandX
 	inline ChaCha20::ChaCha20(const std::uint8_t* key, std::size_t keyLen,
 	                          const std::uint8_t* nonce, std::size_t nonceLen,
 	                          const std::uint32_t counter)
-		: m_state{}, m_buffer{}, m_bufferPos(64), m_bytesSinceReseed(0)
+		: m_state{}, m_buffer{}, m_bufferPos(64), m_bytesSinceReseed(0), m_autoReseed(false)
 	{
 		if (keyLen != 32)
 			throw std::invalid_argument("ChaCha20: key must be 32 bytes");
@@ -1898,6 +1914,11 @@ namespace RandX
 	// 生成一个 ChaCha20 block（64 字节）填充 m_buffer
 	inline void ChaCha20::generateBlock()
 	{
+		if (m_state[8] == 0xFFFFFFFFU)
+		{
+			throw std::overflow_error("ChaCha20: 32-bit block counter overflow");
+		}
+
 		// 构造完整 16-word 状态：常数 + key + counter + nonce
 		std::array<std::uint32_t, 16> state{};
 		state[0] = detail::ChaCha20Constants[0];
@@ -1937,10 +1958,6 @@ namespace RandX
 			m_buffer[i * 4 + 3] = static_cast<std::uint8_t>(v >> 24);
 		}
 
-		if (m_state[8] == 0xFFFFFFFFU)
-		{
-			throw std::overflow_error("ChaCha20: 32-bit block counter overflow");
-		}
 		++m_state[8];   // 递增 counter（2^20 字节阈值远早于 2^32 回绕，自动 reseed 防止复用）
 		m_bufferPos = 0;
 	}
@@ -1948,7 +1965,7 @@ namespace RandX
 	// 自上次 reseed 以来输出字节数达到阈值时自动 reseed（前向安全）
 	inline void ChaCha20::reseedIfNecessary()
 	{
-		if (m_bytesSinceReseed >= detail::ChaCha20ReseedThreshold)
+		if (m_autoReseed && m_bytesSinceReseed >= detail::ChaCha20ReseedThreshold)
 			reseed();
 	}
 
@@ -2910,6 +2927,25 @@ namespace RandX
 		return RandString(n, detail::CharSetString(cs));
 	}
 
+	/// @brief 生成指定长度的随机字符串（指定引擎重载）
+	/// @param engine 自定义随机数引擎
+	/// @param n 字符串长度
+	/// @param charset 可用字符集
+	/// @return 从 charset 中均匀选取字符组成的随机字符串
+	/// @throw std::invalid_argument charset 为空时抛出
+	template <class Engine>
+	[[nodiscard]]
+	inline std::string RandString(Engine& engine, std::size_t n, std::string_view charset)
+	{
+		if (charset.empty())
+			throw std::invalid_argument("RandString: charset is empty");
+		std::string result(n, '\0');
+		std::uniform_int_distribution<std::size_t> dist(0, charset.size() - 1);
+		for (std::size_t i = 0; i < n; ++i)
+			result[i] = charset[dist(engine)];
+		return result;
+	}
+
 	/// @brief 从预设字符集生成随机字符串（指定引擎重载）
 	/// @param engine 自定义随机数引擎
 	/// @param n 字符串长度
@@ -2919,14 +2955,7 @@ namespace RandX
 	[[nodiscard]]
 	inline std::string RandString(Engine& engine, std::size_t n, CharSet cs)
 	{
-		const auto charset = detail::CharSetString(cs);
-		if (charset.empty())
-			throw std::invalid_argument("RandString: charset is empty");
-		std::string result(n, '\0');
-		std::uniform_int_distribution<std::size_t> dist(0, charset.size() - 1);
-		for (std::size_t i = 0; i < n; ++i)
-			result[i] = charset[dist(engine)];
-		return result;
+		return RandString(engine, n, detail::CharSetString(cs));
 	}
 
 	/// @brief 生成指数分布随机数

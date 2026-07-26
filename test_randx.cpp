@@ -1378,25 +1378,38 @@ TEST_SUITE("ChaCha20 CSPRNG")
         CHECK(ninth == b());
     }
 
-    TEST_CASE("自动 reseed 在 2^20 字节阈值后触发")
+    TEST_CASE("默认构造函数在 2^20 字节阈值后自动 reseed")
     {
         if (!RandX::IsOsCryptoEntropyAvailable()) return;
+        // 默认构造函数启用 m_autoReseed = true
         // ChaCha20ReseedThreshold = 2^20 字节，每次 operator() 输出 8 字节
-        // 2^20 / 8 = 131072 次调用后触发自动 reseed（引入 OS 熵）
         constexpr unsigned long long ReseedCalls = (1ULL << 20) / 8;
-        RandX::ChaCha20 a{ 42 };
-        RandX::ChaCha20 b{ 42 };
+        RandX::ChaCha20 a;
+        RandX::ChaCha20 b;
         // a 不触发 reseed（仅消费 8 字节）
         (void)a();
         // b discard 超过阈值，触发自动 reseed
         b.discard(ReseedCalls + 8);
-        // reseed 后 b 输出与 a 不同（概率性断言，极低概率相同）
+        // reseed 后 b 输出与 a 不同
         bool different = false;
         for (int i = 0; i < 16; ++i)
         {
             if (a() != b()) { different = true; break; }
         }
         CHECK(different);
+    }
+
+    TEST_CASE("确定性种子 ChaCha20(seed) 在超过 1MB 后依然保持完全确定性")
+    {
+        constexpr unsigned long long ReseedCalls = (1ULL << 20) / 8;
+        RandX::ChaCha20 a{ 42 };
+        RandX::ChaCha20 b{ 42 };
+        a.discard(ReseedCalls + 16);
+        b.discard(ReseedCalls + 16);
+        for (int i = 0; i < 16; ++i)
+        {
+            CHECK(a() == b());
+        }
     }
 
     TEST_CASE("reseed() 手动触发后输出序列改变")
@@ -1627,6 +1640,19 @@ TEST_SUITE("边界用例")
     {
         CHECK(RandX::RandString(0).empty());
         CHECK(RandX::RandString(0, RandX::CharSet::Hex).empty());
+    }
+
+    TEST_CASE("RandString 指定 Engine 和 custom string_view 重载及空 charset 异常")
+    {
+        RandX::Xoshiro256StarStar rng{ 123456 };
+        auto s = RandX::RandString(rng, 10, "ABC");
+        CHECK(s.size() == 10);
+        for (char c : s)
+        {
+            CHECK((c == 'A' || c == 'B' || c == 'C'));
+        }
+        CHECK_THROWS_AS((void)RandX::RandString(rng, 10, ""), std::invalid_argument);
+        CHECK_THROWS_AS((void)RandX::RandString(10, ""), std::invalid_argument);
     }
 
     TEST_CASE("RandVector(..., 0) 返回空容器")
