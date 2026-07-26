@@ -92,6 +92,7 @@
 # include <ostream>   // std::basic_ostream（operator<< 所需完整类型）
 # if defined(_MSC_VER) && (defined(__x86_64__) || defined(_M_X64))
 #	include <immintrin.h>
+#	include <intrin.h>
 # endif
 // ── A3 跨平台 OS 熵源头文件（条件包含） ──
 # if defined(_WIN32) && __has_include(<bcrypt.h>)
@@ -874,11 +875,16 @@ namespace RandX
 				return true;
 			}
 	#elif defined(_MSC_VER)
-			unsigned long long result;
-			if (_rdrand64_step(&result))
+			int cpuInfo[4] = {0};
+			__cpuid(cpuInfo, 1);
+			if ((cpuInfo[2] & (1 << 30)) != 0)
 			{
-				out = result;
-				return true;
+				unsigned long long result = 0;
+				if (_rdrand64_step(&result))
+				{
+					out = result;
+					return true;
+				}
 			}
 	#endif
 #endif
@@ -1788,6 +1794,12 @@ namespace RandX
 		return engine;
 	}
 
+	/// @brief 重新播种当前线程的默认引擎（用于 POSIX fork() 产生子进程后重置引擎状态）
+	inline void ResetThreadLocalEngine()
+	{
+		DefaultEngine() = Xoshiro256StarStar{ RandomSeed() };
+	}
+
 	/// @defgroup csprng 密码学安全
 	/// @brief ChaCha20 CSPRNG 与 OS 熵源 API
 
@@ -1842,8 +1854,7 @@ namespace RandX
 	{
 		detail::SecureWipe(other.m_state.data(), sizeof(other.m_state));
 		detail::SecureWipe(other.m_buffer.data(), sizeof(other.m_buffer));
-		other.m_bufferPos = 64;
-		other.m_bytesSinceReseed = 0;
+		other.reseed();
 	}
 
 	inline ChaCha20& ChaCha20::operator=(ChaCha20&& other) noexcept
@@ -1860,8 +1871,7 @@ namespace RandX
 
 			detail::SecureWipe(other.m_state.data(), sizeof(other.m_state));
 			detail::SecureWipe(other.m_buffer.data(), sizeof(other.m_buffer));
-			other.m_bufferPos = 64;
-			other.m_bytesSinceReseed = 0;
+			other.reseed();
 		}
 		return *this;
 	}
@@ -2300,7 +2310,7 @@ namespace RandX
 	template <class Container,
 		std::enable_if_t<detail::is_random_access_container_v<std::decay_t<Container>>>* = nullptr>
 	[[nodiscard]]
-	inline typename std::decay_t<Container>::value_type RandElement(Container&& c)
+	inline typename std::iterator_traits<decltype(std::begin(std::declval<Container&>()))>::value_type RandElement(Container&& c)
 	{
 		if (std::empty(c))
 			throw std::invalid_argument("RandElement: empty container");
@@ -2327,23 +2337,23 @@ namespace RandX
 	/// @brief 从迭代器范围内随机取一个元素（输入迭代器：O(n) reservoir sampling）
 	/// @param first 范围起始迭代器
 	/// @param last 范围结束迭代器
-	/// @return 指向随机选取元素的迭代器
+	/// @return 随机选取的元素值
 	/// @throw std::invalid_argument 范围为空时抛出
 	template <class It,
 		std::enable_if_t<detail::is_input_iterator_v<It>
 			&& !detail::is_random_access_iterator_v<It>>* = nullptr>
 	[[nodiscard]]
-	inline It RandElement(It first, It last)
+	inline typename std::iterator_traits<It>::value_type RandElement(It first, It last)
 	{
 		if (first == last)
 			throw std::invalid_argument("RandElement: empty range");
-		It selected = first;
+		typename std::iterator_traits<It>::value_type selected = *first;
 		++first;
 		for (typename std::iterator_traits<It>::difference_type i = 1;
 			first != last; ++first, ++i)
 		{
 			if (RandInt<typename std::iterator_traits<It>::difference_type>(0, i) == 0)
-				selected = first;
+				selected = *first;
 		}
 		return selected;
 	}
@@ -2369,23 +2379,23 @@ namespace RandX
 	/// @param engine 自定义随机数引擎
 	/// @param first 范围起始迭代器
 	/// @param last 范围结束迭代器
-	/// @return 指向随机选取元素的迭代器
+	/// @return 随机选取的元素值
 	template <class It, class Engine,
 		std::enable_if_t<detail::is_input_iterator_v<It>
 			&& !detail::is_random_access_iterator_v<It>>* = nullptr>
 	[[nodiscard]]
-	inline It RandElement(Engine& engine, It first, It last)
+	inline typename std::iterator_traits<It>::value_type RandElement(Engine& engine, It first, It last)
 	{
 		if (first == last)
 			throw std::invalid_argument("RandElement: empty range");
-		It selected = first;
+		typename std::iterator_traits<It>::value_type selected = *first;
 		++first;
 		for (typename std::iterator_traits<It>::difference_type i = 1;
 			first != last; ++first, ++i)
 		{
 			if (RandInt<typename std::iterator_traits<It>::difference_type>(
 				engine, typename std::iterator_traits<It>::difference_type{0}, i) == 0)
-				selected = first;
+				selected = *first;
 		}
 		return selected;
 	}
@@ -2402,7 +2412,8 @@ namespace RandX
 	[[nodiscard]]
 	inline T RandNormal(T mean = T{0}, T stddev = T{1})
 	{
-		assert(std::isfinite(mean) && std::isfinite(stddev) && stddev > T{0});
+		if (!std::isfinite(mean) || !std::isfinite(stddev) || stddev <= T{0})
+			throw std::invalid_argument("RandNormal: invalid mean or stddev");
 		std::normal_distribution<T> dist(mean, stddev);
 		return dist(DefaultEngine());
 	}
@@ -2416,7 +2427,8 @@ namespace RandX
 	[[nodiscard]]
 	inline T RandNormal(Engine& engine, T mean = T{0}, T stddev = T{1})
 	{
-		assert(std::isfinite(mean) && std::isfinite(stddev) && stddev > T{0});
+		if (!std::isfinite(mean) || !std::isfinite(stddev) || stddev <= T{0})
+			throw std::invalid_argument("RandNormal: invalid mean or stddev");
 		std::normal_distribution<T> dist(mean, stddev);
 		return dist(engine);
 	}
@@ -2615,7 +2627,8 @@ namespace RandX
 	[[nodiscard]]
 	inline T RandInt(Engine& engine, T min, T max)
 	{
-		assert(min <= max);
+		if (min > max)
+			throw std::invalid_argument("RandInt: min must be <= max");
 		std::uniform_int_distribution<T> dist(min, max);
 		return dist(engine);
 	}
@@ -2625,11 +2638,12 @@ namespace RandX
 	/// @param min 下界（含，默认 0）
 	/// @param max 上界（不含，默认 1）
 	/// @return 均匀分布于 [min, max) 的随机浮点数
-	template <class T, class Engine, std::enable_if_t<std::is_floating_point_v<T>>* = nullptr>
+	template <class T = double, class Engine, std::enable_if_t<std::is_floating_point_v<T>>* = nullptr>
 	[[nodiscard]]
 	inline T RandReal(Engine& engine, T min = T{0}, T max = T{1})
 	{
-		assert(std::isfinite(min) && std::isfinite(max) && min <= max);
+		if (!std::isfinite(min) || !std::isfinite(max) || min > max)
+			throw std::invalid_argument("RandReal: invalid min or max");
 		std::uniform_real_distribution<T> dist(min, max);
 		return dist(engine);
 	}
@@ -2646,12 +2660,12 @@ namespace RandX
 	template <class Container,
 		std::enable_if_t<detail::is_random_access_container_v<Container>>* = nullptr>
 	[[nodiscard]]
-	inline auto RandSample(const Container& c, typename Container::size_type n)
+	inline auto RandSample(const Container& c, std::size_t n)
 	{
-		using T = typename Container::value_type;
-		using Size = typename Container::size_type;
-		std::vector<T> pool(c.begin(), c.end());
-		const Size size = static_cast<Size>(pool.size());
+		using T = typename std::iterator_traits<decltype(std::begin(c))>::value_type;
+		using Size = std::size_t;
+		std::vector<T> pool(std::begin(c), std::end(c));
+		const Size size = pool.size();
 		if (n >= size) return pool;
 		auto& rng = DefaultEngine();
 		for (Size i = 0; i < n; ++i)
@@ -2682,7 +2696,7 @@ namespace RandX
 		using Diff = typename std::iterator_traits<It>::difference_type;
 		using T = typename std::iterator_traits<It>::value_type;
 		const Diff size = std::distance(first, last);
-		if (n <= 0 || size == 0)
+		if (n <= 0 || size <= 0)
 			return {};
 		if (n >= size)
 			return std::vector<T>(first, last);
@@ -2777,7 +2791,7 @@ namespace RandX
 		using Diff = typename std::iterator_traits<It>::difference_type;
 		using T = typename std::iterator_traits<It>::value_type;
 		const Diff size = std::distance(first, last);
-		if (n <= 0 || size == 0)
+		if (n <= 0 || size <= 0)
 			return {};
 		if (n >= size)
 			return std::vector<T>(first, last);
@@ -2931,7 +2945,8 @@ namespace RandX
 	[[nodiscard]]
 	inline T RandExp(T lambda = T{1})
 	{
-		assert(std::isfinite(lambda) && lambda > T{0});
+		if (!std::isfinite(lambda) || lambda <= T{0})
+			throw std::invalid_argument("RandExp: lambda must be positive");
 		std::exponential_distribution<T> dist(lambda);
 		return dist(DefaultEngine());
 	}
@@ -2944,7 +2959,8 @@ namespace RandX
 	[[nodiscard]]
 	inline T RandExp(Engine& engine, T lambda = T{1})
 	{
-		assert(std::isfinite(lambda) && lambda > T{0});
+		if (!std::isfinite(lambda) || lambda <= T{0})
+			throw std::invalid_argument("RandExp: lambda must be positive");
 		std::exponential_distribution<T> dist(lambda);
 		return dist(engine);
 	}
@@ -2956,7 +2972,8 @@ namespace RandX
 	[[nodiscard]]
 	inline T RandPoisson(double mean = 1.0)
 	{
-		assert(std::isfinite(mean) && mean >= 0.0);
+		if (!std::isfinite(mean) || mean < 0.0)
+			throw std::invalid_argument("RandPoisson: mean must be non-negative");
 		if (mean == 0.0) return T{0};
 		std::poisson_distribution<T> dist(mean);
 		return dist(DefaultEngine());
@@ -2970,7 +2987,8 @@ namespace RandX
 	[[nodiscard]]
 	inline T RandPoisson(Engine& engine, double mean = 1.0)
 	{
-		assert(std::isfinite(mean) && mean >= 0.0);
+		if (!std::isfinite(mean) || mean < 0.0)
+			throw std::invalid_argument("RandPoisson: mean must be non-negative");
 		if (mean == 0.0) return T{0};
 		std::poisson_distribution<T> dist(mean);
 		return dist(engine);
@@ -2984,7 +3002,8 @@ namespace RandX
 	[[nodiscard]]
 	inline T RandGamma(T alpha = T{1}, T beta = T{1})
 	{
-		assert(std::isfinite(alpha) && std::isfinite(beta) && alpha > T{0} && beta > T{0});
+		if (!std::isfinite(alpha) || !std::isfinite(beta) || alpha <= T{0} || beta <= T{0})
+			throw std::invalid_argument("RandGamma: alpha and beta must be positive");
 		std::gamma_distribution<T> dist(alpha, beta);
 		return dist(DefaultEngine());
 	}
@@ -2998,7 +3017,8 @@ namespace RandX
 	[[nodiscard]]
 	inline T RandGamma(Engine& engine, T alpha = T{1}, T beta = T{1})
 	{
-		assert(std::isfinite(alpha) && std::isfinite(beta) && alpha > T{0} && beta > T{0});
+		if (!std::isfinite(alpha) || !std::isfinite(beta) || alpha <= T{0} || beta <= T{0})
+			throw std::invalid_argument("RandGamma: alpha and beta must be positive");
 		std::gamma_distribution<T> dist(alpha, beta);
 		return dist(engine);
 	}
@@ -3011,7 +3031,8 @@ namespace RandX
 	[[nodiscard]]
 	inline T RandBinomial(T t = 1, double p = 0.5)
 	{
-		assert(t >= 0 && std::isfinite(p) && p >= 0.0 && p <= 1.0);
+		if (t < 0 || !std::isfinite(p) || p < 0.0 || p > 1.0)
+			throw std::invalid_argument("RandBinomial: invalid t or p");
 		std::binomial_distribution<T> dist(t, p);
 		return dist(DefaultEngine());
 	}
@@ -3021,11 +3042,12 @@ namespace RandX
 	/// @param t 试验次数（默认 1）
 	/// @param p 每次成功概率（默认 0.5）
 	/// @return 服从 B(t, p) 的随机整数
-	template <class T = int, class Engine, std::enable_if_t<std::is_integral_v<T>>* = nullptr>
+	template <class Engine, class T = int, std::enable_if_t<std::is_integral_v<T>>* = nullptr>
 	[[nodiscard]]
 	inline T RandBinomial(Engine& engine, T t = 1, double p = 0.5)
 	{
-		assert(t >= 0 && std::isfinite(p) && p >= 0.0 && p <= 1.0);
+		if (t < 0 || !std::isfinite(p) || p < 0.0 || p > 1.0)
+			throw std::invalid_argument("RandBinomial: invalid t or p");
 		std::binomial_distribution<T> dist(t, p);
 		return dist(engine);
 	}
@@ -3038,7 +3060,8 @@ namespace RandX
 	[[nodiscard]]
 	inline T RandLogNormal(T mean = T{0}, T stddev = T{1})
 	{
-		assert(std::isfinite(mean) && std::isfinite(stddev) && stddev > T{0});
+		if (!std::isfinite(mean) || !std::isfinite(stddev) || stddev <= T{0})
+			throw std::invalid_argument("RandLogNormal: invalid mean or stddev");
 		std::lognormal_distribution<T> dist(mean, stddev);
 		return dist(DefaultEngine());
 	}
@@ -3048,11 +3071,12 @@ namespace RandX
 	/// @param mean 对数均值（默认 0）
 	/// @param stddev 对数标准差（默认 1）
 	/// @return 服从 LogNormal(mean, stddev) 的随机数
-	template <class T = double, class Engine, std::enable_if_t<std::is_floating_point_v<T>>* = nullptr>
+	template <class Engine, class T = double, std::enable_if_t<std::is_floating_point_v<T>>* = nullptr>
 	[[nodiscard]]
 	inline T RandLogNormal(Engine& engine, T mean = T{0}, T stddev = T{1})
 	{
-		assert(std::isfinite(mean) && std::isfinite(stddev) && stddev > T{0});
+		if (!std::isfinite(mean) || !std::isfinite(stddev) || stddev <= T{0})
+			throw std::invalid_argument("RandLogNormal: invalid mean or stddev");
 		std::lognormal_distribution<T> dist(mean, stddev);
 		return dist(engine);
 	}
@@ -3064,7 +3088,8 @@ namespace RandX
 	[[nodiscard]]
 	inline T RandGeometric(double p = 0.5)
 	{
-		assert(p > 0.0 && p <= 1.0);
+		if (!std::isfinite(p) || p <= 0.0 || p > 1.0)
+			throw std::invalid_argument("RandGeometric: p must be in (0, 1]");
 		std::geometric_distribution<T> dist(p);
 		return dist(DefaultEngine());
 	}
@@ -3073,11 +3098,12 @@ namespace RandX
 	/// @param engine 自定义随机数引擎
 	/// @param p 每次成功概率（默认 0.5）
 	/// @return 服从 Geometric(p) 的随机整数
-	template <class T = int, class Engine, std::enable_if_t<std::is_integral_v<T>>* = nullptr>
+	template <class Engine, class T = int, std::enable_if_t<std::is_integral_v<T>>* = nullptr>
 	[[nodiscard]]
 	inline T RandGeometric(Engine& engine, double p = 0.5)
 	{
-		assert(p > 0.0 && p <= 1.0);
+		if (!std::isfinite(p) || p <= 0.0 || p > 1.0)
+			throw std::invalid_argument("RandGeometric: p must be in (0, 1]");
 		std::geometric_distribution<T> dist(p);
 		return dist(engine);
 	}
@@ -3090,7 +3116,8 @@ namespace RandX
 	[[nodiscard]]
 	inline T RandCauchy(T a = T{0}, T b = T{1})
 	{
-		assert(std::isfinite(a) && std::isfinite(b) && b > T{0});
+		if (!std::isfinite(a) || !std::isfinite(b) || b <= T{0})
+			throw std::invalid_argument("RandCauchy: invalid a or b");
 		std::cauchy_distribution<T> dist(a, b);
 		return dist(DefaultEngine());
 	}
@@ -3100,11 +3127,12 @@ namespace RandX
 	/// @param a 位置参数（默认 0）
 	/// @param b 尺度参数（默认 1）
 	/// @return 服从 Cauchy(a, b) 的随机数
-	template <class T = double, class Engine, std::enable_if_t<std::is_floating_point_v<T>>* = nullptr>
+	template <class Engine, class T = double, std::enable_if_t<std::is_floating_point_v<T>>* = nullptr>
 	[[nodiscard]]
 	inline T RandCauchy(Engine& engine, T a = T{0}, T b = T{1})
 	{
-		assert(std::isfinite(a) && std::isfinite(b) && b > T{0});
+		if (!std::isfinite(a) || !std::isfinite(b) || b <= T{0})
+			throw std::invalid_argument("RandCauchy: invalid a or b");
 		std::cauchy_distribution<T> dist(a, b);
 		return dist(engine);
 	}
@@ -3117,7 +3145,8 @@ namespace RandX
 	[[nodiscard]]
 	inline T RandWeibull(T a = T{1}, T b = T{1})
 	{
-		assert(std::isfinite(a) && std::isfinite(b) && a > T{0} && b > T{0});
+		if (!std::isfinite(a) || !std::isfinite(b) || a <= T{0} || b <= T{0})
+			throw std::invalid_argument("RandWeibull: invalid a or b");
 		std::weibull_distribution<T> dist(a, b);
 		return dist(DefaultEngine());
 	}
@@ -3127,11 +3156,12 @@ namespace RandX
 	/// @param a 形状参数（默认 1）
 	/// @param b 尺度参数（默认 1）
 	/// @return 服从 Weibull(a, b) 的随机数
-	template <class T = double, class Engine, std::enable_if_t<std::is_floating_point_v<T>>* = nullptr>
+	template <class Engine, class T = double, std::enable_if_t<std::is_floating_point_v<T>>* = nullptr>
 	[[nodiscard]]
 	inline T RandWeibull(Engine& engine, T a = T{1}, T b = T{1})
 	{
-		assert(std::isfinite(a) && std::isfinite(b) && a > T{0} && b > T{0});
+		if (!std::isfinite(a) || !std::isfinite(b) || a <= T{0} || b <= T{0})
+			throw std::invalid_argument("RandWeibull: invalid a or b");
 		std::weibull_distribution<T> dist(a, b);
 		return dist(engine);
 	}
@@ -3144,7 +3174,8 @@ namespace RandX
 	[[nodiscard]]
 	inline T RandExtremeValue(T a = T{0}, T b = T{1})
 	{
-		assert(std::isfinite(a) && std::isfinite(b) && b > T{0});
+		if (!std::isfinite(a) || !std::isfinite(b) || b <= T{0})
+			throw std::invalid_argument("RandExtremeValue: invalid a or b");
 		std::extreme_value_distribution<T> dist(a, b);
 		return dist(DefaultEngine());
 	}
@@ -3154,11 +3185,12 @@ namespace RandX
 	/// @param a 位置参数（默认 0）
 	/// @param b 尺度参数（默认 1）
 	/// @return 服从 ExtremeValue(a, b) 的随机数
-	template <class T = double, class Engine, std::enable_if_t<std::is_floating_point_v<T>>* = nullptr>
+	template <class Engine, class T = double, std::enable_if_t<std::is_floating_point_v<T>>* = nullptr>
 	[[nodiscard]]
 	inline T RandExtremeValue(Engine& engine, T a = T{0}, T b = T{1})
 	{
-		assert(std::isfinite(a) && std::isfinite(b) && b > T{0});
+		if (!std::isfinite(a) || !std::isfinite(b) || b <= T{0})
+			throw std::invalid_argument("RandExtremeValue: invalid a or b");
 		std::extreme_value_distribution<T> dist(a, b);
 		return dist(engine);
 	}
@@ -3170,7 +3202,8 @@ namespace RandX
 	[[nodiscard]]
 	inline T RandChiSquared(T n = T{1})
 	{
-		assert(std::isfinite(n) && n > T{0});
+		if (!std::isfinite(n) || n <= T{0})
+			throw std::invalid_argument("RandChiSquared: n must be positive");
 		std::chi_squared_distribution<T> dist(n);
 		return dist(DefaultEngine());
 	}
@@ -3179,11 +3212,12 @@ namespace RandX
 	/// @param engine 自定义随机数引擎
 	/// @param n 自由度（默认 1）
 	/// @return 服从 ChiSquared(n) 的随机数
-	template <class T = double, class Engine, std::enable_if_t<std::is_floating_point_v<T>>* = nullptr>
+	template <class Engine, class T = double, std::enable_if_t<std::is_floating_point_v<T>>* = nullptr>
 	[[nodiscard]]
 	inline T RandChiSquared(Engine& engine, T n = T{1})
 	{
-		assert(std::isfinite(n) && n > T{0});
+		if (!std::isfinite(n) || n <= T{0})
+			throw std::invalid_argument("RandChiSquared: n must be positive");
 		std::chi_squared_distribution<T> dist(n);
 		return dist(engine);
 	}
@@ -3195,7 +3229,8 @@ namespace RandX
 	[[nodiscard]]
 	inline T RandStudentT(T n = T{1})
 	{
-		assert(std::isfinite(n) && n > T{0});
+		if (!std::isfinite(n) || n <= T{0})
+			throw std::invalid_argument("RandStudentT: n must be positive");
 		std::student_t_distribution<T> dist(n);
 		return dist(DefaultEngine());
 	}
@@ -3204,11 +3239,12 @@ namespace RandX
 	/// @param engine 自定义随机数引擎
 	/// @param n 自由度（默认 1）
 	/// @return 服从 StudentT(n) 的随机数
-	template <class T = double, class Engine, std::enable_if_t<std::is_floating_point_v<T>>* = nullptr>
+	template <class Engine, class T = double, std::enable_if_t<std::is_floating_point_v<T>>* = nullptr>
 	[[nodiscard]]
 	inline T RandStudentT(Engine& engine, T n = T{1})
 	{
-		assert(std::isfinite(n) && n > T{0});
+		if (!std::isfinite(n) || n <= T{0})
+			throw std::invalid_argument("RandStudentT: n must be positive");
 		std::student_t_distribution<T> dist(n);
 		return dist(engine);
 	}
@@ -3221,7 +3257,8 @@ namespace RandX
 	[[nodiscard]]
 	inline T RandFisherF(T m = T{1}, T n = T{1})
 	{
-		assert(std::isfinite(m) && std::isfinite(n) && m > T{0} && n > T{0});
+		if (!std::isfinite(m) || !std::isfinite(n) || m <= T{0} || n <= T{0})
+			throw std::invalid_argument("RandFisherF: invalid m or n");
 		std::fisher_f_distribution<T> dist(m, n);
 		return dist(DefaultEngine());
 	}
@@ -3231,11 +3268,12 @@ namespace RandX
 	/// @param m 第一自由度（默认 1）
 	/// @param n 第二自由度（默认 1）
 	/// @return 服从 FisherF(m, n) 的随机数
-	template <class T = double, class Engine, std::enable_if_t<std::is_floating_point_v<T>>* = nullptr>
+	template <class Engine, class T = double, std::enable_if_t<std::is_floating_point_v<T>>* = nullptr>
 	[[nodiscard]]
 	inline T RandFisherF(Engine& engine, T m = T{1}, T n = T{1})
 	{
-		assert(std::isfinite(m) && std::isfinite(n) && m > T{0} && n > T{0});
+		if (!std::isfinite(m) || !std::isfinite(n) || m <= T{0} || n <= T{0})
+			throw std::invalid_argument("RandFisherF: invalid m or n");
 		std::fisher_f_distribution<T> dist(m, n);
 		return dist(engine);
 	}
@@ -3249,7 +3287,8 @@ namespace RandX
 	[[nodiscard]]
 	inline T RandBeta(T a = T{1}, T b = T{1})
 	{
-		assert(std::isfinite(a) && std::isfinite(b) && a > T{0} && b > T{0});
+		if (!std::isfinite(a) || !std::isfinite(b) || a <= T{0} || b <= T{0})
+			throw std::invalid_argument("RandBeta: invalid a or b");
 		std::gamma_distribution<T> distA(a, T{1});
 		std::gamma_distribution<T> distB(b, T{1});
 		auto& rng = DefaultEngine();
@@ -3266,11 +3305,12 @@ namespace RandX
 	/// @param a 形状参数（默认 1）
 	/// @param b 形状参数（默认 1）
 	/// @return 服从 Beta(a, b) 的随机数
-	template <class T = double, class Engine, std::enable_if_t<std::is_floating_point_v<T>>* = nullptr>
+	template <class Engine, class T = double, std::enable_if_t<std::is_floating_point_v<T>>* = nullptr>
 	[[nodiscard]]
 	inline T RandBeta(Engine& engine, T a = T{1}, T b = T{1})
 	{
-		assert(std::isfinite(a) && std::isfinite(b) && a > T{0} && b > T{0});
+		if (!std::isfinite(a) || !std::isfinite(b) || a <= T{0} || b <= T{0})
+			throw std::invalid_argument("RandBeta: invalid a or b");
 		std::gamma_distribution<T> distA(a, T{1});
 		std::gamma_distribution<T> distB(b, T{1});
 		const T x = distA(engine);
@@ -3284,7 +3324,7 @@ namespace RandX
 	/// @brief 生成 N 位随机整数
 	/// @tparam N 位数（1-64，且不超过 T 的位宽）
 	/// @return 均匀分布于 [0, 2^N) 的随机整数
-	template <int N, class T = std::uint64_t, std::enable_if_t<std::is_integral_v<T> && (N > 0) && (N <= 64) && (N <= std::numeric_limits<T>::digits)>* = nullptr>
+	template <int N, class T = std::uint64_t, std::enable_if_t<std::is_integral_v<T> && (N > 0) && (N <= 64) && (N <= static_cast<int>(sizeof(T) * 8))>* = nullptr>
 	[[nodiscard]]
 	inline T RandBits() noexcept
 	{
@@ -3293,6 +3333,20 @@ namespace RandX
 			return static_cast<T>(rng());
 		else
 			return static_cast<T>(rng() & ((std::uint64_t{1} << N) - 1));
+	}
+
+	/// @brief 生成 N 位随机整数（指定引擎重载）
+	/// @tparam N 位数（1-64，且不超过 T 的位宽）
+	/// @param engine 自定义随机数引擎
+	/// @return 均匀分布于 [0, 2^N) 的随机整数
+	template <int N, class T = std::uint64_t, class Engine, std::enable_if_t<std::is_integral_v<T> && (N > 0) && (N <= 64) && (N <= static_cast<int>(sizeof(T) * 8))>* = nullptr>
+	[[nodiscard]]
+	inline T RandBits(Engine& engine) noexcept
+	{
+		if constexpr (N == 64)
+			return static_cast<T>(engine());
+		else
+			return static_cast<T>(engine() & ((std::uint64_t{1} << N) - 1));
 	}
 
 	/// @brief 生成随机 UUID v4 字符串
