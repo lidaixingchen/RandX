@@ -161,6 +161,46 @@ namespace RandX
 	[[nodiscard]]
 	inline constexpr double DoubleFromBits(Uint64 i) noexcept;
 
+	// ── 引擎基础设施（提前定义，供 EngineBase CRTP 基类使用） ──
+	namespace detail
+	{
+		[[nodiscard]]
+		inline constexpr std::uint64_t RotL(const std::uint64_t x, const int s) noexcept
+		{
+			return std::rotl(x, s);
+		}
+
+		[[nodiscard]]
+		inline constexpr std::uint32_t RotL(const std::uint32_t x, const int s) noexcept
+		{
+			return std::rotl(x, s);
+		}
+
+		// 检测状态数组是否全零（全零是 xoshiro/xoroshiro 的吸收态）
+		template <std::size_t N>
+		[[nodiscard]]
+		inline constexpr bool IsAllZero(const std::array<std::uint64_t, N>& state) noexcept
+		{
+			for (const auto& s : state) { if (s != 0) return false; }
+			return true;
+		}
+
+		template <std::size_t N>
+		[[nodiscard]]
+		inline constexpr bool IsAllZero(const std::array<std::uint32_t, N>& state) noexcept
+		{
+			for (const auto& s : state) { if (s != 0) return false; }
+			return true;
+		}
+
+		template <typename State>
+		[[nodiscard]]
+		inline constexpr bool IsValidState(const State& state) noexcept
+		{
+			return !IsAllZero(state);
+		}
+	}
+
 	/// @defgroup engines 引擎
 	/// @brief 8 个伪随机数生成引擎（7 非 CSPRNG + 1 ChaCha20 CSPRNG）
 	/// @{
@@ -235,6 +275,117 @@ namespace RandX
 		state_type m_state;
 	};
 
+	// ── EngineBase CRTP 基类（v1.5 引擎去重） ──
+	// 为数组状态引擎提供公共接口：min/max/discard/serialize/比较/构造/jumpPoly
+	// SplitMix64（标量状态）和 ChaCha20（CSPRNG）不继承此基类
+	namespace detail
+	{
+		template <class Derived, class ResultType, std::size_t N>
+		struct EngineBase
+		{
+			using result_type = ResultType;
+			using state_type  = std::array<ResultType, N>;
+
+			// --- 公共接口 ---
+
+			[[nodiscard]]
+			static constexpr result_type min() noexcept
+			{
+				return std::numeric_limits<result_type>::lowest();
+			}
+
+			[[nodiscard]]
+			static constexpr result_type max() noexcept
+			{
+				return std::numeric_limits<result_type>::max();
+			}
+
+			constexpr void discard(unsigned long long z) noexcept
+			{
+				for (unsigned long long i = 0; i < z; ++i)
+					static_cast<Derived*>(this)->operator()();
+			}
+
+			[[nodiscard]]
+			constexpr state_type serialize() const noexcept
+			{
+				return s_;
+			}
+
+			constexpr void deserialize(const state_type& s) noexcept
+			{
+				assert(!IsAllZero(s) && "absorbing all-zero state");
+				s_ = s;
+			}
+
+			// C++23: defaulted 三路比较（保留 ==, !=, <, >, <=, >= 全套）
+			friend auto operator<=>(const EngineBase&, const EngineBase&) = default;
+
+		protected:
+
+			static constexpr int Bits = static_cast<int>(sizeof(ResultType) * 8);
+
+			EngineBase() = default;
+
+			// State 构造（用户直接传入，仅 assert 检测零状态）
+			explicit constexpr EngineBase(const state_type& state) noexcept
+				: s_(state)
+			{
+				assert(!IsAllZero(s_) && "absorbing all-zero state");
+			}
+
+			// SeedSeq 构造（零状态修正，Release 安全）
+			template <class SeedSeq>
+				requires (!std::same_as<std::remove_cvref_t<SeedSeq>, state_type>
+					&& !std::same_as<std::remove_cvref_t<SeedSeq>, Derived>)
+			explicit constexpr EngineBase(SeedSeq& seq)
+			{
+				if constexpr (sizeof(result_type) == 8)
+				{
+					std::array<std::uint32_t, N * 2> raw;
+					seq.generate(raw.begin(), raw.end());
+					for (std::size_t i = 0; i < N; ++i)
+						s_[i] = (static_cast<result_type>(raw[2 * i]) << 32) | raw[2 * i + 1];
+				}
+				else
+				{
+					std::array<std::uint32_t, N> raw;
+					seq.generate(raw.begin(), raw.end());
+					for (std::size_t i = 0; i < N; ++i)
+						s_[i] = static_cast<result_type>(raw[i]);
+				}
+				if (IsAllZero(s_)) s_[0] = 1;
+			}
+
+			// 单值播种（SplitMix64 扩展，等价于 generateSeedSequence<N>）
+			explicit constexpr EngineBase(std::uint64_t seed) noexcept
+			{
+				SplitMix64 sm{ seed };
+				for (std::size_t i = 0; i < N; ++i)
+					s_[i] = static_cast<result_type>(sm());
+				if (IsAllZero(s_)) s_[0] = 1;
+			}
+
+			// jump 多项式通用实现（constexpr，供 MakeStreamEngine 编译期调用）
+			template <std::size_t K>
+			constexpr void jumpPoly(const ResultType (&poly)[K]) noexcept
+			{
+				std::array<ResultType, N> acc{};
+				for (std::size_t i = 0; i < K; ++i)
+					for (int b = 0; b < Bits; ++b)
+					{
+						if (poly[i] & (ResultType{ 1 } << b))
+							for (std::size_t j = 0; j < N; ++j)
+								acc[j] ^= s_[j];
+						static_cast<Derived*>(this)->operator()();
+					}
+				s_ = acc;
+			}
+
+			state_type s_{};
+		};
+	}
+
 	/// @brief Xoshiro256** 伪随机数生成器，64 位输出，周期 2^256-1。
 	///
 	/// @details 通用首选引擎，统计质量最优。状态 32 字节（4×uint64）。
@@ -244,36 +395,40 @@ namespace RandX
 	/// @note 非 CSPRNG，不可用于密码学场景。安全场景请使用 ChaCha20。
 	/// @sa Xoroshiro128StarStar, SFC64, ChaCha20
 	class Xoshiro256StarStar
+		: public detail::EngineBase<Xoshiro256StarStar, std::uint64_t, 4>
 	{
+		using Base = detail::EngineBase<Xoshiro256StarStar, std::uint64_t, 4>;
 	public:
 
-		using state_type	= std::array<std::uint64_t, 4>;	///< 状态类型（4×uint64）
-		using result_type	= std::uint64_t;	///< 输出类型
+		using typename Base::result_type;	///< 输出类型
+		using typename Base::state_type;	///< 状态类型（4×uint64）
+
+		/// @brief 默认构造（使用 DefaultSeed）
+		constexpr Xoshiro256StarStar() noexcept : Base(DefaultSeed) {}
 
 		/// @brief 以指定种子构造引擎
 		/// @param seed 64 位种子值
 		[[nodiscard]]
-		explicit constexpr Xoshiro256StarStar(std::uint64_t seed = DefaultSeed) noexcept;
+		explicit constexpr Xoshiro256StarStar(std::uint64_t seed) noexcept
+			: Base(seed) {}
 
 		/// @brief 从 std::seed_seq 播种
 		/// @param seq 种子序列对象
 		template <class SeedSeq>
 			requires (!std::same_as<std::remove_cvref_t<SeedSeq>, Xoshiro256StarStar>)
 		[[nodiscard]]
-		explicit constexpr Xoshiro256StarStar(SeedSeq& seq);
+		explicit constexpr Xoshiro256StarStar(SeedSeq& seq)
+			: Base(seq) {}
 
 		/// @brief 从状态数组直接构造
 		/// @param state serialize() 返回的状态
 		[[nodiscard]]
-		explicit constexpr Xoshiro256StarStar(state_type state) noexcept;
+		explicit constexpr Xoshiro256StarStar(state_type state) noexcept
+			: Base(state) {}
 
 		/// @brief 生成下一个 64 位随机数
 		/// @return [min(), max()] 区间内的伪随机数
 		constexpr result_type operator()() noexcept;
-
-		/// @brief 跳过 n 个输出
-		/// @param n 跳过次数
-		constexpr void discard(unsigned long long n) noexcept;
 
 		/// @brief 前进 2^128 步，用于创建并行子序列
 		/// @note 等价于调用 2^128 次 operator()
@@ -284,33 +439,6 @@ namespace RandX
 		/// @note 等价于调用 2^192 次 operator()
 		/// @sa jump(), MakeStreamEngine()
 		constexpr void longJump() noexcept;
-
-		/// @brief 输出范围下界
-		/// @return 0
-		[[nodiscard]]
-		static constexpr result_type min() noexcept;
-
-		/// @brief 输出范围上界
-		/// @return 2^64 - 1
-		[[nodiscard]]
-		static constexpr result_type max() noexcept;
-
-		/// @brief 序列化引擎状态
-		/// @return 状态数组（4 个 uint64）
-		/// @sa deserialize()
-		[[nodiscard]]
-		constexpr state_type serialize() const noexcept;
-
-		/// @brief 从状态恢复引擎
-		/// @param state serialize() 返回的状态
-		/// @sa serialize()
-		constexpr void deserialize(state_type state) noexcept;
-
-		friend auto operator <=>(const Xoshiro256StarStar&, const Xoshiro256StarStar&) = default;
-
-	private:
-
-		state_type m_state;
 	};
 
 	/// @brief Xoroshiro128** 伪随机数生成器，64 位输出，周期 2^128-1。
@@ -322,36 +450,40 @@ namespace RandX
 	/// @note 非 CSPRNG，不可用于密码学场景。安全场景请使用 ChaCha20。
 	/// @sa Xoshiro256StarStar, Xoroshiro64StarStar, ChaCha20
 	class Xoroshiro128StarStar
+		: public detail::EngineBase<Xoroshiro128StarStar, std::uint64_t, 2>
 	{
+		using Base = detail::EngineBase<Xoroshiro128StarStar, std::uint64_t, 2>;
 	public:
 
-		using state_type	= std::array<std::uint64_t, 2>;	///< 状态类型（2×uint64）
-		using result_type	= std::uint64_t;	///< 输出类型
+		using typename Base::result_type;	///< 输出类型
+		using typename Base::state_type;	///< 状态类型（2×uint64）
+
+		/// @brief 默认构造（使用 DefaultSeed）
+		constexpr Xoroshiro128StarStar() noexcept : Base(DefaultSeed) {}
 
 		/// @brief 以指定种子构造引擎
 		/// @param seed 64 位种子值
 		[[nodiscard]]
-		explicit constexpr Xoroshiro128StarStar(std::uint64_t seed = DefaultSeed) noexcept;
+		explicit constexpr Xoroshiro128StarStar(std::uint64_t seed) noexcept
+			: Base(seed) {}
 
 		/// @brief 从 std::seed_seq 播种
 		/// @param seq 种子序列对象
 		template <class SeedSeq>
 			requires (!std::same_as<std::remove_cvref_t<SeedSeq>, Xoroshiro128StarStar>)
 		[[nodiscard]]
-		explicit constexpr Xoroshiro128StarStar(SeedSeq& seq);
+		explicit constexpr Xoroshiro128StarStar(SeedSeq& seq)
+			: Base(seq) {}
 
 		/// @brief 从状态数组直接构造
 		/// @param state serialize() 返回的状态
 		[[nodiscard]]
-		explicit constexpr Xoroshiro128StarStar(state_type state) noexcept;
+		explicit constexpr Xoroshiro128StarStar(state_type state) noexcept
+			: Base(state) {}
 
 		/// @brief 生成下一个 64 位随机数
 		/// @return [min(), max()] 区间内的伪随机数
 		constexpr result_type operator()() noexcept;
-
-		/// @brief 跳过 n 个输出
-		/// @param n 跳过次数
-		constexpr void discard(unsigned long long n) noexcept;
 
 		/// @brief 前进 2^64 步，用于创建并行子序列
 		/// @note 等价于调用 2^64 次 operator()
@@ -362,33 +494,6 @@ namespace RandX
 		/// @note 等价于调用 2^96 次 operator()
 		/// @sa jump(), MakeStreamEngine()
 		constexpr void longJump() noexcept;
-
-		/// @brief 输出范围下界
-		/// @return 0
-		[[nodiscard]]
-		static constexpr result_type min() noexcept;
-
-		/// @brief 输出范围上界
-		/// @return 2^64 - 1
-		[[nodiscard]]
-		static constexpr result_type max() noexcept;
-
-		/// @brief 序列化引擎状态
-		/// @return 状态数组（2 个 uint64）
-		/// @sa deserialize()
-		[[nodiscard]]
-		constexpr state_type serialize() const noexcept;
-
-		/// @brief 从状态恢复引擎
-		/// @param state serialize() 返回的状态
-		/// @sa serialize()
-		constexpr void deserialize(state_type state) noexcept;
-
-		friend auto operator <=>(const Xoroshiro128StarStar&, const Xoroshiro128StarStar&) = default;
-
-	private:
-
-		state_type m_state;
 	};
 
 	/// @brief Xoshiro128** 伪随机数生成器，32 位输出，周期 2^128-1。
@@ -400,36 +505,40 @@ namespace RandX
 	/// @note 非 CSPRNG，不可用于密码学场景。安全场景请使用 ChaCha20。
 	/// @sa Xoshiro256StarStar, Xoroshiro64StarStar, ChaCha20
 	class Xoshiro128StarStar
+		: public detail::EngineBase<Xoshiro128StarStar, std::uint32_t, 4>
 	{
+		using Base = detail::EngineBase<Xoshiro128StarStar, std::uint32_t, 4>;
 	public:
 
-		using state_type	= std::array<std::uint32_t, 4>;	///< 状态类型（4×uint32）
-		using result_type	= std::uint32_t;	///< 输出类型
+		using typename Base::result_type;	///< 输出类型
+		using typename Base::state_type;	///< 状态类型（4×uint32）
+
+		/// @brief 默认构造（使用 DefaultSeed）
+		constexpr Xoshiro128StarStar() noexcept : Base(DefaultSeed) {}
 
 		/// @brief 以指定种子构造引擎
 		/// @param seed 64 位种子值
 		[[nodiscard]]
-		explicit constexpr Xoshiro128StarStar(std::uint64_t seed = DefaultSeed) noexcept;
+		explicit constexpr Xoshiro128StarStar(std::uint64_t seed) noexcept
+			: Base(seed) {}
 
 		/// @brief 从 std::seed_seq 播种
 		/// @param seq 种子序列对象
 		template <class SeedSeq>
 			requires (!std::same_as<std::remove_cvref_t<SeedSeq>, Xoshiro128StarStar>)
 		[[nodiscard]]
-		explicit constexpr Xoshiro128StarStar(SeedSeq& seq);
+		explicit constexpr Xoshiro128StarStar(SeedSeq& seq)
+			: Base(seq) {}
 
 		/// @brief 从状态数组直接构造
 		/// @param state serialize() 返回的状态
 		[[nodiscard]]
-		explicit constexpr Xoshiro128StarStar(state_type state) noexcept;
+		explicit constexpr Xoshiro128StarStar(state_type state) noexcept
+			: Base(state) {}
 
 		/// @brief 生成下一个 32 位随机数
 		/// @return [min(), max()] 区间内的伪随机数
 		constexpr result_type operator()() noexcept;
-
-		/// @brief 跳过 n 个输出
-		/// @param n 跳过次数
-		constexpr void discard(unsigned long long n) noexcept;
 
 		/// @brief 前进 2^64 步，用于创建并行子序列
 		/// @note 等价于调用 2^64 次 operator()
@@ -440,33 +549,6 @@ namespace RandX
 		/// @note 等价于调用 2^96 次 operator()
 		/// @sa jump(), MakeStreamEngine()
 		constexpr void longJump() noexcept;
-
-		/// @brief 输出范围下界
-		/// @return 0
-		[[nodiscard]]
-		static constexpr result_type min() noexcept;
-
-		/// @brief 输出范围上界
-		/// @return 2^32 - 1
-		[[nodiscard]]
-		static constexpr result_type max() noexcept;
-
-		/// @brief 序列化引擎状态
-		/// @return 状态数组（4 个 uint32）
-		/// @sa deserialize()
-		[[nodiscard]]
-		constexpr state_type serialize() const noexcept;
-
-		/// @brief 从状态恢复引擎
-		/// @param state serialize() 返回的状态
-		/// @sa serialize()
-		constexpr void deserialize(state_type state) noexcept;
-
-		friend auto operator <=>(const Xoshiro128StarStar&, const Xoshiro128StarStar&) = default;
-
-	private:
-
-		state_type m_state;
 	};
 
 	/// @brief Xoroshiro64** 伪随机数生成器，32 位输出，周期 2^64-1。
@@ -478,63 +560,40 @@ namespace RandX
 	/// @note 无 jump 方法。非 CSPRNG，不可用于密码学场景。安全场景请使用 ChaCha20。
 	/// @sa Xoshiro128StarStar, Xoroshiro128StarStar, ChaCha20
 	class Xoroshiro64StarStar
+		: public detail::EngineBase<Xoroshiro64StarStar, std::uint32_t, 2>
 	{
+		using Base = detail::EngineBase<Xoroshiro64StarStar, std::uint32_t, 2>;
 	public:
 
-		using state_type	= std::array<std::uint32_t, 2>;	///< 状态类型（2×uint32）
-		using result_type	= std::uint32_t;	///< 输出类型
+		using typename Base::result_type;	///< 输出类型
+		using typename Base::state_type;	///< 状态类型（2×uint32）
+
+		/// @brief 默认构造（使用 DefaultSeed）
+		constexpr Xoroshiro64StarStar() noexcept : Base(DefaultSeed) {}
 
 		/// @brief 以指定种子构造引擎
 		/// @param seed 64 位种子值
 		[[nodiscard]]
-		explicit constexpr Xoroshiro64StarStar(std::uint64_t seed = DefaultSeed) noexcept;
+		explicit constexpr Xoroshiro64StarStar(std::uint64_t seed) noexcept
+			: Base(seed) {}
 
 		/// @brief 从 std::seed_seq 播种
 		/// @param seq 种子序列对象
 		template <class SeedSeq>
 			requires (!std::same_as<std::remove_cvref_t<SeedSeq>, Xoroshiro64StarStar>)
 		[[nodiscard]]
-		explicit constexpr Xoroshiro64StarStar(SeedSeq& seq);
+		explicit constexpr Xoroshiro64StarStar(SeedSeq& seq)
+			: Base(seq) {}
 
 		/// @brief 从状态数组直接构造
 		/// @param state serialize() 返回的状态
 		[[nodiscard]]
-		explicit constexpr Xoroshiro64StarStar(state_type state) noexcept;
+		explicit constexpr Xoroshiro64StarStar(state_type state) noexcept
+			: Base(state) {}
 
 		/// @brief 生成下一个 32 位随机数
 		/// @return [min(), max()] 区间内的伪随机数
 		constexpr result_type operator()() noexcept;
-
-		/// @brief 跳过 n 个输出
-		/// @param n 跳过次数
-		constexpr void discard(unsigned long long n) noexcept;
-
-		/// @brief 输出范围下界
-		/// @return 0
-		[[nodiscard]]
-		static constexpr result_type min() noexcept;
-
-		/// @brief 输出范围上界
-		/// @return 2^32 - 1
-		[[nodiscard]]
-		static constexpr result_type max() noexcept;
-
-		/// @brief 序列化引擎状态
-		/// @return 状态数组（2 个 uint32）
-		/// @sa deserialize()
-		[[nodiscard]]
-		constexpr state_type serialize() const noexcept;
-
-		/// @brief 从状态恢复引擎
-		/// @param state serialize() 返回的状态
-		/// @sa serialize()
-		constexpr void deserialize(state_type state) noexcept;
-
-		friend auto operator <=>(const Xoroshiro64StarStar&, const Xoroshiro64StarStar&) = default;
-
-	private:
-
-		state_type m_state;
 	};
 
 	/// @brief SFC64（Small Fast Counter）伪随机数生成器，64 位输出，周期 >= 2^64。
@@ -546,18 +605,23 @@ namespace RandX
 	/// 非 CSPRNG，不可用于密码学场景。安全场景请使用 ChaCha20。
 	/// @sa Xoshiro256StarStar, RomuDuoJr, ChaCha20
 	class SFC64
+		: public detail::EngineBase<SFC64, std::uint64_t, 4>
 	{
+		using Base = detail::EngineBase<SFC64, std::uint64_t, 4>;
 	public:
 
-		using state_type	= std::array<std::uint64_t, 4>;	///< 状态类型（4×uint64）
-		using result_type	= std::uint64_t;	///< 输出类型
+		using typename Base::result_type;	///< 输出类型
+		using typename Base::state_type;	///< 状态类型（4×uint64）
 
-		/// @brief 以指定种子构造引擎
+		/// @brief 默认构造（使用 DefaultSeed）
+		constexpr SFC64() noexcept : SFC64(DefaultSeed) {}
+
+		/// @brief 以指定种子构造引擎（SplitMix64 填充 3 状态字 + counter=1 + 12 轮预热）
 		/// @param seed 64 位种子值
 		[[nodiscard]]
-		explicit constexpr SFC64(std::uint64_t seed = DefaultSeed) noexcept;
+		explicit constexpr SFC64(std::uint64_t seed) noexcept;
 
-		/// @brief 从 std::seed_seq 播种
+		/// @brief 从 std::seed_seq 播种（填充 3 状态字 + counter=1 + 12 轮预热）
 		/// @param seq 种子序列对象
 		template <class SeedSeq>
 			requires (!std::same_as<std::remove_cvref_t<SeedSeq>, SFC64>)
@@ -567,45 +631,12 @@ namespace RandX
 		/// @brief 从状态数组直接构造
 		/// @param state serialize() 返回的状态
 		[[nodiscard]]
-		explicit constexpr SFC64(state_type state) noexcept;
+		explicit constexpr SFC64(state_type state) noexcept
+			: Base(state) {}
 
 		/// @brief 生成下一个 64 位随机数
 		/// @return [min(), max()] 区间内的伪随机数
 		constexpr result_type operator()() noexcept;
-
-		/// @brief 跳过 n 个输出
-		/// @param n 跳过次数
-		constexpr void discard(unsigned long long n) noexcept;
-
-		/// @brief 输出范围下界
-		/// @return 0
-		[[nodiscard]]
-		static constexpr result_type min() noexcept;
-
-		/// @brief 输出范围上界
-		/// @return 2^64 - 1
-		[[nodiscard]]
-		static constexpr result_type max() noexcept;
-
-		/// @brief 序列化引擎状态
-		/// @return 状态数组（4 个 uint64）
-		/// @sa deserialize()
-		[[nodiscard]]
-		constexpr state_type serialize() const noexcept;
-
-		/// @brief 从状态恢复引擎
-		/// @param state serialize() 返回的状态
-		/// @sa serialize()
-		constexpr void deserialize(state_type state) noexcept;
-
-		friend auto operator <=>(const SFC64&, const SFC64&) = default;
-
-	private:
-
-		std::uint64_t m_a;
-		std::uint64_t m_b;
-		std::uint64_t m_c;
-		std::uint64_t m_counter;
 	};
 
 	/// @brief RomuDuoJr 伪随机数生成器，64 位输出，周期估计 >= 2^51。
@@ -617,64 +648,40 @@ namespace RandX
 	/// 非 CSPRNG，不可用于密码学场景。安全场景请使用 ChaCha20。
 	/// @sa SFC64, Xoshiro256StarStar, ChaCha20
 	class RomuDuoJr
+		: public detail::EngineBase<RomuDuoJr, std::uint64_t, 2>
 	{
+		using Base = detail::EngineBase<RomuDuoJr, std::uint64_t, 2>;
 	public:
 
-		using state_type	= std::array<std::uint64_t, 2>;	///< 状态类型（2×uint64）
-		using result_type	= std::uint64_t;	///< 输出类型
+		using typename Base::result_type;	///< 输出类型
+		using typename Base::state_type;	///< 状态类型（2×uint64）
+
+		/// @brief 默认构造（使用 DefaultSeed）
+		constexpr RomuDuoJr() noexcept : Base(DefaultSeed) {}
 
 		/// @brief 以指定种子构造引擎
 		/// @param seed 64 位种子值
 		[[nodiscard]]
-		explicit constexpr RomuDuoJr(std::uint64_t seed = DefaultSeed) noexcept;
+		explicit constexpr RomuDuoJr(std::uint64_t seed) noexcept
+			: Base(seed) {}
 
 		/// @brief 从 std::seed_seq 播种
 		/// @param seq 种子序列对象
 		template <class SeedSeq>
 			requires (!std::same_as<std::remove_cvref_t<SeedSeq>, RomuDuoJr>)
 		[[nodiscard]]
-		explicit constexpr RomuDuoJr(SeedSeq& seq);
+		explicit constexpr RomuDuoJr(SeedSeq& seq)
+			: Base(seq) {}
 
 		/// @brief 从状态数组直接构造
 		/// @param state serialize() 返回的状态
 		[[nodiscard]]
-		explicit constexpr RomuDuoJr(state_type state) noexcept;
+		explicit constexpr RomuDuoJr(state_type state) noexcept
+			: Base(state) {}
 
 		/// @brief 生成下一个 64 位随机数
 		/// @return [min(), max()] 区间内的伪随机数
 		constexpr result_type operator()() noexcept;
-
-		/// @brief 跳过 n 个输出
-		/// @param n 跳过次数
-		constexpr void discard(unsigned long long n) noexcept;
-
-		/// @brief 输出范围下界
-		/// @return 0
-		[[nodiscard]]
-		static constexpr result_type min() noexcept;
-
-		/// @brief 输出范围上界
-		/// @return 2^64 - 1
-		[[nodiscard]]
-		static constexpr result_type max() noexcept;
-
-		/// @brief 序列化引擎状态
-		/// @return 状态数组（2 个 uint64）
-		/// @sa deserialize()
-		[[nodiscard]]
-		constexpr state_type serialize() const noexcept;
-
-		/// @brief 从状态恢复引擎
-		/// @param state serialize() 返回的状态
-		/// @sa serialize()
-		constexpr void deserialize(state_type state) noexcept;
-
-		friend auto operator <=>(const RomuDuoJr&, const RomuDuoJr&) = default;
-
-	private:
-
-		std::uint64_t m_x;
-		std::uint64_t m_y;
 	};
 
 	/// @brief ChaCha20 密码学安全伪随机数生成器（CSPRNG），64 位输出，符合 RFC 8439。
@@ -756,6 +763,15 @@ namespace RandX
 		void generateBlock();        // 跑一次 ChaCha20 block 函数填充 m_buffer
 		void reseedIfNecessary();    // m_bytesSinceReseed >= 阈值时自动 reseed
 	};
+
+	// ── sizeof 守卫：防止引擎 ABI 意外变化 ──
+	static_assert(sizeof(Xoshiro256StarStar) == 32);
+	static_assert(sizeof(Xoroshiro128StarStar) == 16);
+	static_assert(sizeof(Xoshiro128StarStar) == 16);
+	static_assert(sizeof(Xoroshiro64StarStar) == 8);
+	static_assert(sizeof(SFC64) == 32);
+	static_assert(sizeof(RomuDuoJr) == 16);
+	static_assert(sizeof(SplitMix64) == 8);
 }
 
 ////////////////////////////////////////////////////////////////
@@ -776,47 +792,11 @@ namespace RandX
 
 	namespace detail
 	{
-		[[nodiscard]]
-		static constexpr std::uint64_t RotL(const std::uint64_t x, const int s) noexcept
-		{
-			return std::rotl(x, s);
-		}
-
-		[[nodiscard]]
-		static constexpr std::uint32_t RotL(const std::uint32_t x, const int s) noexcept
-		{
-			return std::rotl(x, s);
-		}
-
 		// 安全擦除内存（volatile 防止编译器死存储消除）
 		static void SecureWipe(void* ptr, std::size_t len) noexcept
 		{
 			volatile auto* p = static_cast<volatile std::uint8_t*>(ptr);
 			while (len--) *p++ = 0;
-		}
-
-		// 检测状态数组是否全零（全零是 xoshiro/xoroshiro 的吸收态）
-		template <std::size_t N>
-		[[nodiscard]]
-		static constexpr bool IsAllZero(const std::array<std::uint64_t, N>& state) noexcept
-		{
-			for (const auto& s : state) { if (s != 0) return false; }
-			return true;
-		}
-
-		template <std::size_t N>
-		[[nodiscard]]
-		static constexpr bool IsAllZero(const std::array<std::uint32_t, N>& state) noexcept
-		{
-			for (const auto& s : state) { if (s != 0) return false; }
-			return true;
-		}
-
-		template <typename State>
-		[[nodiscard]]
-		static constexpr bool IsValidState(const State& state) noexcept
-		{
-			return !IsAllZero(state);
 		}
 
 		// 尝试使用 RDRAND 获取 64 位硬件随机数
@@ -1138,441 +1118,107 @@ namespace RandX
 	//
 	//	xoshiro256**
 	//
-	inline constexpr Xoshiro256StarStar::Xoshiro256StarStar(const std::uint64_t seed) noexcept
-		: m_state(SplitMix64{ seed }.generateSeedSequence<4>())
-	{
-		if (detail::IsAllZero(m_state)) m_state[0] = 1;
-	}
-
-	template <class SeedSeq>
-		requires (!std::same_as<std::remove_cvref_t<SeedSeq>, Xoshiro256StarStar>)
-	inline constexpr Xoshiro256StarStar::Xoshiro256StarStar(SeedSeq& seq)
-	{
-		std::array<std::uint32_t, 8> seeds;
-		seq.generate(seeds.begin(), seeds.end());
-		for (int i = 0; i < 4; ++i)
-			m_state[i] = (static_cast<std::uint64_t>(seeds[2*i]) << 32) | seeds[2*i+1];
-		if (detail::IsAllZero(m_state)) m_state[0] = 1;
-	}
-
-	inline constexpr Xoshiro256StarStar::Xoshiro256StarStar(const state_type state) noexcept
-		: m_state(state)
-	{
-		assert(!detail::IsAllZero(state) && "全零状态是吸收态，禁止使用");
-	}
-
 	inline constexpr Xoshiro256StarStar::result_type Xoshiro256StarStar::operator()() noexcept
 	{
-		const std::uint64_t result = detail::RotL(m_state[1] * 5, 7) * 9;
-		const std::uint64_t t = m_state[1] << 17;
-		m_state[2] ^= m_state[0];
-		m_state[3] ^= m_state[1];
-		m_state[1] ^= m_state[2];
-		m_state[0] ^= m_state[3];
-		m_state[2] ^= t;
-		m_state[3] = detail::RotL(m_state[3], 45);
+		const std::uint64_t result = detail::RotL(s_[1] * 5, 7) * 9;
+		const std::uint64_t t = s_[1] << 17;
+		s_[2] ^= s_[0];
+		s_[3] ^= s_[1];
+		s_[1] ^= s_[2];
+		s_[0] ^= s_[3];
+		s_[2] ^= t;
+		s_[3] = detail::RotL(s_[3], 45);
 		return result;
 	}
 
 	inline constexpr void Xoshiro256StarStar::jump() noexcept
 	{
-		constexpr std::uint64_t JUMP[] = { 0x180ec6d33cfd0aba, 0xd5a61266f0c9392c, 0xa9582618e03fc9aa, 0x39abdc4529b1661c };
-
-		std::uint64_t s0 = 0;
-		std::uint64_t s1 = 0;
-		std::uint64_t s2 = 0;
-		std::uint64_t s3 = 0;
-
-		for (std::uint64_t j : JUMP)
-		{
-			for (int b = 0; b < 64; ++b)
-			{
-				if (j & UINT64_C(1) << b)
-				{
-					s0 ^= m_state[0];
-					s1 ^= m_state[1];
-					s2 ^= m_state[2];
-					s3 ^= m_state[3];
-				}
-				operator()();
-			}
-		}
-
-		m_state[0] = s0;
-		m_state[1] = s1;
-		m_state[2] = s2;
-		m_state[3] = s3;
+		static constexpr std::uint64_t p[] = {
+			0x180ec6d33cfd0aba, 0xd5a61266f0c9392c,
+			0xa9582618e03fc9aa, 0x39abdc4529b1661c };
+		jumpPoly(p);
 	}
 
 	inline constexpr void Xoshiro256StarStar::longJump() noexcept
 	{
-		constexpr std::uint64_t LONG_JUMP[] = { 0x76e15d3efefdcbbf, 0xc5004e441c522fb3, 0x77710069854ee241, 0x39109bb02acbe635 };
-
-		std::uint64_t s0 = 0;
-		std::uint64_t s1 = 0;
-		std::uint64_t s2 = 0;
-		std::uint64_t s3 = 0;
-
-		for (std::uint64_t j : LONG_JUMP)
-		{
-			for (int b = 0; b < 64; ++b)
-			{
-				if (j & UINT64_C(1) << b)
-				{
-					s0 ^= m_state[0];
-					s1 ^= m_state[1];
-					s2 ^= m_state[2];
-					s3 ^= m_state[3];
-				}
-				operator()();
-			}
-		}
-
-		m_state[0] = s0;
-		m_state[1] = s1;
-		m_state[2] = s2;
-		m_state[3] = s3;
-	}
-
-	inline constexpr Xoshiro256StarStar::result_type Xoshiro256StarStar::min() noexcept
-	{
-		return std::numeric_limits<result_type>::lowest();
-	}
-
-	inline constexpr Xoshiro256StarStar::result_type Xoshiro256StarStar::max() noexcept
-	{
-		return std::numeric_limits<result_type>::max();
-	}
-
-	inline constexpr Xoshiro256StarStar::state_type Xoshiro256StarStar::serialize() const noexcept
-	{
-		return m_state;
-	}
-
-	inline constexpr void Xoshiro256StarStar::deserialize(const state_type state) noexcept
-	{
-		assert(!detail::IsAllZero(state) && "全零状态是吸收态，禁止使用");
-		m_state = state;
-	}
-
-	inline constexpr void Xoshiro256StarStar::discard(const unsigned long long n) noexcept
-	{
-		for (unsigned long long i = 0; i < n; ++i) { operator()(); }
+		static constexpr std::uint64_t p[] = {
+			0x76e15d3efefdcbbf, 0xc5004e441c522fb3,
+			0x77710069854ee241, 0x39109bb02acbe635 };
+		jumpPoly(p);
 	}
 
 	////////////////////////////////////////////////////////////////
 	//
 	//	xoroshiro128**
 	//
-	inline constexpr Xoroshiro128StarStar::Xoroshiro128StarStar(const std::uint64_t seed) noexcept
-		: m_state(SplitMix64{ seed }.generateSeedSequence<2>())
-	{
-		if (detail::IsAllZero(m_state)) m_state[0] = 1;
-	}
-
-	template <class SeedSeq>
-		requires (!std::same_as<std::remove_cvref_t<SeedSeq>, Xoroshiro128StarStar>)
-	inline constexpr Xoroshiro128StarStar::Xoroshiro128StarStar(SeedSeq& seq)
-	{
-		std::array<std::uint32_t, 4> seeds;
-		seq.generate(seeds.begin(), seeds.end());
-		m_state[0] = (static_cast<std::uint64_t>(seeds[0]) << 32) | seeds[1];
-		m_state[1] = (static_cast<std::uint64_t>(seeds[2]) << 32) | seeds[3];
-		if (detail::IsAllZero(m_state)) m_state[0] = 1;
-	}
-
-	inline constexpr Xoroshiro128StarStar::Xoroshiro128StarStar(const state_type state) noexcept
-		: m_state(state)
-	{
-		assert(!detail::IsAllZero(state) && "全零状态是吸收态，禁止使用");
-	}
-
 	inline constexpr Xoroshiro128StarStar::result_type Xoroshiro128StarStar::operator()() noexcept
 	{
-		const std::uint64_t s0 = m_state[0];
-		std::uint64_t s1 = m_state[1];
+		const std::uint64_t s0 = s_[0];
+		std::uint64_t s1 = s_[1];
 		const std::uint64_t result = detail::RotL(s0 * 5, 7) * 9;
 		s1 ^= s0;
-		m_state[0] = detail::RotL(s0, 24) ^ s1 ^ (s1 << 16);
-		m_state[1] = detail::RotL(s1, 37);
+		s_[0] = detail::RotL(s0, 24) ^ s1 ^ (s1 << 16);
+		s_[1] = detail::RotL(s1, 37);
 		return result;
 	}
 
 	inline constexpr void Xoroshiro128StarStar::jump() noexcept
 	{
-		constexpr std::uint64_t JUMP[] = { 0xdf900294d8f554a5, 0x170865df4b3201fc };
-
-		std::uint64_t s0 = 0;
-		std::uint64_t s1 = 0;
-
-		for (std::uint64_t j : JUMP)
-		{
-			for (int b = 0; b < 64; ++b)
-			{
-				if (j & UINT64_C(1) << b)
-				{
-					s0 ^= m_state[0];
-					s1 ^= m_state[1];
-				}
-				operator()();
-			}
-		}
-
-		m_state[0] = s0;
-		m_state[1] = s1;
+		static constexpr std::uint64_t p[] = { 0xdf900294d8f554a5, 0x170865df4b3201fc };
+		jumpPoly(p);
 	}
 
 	inline constexpr void Xoroshiro128StarStar::longJump() noexcept
 	{
-		constexpr std::uint64_t LONG_JUMP[] = { 0xd2a98b26625eee7b, 0xdddf9b1090aa7ac1 };
-
-		std::uint64_t s0 = 0;
-		std::uint64_t s1 = 0;
-
-		for (std::uint64_t j : LONG_JUMP)
-		{
-			for (int b = 0; b < 64; ++b)
-			{
-				if (j & UINT64_C(1) << b)
-				{
-					s0 ^= m_state[0];
-					s1 ^= m_state[1];
-				}
-				operator()();
-			}
-		}
-
-		m_state[0] = s0;
-		m_state[1] = s1;
-	}
-
-	inline constexpr Xoroshiro128StarStar::result_type Xoroshiro128StarStar::min() noexcept
-	{
-		return std::numeric_limits<result_type>::lowest();
-	}
-
-	inline constexpr Xoroshiro128StarStar::result_type Xoroshiro128StarStar::max() noexcept
-	{
-		return std::numeric_limits<result_type>::max();
-	}
-
-	inline constexpr Xoroshiro128StarStar::state_type Xoroshiro128StarStar::serialize() const noexcept
-	{
-		return m_state;
-	}
-
-	inline constexpr void Xoroshiro128StarStar::deserialize(const state_type state) noexcept
-	{
-		assert(!detail::IsAllZero(state) && "全零状态是吸收态，禁止使用");
-		m_state = state;
-	}
-
-	inline constexpr void Xoroshiro128StarStar::discard(const unsigned long long n) noexcept
-	{
-		for (unsigned long long i = 0; i < n; ++i) { operator()(); }
+		static constexpr std::uint64_t p[] = { 0xd2a98b26625eee7b, 0xdddf9b1090aa7ac1 };
+		jumpPoly(p);
 	}
 
 	////////////////////////////////////////////////////////////////
 	//
 	//	xoshiro128**
 	//
-	inline constexpr Xoshiro128StarStar::Xoshiro128StarStar(const std::uint64_t seed) noexcept
-		: m_state()
-	{
-		SplitMix64 splitmix{ seed };
-
-		for (auto& state : m_state)
-		{
-			state = static_cast<std::uint32_t>(splitmix());
-		}
-		if (detail::IsAllZero(m_state)) m_state[0] = 1;
-	}
-
-	template <class SeedSeq>
-		requires (!std::same_as<std::remove_cvref_t<SeedSeq>, Xoshiro128StarStar>)
-	inline constexpr Xoshiro128StarStar::Xoshiro128StarStar(SeedSeq& seq)
-	{
-		std::array<std::uint32_t, 4> seeds;
-		seq.generate(seeds.begin(), seeds.end());
-		m_state = seeds;
-		if (detail::IsAllZero(m_state)) m_state[0] = 1;
-	}
-
-	inline constexpr Xoshiro128StarStar::Xoshiro128StarStar(const state_type state) noexcept
-		: m_state(state)
-	{
-		assert(!detail::IsAllZero(state) && "全零状态是吸收态，禁止使用");
-	}
-
 	inline constexpr Xoshiro128StarStar::result_type Xoshiro128StarStar::operator()() noexcept
 	{
-		const std::uint32_t result = detail::RotL(m_state[1] * 5, 7) * 9;
-		const std::uint32_t t = m_state[1] << 9;
-		m_state[2] ^= m_state[0];
-		m_state[3] ^= m_state[1];
-		m_state[1] ^= m_state[2];
-		m_state[0] ^= m_state[3];
-		m_state[2] ^= t;
-		m_state[3] = detail::RotL(m_state[3], 11);
+		const std::uint32_t result = detail::RotL(s_[1] * 5, 7) * 9;
+		const std::uint32_t t = s_[1] << 9;
+		s_[2] ^= s_[0];
+		s_[3] ^= s_[1];
+		s_[1] ^= s_[2];
+		s_[0] ^= s_[3];
+		s_[2] ^= t;
+		s_[3] = detail::RotL(s_[3], 11);
 		return result;
 	}
 
 	inline constexpr void Xoshiro128StarStar::jump() noexcept
 	{
-		constexpr std::uint32_t JUMP[] = { 0x8764000b, 0xf542d2d3, 0x6fa035c3, 0x77f2db5b };
-
-		std::uint32_t s0 = 0;
-		std::uint32_t s1 = 0;
-		std::uint32_t s2 = 0;
-		std::uint32_t s3 = 0;
-
-		for (std::uint32_t j : JUMP)
-		{
-			for (int b = 0; b < 32; ++b)
-			{
-				if (j & UINT32_C(1) << b)
-				{
-					s0 ^= m_state[0];
-					s1 ^= m_state[1];
-					s2 ^= m_state[2];
-					s3 ^= m_state[3];
-				}
-				operator()();
-			}
-		}
-
-		m_state[0] = s0;
-		m_state[1] = s1;
-		m_state[2] = s2;
-		m_state[3] = s3;
+		static constexpr std::uint32_t p[] = { 0x8764000bu, 0xf542d2d3u, 0x6fa035c3u, 0x77f2db5bu };
+		jumpPoly(p);
 	}
 
 	inline constexpr void Xoshiro128StarStar::longJump() noexcept
 	{
-		constexpr std::uint32_t LONG_JUMP[] = { 0xb523952e, 0x0b6f099f, 0xccf5a0ef, 0x1c580662 };
-
-		std::uint32_t s0 = 0;
-		std::uint32_t s1 = 0;
-		std::uint32_t s2 = 0;
-		std::uint32_t s3 = 0;
-
-		for (std::uint32_t j : LONG_JUMP)
-		{
-			for (int b = 0; b < 32; ++b)
-			{
-				if (j & UINT32_C(1) << b)
-				{
-					s0 ^= m_state[0];
-					s1 ^= m_state[1];
-					s2 ^= m_state[2];
-					s3 ^= m_state[3];
-				}
-				operator()();
-			}
-		}
-
-		m_state[0] = s0;
-		m_state[1] = s1;
-		m_state[2] = s2;
-		m_state[3] = s3;
-	}
-
-	inline constexpr Xoshiro128StarStar::result_type Xoshiro128StarStar::min() noexcept
-	{
-		return std::numeric_limits<result_type>::lowest();
-	}
-
-	inline constexpr Xoshiro128StarStar::result_type Xoshiro128StarStar::max() noexcept
-	{
-		return std::numeric_limits<result_type>::max();
-	}
-
-	inline constexpr Xoshiro128StarStar::state_type Xoshiro128StarStar::serialize() const noexcept
-	{
-		return m_state;
-	}
-
-	inline constexpr void Xoshiro128StarStar::deserialize(const state_type state) noexcept
-	{
-		assert(!detail::IsAllZero(state) && "全零状态是吸收态，禁止使用");
-		m_state = state;
-	}
-
-	inline constexpr void Xoshiro128StarStar::discard(const unsigned long long n) noexcept
-	{
-		for (unsigned long long i = 0; i < n; ++i) { operator()(); }
+		static constexpr std::uint32_t p[] = { 0xb523952eu, 0x0b6f099fu, 0xccf5a0efu, 0x1c580662u };
+		jumpPoly(p);
 	}
 
 	////////////////////////////////////////////////////////////////
 	//
 	//	xoroshiro64**
 	//
-	inline constexpr Xoroshiro64StarStar::Xoroshiro64StarStar(const std::uint64_t seed) noexcept
-		: m_state()
-	{
-		SplitMix64 splitmix{ seed };
-
-		for (auto& state : m_state)
-		{
-			state = static_cast<std::uint32_t>(splitmix());
-		}
-		if (detail::IsAllZero(m_state)) m_state[0] = 1;
-	}
-
-	template <class SeedSeq>
-		requires (!std::same_as<std::remove_cvref_t<SeedSeq>, Xoroshiro64StarStar>)
-	inline constexpr Xoroshiro64StarStar::Xoroshiro64StarStar(SeedSeq& seq)
-	{
-		std::array<std::uint32_t, 2> seeds;
-		seq.generate(seeds.begin(), seeds.end());
-		m_state = seeds;
-		if (detail::IsAllZero(m_state)) m_state[0] = 1;
-	}
-
-	inline constexpr Xoroshiro64StarStar::Xoroshiro64StarStar(const state_type state) noexcept
-		: m_state(state)
-	{
-		assert(!detail::IsAllZero(state) && "全零状态是吸收态，禁止使用");
-	}
-
 	inline constexpr Xoroshiro64StarStar::result_type Xoroshiro64StarStar::operator()() noexcept
 	{
-		const std::uint32_t s0 = m_state[0];
-		std::uint32_t s1 = m_state[1];
+		const std::uint32_t s0 = s_[0];
+		std::uint32_t s1 = s_[1];
 
 		const std::uint32_t result = detail::RotL(s0 * 0x9E3779BB, 5) * 5;
 
 		s1 ^= s0;
-		m_state[0] = detail::RotL(s0, 26) ^ s1 ^ (s1 << 9);
-		m_state[1] = detail::RotL(s1, 13);
+		s_[0] = detail::RotL(s0, 26) ^ s1 ^ (s1 << 9);
+		s_[1] = detail::RotL(s1, 13);
 
 		return result;
-	}
-
-	inline constexpr Xoroshiro64StarStar::result_type Xoroshiro64StarStar::min() noexcept
-	{
-		return std::numeric_limits<result_type>::lowest();
-	}
-
-	inline constexpr Xoroshiro64StarStar::result_type Xoroshiro64StarStar::max() noexcept
-	{
-		return std::numeric_limits<result_type>::max();
-	}
-
-	inline constexpr Xoroshiro64StarStar::state_type Xoroshiro64StarStar::serialize() const noexcept
-	{
-		return m_state;
-	}
-
-	inline constexpr void Xoroshiro64StarStar::deserialize(const state_type state) noexcept
-	{
-		assert(!detail::IsAllZero(state) && "全零状态是吸收态，禁止使用");
-		m_state = state;
-	}
-
-	inline constexpr void Xoroshiro64StarStar::discard(const unsigned long long n) noexcept
-	{
-		for (unsigned long long i = 0; i < n; ++i) { operator()(); }
 	}
 
 
@@ -1581,136 +1227,55 @@ namespace RandX
 	//	SFC64 (Small Fast Counter)
 	//
 	inline constexpr SFC64::SFC64(const std::uint64_t seed) noexcept
-		: m_a(0), m_b(0), m_c(0), m_counter(1)
+		: Base()
 	{
 		// 使用 SplitMix64 播种 + 12 轮预热
 		SplitMix64 sm{ seed };
-		m_a = sm();
-		m_b = sm();
-		m_c = sm();
+		s_[0] = sm();
+		s_[1] = sm();
+		s_[2] = sm();
+		s_[3] = 1;
+		// 全零状态会导致输出可预测，强制修正
+		if ((s_[0] | s_[1] | s_[2]) == 0) s_[0] = 0x9E3779B97F4A7C15ULL;
 		for (int i = 0; i < 12; ++i) { operator()(); }
 	}
 
 	template <class SeedSeq>
 		requires (!std::same_as<std::remove_cvref_t<SeedSeq>, SFC64>)
 	inline constexpr SFC64::SFC64(SeedSeq& seq)
-		: m_counter(1)
+		: Base()
 	{
 		std::array<std::uint32_t, 8> seeds;
 		seq.generate(seeds.begin(), seeds.end());
-		m_a = (static_cast<std::uint64_t>(seeds[0]) << 32) | seeds[1];
-		m_b = (static_cast<std::uint64_t>(seeds[2]) << 32) | seeds[3];
-		m_c = (static_cast<std::uint64_t>(seeds[4]) << 32) | seeds[5];
+		s_[0] = (static_cast<std::uint64_t>(seeds[0]) << 32) | seeds[1];
+		s_[1] = (static_cast<std::uint64_t>(seeds[2]) << 32) | seeds[3];
+		s_[2] = (static_cast<std::uint64_t>(seeds[4]) << 32) | seeds[5];
+		s_[3] = 1;
 		// 全零状态会导致输出可预测，强制修正
-		if ((m_a | m_b | m_c) == 0) m_a = 0x9E3779B97F4A7C15ULL;
+		if ((s_[0] | s_[1] | s_[2]) == 0) s_[0] = 0x9E3779B97F4A7C15ULL;
 		// 与种子构造函数一致：12 轮预热
 		for (int i = 0; i < 12; ++i) { operator()(); }
 	}
 
-	inline constexpr SFC64::SFC64(const state_type state) noexcept
-		: m_a(state[0]), m_b(state[1]), m_c(state[2]), m_counter(state[3]) {}
-
 	inline constexpr SFC64::result_type SFC64::operator()() noexcept
 	{
-		const std::uint64_t tmp = m_a + m_b + m_counter++;
-		m_a = m_b ^ (m_b >> 11);
-		m_b = m_c + (m_c << 3);
-		m_c = detail::RotL(m_c, 24) + tmp;
+		const std::uint64_t tmp = s_[0] + s_[1] + s_[3]++;
+		s_[0] = s_[1] ^ (s_[1] >> 11);
+		s_[1] = s_[2] + (s_[2] << 3);
+		s_[2] = detail::RotL(s_[2], 24) + tmp;
 		return tmp;
-	}
-
-	inline constexpr SFC64::result_type SFC64::min() noexcept
-	{
-		return std::numeric_limits<result_type>::lowest();
-	}
-
-	inline constexpr SFC64::result_type SFC64::max() noexcept
-	{
-		return std::numeric_limits<result_type>::max();
-	}
-
-	inline constexpr SFC64::state_type SFC64::serialize() const noexcept
-	{
-		return { m_a, m_b, m_c, m_counter };
-	}
-
-	inline constexpr void SFC64::deserialize(const state_type state) noexcept
-	{
-		m_a = state[0];
-		m_b = state[1];
-		m_c = state[2];
-		m_counter = state[3];
-	}
-
-	inline constexpr void SFC64::discard(const unsigned long long n) noexcept
-	{
-		for (unsigned long long i = 0; i < n; ++i) { operator()(); }
 	}
 
 	////////////////////////////////////////////////////////////////
 	//
 	//	RomuDuoJr
 	//
-	inline constexpr RomuDuoJr::RomuDuoJr(const std::uint64_t seed) noexcept
-		: m_x(0), m_y(0)
-	{
-		SplitMix64 sm{ seed };
-		m_x = sm();
-		m_y = sm();
-		// 确保不全零
-		if (m_x == 0 && m_y == 0) { m_x = 1; }
-	}
-
-	template <class SeedSeq>
-		requires (!std::same_as<std::remove_cvref_t<SeedSeq>, RomuDuoJr>)
-	inline constexpr RomuDuoJr::RomuDuoJr(SeedSeq& seq)
-	{
-		std::array<std::uint32_t, 4> seeds;
-		seq.generate(seeds.begin(), seeds.end());
-		m_x = (static_cast<std::uint64_t>(seeds[0]) << 32) | seeds[1];
-		m_y = (static_cast<std::uint64_t>(seeds[2]) << 32) | seeds[3];
-		if (m_x == 0 && m_y == 0) m_x = 1;
-	}
-
-	inline constexpr RomuDuoJr::RomuDuoJr(const state_type state) noexcept
-		: m_x(state[0]), m_y(state[1])
-	{
-		assert(!(m_x == 0 && m_y == 0) && "全零状态是吸收态，禁止使用");
-	}
-
 	inline constexpr RomuDuoJr::result_type RomuDuoJr::operator()() noexcept
 	{
-		const std::uint64_t xp = m_x;
-		m_x = 15241094284759029579ULL * m_y;
-		m_y = detail::RotL(m_y - xp, 27);
+		const std::uint64_t xp = s_[0];
+		s_[0] = 15241094284759029579ULL * s_[1];
+		s_[1] = detail::RotL(s_[1] - xp, 27);
 		return xp;
-	}
-
-	inline constexpr RomuDuoJr::result_type RomuDuoJr::min() noexcept
-	{
-		return std::numeric_limits<result_type>::lowest();
-	}
-
-	inline constexpr RomuDuoJr::result_type RomuDuoJr::max() noexcept
-	{
-		return std::numeric_limits<result_type>::max();
-	}
-
-	inline constexpr RomuDuoJr::state_type RomuDuoJr::serialize() const noexcept
-	{
-		return { m_x, m_y };
-	}
-
-	inline constexpr void RomuDuoJr::deserialize(const state_type state) noexcept
-	{
-		assert(!(state[0] == 0 && state[1] == 0) && "全零状态是吸收态，禁止使用");
-		m_x = state[0];
-		m_y = state[1];
-	}
-
-	inline constexpr void RomuDuoJr::discard(const unsigned long long n) noexcept
-	{
-		for (unsigned long long i = 0; i < n; ++i) { operator()(); }
 	}
 
 	////////////////////////////////////////////////////////////////
