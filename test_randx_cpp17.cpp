@@ -1556,3 +1556,88 @@ TEST_SUITE("P0/P1/P2 Regression Audit Suite (C++17)")
         CHECK((val >= 1 && val <= 100));
     }
 }
+
+TEST_SUITE("Round 2 Audit Regression Suite (C++17)")
+{
+    TEST_CASE("P0-1 & P1-1: 反序列化全零非法状态设置 failbit 并保持原状态，隔离流格式标志")
+    {
+        RandX::Xoshiro256StarStar rng{ 123456789ULL };
+        const auto orig_state = rng.serialize();
+
+        // 1. 全零状态反序列化测试
+        std::istringstream bad_is("0 0 0 0");
+        bad_is >> rng;
+        CHECK(bad_is.fail());
+        CHECK(rng.serialize() == orig_state);
+
+        // 2. 带 std::hex 和 std::noskipws 的格式标志隔离测试
+        std::ostringstream oss;
+        oss << std::hex << rng;
+        std::string serialized_str = oss.str();
+
+        std::istringstream iss(serialized_str);
+        iss >> std::hex >> std::noskipws >> rng;
+        CHECK_FALSE(iss.fail());
+        CHECK(rng.serialize() == orig_state);
+    }
+
+    TEST_CASE("P0-2: RandReal 上界紧裁剪 [min, max)")
+    {
+        RandX::Xoshiro256StarStar rng{ 42 };
+        for (int i = 0; i < 100000; ++i)
+        {
+            double r = RandX::RandReal(rng, 0.0, 1.0);
+            CHECK(r >= 0.0);
+            CHECK(r < 1.0);
+        }
+    }
+
+    TEST_CASE("P2-1: RandInt 8-bit 整型与 char 支持")
+    {
+        RandX::Xoshiro256StarStar rng{ 42 };
+        std::uint8_t u8 = RandX::RandInt<std::uint8_t>(rng, 10, 20);
+        CHECK(u8 >= 10);
+        CHECK(u8 <= 20);
+
+        std::int8_t i8 = RandX::RandInt<std::int8_t>(rng, -50, 50);
+        CHECK(i8 >= -50);
+        CHECK(i8 <= 50);
+
+        char c = RandX::RandInt<char>(rng, 'a', 'z');
+        CHECK(c >= 'a');
+        CHECK(c <= 'z');
+    }
+
+    TEST_CASE("P1-2: RandBeta 极端参数非 NaN 测试")
+    {
+        RandX::Xoshiro256StarStar rng{ 100 };
+        for (int i = 0; i < 1000; ++i)
+        {
+            double beta_small = RandX::RandBeta(rng, 0.001, 0.001);
+            CHECK(std::isfinite(beta_small));
+            CHECK(beta_small >= 0.0);
+            CHECK(beta_small <= 1.0);
+
+            double beta_large = RandX::RandBeta(rng, 1e6, 1e6);
+            CHECK(std::isfinite(beta_large));
+            CHECK(beta_large >= 0.0);
+            CHECK(beta_large <= 1.0);
+        }
+    }
+
+    TEST_CASE("P1-3: MakeStreamEngine 大 streamId 快速跳跃测试")
+    {
+        auto rng = RandX::MakeStreamEngine<RandX::Xoshiro256StarStar>(1000000ULL, 123456ULL);
+        auto val = rng();
+        CHECK(val != 0ULL);
+    }
+
+    TEST_CASE("P2-2: RandBits 边界位数测试")
+    {
+        RandX::Xoshiro256StarStar rng{ 777 };
+        auto b64 = RandX::RandBits<64, std::uint64_t>(rng);
+        (void)b64;
+        auto b1 = RandX::RandBits<1, std::uint64_t>(rng);
+        CHECK(b1 <= 1ULL);
+    }
+}

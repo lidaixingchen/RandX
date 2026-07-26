@@ -77,6 +77,7 @@
 # pragma once
 # include <cstdint>
 # include <array>
+# include <cmath>
 # include <limits>
 # include <type_traits>
 # include <random>
@@ -114,8 +115,15 @@
 # elif defined(__linux__) && __has_include(<sys/random.h>)
 #	include <sys/random.h>
 #	include <cerrno>
-# elif defined(__APPLE__) && __has_include(<Security/Security.h>)
-#	include <Security/Security.h>
+# elif defined(__APPLE__)
+#	include <TargetConditionals.h>
+#	if TARGET_OS_IPHONE
+#		if __has_include(<Security/SecRandom.h>)
+#			include <Security/SecRandom.h>
+#		endif
+#	elif __has_include(<Security/Security.h>)
+#		include <Security/Security.h>
+#	endif
 # endif
 # include <chrono>   // std::chrono（RandomSeed 时间戳兜底用）
 # include <cstring>  // std::memcpy（std::random_device 回退路径用）
@@ -862,6 +870,13 @@ namespace RandX
 			return true;
 		}
 
+		template <typename State>
+		[[nodiscard]]
+		static constexpr bool IsValidState(const State& state) noexcept
+		{
+			return !IsAllZero(state);
+		}
+
 		// 尝试使用 RDRAND 获取 64 位硬件随机数
 		[[nodiscard]]
 		inline bool HardwareRand64(std::uint64_t& out) noexcept
@@ -904,15 +919,17 @@ namespace RandX
 
 #	if defined(_WIN32) && __has_include(<bcrypt.h>)
 			// Windows: BCryptGenRandom（分块处理 >4GB 时的 ULONG 截断）
-			// NTSTATUS >= 0 即 NT_SUCCESS（不能 == 0，正向 informational code 也属成功）
+			// NTSTATUS >= 0 即 NT_SUCCESS（使用 BCRYPT_SUCCESS 宏或强转 NTSTATUS 判定）
 			std::size_t filled = 0;
 			while (filled < n)
 			{
 				const ULONG chunkSize = static_cast<ULONG>((std::min)(n - filled, static_cast<std::size_t>((std::numeric_limits<ULONG>::max)())));
-				if (::BCryptGenRandom(nullptr, p + filled, chunkSize, BCRYPT_USE_SYSTEM_PREFERRED_RNG) < 0)
-				{
-					return false;
-				}
+				const auto status = ::BCryptGenRandom(nullptr, p + filled, chunkSize, BCRYPT_USE_SYSTEM_PREFERRED_RNG);
+#	if defined(BCRYPT_SUCCESS)
+				if (!BCRYPT_SUCCESS(status)) return false;
+#	else
+				if (static_cast<NTSTATUS>(status) < 0) return false;
+#	endif
 				filled += chunkSize;
 			}
 			return true;
@@ -1624,6 +1641,11 @@ namespace RandX
 		struct HasJump : std::false_type {};
 		template <class Engine>
 		struct HasJump<Engine, std::void_t<decltype(std::declval<Engine&>().jump())>> : std::true_type {};
+
+		template <class Engine, class = void>
+		struct HasLongJump : std::false_type {};
+		template <class Engine>
+		struct HasLongJump<Engine, std::void_t<decltype(std::declval<Engine&>().longJump())>> : std::true_type {};
 	}
 
 	namespace detail
@@ -1754,8 +1776,20 @@ namespace RandX
 	inline constexpr Engine MakeStreamEngine(std::uint64_t streamId, std::uint64_t seed = DefaultSeed)
 	{
 		Engine rng{ seed };
-		for (std::uint64_t i = 0; i < streamId; ++i)
-			rng.jump();
+		if constexpr (detail::HasLongJump<Engine>::value)
+		{
+			const std::uint64_t longJumps = streamId >> 32;
+			const std::uint64_t shortJumps = streamId & 0xFFFFFFFFULL;
+			for (std::uint64_t i = 0; i < longJumps; ++i)
+				rng.longJump();
+			for (std::uint64_t i = 0; i < shortJumps; ++i)
+				rng.jump();
+		}
+		else
+		{
+			for (std::uint64_t i = 0; i < streamId; ++i)
+				rng.jump();
+		}
 		return rng;
 	}
 
@@ -2069,9 +2103,7 @@ namespace RandX
 	[[nodiscard]]
 	inline T RandInt(T min, T max)
 	{
-		assert(min <= max);
-		std::uniform_int_distribution<T> dist(min, max);
-		return dist(DefaultEngine());
+		return RandInt(DefaultEngine(), min, max);
 	}
 
 	/// @brief 生成 [0, max] 范围内的随机整数
@@ -2093,9 +2125,7 @@ namespace RandX
 	[[nodiscard]]
 	inline T RandReal(T min = T{0}, T max = T{1})
 	{
-		assert(std::isfinite(min) && std::isfinite(max) && min <= max);
-		std::uniform_real_distribution<T> dist(min, max);
-		return dist(DefaultEngine());
+		return RandReal(DefaultEngine(), min, max);
 	}
 
 	/// @brief 生成随机布尔值
@@ -2629,8 +2659,10 @@ namespace RandX
 	{
 		if (min > max)
 			throw std::invalid_argument("RandInt: min must be <= max");
-		std::uniform_int_distribution<T> dist(min, max);
-		return dist(engine);
+		using DistType = std::conditional_t<(sizeof(T) < sizeof(short)),
+			std::conditional_t<std::is_signed_v<T>, int, unsigned int>, T>;
+		std::uniform_int_distribution<DistType> dist(static_cast<DistType>(min), static_cast<DistType>(max));
+		return static_cast<T>(dist(engine));
 	}
 
 	/// @brief 生成 [min, max) 范围内的随机浮点数（指定引擎重载）
@@ -2645,7 +2677,9 @@ namespace RandX
 		if (!std::isfinite(min) || !std::isfinite(max) || min > max)
 			throw std::invalid_argument("RandReal: invalid min or max");
 		std::uniform_real_distribution<T> dist(min, max);
-		return dist(engine);
+		T val = dist(engine);
+		if (val >= max) val = std::nextafter(max, min);
+		return val;
 	}
 
 	////////////////////////////////////////////////////////////////
@@ -3287,17 +3321,7 @@ namespace RandX
 	[[nodiscard]]
 	inline T RandBeta(T a = T{1}, T b = T{1})
 	{
-		if (!std::isfinite(a) || !std::isfinite(b) || a <= T{0} || b <= T{0})
-			throw std::invalid_argument("RandBeta: invalid a or b");
-		std::gamma_distribution<T> distA(a, T{1});
-		std::gamma_distribution<T> distB(b, T{1});
-		auto& rng = DefaultEngine();
-		const T x = distA(rng);
-		const T y = distB(rng);
-		const T sum = x + y;
-		if (sum == T{0})
-			return RandBool(rng, static_cast<double>(a) / static_cast<double>(a + b)) ? T{1} : T{0};
-		return x / sum;
+		return RandBeta(DefaultEngine(), a, b);
 	}
 
 	/// @brief 生成 Beta 分布随机数（指定引擎重载）
@@ -3316,8 +3340,13 @@ namespace RandX
 		const T x = distA(engine);
 		const T y = distB(engine);
 		const T sum = x + y;
-		if (sum == T{0})
-			return RandBool(engine, static_cast<double>(a) / static_cast<double>(a + b)) ? T{1} : T{0};
+		if (sum == T{0} || !std::isfinite(sum))
+		{
+			if (std::isinf(x) && !std::isinf(y)) return T{1};
+			if (!std::isinf(x) && std::isinf(y)) return T{0};
+			const double ratio = 1.0 / (1.0 + (static_cast<double>(b) / static_cast<double>(a)));
+			return RandBool(engine, ratio) ? T{1} : T{0};
+		}
 		return x / sum;
 	}
 
@@ -3328,11 +3357,7 @@ namespace RandX
 	[[nodiscard]]
 	inline T RandBits() noexcept
 	{
-		auto& rng = DefaultEngine();
-		if constexpr (N == 64)
-			return static_cast<T>(rng());
-		else
-			return static_cast<T>(rng() & ((std::uint64_t{1} << N) - 1));
+		return RandBits<N, T>(DefaultEngine());
 	}
 
 	/// @brief 生成 N 位随机整数（指定引擎重载）
@@ -3346,7 +3371,7 @@ namespace RandX
 		if constexpr (N == 64)
 			return static_cast<T>(engine());
 		else
-			return static_cast<T>(engine() & ((std::uint64_t{1} << N) - 1));
+			return static_cast<T>(engine() & ((N >= 64) ? ~std::uint64_t{0} : ((std::uint64_t{1} << (N & 63)) - 1)));
 	}
 
 	/// @brief 生成随机 UUID v4 字符串
@@ -3419,6 +3444,12 @@ namespace RandX
 	std::basic_ostream<CharT, Traits>&
 	operator<<(std::basic_ostream<CharT, Traits>& os, const Engine& engine)
 	{
+		typename std::basic_ostream<CharT, Traits>::sentry ok(os);
+		if (!ok) return os;
+
+		const auto flags = os.flags();
+		os.setf(std::ios_base::dec, std::ios_base::basefield);
+
 		auto state = engine.serialize();
 		auto it = state.begin();
 		if (it != state.end())
@@ -3427,23 +3458,32 @@ namespace RandX
 			for (++it; it != state.end(); ++it)
 				os << os.widen(' ') << *it;
 		}
+
+		os.flags(flags);
 		return os;
 	}
 
 	// 流式恢复引擎状态
-	// 若解析失败（读取不足或流错误），setstate(failbit) 且引擎状态保持不变
+	// 若解析失败（读取不足、流错误或状态非法/全零），setstate(failbit) 且引擎状态保持不变
 	// （与 std::random_engine 一致：先读取到临时 state，全部成功才 deserialize）
 	template <class CharT, class Traits, class Engine,
 		std::enable_if_t<detail::is_serializable_engine_v<Engine>>* = nullptr>
 	std::basic_istream<CharT, Traits>&
 	operator>>(std::basic_istream<CharT, Traits>& is, Engine& engine)
 	{
+		typename std::basic_istream<CharT, Traits>::sentry ok(is);
+		if (!ok) return is;
+
+		const auto flags = is.flags();
+		is.setf(std::ios_base::dec, std::ios_base::basefield);
+		is.setf(std::ios_base::skipws);
+
 		typename Engine::state_type state{};
 		std::size_t i = 0;
 		for (; i < state.size() && is; ++i)
 			is >> state[i];
 
-		if (i == state.size() && is)
+		if (i == state.size() && is && detail::IsValidState(state))
 		{
 			engine.deserialize(state);
 		}
@@ -3451,6 +3491,8 @@ namespace RandX
 		{
 			is.setstate(std::ios_base::failbit);
 		}
+
+		is.flags(flags);
 		return is;
 	}
 
