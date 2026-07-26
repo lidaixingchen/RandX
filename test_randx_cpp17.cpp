@@ -524,17 +524,17 @@ TEST_SUITE("新增 API")
         std::list<int> l = { 100, 200, 300, 400, 500 };
         for (int i = 0; i < MC_TRIALS_100; ++i)
         {
-            auto it = RandElement(l.begin(), l.end());
-            CHECK(*it >= 100);
-            CHECK(*it <= 500);
+            auto val = RandElement(l.begin(), l.end());
+            CHECK(val >= 100);
+            CHECK(val <= 500);
         }
         // 引擎重载
         Xoshiro256StarStar rng{ 12345 };
         for (int i = 0; i < MC_TRIALS_100; ++i)
         {
-            auto it = RandElement(rng, l.begin(), l.end());
-            CHECK(*it >= 100);
-            CHECK(*it <= 500);
+            auto val = RandElement(rng, l.begin(), l.end());
+            CHECK(val >= 100);
+            CHECK(val <= 500);
         }
     }
 
@@ -1477,5 +1477,82 @@ TEST_SUITE("边界用例")
         auto p1 = RandX::RandPermutation(1);
         REQUIRE(p1.size() == 1);
         CHECK(p1[0] == 0);
+    }
+}
+
+// ============================================================================
+// P0 / P1 / P2 缺陷修复回归测试套件 (C++17)
+// ============================================================================
+TEST_SUITE("P0/P1/P2 Regression Audit Suite (C++17)")
+{
+    TEST_CASE("Input Iterator RandElement 按值返回")
+    {
+        std::istringstream iss("10 20 30 40 50");
+        std::istream_iterator<int> beg(iss), end;
+        int val = RandX::RandElement(beg, end);
+        CHECK((val == 10 || val == 20 || val == 30 || val == 40 || val == 50));
+    }
+
+    TEST_CASE("C++17 原生 C 数组支持 (RandElement / RandSample)")
+    {
+        int arr[5] = {10, 20, 30, 40, 50};
+        int val = RandX::RandElement(arr);
+        CHECK((val >= 10 && val <= 50));
+
+        auto sampled = RandX::RandSample(arr, 3);
+        CHECK(sampled.size() == 3);
+    }
+
+    TEST_CASE("Engine& 重载分布模板形参顺序推导")
+    {
+        RandX::Xoshiro256StarStar rng{ 12345 };
+        double valNorm = RandX::RandNormal(rng);
+        double valLog = RandX::RandLogNormal(rng);
+        int valGeom = RandX::RandGeometric(rng);
+        double valExp = RandX::RandExp(rng);
+        (void)valNorm; (void)valLog; (void)valExp;
+        CHECK(valGeom >= 0);
+    }
+
+    TEST_CASE("分布非法参数显式抛出 std::invalid_argument")
+    {
+        CHECK_THROWS_AS((void)RandX::RandGeometric(0.0), std::invalid_argument);
+        CHECK_THROWS_AS((void)RandX::RandGeometric(1.5), std::invalid_argument);
+        CHECK_THROWS_AS((void)RandX::RandPoisson(-1.0), std::invalid_argument);
+        CHECK_THROWS_AS((void)RandX::RandNormal(0.0, -1.0), std::invalid_argument);
+        CHECK_THROWS_AS((void)RandX::RandExp(-2.0), std::invalid_argument);
+        CHECK_THROWS_AS((void)RandX::RandLogNormal(0.0, 0.0), std::invalid_argument);
+    }
+
+    TEST_CASE("RandSample 逆序迭代器边界")
+    {
+        std::vector<int> v = {1, 2, 3, 4, 5};
+        auto res = RandX::RandSample(v.end(), v.begin(), 3);
+        CHECK(res.empty());
+    }
+
+    TEST_CASE("ChaCha20 moved-from 自动重播种保护")
+    {
+        RandX::ChaCha20 a{ 12345 };
+        RandX::ChaCha20 b = std::move(a);
+        const std::uint64_t val1 = a();
+        const std::uint64_t val2 = a();
+        CHECK((val1 != 0ULL || val2 != 0ULL));
+    }
+
+    TEST_CASE("RandBits 有符号整型与自定义引擎")
+    {
+        std::int32_t bits32 = RandX::RandBits<32, std::int32_t>();
+        (void)bits32;
+        RandX::Xoshiro256StarStar rng{ 999 };
+        std::uint32_t bitsRng = RandX::RandBits<16, std::uint32_t>(rng);
+        CHECK(bitsRng <= 0xFFFFU);
+    }
+
+    TEST_CASE("ResetThreadLocalEngine 重置线程局部引擎")
+    {
+        RandX::ResetThreadLocalEngine();
+        int val = RandX::RandInt(1, 100);
+        CHECK((val >= 1 && val <= 100));
     }
 }
