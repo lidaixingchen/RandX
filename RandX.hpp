@@ -1651,6 +1651,30 @@ namespace RandX
 		return RandReal(DefaultEngine(), min, max);
 	}
 
+	/// @brief 采用无偏 Bit-Extraction 直通算法生成 [0, 1) 半开区间的随机浮点数（默认线程引擎）
+	/// @tparam T 浮点数类型（float / double）
+	/// @return [0, 1) 范围内的无偏伪随机浮点数
+	template <std::floating_point T = double>
+	[[nodiscard]]
+	inline T RandCanonical() noexcept
+	{
+		return RandCanonical<T>(DefaultEngine());
+	}
+
+	/// @brief 生成 [0.0, 1.0) 半开区间的双精度浮点数（直通 Bit-Extraction 极速 API）
+	[[nodiscard]]
+	inline double RandCanonicalDouble() noexcept
+	{
+		return RandCanonical<double>();
+	}
+
+	/// @brief 生成 [0.0f, 1.0f) 半开区间的单精度浮点数（直通 Bit-Extraction 极速 API）
+	[[nodiscard]]
+	inline float RandCanonicalFloat() noexcept
+	{
+		return RandCanonical<float>();
+	}
+
 	/// @brief 生成随机布尔值
 	/// @param p 为 true 的概率（默认 0.5）
 	/// @return 以概率 p 返回 true
@@ -2108,6 +2132,51 @@ namespace RandX
 		return static_cast<T>(dist(engine));
 	}
 
+	/// @brief 采用无偏 Bit-Extraction 直通算法生成 [0, 1) 半开区间的随机浮点数（指定引擎重载）
+	/// @tparam T 浮点数类型（float / double）
+	/// @param engine 伪随机数生成引擎（自动兼容 32 位与 64 位输出引擎）
+	/// @return [0, 1) 范围内的无偏伪随机浮点数
+	template <std::floating_point T, class Engine>
+	[[nodiscard]]
+	inline constexpr T RandCanonical(Engine& engine) noexcept
+	{
+		using ResultType = typename Engine::result_type;
+		constexpr std::size_t Bits = sizeof(ResultType) * 8;
+
+		if constexpr (std::same_as<T, double>)
+		{
+			if constexpr (Bits >= 64)
+			{
+				const std::uint64_t r = static_cast<std::uint64_t>(engine());
+				return static_cast<double>(r >> 11) * 0x1.0p-53;
+			}
+			else
+			{
+				const std::uint64_t high = static_cast<std::uint64_t>(engine());
+				const std::uint64_t low  = static_cast<std::uint64_t>(engine());
+				const std::uint64_t r = (high << 32) | low;
+				return static_cast<double>(r >> 11) * 0x1.0p-53;
+			}
+		}
+		else if constexpr (std::same_as<T, float>)
+		{
+			if constexpr (Bits >= 64)
+			{
+				const std::uint64_t r = static_cast<std::uint64_t>(engine());
+				return static_cast<float>(r >> 40) * 0x1.0p-24f;
+			}
+			else
+			{
+				const std::uint32_t r = static_cast<std::uint32_t>(engine());
+				return static_cast<float>(r >> 8) * 0x1.0p-24f;
+			}
+		}
+		else
+		{
+			return std::generate_canonical<T, std::numeric_limits<T>::digits>(engine);
+		}
+	}
+
 	/// @brief 生成 [min, max) 范围内的随机浮点数（指定引擎重载）
 	/// @param engine 自定义随机数引擎
 	/// @param min 下界（含，默认 0）
@@ -2118,6 +2187,10 @@ namespace RandX
 	inline T RandReal(Engine& engine, T min = T{0}, T max = T{1})
 	{
 		assert(std::isfinite(min) && std::isfinite(max) && min <= max);
+		if (min == T{0} && max == T{1})
+		{
+			return RandCanonical<T>(engine);
+		}
 		std::uniform_real_distribution<T> dist(min, max);
 		T val = dist(engine);
 		if (val >= max) val = std::nextafter(max, min);

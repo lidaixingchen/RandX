@@ -1635,6 +1635,54 @@ TEST_SUITE("边界用例")
             CHECK(RandX::RandReal(2.5, 2.5) == 2.5);
     }
 
+    TEST_CASE("RandCanonical 直通 Bit-Extraction 浮点生成")
+    {
+        RandX::Reseed(12345);
+
+        double d_sum = 0.0;
+        constexpr int N = 10000;
+        for (int i = 0; i < N; ++i)
+        {
+            double v = RandX::RandCanonicalDouble();
+            CHECK((v >= 0.0 && v < 1.0));
+            d_sum += v;
+        }
+        double d_mean = d_sum / N;
+        CHECK((d_mean >= 0.45 && d_mean <= 0.55));
+
+        float f_sum = 0.0f;
+        for (int i = 0; i < N; ++i)
+        {
+            float v = RandX::RandCanonicalFloat();
+            CHECK((v >= 0.0f && v < 1.0f));
+            f_sum += v;
+        }
+        float f_mean = f_sum / N;
+        CHECK((f_mean >= 0.45f && f_mean <= 0.55f));
+
+        // 32 位引擎专向兼容测试 (Xoshiro128StarStar)
+        RandX::Xoshiro128StarStar rng32{ 54321 };
+        double d32_sum = 0.0;
+        for (int i = 0; i < N; ++i)
+        {
+            double v = RandX::RandCanonical<double>(rng32);
+            CHECK((v >= 0.0 && v < 1.0));
+            d32_sum += v;
+        }
+        double d32_mean = d32_sum / N;
+        CHECK((d32_mean >= 0.45 && d32_mean <= 0.55));
+
+        float f32_sum = 0.0f;
+        for (int i = 0; i < N; ++i)
+        {
+            float v = RandX::RandCanonical<float>(rng32);
+            CHECK((v >= 0.0f && v < 1.0f));
+            f32_sum += v;
+        }
+        float f32_mean = f32_sum / N;
+        CHECK((f32_mean >= 0.45f && f32_mean <= 0.55f));
+    }
+
     TEST_CASE("RandBool(0.0) 始终 false / RandBool(1.0) 始终 true")
     {
         RandX::Reseed(42);

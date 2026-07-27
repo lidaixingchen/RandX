@@ -428,6 +428,24 @@ int main()
 	BenchmarkSecureRandomBytesLatency("SecureRandomBytes");
 
 	std::printf("\n");
+
+	//----------------------------------------------------------------
+	// 第八部分：RandCanonical 浮点直通吞吐量对比（v1.3.5 新增）
+	//----------------------------------------------------------------
+	std::printf("[8] RandCanonical 浮点直通吞吐量对比 (%d 次迭代)\n", N);
+	std::printf("----------------------------------------------------------------\n");
+	{
+		RandX::Xoshiro256StarStar rng{ 42 };
+		const auto start = std::chrono::high_resolution_clock::now();
+		for (int i = 0; i < N; ++i)
+			DoNotOptimize(RandX::RandCanonicalDouble());
+		const auto end = std::chrono::high_resolution_clock::now();
+		const double ms = std::chrono::duration<double, std::milli>(end - start).count();
+		const double mops = N / ms / 1000.0;
+		std::printf("  %-40s %8.1f Mops/s  (%6.1f ms)\n", "RandCanonicalDouble", mops, ms);
+	}
+
+	std::printf("\n");
 	std::printf("================================================================\n");
 	std::printf("  基准测试完成\n");
 	std::printf("================================================================\n");
