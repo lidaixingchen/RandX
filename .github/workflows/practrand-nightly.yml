@@ -5,8 +5,8 @@ name: PractRand Nightly
 # 失败时自动创建 issue 通知维护者
 on:
   schedule:
-    # 每天 03:00 UTC（北京 11:00）
-    - cron: '0 3 * * *'
+    # 每天 16:00 UTC（北京 00:00）
+    - cron: '0 16 * * *'
   workflow_dispatch:
     inputs:
       length:

@@ -148,6 +148,17 @@ TEST_SUITE("引擎基础设施")
             CHECK(rng() == rng2());
     }
 
+    TEST_CASE("全零吸收态防御修正")
+    {
+        std::array<std::uint64_t, 4> zeroState{};
+        RandX::Xoshiro256StarStar rng{ zeroState };
+        CHECK_FALSE((rng() == 0 && rng() == 0 && rng() == 0));
+
+        RandX::Xoshiro256StarStar rng2{ 12345 };
+        rng2.deserialize(zeroState);
+        CHECK_FALSE((rng2() == 0 && rng2() == 0 && rng2() == 0));
+    }
+
     TEST_CASE("discard 与连续调用等价")
     {
         RandX::Xoshiro256StarStar a{ 42 };

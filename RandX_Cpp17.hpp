@@ -317,8 +317,12 @@ namespace RandX
 
 			constexpr void deserialize(const state_type& s) noexcept
 			{
-				assert(!IsAllZero(s) && "absorbing all-zero state");
 				s_ = s;
+				if (IsAllZero(s_))
+				{
+					s_[0] = static_cast<ResultType>(1);
+				}
+				assert(!IsAllZero(s_) && "absorbing all-zero state");
 			}
 
 			// C++17: 手写比较运算符
@@ -338,10 +342,14 @@ namespace RandX
 
 			EngineBase() = default;
 
-			// State 构造（用户直接传入，仅 assert 检测零状态）
+			// State 构造（用户直接传入，包含 Release/Debug 全零状态静默修正）
 			explicit constexpr EngineBase(const state_type& state) noexcept
 				: s_(state)
 			{
+				if (IsAllZero(s_))
+				{
+					s_[0] = static_cast<ResultType>(1);
+				}
 				assert(!IsAllZero(s_) && "absorbing all-zero state");
 			}
 

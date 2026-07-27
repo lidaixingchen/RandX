@@ -12,21 +12,21 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BUILD_DIR="${SCRIPT_DIR}/PractRand_build"
 SRC_DIR="${SCRIPT_DIR}/PractRand_src"
 
-# PractRand 上游（官方仓库）
-PRACTRAND_REPO="https://github.com/PractRand/PractRand.git"
-# 锁定版本 tag（避免上游破坏性变更）
-PRACTRAND_TAG="v0.95"
+# PractRand 上游（镜像仓库）
+PRACTRAND_REPO="https://github.com/csc-lab/PractRand.git"
+# 锁定版本分支或 tag
+PRACTRAND_TAG="main"
 
 echo "[1/4] 清理旧构建 ..."
 rm -rf "${BUILD_DIR}" "${SRC_DIR}"
 
-echo "[2/4] 克隆 PractRand ${PRACTRAND_TAG} ..."
+echo "[2/4] 克隆 PractRand ..."
 git clone --depth 1 --branch "${PRACTRAND_TAG}" "${PRACTRAND_REPO}" "${SRC_DIR}"
 
 echo "[3/4] 构建 RNG_output ..."
 pushd "${SRC_DIR}" >/dev/null
-# PractRand 用 makefile 直接构建，无 configure 步骤
-make -j"$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 2)" build
+mkdir -p bin
+g++ -O3 -Iinclude -I. src/*.cpp src/*/*.cpp src/*/*/*.cpp tools/RNG_output.cpp -o bin/RNG_output -lpthread
 popd >/dev/null
 
 echo "[4/4] 拷贝产物到 ${BUILD_DIR}/ ..."
