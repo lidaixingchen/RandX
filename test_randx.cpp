@@ -159,6 +159,18 @@ TEST_SUITE("引擎基础设施")
         CHECK_FALSE((rng2() == 0 && rng2() == 0 && rng2() == 0));
     }
 
+    TEST_CASE("引擎 Trivially Destructible 静态断言")
+    {
+        static_assert(std::is_trivially_destructible_v<RandX::Xoshiro256StarStar>);
+        static_assert(std::is_trivially_destructible_v<RandX::Xoroshiro128StarStar>);
+        static_assert(std::is_trivially_destructible_v<RandX::Xoshiro128StarStar>);
+        static_assert(std::is_trivially_destructible_v<RandX::Xoroshiro64StarStar>);
+        static_assert(std::is_trivially_destructible_v<RandX::SplitMix64>);
+        static_assert(std::is_trivially_destructible_v<RandX::SFC64>);
+        static_assert(std::is_trivially_destructible_v<RandX::RomuDuoJr>);
+        CHECK(true);
+    }
+
     TEST_CASE("discard 与连续调用等价")
     {
         RandX::Xoshiro256StarStar a{ 42 };

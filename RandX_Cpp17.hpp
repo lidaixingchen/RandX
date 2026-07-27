@@ -702,6 +702,15 @@ namespace RandX
 		constexpr result_type operator()() noexcept;
 	};
 
+	// ── 全 PRNG 引擎 TLS 可平凡析构（Trivially Destructible）编译期静态断言 ──
+	static_assert(std::is_trivially_destructible_v<Xoshiro256StarStar>, "Xoshiro256StarStar must be trivially destructible for safe TLS.");
+	static_assert(std::is_trivially_destructible_v<Xoroshiro128StarStar>, "Xoroshiro128StarStar must be trivially destructible for safe TLS.");
+	static_assert(std::is_trivially_destructible_v<Xoshiro128StarStar>, "Xoshiro128StarStar must be trivially destructible for safe TLS.");
+	static_assert(std::is_trivially_destructible_v<Xoroshiro64StarStar>, "Xoroshiro64StarStar must be trivially destructible for safe TLS.");
+	static_assert(std::is_trivially_destructible_v<SplitMix64>, "SplitMix64 must be trivially destructible for safe TLS.");
+	static_assert(std::is_trivially_destructible_v<SFC64>, "SFC64 must be trivially destructible for safe TLS.");
+	static_assert(std::is_trivially_destructible_v<RomuDuoJr>, "RomuDuoJr must be trivially destructible for safe TLS.");
+
 	/// @brief ChaCha20 密码学安全伪随机数生成器（CSPRNG），64 位输出，符合 RFC 8439。
 	///
 	/// @details 状态为 key(256-bit) + counter(32-bit) + nonce(96-bit)。
