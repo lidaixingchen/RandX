@@ -16,5 +16,6 @@ tools/pract_rand/PractRand_src/
 .vs/
 .vscode/
 .trae/
+.qoder/
 AGENTS.md
 *.user

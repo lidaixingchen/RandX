@@ -278,7 +278,7 @@ namespace RandX
 		state_type m_state;
 	};
 
-	// ── EngineBase CRTP 基类（v1.5 引擎去重） ──
+	// ── EngineBase CRTP 基类 ──
 	// 为数组状态引擎提供公共接口：min/max/discard/serialize/比较/构造/jumpPoly
 	// SplitMix64（标量状态）和 ChaCha20（CSPRNG）不继承此基类
 	namespace detail
@@ -1809,7 +1809,7 @@ namespace RandX
 
 	////////////////////////////////////////////////////////////////
 	//
-	//	RandChar / RandString 预设字符集（v1.2 新增）
+	//	RandChar / RandString 预设字符集
 	//
 	//	提供常用字符集枚举，避免手写 ASCII 范围或字符串。
 	//
@@ -2338,7 +2338,7 @@ namespace RandX
 	}
 
 	// ============================================================
-	// RandSample 迭代器版（v1.2 新增）
+	// RandSample 迭代器版
 	// 路径 1：随机访问迭代器 —— hash-set / 索引数组双分支
 	// 路径 2：输入迭代器 —— reservoir sampling (Algorithm R, i+1 修复)
 	// ============================================================

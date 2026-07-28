@@ -8,6 +8,7 @@ on:
       - 'RandX_Cpp17.hpp'
       - 'test_randx.cpp'
       - 'test_randx_cpp17.cpp'
+      - 'gen_parity_sequences.cpp'
       - 'benchmark.cpp'
       - 'benchmark_gbench.cpp'
       - 'CMakeLists.txt'
@@ -20,6 +21,7 @@ on:
       - 'RandX_Cpp17.hpp'
       - 'test_randx.cpp'
       - 'test_randx_cpp17.cpp'
+      - 'gen_parity_sequences.cpp'
       - 'benchmark.cpp'
       - 'benchmark_gbench.cpp'
       - 'CMakeLists.txt'
@@ -121,6 +123,39 @@ jobs:
         run: |
           cl /std:c++20 /W4 /EHsc /O2 /I third_party /Fe:test_randx_cpp17.exe test_randx_cpp17.cpp
           test_randx_cpp17.exe
+
+  # 跨标准序列一致性检查：同一生成器分别以 C++23（RandX.hpp）与
+  # C++17（RandX_Cpp17.hpp）编译，固定种子输出各引擎与便捷 API 序列后逐字节比对，
+  # 机械保证「双头文件输出序列完全一致」不变量（KAT 测试保持不变，独立于本 job）
+  parity:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install GCC 14
+        run: |
+          sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
+          sudo apt-get update
+          sudo apt-get install -y g++-14
+      - name: Build parity generators (C++23 + C++17)
+        run: |
+          g++-14 -std=c++23 -O2 -Wall -Wextra \
+            -o gen_parity_cpp23 gen_parity_sequences.cpp
+          g++-14 -std=c++17 -O2 -Wall -Wextra -DRANDX_PARITY_CPP17 \
+            -o gen_parity_cpp17 gen_parity_sequences.cpp
+      - name: Generate & compare sequences byte-by-byte
+        run: |
+          ./gen_parity_cpp23 > seq_cpp23.txt
+          ./gen_parity_cpp17 > seq_cpp17.txt
+          cmp seq_cpp23.txt seq_cpp17.txt
+          echo "Cross-standard sequences are byte-identical ($(wc -c < seq_cpp23.txt) bytes)"
+      - name: Upload sequences on mismatch
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: parity-sequences
+          path: |
+            seq_cpp23.txt
+            seq_cpp17.txt
 
   coverage:
     runs-on: ubuntu-24.04
