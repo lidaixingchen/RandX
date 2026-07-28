@@ -50,9 +50,10 @@ install(FILES
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/RandX
 )
 
-# 可选：构建测试和 benchmark
+# 可选：构建测试、benchmark 和示例
 option(RANDX_BUILD_TESTS "Build tests" OFF)
 option(RANDX_BUILD_BENCHMARK "Build benchmark" OFF)
+option(RANDX_BUILD_EXAMPLES "Build examples" OFF)
 option(RANDX_ENABLE_COVERAGE "Enable code coverage (GCC/Clang)" OFF)
 
 if(RANDX_BUILD_TESTS)
@@ -103,4 +104,22 @@ if(RANDX_BUILD_BENCHMARK)
     add_executable(benchmark_gbench benchmark_gbench.cpp)
     target_link_libraries(benchmark_gbench PRIVATE benchmark::benchmark RandX)
     target_compile_features(benchmark_gbench PRIVATE cxx_std_23)
+endif()
+
+if(RANDX_BUILD_EXAMPLES)
+    # examples/ 全部示例 + PractRand 序列生成器（均基于 RandX.hpp，需 C++23）
+    set(RANDX_EXAMPLE_SOURCES
+        examples/chacha20_csprng.cpp
+        examples/compile_time.cpp
+        examples/engine_management.cpp
+        examples/multi_stream.cpp
+        examples/weighted_select.cpp
+        gen_sequences.cpp
+    )
+    foreach(example_source IN LISTS RANDX_EXAMPLE_SOURCES)
+        get_filename_component(example_name ${example_source} NAME_WE)
+        add_executable(example_${example_name} ${example_source})
+        target_compile_features(example_${example_name} PRIVATE cxx_std_23)
+        target_link_libraries(example_${example_name} PRIVATE RandX)
+    endforeach()
 endif()

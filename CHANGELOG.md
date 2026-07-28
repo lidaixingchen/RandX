@@ -4,6 +4,10 @@
 
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/)。
 
+## 未发布
+
+- **CI**：benchmark.yml 基线对比升级为门禁——实际移除 continue-on-error（v1.4.3 记录的移除未落地），容差 15%→25% 以适配共享 runner 噪声，失败自动创建 issue，并增加与 ci.yml 一致的 paths 过滤。
+
 ## v1.4.3 - 2026-07-26
 
 - **修复 `Generate64Bits` 双文件位序不一致（P0）**：C++17 版 32 位引擎拼接顺序改为 lo/hi，与 C++23 版一致，消除 `RandUUID` 等函数跨头文件输出差异。

@@ -9,6 +9,8 @@ on:
       - 'test_randx.cpp'
       - 'test_randx_cpp17.cpp'
       - 'gen_parity_sequences.cpp'
+      - 'gen_sequences.cpp'
+      - 'examples/**'
       - 'benchmark.cpp'
       - 'benchmark_gbench.cpp'
       - 'CMakeLists.txt'
@@ -22,6 +24,8 @@ on:
       - 'test_randx.cpp'
       - 'test_randx_cpp17.cpp'
       - 'gen_parity_sequences.cpp'
+      - 'gen_sequences.cpp'
+      - 'examples/**'
       - 'benchmark.cpp'
       - 'benchmark_gbench.cpp'
       - 'CMakeLists.txt'
@@ -156,6 +160,23 @@ jobs:
           path: |
             seq_cpp23.txt
             seq_cpp17.txt
+
+  # 示例编译冒烟检查：以 -DRANDX_BUILD_EXAMPLES=ON 构建 examples/ 全部示例
+  # 与 gen_sequences.cpp，仅验证可编译，不运行
+  examples:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install GCC 14
+        run: |
+          sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
+          sudo apt-get update
+          sudo apt-get install -y g++-14
+      - name: Configure & build examples
+        run: |
+          cmake -B build -DRANDX_BUILD_EXAMPLES=ON \
+            -DCMAKE_CXX_COMPILER=g++-14
+          cmake --build build
 
   coverage:
     runs-on: ubuntu-24.04

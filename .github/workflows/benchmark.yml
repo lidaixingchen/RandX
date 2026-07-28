@@ -1,10 +1,34 @@
 name: Benchmark
 
+# 定位：性能回归门禁（gate）——基线对比失败即整个 job 失败，
+# 并自动创建 issue 通知维护者（参照 practrand-nightly.yml 的通知模式）。
+# paths 过滤与 ci.yml 的头文件/基准文件白名单保持一致（仅收录本 workflow
+# 实际构建的 benchmark_gbench.cpp，不含 ci.yml 独有的 benchmark.cpp 与测试文件），
+# 避免文档等无关改动触发运行。
 on:
   push:
     branches: [master]
+    paths:
+      - 'RandX.hpp'
+      - 'RandX_Cpp17.hpp'
+      - 'benchmark_gbench.cpp'
+      - 'CMakeLists.txt'
+      - 'tools/compare_benchmark.py'
+      - '.github/workflows/benchmark.yml'
   pull_request:
     branches: [master]
+    paths:
+      - 'RandX.hpp'
+      - 'RandX_Cpp17.hpp'
+      - 'benchmark_gbench.cpp'
+      - 'CMakeLists.txt'
+      - 'tools/compare_benchmark.py'
+      - '.github/workflows/benchmark.yml'
+
+permissions:
+  contents: read
+  actions: read   # gh api 查询历史 run + 下载基线 artifact
+  issues: write   # 回归失败时自动创建 issue
 
 jobs:
   benchmark:
@@ -53,9 +77,59 @@ jobs:
           github-token: ${{ github.token }}
 
       - name: Compare with Baseline
+        id: compare
         if: hashFiles('baseline/result.json') != ''
-        continue-on-error: true
-        run: python3 tools/compare_benchmark.py result.json baseline/result.json --tolerance 0.15
+        # 门禁：超容差即失败拦截。共享 runner 噪声较大（median 聚合下波动
+        # 通常在 10%~20%），容差由记录型时期的 15% 放宽至 25% 以降低误报
+        run: python3 tools/compare_benchmark.py result.json baseline/result.json --tolerance 0.25
+
+      - name: Create issue on regression
+        # 仅在基线对比这一步失败时建 issue（构建/环境失败不建）；
+        # fork PR 的 token 只读，跳过以免二次报错
+        if: >-
+          failure() && steps.compare.outcome == 'failure' &&
+          (github.event_name != 'pull_request' || !github.event.pull_request.head.repo.fork)
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const date = new Date().toISOString().slice(0, 10);
+            const titlePrefix = '[Benchmark 回归]';
+            // 查重：已有未关闭的同类 issue 则跳过
+            const { data: issues } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: 'benchmark',
+              per_page: 20
+            });
+            const dup = issues.find(i => i.title.startsWith(titlePrefix));
+            if (dup) {
+              core.info(`已有未关闭 issue #${dup.number}，跳过创建`);
+              return;
+            }
+            const runUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const source = context.eventName === 'pull_request'
+              ? `PR #${context.payload.pull_request.number}`
+              : `push 到 \`${context.ref.replace('refs/heads/', '')}\`（${context.sha.slice(0, 7)}）`;
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `${titlePrefix} ${date} 基线对比超容差`,
+              body: [
+                `Benchmark 基线对比失败（容差 25%），来源：${source}，详见 [workflow run](${runUrl})。`,
+                '',
+                '可能原因：',
+                '1. 引擎或便捷 API 实现引入性能回归',
+                '2. 共享 runner 噪声波动（重跑 workflow 确认是否可复现）',
+                '3. 编译器/依赖版本变更导致代码生成差异',
+                '',
+                '排查建议：',
+                '- 查看 run 日志中 compare_benchmark.py 输出的回归项表格',
+                '- 本地复现：构建 `benchmark_gbench` 后运行 `tools/compare_benchmark.py`',
+                '- 确认为噪声误报后可重跑；连续误报则考虑调整 `--tolerance`',
+              ].join('\n'),
+              labels: ['performance', 'benchmark']
+            });
 
       - name: Upload Current Result as Baseline
         if: github.ref == 'refs/heads/master' && github.event_name == 'push'
