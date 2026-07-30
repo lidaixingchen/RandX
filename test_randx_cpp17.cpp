@@ -161,6 +161,48 @@ TEST_SUITE("引擎基础设施")
         CHECK_FALSE((rng2() == 0 && rng2() == 0 && rng2() == 0));
     }
 
+    // 全零输入被静默修正为 s_[0]=1（SFC64 为 0x9E37...），修正后序列完全确定，
+    // 且与 test_randx.cpp 的同名断言保持一致（见 docs/API.md「全零状态静默修正」）
+    TEST_CASE("全零输入 → 修正后确定序列")
+    {
+        {
+            RandX::Xoshiro256StarStar rng{ std::array<std::uint64_t, 4>{} };
+            CHECK(rng() == 0ULL);
+            CHECK(rng() == 5760ULL);
+            CHECK(rng() == 5760ULL);
+        }
+        {
+            RandX::Xoroshiro128StarStar rng{ std::array<std::uint64_t, 2>{} };
+            CHECK(rng() == 5760ULL);
+            CHECK(rng() == 97014257280ULL);
+            CHECK(rng() == 16610091813126018688ULL);
+        }
+        {
+            RandX::Xoshiro128StarStar rng{ std::array<std::uint32_t, 4>{} };
+            CHECK(rng() == 0U);
+            CHECK(rng() == 5760U);
+            CHECK(rng() == 5760U);
+        }
+        {
+            RandX::Xoroshiro64StarStar rng{ std::array<std::uint32_t, 2>{} };
+            CHECK(rng() == 3802928447U);
+            CHECK(rng() == 3134575995U);
+            CHECK(rng() == 1411955750U);
+        }
+        {
+            RandX::SFC64 rng{ std::array<std::uint64_t, 4>{} };
+            CHECK(rng() == 1ULL);
+            CHECK(rng() == 1ULL);
+            CHECK(rng() == 11ULL);
+        }
+        {
+            RandX::RomuDuoJr rng{ std::array<std::uint64_t, 2>{} };
+            CHECK(rng() == 1ULL);
+            CHECK(rng() == 0ULL);
+            CHECK(rng() == 3205649788950522037ULL);
+        }
+    }
+
     TEST_CASE("引擎 Trivially Destructible 静态断言")
     {
         static_assert(std::is_trivially_destructible_v<RandX::Xoshiro256StarStar>);

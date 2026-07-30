@@ -343,6 +343,36 @@ constexpr void deserialize(state_type state) noexcept;
 | RomuDuoJr | `std::array<std::uint64_t, 2>` |
 | ChaCha20 | **不提供**（CSPRNG 安全约束） |
 
+### 全零状态静默修正
+
+全零状态是 xoshiro/xoroshiro 算法族的吸收态（输出永远为 0）。为防止引擎陷入吸收态，
+数组状态引擎（Xoshiro256StarStar / Xoroshiro128StarStar / Xoshiro128StarStar /
+Xoroshiro64StarStar / SFC64 / RomuDuoJr）在以下入口会**静默修正**全零输入，
+Debug 与 Release 行为一致，无断言触发、无返回值、无可查询标志：
+
+| 入口 | 修正规则 |
+|------|--------|
+| `EngineBase(state_type)` 状态构造 | 若全零则置 `s_[0] = 1`，其余不变 |
+| `deserialize(state_type)` | 若全零则置 `s_[0] = 1`，其余不变 |
+| SeedSeq / 单值播种构造 | 播种后若仍全零则置 `s_[0] = 1` |
+| `SFC64(seed)` / `SFC64(SeedSeq&)` | 若 3 个状态字均为 0，则置 `s_[0] = 0x9E3779B97F4A7C15`（counter 固定为 1） |
+
+> `SplitMix64` 为标量状态、非吸收态，不参与此修正；`ChaCha20` 不提供状态构造 / deserialize。
+
+修正后的输出序列完全确定（与种子无关），且 C++23 与 C++17 两个头文件一致。以全零输入为例，
+各引擎修正后前 3 个输出为：
+
+| 引擎 | 修正后前 3 个输出 |
+|------|----------------|
+| Xoshiro256StarStar | `0, 5760, 5760` |
+| Xoroshiro128StarStar | `5760, 97014257280, 16610091813126018688` |
+| Xoshiro128StarStar | `0, 5760, 5760` |
+| Xoroshiro64StarStar | `3802928447, 3134575995, 1411955750` |
+| SFC64 | `1, 1, 11` |
+| RomuDuoJr | `1, 0, 3205649788950522037` |
+
+该行为已在 `test_randx.cpp` 与 `test_randx_cpp17.cpp` 的「全零输入 → 修正后确定序列」断言中回归。
+
 ### operator<< / operator>>
 
 ```cpp
