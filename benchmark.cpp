@@ -438,7 +438,7 @@ int main()
 		RandX::Xoshiro256StarStar rng{ 42 };
 		const auto start = std::chrono::high_resolution_clock::now();
 		for (int i = 0; i < N; ++i)
-			DoNotOptimize(RandX::RandCanonicalDouble());
+			DoNotOptimize(RandX::RandCanonical<double>(rng));
 		const auto end = std::chrono::high_resolution_clock::now();
 		const double ms = std::chrono::duration<double, std::milli>(end - start).count();
 		const double mops = N / ms / 1000.0;

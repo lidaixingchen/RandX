@@ -136,7 +136,7 @@ BENCHMARK(BM_ChaCha20RawNoReseed);
 // ChaCha20 真实吞吐（含周期性 reseed）：反映生产环境实际性能
 static void BM_ChaCha20RawWithReseed(benchmark::State& state)
 {
-    RandX::ChaCha20 rng{42};
+    RandX::ChaCha20 rng{};  // 默认构造启用自动 reseed
     for (auto _ : state)
     {
         for (int i = 0; i < kEngineInnerLoop; ++i)
