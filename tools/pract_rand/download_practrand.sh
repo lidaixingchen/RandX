@@ -26,7 +26,14 @@ git clone --depth 1 --branch "${PRACTRAND_TAG}" "${PRACTRAND_REPO}" "${SRC_DIR}"
 echo "[3/4] 构建 RNG_output ..."
 pushd "${SRC_DIR}" >/dev/null
 mkdir -p bin
-g++ -O3 -Iinclude -I. src/*.cpp src/*/*.cpp src/*/*/*.cpp tools/RNG_output.cpp -o bin/RNG_output -lpthread
+shopt -s nullglob
+SOURCES=(src/*.cpp src/*/*.cpp src/*/*/*.cpp)
+shopt -u nullglob
+if [ ${#SOURCES[@]} -eq 0 ]; then
+    echo "错误：未找到 PractRand 源文件" >&2
+    exit 1
+fi
+g++ -O3 -Iinclude -I. "${SOURCES[@]}" tools/RNG_output.cpp -o bin/RNG_output -lpthread
 popd >/dev/null
 
 echo "[4/4] 拷贝产物到 ${BUILD_DIR}/ ..."

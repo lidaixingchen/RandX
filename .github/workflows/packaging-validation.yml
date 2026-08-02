@@ -35,6 +35,10 @@ jobs:
           $ver = "$env:INPUT_VERSION"
           if ([string]::IsNullOrEmpty($ver)) {
             $tagName = "$env:INPUT_REF_NAME"
+            if ($tagName -notmatch '^v[0-9]+\.[0-9]+\.[0-9]+$') {
+              Write-Error "Cannot resolve version from ref '$tagName'; please provide the version input"
+              exit 1
+            }
             $ver = $tagName.Substring(1)  # 去掉前缀 v
           }
           "version=$ver" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
