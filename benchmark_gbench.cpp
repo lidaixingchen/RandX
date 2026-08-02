@@ -104,7 +104,8 @@ static void BM_EngineRandFill(benchmark::State& state)
     for (auto _ : state)
     {
         RandX::RandFill(rng, buf.begin(), buf.end(), 0, 999999);
-        benchmark::DoNotOptimize(buf[0]);
+        benchmark::DoNotOptimize(buf.data());
+        benchmark::ClobberMemory();
     }
     state.SetItemsProcessed(state.iterations() * kRandFillN);
 }
@@ -237,6 +238,7 @@ static void BM_RandSampleIter(benchmark::State& state)
     {
         auto s = RandX::RandSample(data.begin(), data.end(), n);
         benchmark::DoNotOptimize(s.data());
+        benchmark::ClobberMemory();
     }
 }
 // 显式 Arg 列表：精确控制采样点，交叉点 15625 附近密集采样
@@ -259,6 +261,7 @@ static void BM_RandSampleContainer(benchmark::State& state)
     {
         auto s = RandX::RandSample(data, static_cast<std::size_t>(n));
         benchmark::DoNotOptimize(s.data());
+        benchmark::ClobberMemory();
     }
 }
 BENCHMARK(BM_RandSampleContainer)
@@ -281,6 +284,7 @@ static void BM_RandSampleReservoir(benchmark::State& state)
     {
         auto s = RandX::RandSample(data.begin(), data.end(), n);
         benchmark::DoNotOptimize(s.data());
+        benchmark::ClobberMemory();
     }
 }
 // reservoir 仅扫小 n：大 n 极慢（O(N·log n) 哈希查找）
