@@ -110,7 +110,7 @@ jobs:
         std: [c++17, c++20, c++23]
     steps:
       - uses: actions/checkout@v4
-      - uses: ilammy/msvc-dev-cmd@v1
+      - uses: ilammy/msvc-dev-cmd@0b201ec74fa43914dc39ae48a89fd1d8cb592756  # v1
       - name: Build & Test (C++23 with doctest)
         if: matrix.std == 'c++23'
         shell: cmd
@@ -217,7 +217,7 @@ jobs:
           name: coverage-report
           path: coverage.info
       - name: Upload to Codecov
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@b9fd7d16f6d7d1b5d2bec1a2887e65ceed900238  # v4
         with:
           files: ./coverage.info
           fail_ci_if_error: false

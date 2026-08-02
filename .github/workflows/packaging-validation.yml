@@ -51,7 +51,7 @@ jobs:
           Write-Host "Port version $portVer matches tag $tagVer"
 
       - name: Install vcpkg
-        uses: lukka/run-vcpkg@v11
+        uses: lukka/run-vcpkg@b1a0dd252f06b9e25b3c022a9a03bd7a427fb6a2  # v11
         with:
           vcpkgGitCommitId: "d99b2e01ef73a34daa2e6ef7983c70a890d9f31b"
 
@@ -89,7 +89,7 @@ jobs:
           sudo apt-get install -y g++-14
 
       - name: Set up xmake
-        uses: xmake-io/github-action-setup-xmake@v1
+        uses: xmake-io/github-action-setup-xmake@3a1a5dddfc7fa625d9a698738334bf55655a861a  # v1
         with:
           xmake-version: latest
 
