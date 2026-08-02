@@ -27,7 +27,7 @@ on:
 
 permissions:
   contents: read
-  actions: read   # gh api 查询历史 run + 下载基线 artifact
+  actions: write  # 下载基线需 read，上传新基线需 write
   issues: write   # 回归失败时自动创建 issue
 
 jobs:
@@ -137,4 +137,3 @@ jobs:
         with:
           name: benchmark-baseline
           path: result.json
-          retention-days: 30

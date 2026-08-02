@@ -14,6 +14,9 @@ on:
         required: true
         default: "1.4.2"
 
+permissions:
+  contents: read
+
 jobs:
   vcpkg-validate:
     name: vcpkg port
@@ -24,10 +27,13 @@ jobs:
       - name: Resolve version
         id: ver
         shell: pwsh
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+          INPUT_REF_NAME: ${{ github.ref_name }}
         run: |
-          $ver = "${{ inputs.version }}"
+          $ver = "$env:INPUT_VERSION"
           if ([string]::IsNullOrEmpty($ver)) {
-            $tagName = "${{ github.ref_name }}"
+            $tagName = "$env:INPUT_REF_NAME"
             $ver = $tagName.Substring(1)  # 去掉前缀 v
           }
           "version=$ver" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
@@ -87,17 +93,20 @@ jobs:
 
       - name: Resolve version
         id: ver
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
         run: |
-          if [ -n "${{ inputs.version }}" ]; then
-            echo "version=${{ inputs.version }}" >> "$GITHUB_OUTPUT"
+          if [ -n "$INPUT_VERSION" ]; then
+            echo "version=$INPUT_VERSION" >> "$GITHUB_OUTPUT"
           else
             echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Verify port version matches tag
+        env:
+          TAG_VER: ${{ steps.ver.outputs.version }}
         run: |
           PORT_VER=$(grep -E '^\s*add_versions' packaging/xmake-repo/packages/r/randx/xmake.lua | head -1 | sed -E 's/.*add_versions\("([^"]+)".*/\1/')
-          TAG_VER="${{ steps.ver.outputs.version }}"
           echo "Port version: $PORT_VER"
           echo "Tag version:   $TAG_VER"
           if [ "$PORT_VER" != "$TAG_VER" ]; then
