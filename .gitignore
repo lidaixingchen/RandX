@@ -2,6 +2,13 @@
 *.exe
 *.obj
 *.o
+gen_sequences
+gen_parity_sequences
+test_randx
+test_randx_cpp17
+benchmark
+benchmark_quick
+benchmark_gbench
 
 # CMake 构建目录
 build/

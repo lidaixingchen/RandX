@@ -2,7 +2,7 @@
 # CI 构建时自动从 CMakeLists.txt 提取 VERSION 覆盖 PROJECT_NUMBER
 
 PROJECT_NAME           = RandX
-PROJECT_NUMBER         = 1.4.2
+PROJECT_NUMBER         = 1.4.3
 PROJECT_BRIEF          = "基于 xoshiro/xoroshiro 算法族的纯头文件伪随机数生成器库"
 
 INPUT                  = RandX.hpp RandX_Cpp17.hpp README.md
@@ -30,8 +30,7 @@ PREDEFINED             = __cplusplus=202302L \
                          __cpp_lib_format=202207L \
                          __cpp_lib_span=202002L \
                          __cpp_lib_byteswap=202110L \
-                         __cpp_consteval=202211L \
-                         __cpp_constexpr_alloca=202406L
+                         __cpp_consteval=202211L
 
 # 图表
 HAVE_DOT               = YES

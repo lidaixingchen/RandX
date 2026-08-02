@@ -1,6 +1,7 @@
 // 手动管理引擎：种子、序列化、跳跃、跳过
 #include "RandX.hpp"
 #include <iostream>
+#include <random>
 
 int main()
 {
@@ -14,7 +15,7 @@ int main()
     std::cout << norm(rng) << '\n';
 
     // 序列化 / 反序列化
-    auto state = rng.serialize();
+    const auto state = rng.serialize();
     rng.deserialize(state);
 
     // 跳跃（并行子序列）

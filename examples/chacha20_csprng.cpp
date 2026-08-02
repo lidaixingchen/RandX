@@ -14,7 +14,8 @@ int main()
     RandX::SecureRandomBytes(key, sizeof(key));
 
     // 密码学安全种子
-    std::uint64_t seed = RandX::SecureSeed();
+    const std::uint64_t seed = RandX::SecureSeed();
+    std::cout << "secure seed: " << seed << '\n';
 
     // 检测当前平台是否走 OS 密码学 API
     if (!RandX::IsOsCryptoEntropyAvailable())

@@ -11,6 +11,7 @@ int main()
 
     // 自定义种子
     constexpr auto v = RandX::RandIntCE<int, 42>(0, 100);
+    std::cout << "custom-seed v = " << v << '\n';
 
     // 编译期 Fisher-Yates 洗牌
     constexpr auto shuffled = [] {
