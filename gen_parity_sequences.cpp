@@ -13,6 +13,7 @@
 #endif
 
 #include <cinttypes>
+#include <cstddef>
 #include <cstdint>
 #include <cstdio>
 #include <string>

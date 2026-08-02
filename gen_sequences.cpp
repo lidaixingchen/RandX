@@ -17,14 +17,14 @@ int main()
         RandX::Xoshiro128StarStar rng{ 12345 };
         std::printf("Xoshiro128StarStar seed=12345:\n");
         for (int i = 0; i < 5; ++i)
-            std::printf("  %u\n", rng());
+            std::printf("  %" PRIu32 "\n", rng());
     }
     // Xoroshiro64StarStar with seed 12345
     {
         RandX::Xoroshiro64StarStar rng{ 12345 };
         std::printf("Xoroshiro64StarStar seed=12345:\n");
         for (int i = 0; i < 5; ++i)
-            std::printf("  %u\n", rng());
+            std::printf("  %" PRIu32 "\n", rng());
     }
     // Xoroshiro128StarStar with seed 12345
     {

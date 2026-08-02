@@ -17,7 +17,6 @@
 #include <chrono>
 #include <cstdio>
 #include <list>
-#include <type_traits>
 #include <vector>
 
 // 迭代次数
