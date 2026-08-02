@@ -30,9 +30,14 @@ permissions:
   actions: write  # 下载基线需 read，上传新基线需 write
   issues: write   # 回归失败时自动创建 issue
 
+concurrency:
+  group: benchmark-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   benchmark:
     runs-on: ubuntu-24.04
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
 
@@ -58,6 +63,7 @@ jobs:
 
       - name: Find Baseline Run
         id: baseline-run
+        continue-on-error: true
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -69,6 +75,7 @@ jobs:
 
       - name: Download Baseline
         if: steps.baseline-run.outputs.run-id != ''
+        continue-on-error: true
         uses: actions/download-artifact@v4
         with:
           name: benchmark-baseline

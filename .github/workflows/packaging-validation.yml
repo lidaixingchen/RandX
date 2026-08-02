@@ -21,6 +21,7 @@ jobs:
   vcpkg-validate:
     name: vcpkg port
     runs-on: windows-latest
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
 
@@ -77,6 +78,7 @@ jobs:
   xrepo-validate:
     name: xmake-repo port
     runs-on: ubuntu-24.04
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
 
