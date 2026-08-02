@@ -24,10 +24,21 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Cache Doxygen
+        id: cache-doxygen
+        uses: actions/cache@v4
+        with:
+          path: doxygen-1.17.0
+          key: doxygen-1.17.0-linux-x64
+
       - name: Install Doxygen 1.17.0 & Graphviz
+        if: steps.cache-doxygen.outputs.cache-hit != 'true'
         run: |
           wget -q https://github.com/doxygen/doxygen/releases/download/Release_1_17_0/doxygen-1.17.0.linux.bin.tar.gz
           tar xzf doxygen-1.17.0.linux.bin.tar.gz
+
+      - name: Setup PATH & Graphviz
+        run: |
           echo "$PWD/doxygen-1.17.0/bin" >> $GITHUB_PATH
           sudo apt-get install -y graphviz
 

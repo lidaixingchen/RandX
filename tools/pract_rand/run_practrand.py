@@ -76,12 +76,19 @@ def find_practrand() -> str:
 
 
 def ensure_generator_built() -> str:
-    """确保 gen_practrand_stream 已编译，返回可执行路径。失败抛异常。"""
+    """确保 gen_practrand_stream 已编译且为最新，返回可执行路径。失败抛异常。"""
     exe_path = SCRIPT_DIR / ("gen_practrand_stream.exe" if os.name == "nt" else "gen_practrand_stream")
+    src = SCRIPT_DIR / "gen_practrand_stream.cpp"
+
+    # 源码新于二进制时强制重编译
+    if exe_path.exists() and src.exists():
+        if src.stat().st_mtime > exe_path.stat().st_mtime:
+            print(f"[build] 源文件 {src.name} 新于二进制，重新编译 ...", file=sys.stderr)
+            exe_path.unlink()
+
     if exe_path.exists():
         return str(exe_path)
 
-    src = SCRIPT_DIR / "gen_practrand_stream.cpp"
     if not src.exists():
         raise FileNotFoundError(f"找不到源文件: {src}")
 
