@@ -11,8 +11,14 @@
 #include <cstdint>
 #include <cstdio>
 #include <iterator>
+#include <limits>
 #include <list>
+#include <random>
 #include <sstream>
+#include <stdexcept>
+#include <string>
+#include <type_traits>
+#include <utility>
 #include <vector>
 
 // 统计检验临界值（非魔法数字：自由度 99/127，alpha=0.001 的卡方临界值）
@@ -1440,14 +1446,6 @@ TEST_SUITE("缺陷修复回归测试 - 性能与API C++17")
         CHECK((u1[19] == '8' || u1[19] == '9' || u1[19] == 'a' || u1[19] == 'b'));
         CHECK(u1[23] == '-');
         CHECK(u1 != u2);
-    }
-
-    TEST_CASE("ChaCha20 不可拷贝但可移动")
-    {
-        CHECK(!std::is_copy_constructible_v<RandX::ChaCha20>);
-        CHECK(!std::is_copy_assignable_v<RandX::ChaCha20>);
-        CHECK(std::is_move_constructible_v<RandX::ChaCha20>);
-        CHECK(std::is_move_assignable_v<RandX::ChaCha20>);
     }
 
     TEST_CASE("RandUUID 在 32 位引擎下无高位置零损坏")

@@ -15,6 +15,7 @@
 
 #include "RandX.hpp"
 #include <chrono>
+#include <cstdint>
 #include <cstdio>
 #include <list>
 #include <vector>

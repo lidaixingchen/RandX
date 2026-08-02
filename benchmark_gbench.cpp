@@ -63,7 +63,7 @@ static void BM_EngineRaw(benchmark::State& state)
     }
     state.SetItemsProcessed(state.iterations() * kEngineInnerLoop);
     state.SetBytesProcessed(state.iterations() * kEngineInnerLoop
-                            * sizeof(typename Engine::result_type));
+                            * static_cast<std::int64_t>(sizeof(typename Engine::result_type)));
 }
 
 BENCHMARK_TEMPLATE(BM_EngineRaw, RandX::SplitMix64);
