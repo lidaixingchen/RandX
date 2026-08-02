@@ -1449,20 +1449,26 @@ TEST_SUITE("ChaCha20 CSPRNG")
         if (!RandX::IsOsCryptoEntropyAvailable()) return;
         // 默认构造函数启用 m_autoReseed = true
         // ChaCha20ReseedThreshold = 2^20 字节，每次 operator() 输出 8 字节
+        // 注意：默认构造由 OS 熵播种，无法固定种子做双实例对比。
+        // 本用例验证：① 越过阈值不崩溃 ② reseed 后输出非退化
         constexpr unsigned long long ReseedCalls = (1ULL << 20) / 8;
-        RandX::ChaCha20 a;
-        RandX::ChaCha20 b;
-        // a 不触发 reseed（仅消费 8 字节）
-        (void)a();
-        // b discard 超过阈值，触发自动 reseed
-        b.discard(ReseedCalls + 8);
-        // reseed 后 b 输出与 a 不同
-        bool different = false;
+        RandX::ChaCha20 rng;
+        // 越过 reseed 阈值
+        rng.discard(ReseedCalls + 8);
+        // reseed 后继续产生有效输出
+        bool allZero = true;
+        bool hasRepeat = true;
+        std::uint64_t prev = rng();
+        if (prev != 0) allZero = false;
         for (int i = 0; i < 16; ++i)
         {
-            if (a() != b()) { different = true; break; }
+            std::uint64_t cur = rng();
+            if (cur != 0) allZero = false;
+            if (cur != prev) hasRepeat = false;
+            prev = cur;
         }
-        CHECK(different);
+        CHECK_FALSE(allZero);
+        CHECK_FALSE(hasRepeat);
     }
 
     TEST_CASE("确定性种子 ChaCha20(seed) 在超过 1MB 后依然保持完全确定性")
