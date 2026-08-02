@@ -40,7 +40,7 @@ CSPRNG_LENGTH = "256GB"
 # PractRand 报告中的失败关键字（出现任一即判失败）
 FAILURE_PATTERNS = (
     re.compile(r"FAIL", re.IGNORECASE),
-    re.compile(r"^\s*!!", re.IGNORECASE),
+    re.compile(r"^\s*!!", re.IGNORECASE | re.MULTILINE),
 )
 
 # 统计 PRNG 列表（7 个）+ CSPRNG（1 个）
@@ -147,8 +147,11 @@ def test_engine(
 
     pr.wait()
     gen.terminate()
+    gen.wait()
 
-    # 判定失败
+    # 判定失败：PractRand 退出码非 0 即判失败，文本关键字解析作补充
+    if pr.returncode != 0:
+        return False, output
     for pattern in FAILURE_PATTERNS:
         if pattern.search(output):
             return False, output

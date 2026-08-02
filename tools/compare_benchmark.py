@@ -58,6 +58,12 @@ def main() -> None:
     current = load_results(args.current)
     baseline = load_results(args.baseline)
 
+    if not current or not baseline:
+        print("错误：current/baseline 缺少 median 聚合条目，无法对比"
+              "（请确认使用了 --benchmark_report_aggregates_only=true）",
+              file=sys.stderr)
+        sys.exit(2)
+
     regressions: list[str] = []
     skipped = 0
     print("| Benchmark | Baseline (ms) | Current (ms) | Change | Status |")

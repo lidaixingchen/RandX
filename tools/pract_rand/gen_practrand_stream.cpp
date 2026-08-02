@@ -25,6 +25,7 @@
 
 #include <cstdio>
 #include <cstdlib>
+#include <cerrno>
 #include <cstring>
 #include <iostream>
 #include <string>
@@ -89,7 +90,12 @@ namespace
             {
                 if (std::fwrite(buf, 1, pos, stdout) != pos)
                 {
-                    // 下游（PractRand）已关闭管道：正常退出
+                    // EPIPE 表示下游（PractRand）已关闭管道：正常结束
+                    if (errno != EPIPE)
+                    {
+                        std::perror("fwrite");
+                        std::exit(2);
+                    }
                     return;
                 }
                 pos = 0;
@@ -111,7 +117,18 @@ int main(int argc, char** argv)
     }
 
     const std::string engineArg = argv[1];
-    const std::uint64_t seed = (argc >= 3) ? std::strtoull(argv[2], nullptr, 10) : DEFAULT_SEED;
+    std::uint64_t seed = DEFAULT_SEED;
+    if (argc >= 3)
+    {
+        char* end = nullptr;
+        errno = 0;
+        seed = std::strtoull(argv[2], &end, 10);
+        if (end == argv[2] || *end != '\0' || errno == ERANGE)
+        {
+            std::fprintf(stderr, "invalid seed: %s\n", argv[2]);
+            return 2;
+        }
+    }
 
     setStdoutBinary();
 
