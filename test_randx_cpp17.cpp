@@ -1123,9 +1123,10 @@ TEST_SUITE("RandChar 预设字符集")
         const double p = 1.0 / static_cast<double>(cat);
         const double sigma = std::sqrt(static_cast<double>(N) * p * (1.0 - p));
         std::vector<int> counts(cat, 0);
+        RandX::Xoshiro256StarStar rng{ 0xC0FFEE };
         for (int i = 0; i < N; ++i)
         {
-            char c = RandChar(CharSet::Hex);
+            char c = RandChar(rng, CharSet::Hex);
             auto idx = hexSet.find(c);
             CHECK(idx != std::string::npos);
             ++counts[idx];
