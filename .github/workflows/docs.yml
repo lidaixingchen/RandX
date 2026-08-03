@@ -4,6 +4,7 @@ on:
   push:
     branches: [master]
     paths:
+      - 'CMakeLists.txt'
       - 'RandX.hpp'
       - 'RandX_Cpp17.hpp'
       - 'README.md'

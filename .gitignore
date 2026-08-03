@@ -13,6 +13,10 @@ benchmark_gbench
 # CMake 构建目录
 build/
 out/
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+CTestTestfile.cmake
 
 # PractRand 工具构建产物（tools/pract_rand/）
 tools/pract_rand/gen_practrand_stream

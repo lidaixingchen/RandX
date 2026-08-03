@@ -45,9 +45,11 @@ jobs:
 
       - name: Verify port version matches tag
         shell: pwsh
+        env:
+          TAG_VER: ${{ steps.ver.outputs.version }}
         run: |
           $portVer = (Get-Content ports/randx/vcpkg.json | ConvertFrom-Json).version
-          $tagVer = "${{ steps.ver.outputs.version }}"
+          $tagVer = "$env:TAG_VER"
           if ($portVer -ne $tagVer) {
             Write-Error "Version mismatch: ports/randx/vcpkg.json=$portVer vs tag=$tagVer"
             exit 1

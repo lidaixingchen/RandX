@@ -42,6 +42,7 @@ concurrency:
 jobs:
   gcc:
     runs-on: ubuntu-24.04
+    timeout-minutes: 60
     strategy:
       matrix:
         std: [c++17, c++20, c++23]
@@ -74,6 +75,7 @@ jobs:
 
   clang:
     runs-on: ubuntu-24.04
+    timeout-minutes: 60
     strategy:
       matrix:
         std: [c++17, c++20, c++23]
@@ -105,6 +107,7 @@ jobs:
 
   msvc:
     runs-on: windows-2025
+    timeout-minutes: 60
     strategy:
       matrix:
         std: [c++17, c++20, c++23]
@@ -136,6 +139,7 @@ jobs:
   # 机械保证「双头文件输出序列完全一致」不变量（KAT 测试保持不变，独立于本 job）
   parity:
     runs-on: ubuntu-24.04
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
       - name: Install GCC 14
@@ -168,6 +172,7 @@ jobs:
   # 与 gen_sequences.cpp，仅验证可编译，不运行
   examples:
     runs-on: ubuntu-24.04
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
       - name: Install GCC 14
@@ -183,6 +188,7 @@ jobs:
 
   coverage:
     runs-on: ubuntu-24.04
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
       - name: Install deps
