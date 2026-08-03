@@ -1,25 +1,30 @@
 // ChaCha20 CSPRNG：密码学安全随机数
 #include "RandX.hpp"
 #include <cstdint>
+#include <cstdio>
 #include <iostream>
 
 int main()
 {
+    // 优先检测当前平台是否走 OS 密码学 API
+    if (!RandX::IsOsCryptoEntropyAvailable())
+        std::cerr << "警告：当前运行在 std::random_device 兜底路径\n";
+
     // 默认构造：OS 熵自动播种（密码学安全）
     RandX::ChaCha20 rng;
     std::cout << rng() << '\n';
 
-    // 直接取 OS 密码学熵字节
+    // 直接取 OS 密码学熵字节并输出
     std::uint8_t key[32];
     RandX::SecureRandomBytes(key, sizeof(key));
+    std::cout << "random bytes: ";
+    for (std::size_t i = 0; i < sizeof(key); ++i)
+        std::printf("%02x", key[i]);
+    std::cout << '\n';
 
     // 密码学安全种子
     const std::uint64_t seed = RandX::SecureSeed();
     std::cout << "secure seed: " << seed << '\n';
-
-    // 检测当前平台是否走 OS 密码学 API
-    if (!RandX::IsOsCryptoEntropyAvailable())
-        std::cerr << "警告：当前运行在 std::random_device 兜底路径\n";
 
     // 与便捷 API 配合
     std::cout << RandX::RandInt(rng, 1, 1000) << '\n';

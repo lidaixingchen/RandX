@@ -149,8 +149,11 @@ int main()
 		std::cout << "rng state: " << ss.str() << '\n';
 
 		Xoshiro256StarStar rng2{};
-		ss >> rng2;  // 流式恢复
-		std::cout << "restored equal: " << (rng == rng2 ? "true" : "false") << '\n';
+		if (ss >> rng2) {  // 流式恢复并检查状态
+			std::cout << "restored equal: " << (rng == rng2 ? "true" : "false") << '\n';
+		} else {
+			std::cerr << "stream restore failed\n";
+		}
 	}
 
 	// ===== 手动管理引擎 =====
@@ -216,9 +219,9 @@ int main()
 	{
 		Xoshiro256StarStar rng{ 999 };
 		rng.jump();      // 前进 2^128 步
-		std::cout << "after jump    = " << rng() << '\n';
+		std::cout << "after jump     = " << rng() << '\n';
 		rng.longJump();  // 前进 2^192 步
-		std::cout << "after longJmp = " << rng() << '\n';
+		std::cout << "after longJump = " << rng() << '\n';
 	}
 
 	// ===== 高速引擎 =====
