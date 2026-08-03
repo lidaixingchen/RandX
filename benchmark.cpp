@@ -119,6 +119,15 @@ static double BenchmarkRandInt(const char* name)
 // RandFill 基准测试的单次填充元素数（1M，循环 N/FillN 次凑够 N）
 static constexpr int FillN = 1'000'000;
 
+template <class Container>
+static std::uint64_t ComputeChecksum(const Container& c)
+{
+	std::uint64_t checksum = 0;
+	for (const auto& item : c)
+		checksum = checksum * 1099511628211ull ^ static_cast<std::uint64_t>(item);
+	return checksum;
+}
+
 // 测量 RandFill(engine, first, last, 0, 999999) 填充预分配容器的吞吐量
 template <class Engine>
 static double BenchmarkRandFill(const char* name)
@@ -131,7 +140,7 @@ static double BenchmarkRandFill(const char* name)
 		RandX::RandFill(rng, buf.begin(), buf.end(), 0, 999999);
 	const auto end = std::chrono::high_resolution_clock::now();
 
-	DoNotOptimize(buf[0]);
+	DoNotOptimize(ComputeChecksum(buf));
 
 	const double ms = std::chrono::duration<double, std::milli>(end - start).count();
 	const double mops = N / ms / 1000.0;
@@ -156,7 +165,7 @@ static double BenchmarkRandVector(const char* name)
 	for (int i = 0; i < N / FillN; ++i)
 	{
 		auto v = RandX::RandVector(rng, 0, 999999, FillN);
-		DoNotOptimize(v[0]);
+		DoNotOptimize(ComputeChecksum(v));
 	}
 	const auto end = std::chrono::high_resolution_clock::now();
 
@@ -192,7 +201,7 @@ static double BenchmarkRandSampleContainer(const char* name)
 	for (int t = 0; t < SampleTrials; ++t)
 	{
 		auto s = RandX::RandSample(data, static_cast<std::size_t>(SampleN_HashSet));
-		DoNotOptimize(s[0]);
+		DoNotOptimize(ComputeChecksum(s));
 	}
 	const auto end = std::chrono::high_resolution_clock::now();
 
@@ -213,7 +222,7 @@ static double BenchmarkRandSampleHashSet(const char* name)
 	for (int t = 0; t < SampleTrials; ++t)
 	{
 		auto s = RandX::RandSample(data.begin(), data.end(), SampleN_HashSet);
-		DoNotOptimize(s[0]);
+		DoNotOptimize(ComputeChecksum(s));
 	}
 	const auto end = std::chrono::high_resolution_clock::now();
 
@@ -234,7 +243,7 @@ static double BenchmarkRandSampleIndex(const char* name)
 	for (int t = 0; t < SampleTrials; ++t)
 	{
 		auto s = RandX::RandSample(data.begin(), data.end(), SampleN_Index);
-		DoNotOptimize(s[0]);
+		DoNotOptimize(ComputeChecksum(s));
 	}
 	const auto end = std::chrono::high_resolution_clock::now();
 
@@ -255,7 +264,7 @@ static double BenchmarkRandSampleReservoir(const char* name)
 	for (int t = 0; t < SampleTrials; ++t)
 	{
 		auto s = RandX::RandSample(data.begin(), data.end(), SampleN_HashSet);
-		DoNotOptimize(s[0]);
+		DoNotOptimize(ComputeChecksum(s));
 	}
 	const auto end = std::chrono::high_resolution_clock::now();
 
@@ -288,7 +297,7 @@ static double BenchmarkSecureRandomBytesLatency(const char* name)
 		RandX::SecureRandomBytes(buf.data(), buf.size());
 	const auto end = std::chrono::high_resolution_clock::now();
 
-	DoNotOptimize(buf[0]);
+	DoNotOptimize(ComputeChecksum(buf));
 
 	const double ms = std::chrono::duration<double, std::milli>(end - start).count();
 	const double latencyUs = ms * 1000.0 / SecureIterN;

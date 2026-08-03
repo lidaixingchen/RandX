@@ -140,12 +140,11 @@ static void BM_ChaCha20RawWithReseed(benchmark::State& state)
     RandX::ChaCha20 rng{};  // 默认构造启用自动 reseed
     for (auto _ : state)
     {
-        for (int i = 0; i < kEngineInnerLoop; ++i)
+        for (std::uint64_t i = 0; i < kChaCha20CallsPerReseed; ++i)
             benchmark::DoNotOptimize(rng());
     }
-    state.SetItemsProcessed(state.iterations() * kEngineInnerLoop);
-    state.SetBytesProcessed(state.iterations() * kEngineInnerLoop
-                            * sizeof(RandX::ChaCha20::result_type));
+    state.SetItemsProcessed(state.iterations() * static_cast<std::int64_t>(kChaCha20CallsPerReseed));
+    state.SetBytesProcessed(state.iterations() * static_cast<std::int64_t>(kChaCha20ReseedBytes));
 }
 BENCHMARK(BM_ChaCha20RawWithReseed);
 
