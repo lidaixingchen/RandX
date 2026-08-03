@@ -1,0 +1,14 @@
+<map id="RandX::RandElement" name="RandX::RandElement">
+<area shape="rect" id="Node000001" title="从容器中随机取一个元素（右值容器，按值返回以避免悬垂引用）" alt="" coords="5,42,164,67"/>
+<area shape="rect" id="Node000002" href="$group__basic.html#gace250579fe08f5bdd6b5db6b573ab55c" title="生成 [min, max] 范围内的随机整数" alt="" coords="212,42,335,67"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="164,52,198,52,198,57,164,57"/>
+<area shape="poly" id="edge6_Node000002_Node000002" title=" " alt="" coords="242,43,236,34,239,24,252,18,273,15,299,19,310,28,306,32,297,24,273,21,254,23,243,27,241,33,247,40"/>
+<area shape="rect" id="Node000003" href="$group__engines.html#ga7dba92b95d7c5e6eb2d1db3c6a3b2ddf" title=" " alt="" coords="383,42,547,67"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="335,52,369,52,369,57,335,57"/>
+<area shape="rect" id="Node000004" href="$group__engines.html#gaa82567759ff174faf923397ea9b0c71f" title="生成非确定性的 64 位种子" alt="" coords="595,42,753,67"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="547,52,581,52,581,57,547,57"/>
+<area shape="rect" id="Node000005" href="$namespaceRandX_1_1detail.html#a02fce2f64f9c2eb6dbe7390a26aab73a" title=" " alt="" coords="813,5,1019,45"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="753,42,799,37,799,42,754,48"/>
+<area shape="rect" id="Node000006" href="$namespaceRandX_1_1detail.html#a23a58952bbe85de475f50a4f1e6acfce" title=" " alt="" coords="801,70,1031,95"/>
+<area shape="poly" id="edge5_Node000004_Node000006" title=" " alt="" coords="754,61,793,66,793,71,753,66"/>
+</map>

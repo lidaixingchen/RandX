@@ -1,0 +1,7 @@
+var searchData=
+[
+  ['defaultengine_0',['DefaultEngine',['../group__engines.html#ga7dba92b95d7c5e6eb2d1db3c6a3b2ddf',1,'RandX']]],
+  ['deserialize_1',['deserialize',['../group__engines.html#gab5b13d78315ce4bdeb2c092435cb92a5',1,'RandX::SplitMix64::deserialize()'],['../group__engines.html#gaa3be91a4faeca615cdc0611630c16b25',1,'RandX::detail::EngineBase::deserialize()'],['../classRandX_1_1SplitMix64.html#ab5b13d78315ce4bdeb2c092435cb92a5',1,'RandX::SplitMix64::deserialize()'],['../structRandX_1_1detail_1_1EngineBase.html#aa3be91a4faeca615cdc0611630c16b25',1,'RandX::detail::EngineBase::deserialize()']]],
+  ['discard_2',['discard',['../group__engines.html#ga565ef6815d96d0870fe4891bcd00b735',1,'RandX::SplitMix64::discard()'],['../group__engines.html#ga4ef2f0bcf7c83241ec181b908f2e04a9',1,'RandX::detail::EngineBase::discard()'],['../group__engines.html#ga836ea0fcf81e607e7f6b8893e2f0f280',1,'RandX::ChaCha20::discard()'],['../classRandX_1_1SplitMix64.html#a565ef6815d96d0870fe4891bcd00b735',1,'RandX::SplitMix64::discard()'],['../structRandX_1_1detail_1_1EngineBase.html#a4ef2f0bcf7c83241ec181b908f2e04a9',1,'RandX::detail::EngineBase::discard()'],['../classRandX_1_1ChaCha20.html#a836ea0fcf81e607e7f6b8893e2f0f280',1,'RandX::ChaCha20::discard()']]],
+  ['doublefrombits_3',['DoubleFromBits',['../group__engines.html#ga75013a684be97ef5de3539b3f07ce3fb',1,'RandX::DoubleFromBits(Uint64 i) noexcept'],['../namespaceRandX.html#a68f1fa459c74bfb000263c0301e984d8',1,'RandX::DoubleFromBits(Uint64 i) noexcept']]]
+];

@@ -1,0 +1,9 @@
+<map id="RandX::DefaultEngine" name="RandX::DefaultEngine">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,42,169,67"/>
+<area shape="rect" id="Node000002" href="$group__engines.html#gaa82567759ff174faf923397ea9b0c71f" title="生成非确定性的 64 位种子" alt="" coords="217,42,376,67"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="170,52,204,52,204,57,170,57"/>
+<area shape="rect" id="Node000003" href="$namespaceRandX_1_1detail.html#a02fce2f64f9c2eb6dbe7390a26aab73a" title=" " alt="" coords="435,5,642,45"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="376,42,421,37,422,42,377,48"/>
+<area shape="rect" id="Node000004" href="$namespaceRandX_1_1detail.html#a23a58952bbe85de475f50a4f1e6acfce" title=" " alt="" coords="424,70,653,95"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="377,61,416,66,415,71,376,66"/>
+</map>

@@ -1,0 +1,11 @@
+<map id="RandX::RandFill" name="RandX::RandFill">
+<area shape="rect" id="Node000001" title="用 [min, max] 范围的随机整数填充迭代器区间" alt="" coords="5,42,129,67"/>
+<area shape="rect" id="Node000002" href="$group__engines.html#ga7dba92b95d7c5e6eb2d1db3c6a3b2ddf" title=" " alt="" coords="177,42,341,67"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="130,52,164,52,164,57,130,57"/>
+<area shape="rect" id="Node000003" href="$group__engines.html#gaa82567759ff174faf923397ea9b0c71f" title="生成非确定性的 64 位种子" alt="" coords="389,42,548,67"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="342,52,376,52,376,57,342,57"/>
+<area shape="rect" id="Node000004" href="$namespaceRandX_1_1detail.html#a02fce2f64f9c2eb6dbe7390a26aab73a" title=" " alt="" coords="607,5,814,45"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="548,42,593,37,594,42,549,48"/>
+<area shape="rect" id="Node000005" href="$namespaceRandX_1_1detail.html#a23a58952bbe85de475f50a4f1e6acfce" title=" " alt="" coords="596,70,825,95"/>
+<area shape="poly" id="edge4_Node000003_Node000005" title=" " alt="" coords="549,61,588,66,587,71,548,66"/>
+</map>

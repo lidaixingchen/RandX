@@ -1,0 +1,11 @@
+<map id="RandX::RandShuffle" name="RandX::RandShuffle">
+<area shape="rect" id="Node000001" title="随机打乱容器" alt="" coords="5,42,156,67"/>
+<area shape="rect" id="Node000002" href="$group__engines.html#ga7dba92b95d7c5e6eb2d1db3c6a3b2ddf" title=" " alt="" coords="204,42,368,67"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="156,52,191,52,191,57,156,57"/>
+<area shape="rect" id="Node000003" href="$group__engines.html#gaa82567759ff174faf923397ea9b0c71f" title="生成非确定性的 64 位种子" alt="" coords="416,42,575,67"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="368,52,402,52,402,57,368,57"/>
+<area shape="rect" id="Node000004" href="$namespaceRandX_1_1detail.html#a02fce2f64f9c2eb6dbe7390a26aab73a" title=" " alt="" coords="634,5,841,45"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="575,42,620,37,621,42,575,48"/>
+<area shape="rect" id="Node000005" href="$namespaceRandX_1_1detail.html#a23a58952bbe85de475f50a4f1e6acfce" title=" " alt="" coords="623,70,852,95"/>
+<area shape="poly" id="edge4_Node000003_Node000005" title=" " alt="" coords="575,61,614,66,614,71,575,66"/>
+</map>

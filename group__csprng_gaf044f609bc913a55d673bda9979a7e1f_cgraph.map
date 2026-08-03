@@ -1,0 +1,11 @@
+<map id="RandX::Reseed" name="RandX::Reseed">
+<area shape="rect" id="Node000001" title="重置默认引擎的种子（用于测试复现）" alt="" coords="5,42,125,67"/>
+<area shape="rect" id="Node000002" href="$group__engines.html#ga7dba92b95d7c5e6eb2d1db3c6a3b2ddf" title=" " alt="" coords="173,42,337,67"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="125,52,160,52,160,57,125,57"/>
+<area shape="rect" id="Node000003" href="$group__engines.html#gaa82567759ff174faf923397ea9b0c71f" title="生成非确定性的 64 位种子" alt="" coords="385,42,544,67"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="338,52,372,52,372,57,338,57"/>
+<area shape="rect" id="Node000004" href="$namespaceRandX_1_1detail.html#a02fce2f64f9c2eb6dbe7390a26aab73a" title=" " alt="" coords="603,5,810,45"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="544,42,589,37,590,42,545,48"/>
+<area shape="rect" id="Node000005" href="$namespaceRandX_1_1detail.html#a23a58952bbe85de475f50a4f1e6acfce" title=" " alt="" coords="592,70,821,95"/>
+<area shape="poly" id="edge4_Node000003_Node000005" title=" " alt="" coords="545,61,584,66,583,71,544,66"/>
+</map>

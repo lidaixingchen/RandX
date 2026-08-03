@@ -1,0 +1,10 @@
+<map id="RandX::SFC64::SFC64" name="RandX::SFC64::SFC64">
+<area shape="rect" id="Node000001" title="从 std::seed_seq 播种（填充 3 状态字 + counter=1 + 12 轮预热）" alt="" coords="5,43,168,68"/>
+<area shape="rect" id="Node000002" href="$group__engines.html#ga87af6323951310dc46869756e063b02b" title="生成下一个 64 位随机数" alt="" coords="216,5,403,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="163,40,219,30,220,36,164,45"/>
+<area shape="rect" id="Node000004" href="$group__engines.html#ga50100f3a6ab8ecf548942e8ddac5e6e7" title="&lt; 状态类型（4×uint64）" alt="" coords="228,79,391,104"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="166,65,217,74,216,79,165,71"/>
+<area shape="rect" id="Node000003" href="$group__engines.html#ga9ff9f37cb91755aeca8c059a5b75207c" title=" " alt="" coords="451,5,597,31"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="403,15,437,15,437,21,403,21"/>
+<area shape="poly" id="edge4_Node000004_Node000004" title=" " alt="" coords="274,80,267,70,271,60,285,54,309,52,339,56,351,65,348,69,337,61,309,57,287,59,275,64,272,70,279,77"/>
+</map>

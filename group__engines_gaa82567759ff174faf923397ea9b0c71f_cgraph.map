@@ -1,0 +1,7 @@
+<map id="RandX::RandomSeed" name="RandX::RandomSeed">
+<area shape="rect" id="Node000001" title="生成非确定性的 64 位种子" alt="" coords="5,42,164,67"/>
+<area shape="rect" id="Node000002" href="$namespaceRandX_1_1detail.html#a02fce2f64f9c2eb6dbe7390a26aab73a" title=" " alt="" coords="223,5,430,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="164,42,209,37,210,42,165,48"/>
+<area shape="rect" id="Node000003" href="$namespaceRandX_1_1detail.html#a23a58952bbe85de475f50a4f1e6acfce" title=" " alt="" coords="212,70,441,95"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="165,61,204,66,203,71,164,66"/>
+</map>

@@ -1,0 +1,17 @@
+<map id="RandX::RandElement" name="RandX::RandElement">
+<area shape="rect" id="Node000001" title="从迭代器范围内随机取一个元素（随机访问迭代器：O(1) 直接定位）" alt="" coords="5,42,164,67"/>
+<area shape="rect" id="Node000002" href="$group__containers.html#gade93c6f181d1c593c4a8142134cee372" title="从容器中随机取一个元素（左值容器，返回引用）" alt="" coords="212,17,371,42"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="164,42,198,38,199,43,165,48"/>
+<area shape="rect" id="Node000003" href="$group__basic.html#gace250579fe08f5bdd6b5db6b573ab55c" title="生成 [min, max] 范围内的随机整数" alt="" coords="419,42,541,67"/>
+<area shape="poly" id="edge8_Node000001_Node000003" title=" " alt="" coords="164,52,404,52,404,57,164,57"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="371,37,405,42,405,47,371,43"/>
+<area shape="poly" id="edge7_Node000003_Node000003" title=" " alt="" coords="449,43,443,34,446,24,459,18,480,15,506,19,516,28,513,32,504,24,480,21,460,23,450,27,448,33,453,40"/>
+<area shape="rect" id="Node000004" href="$group__engines.html#ga7dba92b95d7c5e6eb2d1db3c6a3b2ddf" title=" " alt="" coords="589,42,753,67"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="542,52,575,52,575,57,542,57"/>
+<area shape="rect" id="Node000005" href="$group__engines.html#gaa82567759ff174faf923397ea9b0c71f" title="生成非确定性的 64 位种子" alt="" coords="801,42,960,67"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="754,52,788,52,788,57,754,57"/>
+<area shape="rect" id="Node000006" href="$namespaceRandX_1_1detail.html#a02fce2f64f9c2eb6dbe7390a26aab73a" title=" " alt="" coords="1019,5,1226,45"/>
+<area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="960,42,1005,37,1006,42,961,48"/>
+<area shape="rect" id="Node000007" href="$namespaceRandX_1_1detail.html#a23a58952bbe85de475f50a4f1e6acfce" title=" " alt="" coords="1008,70,1237,95"/>
+<area shape="poly" id="edge6_Node000005_Node000007" title=" " alt="" coords="961,61,1000,66,999,71,960,66"/>
+</map>

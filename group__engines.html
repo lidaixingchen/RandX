@@ -1,0 +1,3303 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "https://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="zh">
+<head>
+<meta http-equiv="Content-Type" content="text/xhtml;charset=UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=11"/>
+<meta name="generator" content="Doxygen 1.17.0"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>RandX: 引擎</title>
+<link href="tabs.css" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src="codefolding.js"></script>
+<script type="text/javascript" src="clipboard.js"></script>
+<link href="navtree.css" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src="navtreedata.js"></script>
+<script type="text/javascript" src="navtree.js"></script>
+<script type="text/javascript" src="cookie.js"></script>
+<link href="search/search.css" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src="search/searchdata.js"></script>
+<script type="text/javascript" src="search/search.js"></script>
+<script type="module">
+import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+const theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'default';
+mermaid.initialize({ startOnLoad: true, theme: theme });
+</script>
+<link href="doxygen.css" rel="stylesheet" type="text/css" />
+</head>
+<body>
+<div id="top"><!-- do not remove this div, it is closed by doxygen! -->
+<div id="titlearea">
+<table cellspacing="0" cellpadding="0">
+ <tbody>
+ <tr id="projectrow">
+  <td id="projectalign">
+   <div id="projectname">RandX<span id="projectnumber">&#160;1.4.3</span>
+   </div>
+   <div id="projectbrief">基于 xoshiro/xoroshiro 算法族的纯头文件伪随机数生成器库</div>
+  </td>
+ </tr>
+ </tbody>
+</table>
+</div>
+<!-- end header part -->
+<!-- 制作者 Doxygen 1.17.0 -->
+<script type="text/javascript">
+let searchBox = new SearchBox("searchBox", "search/",'.html');
+</script>
+<script type="text/javascript">
+document.addEventListener('DOMContentLoaded', codefold.init);
+</script>
+<script type="text/javascript" src="menudata.js"></script>
+<script type="text/javascript" src="menu.js"></script>
+<script type="text/javascript">
+document.addEventListener('DOMContentLoaded', () => {
+  initMenu('',true);
+  init_search();
+});
+</script>
+<div id="main-nav-mobile">
+<div class="sm sm-dox"><input id="main-menu-state" type="checkbox"/>
+<label class="main-menu-btn" for="main-menu-state">
+<span class="main-menu-btn-icon"></span> Toggle main menu visibility</label>
+<span id="searchBoxPos1" style="position:absolute;right:8px;top:8px;height:36px;"></span>
+</div>
+</div><!-- main-nav-mobile -->
+<div id="main-nav">
+  <ul class="sm sm-dox" id="main-menu">
+    <li id="searchBoxPos2" style="float:right">
+        <div id="MSearchBox" class="MSearchBoxInactive">
+        <span class="left">
+          <span id="MSearchSelect" class="search-icon" onmouseover="return searchBox.OnSearchSelectShow()" onmouseout="return searchBox.OnSearchSelectHide()"><span class="search-icon-dropdown"></span></span>
+          <input type="text" id="MSearchField" value="" placeholder="搜索" accesskey="S"
+               onfocus="searchBox.OnSearchFieldFocus(true)" 
+               onblur="searchBox.OnSearchFieldFocus(false)" 
+               onkeyup="searchBox.OnSearchFieldChange(event)"/>
+          </span><span class="right">
+            <a id="MSearchClose" href="javascript:searchBox.CloseResultsWindow()"><div id="MSearchCloseImg" class="close-icon"></div></a>
+          </span>
+        </div>
+    </li>
+  </ul>
+</div><!-- main-nav -->
+</div><!-- top -->
+<div id="side-nav" class="ui-resizable side-nav-resizable">
+  <div id="nav-tree">
+    <div id="nav-tree-contents">
+      <div id="nav-sync" class="sync"></div>
+    </div>
+  </div>
+  <div id="splitbar" style="-moz-user-select:none;" 
+       class="ui-resizable-handle">
+  </div>
+</div>
+<script type="text/javascript">
+document.addEventListener('DOMContentLoaded',() => { initNavTree('group__engines.html','',''); });
+</script>
+<div id="container">
+<div id="doc-content">
+<!-- window showing the filter options -->
+<div id="MSearchSelectWindow"
+     onmouseover="return searchBox.OnSearchSelectShow()"
+     onmouseout="return searchBox.OnSearchSelectHide()"
+     onkeydown="return searchBox.OnSearchSelectKey(event)">
+</div>
+
+<!-- iframe showing the search results (closed by default) -->
+<div id="MSearchResultsWindow">
+<div id="MSearchResults">
+<div class="SRPage">
+<div id="SRIndex">
+<div id="SRResults"></div>
+<div class="SRStatus" id="Loading">载入中...</div>
+<div class="SRStatus" id="Searching">搜索中...</div>
+<div class="SRStatus" id="NoMatches">未找到</div>
+</div>
+</div>
+</div>
+</div>
+
+<div class="header">
+  <div class="headertitle"><div class="title">引擎 </div></div>
+</div><!--header-->
+<div class="contents">
+
+<p>8 个伪随机数生成引擎（7 非 CSPRNG + 1 <a class="el" href="classRandX_1_1ChaCha20.html" title="ChaCha20 密码学安全伪随机数生成器（CSPRNG），64 位输出，符合 RFC 8439。">ChaCha20</a> CSPRNG）  
+<a href="#details">更多...</a></p>
+<div class="dynheader">
+引擎 的协作图:</div>
+<div class="dyncontent">
+<div class="center"><img src="group__engines.png" border="0" usemap="#agroup____engines" loading="lazy" alt=""/></div>
+<map name="agroup____engines" id="agroup____engines">
+<area shape="rect" href="group__distributions.html" title="16 种标准统计分布便捷函数" alt="" coords="206,5,297,31"/>
+<area shape="rect" title="8 个伪随机数生成引擎（7 非 CSPRNG + 1 ChaCha20 CSPRNG）" alt="" coords="5,31,61,56"/>
+<area shape="rect" href="group__strings.html" title="RandString / RandUUID" alt="" coords="197,55,305,80"/>
+</map>
+</div>
+<table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 id="header-namespaces" class="groupheader"><a id="namespaces" name="namespaces"></a>
+命名空间</h2></td></tr>
+<tr class="memitem:RandX_3A_3Adetail" id="r_RandX_3A_3Adetail"><td class="memItemLeft">namespace &#160;</td><td class="memItemRight"><a class="el" href="namespaceRandX_1_1detail.html">RandX::detail</a></td></tr>
+</table><table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 id="header-nested-classes" class="groupheader"><a id="nested-classes" name="nested-classes"></a>
+类</h2></td></tr>
+<tr class="memitem:RandX_3A_3ASplitMix64" id="r_RandX_3A_3ASplitMix64"><td class="memItemLeft">class &#160;</td><td class="memItemRight"><a class="el" href="classRandX_1_1SplitMix64.html">RandX::SplitMix64</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight"><a class="el" href="classRandX_1_1SplitMix64.html" title="SplitMix64 伪随机数生成器，64 位输出，周期 2^64。">SplitMix64</a> 伪随机数生成器，64 位输出，周期 2^64。  <a href="classRandX_1_1SplitMix64.html#details">更多...</a><br /></td></tr>
+<tr class="memitem:RandX_3A_3Adetail_3A_3AEngineBase_3C_20Derived_2C_20ResultType_2C_20N_20_3E" id="r_RandX_3A_3Adetail_3A_3AEngineBase_3C_20Derived_2C_20ResultType_2C_20N_20_3E"><td class="memItemLeft">struct &#160;</td><td class="memItemRight"><a class="el" href="structRandX_1_1detail_1_1EngineBase.html">RandX::detail::EngineBase&lt; Derived, ResultType, N &gt;</a></td></tr>
+<tr class="memitem:RandX_3A_3AXoshiro256StarStar" id="r_RandX_3A_3AXoshiro256StarStar"><td class="memItemLeft">class &#160;</td><td class="memItemRight"><a class="el" href="classRandX_1_1Xoshiro256StarStar.html">RandX::Xoshiro256StarStar</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Xoshiro256** 伪随机数生成器，64 位输出，周期 2^256-1。  <a href="classRandX_1_1Xoshiro256StarStar.html#details">更多...</a><br /></td></tr>
+<tr class="memitem:RandX_3A_3AXoroshiro128StarStar" id="r_RandX_3A_3AXoroshiro128StarStar"><td class="memItemLeft">class &#160;</td><td class="memItemRight"><a class="el" href="classRandX_1_1Xoroshiro128StarStar.html">RandX::Xoroshiro128StarStar</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Xoroshiro128** 伪随机数生成器，64 位输出，周期 2^128-1。  <a href="classRandX_1_1Xoroshiro128StarStar.html#details">更多...</a><br /></td></tr>
+<tr class="memitem:RandX_3A_3AXoshiro128StarStar" id="r_RandX_3A_3AXoshiro128StarStar"><td class="memItemLeft">class &#160;</td><td class="memItemRight"><a class="el" href="classRandX_1_1Xoshiro128StarStar.html">RandX::Xoshiro128StarStar</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Xoshiro128** 伪随机数生成器，32 位输出，周期 2^128-1。  <a href="classRandX_1_1Xoshiro128StarStar.html#details">更多...</a><br /></td></tr>
+<tr class="memitem:RandX_3A_3AXoroshiro64StarStar" id="r_RandX_3A_3AXoroshiro64StarStar"><td class="memItemLeft">class &#160;</td><td class="memItemRight"><a class="el" href="classRandX_1_1Xoroshiro64StarStar.html">RandX::Xoroshiro64StarStar</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Xoroshiro64** 伪随机数生成器，32 位输出，周期 2^64-1。  <a href="classRandX_1_1Xoroshiro64StarStar.html#details">更多...</a><br /></td></tr>
+<tr class="memitem:RandX_3A_3ASFC64" id="r_RandX_3A_3ASFC64"><td class="memItemLeft">class &#160;</td><td class="memItemRight"><a class="el" href="classRandX_1_1SFC64.html">RandX::SFC64</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">SFC64（Small Fast Counter）伪随机数生成器，64 位输出，周期 &gt;= 2^64。  <a href="classRandX_1_1SFC64.html#details">更多...</a><br /></td></tr>
+<tr class="memitem:RandX_3A_3ARomuDuoJr" id="r_RandX_3A_3ARomuDuoJr"><td class="memItemLeft">class &#160;</td><td class="memItemRight"><a class="el" href="classRandX_1_1RomuDuoJr.html">RandX::RomuDuoJr</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight"><a class="el" href="classRandX_1_1RomuDuoJr.html" title="RomuDuoJr 伪随机数生成器，64 位输出，周期估计 &gt;= 2^51。">RomuDuoJr</a> 伪随机数生成器，64 位输出，周期估计 &gt;= 2^51。  <a href="classRandX_1_1RomuDuoJr.html#details">更多...</a><br /></td></tr>
+<tr class="memitem:RandX_3A_3AChaCha20" id="r_RandX_3A_3AChaCha20"><td class="memItemLeft">class &#160;</td><td class="memItemRight"><a class="el" href="classRandX_1_1ChaCha20.html">RandX::ChaCha20</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight"><a class="el" href="classRandX_1_1ChaCha20.html" title="ChaCha20 密码学安全伪随机数生成器（CSPRNG），64 位输出，符合 RFC 8439。">ChaCha20</a> 密码学安全伪随机数生成器（CSPRNG），64 位输出，符合 RFC 8439。  <a href="classRandX_1_1ChaCha20.html#details">更多...</a><br /></td></tr>
+</table><table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 id="header-typedef-members" class="groupheader"><a id="typedef-members" name="typedef-members"></a>
+类型定义</h2></td></tr>
+<tr class="memitem:gade679f83a18ce7451c504090a4379fe9" id="r_gade679f83a18ce7451c504090a4379fe9"><td class="memItemLeft">using&#160;</td><td class="memItemRight"><a class="el" href="#gade679f83a18ce7451c504090a4379fe9">RandX::SplitMix64::state_type</a> = std::uint64_t</td></tr>
+<tr class="memdesc:gade679f83a18ce7451c504090a4379fe9"><td class="mdescLeft">&#160;</td><td class="mdescRight">状态类型（1×uint64）  <br /></td></tr>
+<tr class="memitem:ga9cabfce1d7f0f03e553edf468c3ad5d5" id="r_ga9cabfce1d7f0f03e553edf468c3ad5d5"><td class="memItemLeft">using&#160;</td><td class="memItemRight"><a class="el" href="#ga9cabfce1d7f0f03e553edf468c3ad5d5">RandX::SplitMix64::result_type</a> = std::uint64_t</td></tr>
+<tr class="memdesc:ga9cabfce1d7f0f03e553edf468c3ad5d5"><td class="mdescLeft">&#160;</td><td class="mdescRight">输出类型  <br /></td></tr>
+<tr class="memitem:ga765fcd9b6b6b4e1c73ff84cd3006160b" id="r_ga765fcd9b6b6b4e1c73ff84cd3006160b"><td class="memItemLeft">using&#160;</td><td class="memItemRight"><a class="el" href="#ga765fcd9b6b6b4e1c73ff84cd3006160b">RandX::detail::EngineBase&lt; Derived, ResultType, N &gt;::result_type</a> = ResultType</td></tr>
+<tr class="memitem:gaae22e269e127b6d31a70f69a6153e2b7" id="r_gaae22e269e127b6d31a70f69a6153e2b7"><td class="memItemLeft">using&#160;</td><td class="memItemRight"><a class="el" href="#gaae22e269e127b6d31a70f69a6153e2b7">RandX::detail::EngineBase&lt; Derived, ResultType, N &gt;::state_type</a> = std::array&lt;ResultType, N&gt;</td></tr>
+<tr class="memitem:gabd7f9eda16e91dd982bc149824c38af7" id="r_gabd7f9eda16e91dd982bc149824c38af7"><td class="memItemLeft">using&#160;</td><td class="memItemRight"><a class="el" href="#gabd7f9eda16e91dd982bc149824c38af7">RandX::ChaCha20::result_type</a> = std::uint64_t</td></tr>
+<tr class="memdesc:gabd7f9eda16e91dd982bc149824c38af7"><td class="mdescLeft">&#160;</td><td class="mdescRight">输出类型  <br /></td></tr>
+</table><table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 id="header-func-members" class="groupheader"><a id="func-members" name="func-members"></a>
+函数</h2></td></tr>
+<tr class="memitem:ga9ff9f37cb91755aeca8c059a5b75207c" id="r_ga9ff9f37cb91755aeca8c059a5b75207c"><td class="memItemLeft">constexpr std::uint64_t&#160;</td><td class="memItemRight"><a class="el" href="#ga9ff9f37cb91755aeca8c059a5b75207c">RandX::detail::RotL</a> (const std::uint64_t x, const int s) noexcept</td></tr>
+<tr class="memitem:ga397bb159bd3de2e94fa7cf303214679d" id="r_ga397bb159bd3de2e94fa7cf303214679d"><td class="memItemLeft">constexpr std::uint32_t&#160;</td><td class="memItemRight"><a class="el" href="#ga397bb159bd3de2e94fa7cf303214679d">RandX::detail::RotL</a> (const std::uint32_t x, const int s) noexcept</td></tr>
+<tr class="memitem:ga13d22746812b03016bbb2ff7b5c0d49d" id="r_ga13d22746812b03016bbb2ff7b5c0d49d"><td class="memTemplParams" colspan="2">template&lt;std::size_t N&gt; </td></tr>
+<tr class="memitem:ga13d22746812b03016bbb2ff7b5c0d49d template"><td class="memItemLeft">constexpr bool&#160;</td><td class="memItemRight"><a class="el" href="#ga13d22746812b03016bbb2ff7b5c0d49d">RandX::detail::IsAllZero</a> (const std::array&lt; std::uint64_t, N &gt; &amp;state) noexcept</td></tr>
+<tr class="memitem:ga908fb5d9c9a0e53e24e487d45ed8963f" id="r_ga908fb5d9c9a0e53e24e487d45ed8963f"><td class="memTemplParams" colspan="2">template&lt;std::size_t N&gt; </td></tr>
+<tr class="memitem:ga908fb5d9c9a0e53e24e487d45ed8963f template"><td class="memItemLeft">constexpr bool&#160;</td><td class="memItemRight"><a class="el" href="#ga908fb5d9c9a0e53e24e487d45ed8963f">RandX::detail::IsAllZero</a> (const std::array&lt; std::uint32_t, N &gt; &amp;state) noexcept</td></tr>
+<tr class="memitem:ga5da95d4782cee71328b54d5d6b0a01e8" id="r_ga5da95d4782cee71328b54d5d6b0a01e8"><td class="memTemplParams" colspan="2">template&lt;typename State&gt; </td></tr>
+<tr class="memitem:ga5da95d4782cee71328b54d5d6b0a01e8 template"><td class="memItemLeft">constexpr bool&#160;</td><td class="memItemRight"><a class="el" href="#ga5da95d4782cee71328b54d5d6b0a01e8">RandX::detail::IsValidState</a> (const State &amp;state) noexcept</td></tr>
+<tr class="memitem:ga66f6b33cb3b7559e673f2b97cbd11d3f" id="r_ga66f6b33cb3b7559e673f2b97cbd11d3f"><td class="memItemLeft">constexpr&#160;</td><td class="memItemRight"><a class="el" href="#ga66f6b33cb3b7559e673f2b97cbd11d3f">RandX::SplitMix64::SplitMix64</a> (<a class="el" href="#gade679f83a18ce7451c504090a4379fe9">state_type</a> state=<a class="el" href="namespaceRandX.html#a9288902b59860f71275deb0d807f69b6">DefaultSeed</a>) noexcept</td></tr>
+<tr class="memdesc:ga66f6b33cb3b7559e673f2b97cbd11d3f"><td class="mdescLeft">&#160;</td><td class="mdescRight">以指定状态构造引擎  <br /></td></tr>
+<tr class="memitem:gadbb568035db4c8770c4f2d4714915f70" id="r_gadbb568035db4c8770c4f2d4714915f70"><td class="memTemplParams" colspan="2">template&lt;class SeedSeq&gt; <br />
+requires (!std::same_as&lt;std::remove_cvref_t&lt;SeedSeq&gt;, SplitMix64&gt;)</td></tr>
+<tr class="memitem:gadbb568035db4c8770c4f2d4714915f70 template"><td class="memItemLeft">constexpr&#160;</td><td class="memItemRight"><a class="el" href="#gadbb568035db4c8770c4f2d4714915f70">RandX::SplitMix64::SplitMix64</a> (SeedSeq &amp;seq)</td></tr>
+<tr class="memdesc:gadbb568035db4c8770c4f2d4714915f70"><td class="mdescLeft">&#160;</td><td class="mdescRight">从 std::seed_seq 播种  <br /></td></tr>
+<tr class="memitem:ga4da87e9fe812fbb47b35614daa59c464" id="r_ga4da87e9fe812fbb47b35614daa59c464"><td class="memItemLeft">constexpr <a class="el" href="#ga9cabfce1d7f0f03e553edf468c3ad5d5">result_type</a>&#160;</td><td class="memItemRight"><a class="el" href="#ga4da87e9fe812fbb47b35614daa59c464">RandX::SplitMix64::operator()</a> () noexcept</td></tr>
+<tr class="memdesc:ga4da87e9fe812fbb47b35614daa59c464"><td class="mdescLeft">&#160;</td><td class="mdescRight">生成下一个 64 位随机数  <br /></td></tr>
+<tr class="memitem:ga565ef6815d96d0870fe4891bcd00b735" id="r_ga565ef6815d96d0870fe4891bcd00b735"><td class="memItemLeft">constexpr void&#160;</td><td class="memItemRight"><a class="el" href="#ga565ef6815d96d0870fe4891bcd00b735">RandX::SplitMix64::discard</a> (unsigned long long n) noexcept</td></tr>
+<tr class="memdesc:ga565ef6815d96d0870fe4891bcd00b735"><td class="mdescLeft">&#160;</td><td class="mdescRight">跳过 n 个输出  <br /></td></tr>
+<tr class="memitem:ga1089dfc6d1d08bc874fb867d10f65500" id="r_ga1089dfc6d1d08bc874fb867d10f65500"><td class="memTemplParams" colspan="2">template&lt;std::size_t N&gt; </td></tr>
+<tr class="memitem:ga1089dfc6d1d08bc874fb867d10f65500 template"><td class="memItemLeft">constexpr std::array&lt; std::uint64_t, N &gt;&#160;</td><td class="memItemRight"><a class="el" href="#ga1089dfc6d1d08bc874fb867d10f65500">RandX::SplitMix64::generateSeedSequence</a> () noexcept</td></tr>
+<tr class="memdesc:ga1089dfc6d1d08bc874fb867d10f65500"><td class="mdescLeft">&#160;</td><td class="mdescRight">生成 N 个高质量的 64 位种子序列  <br /></td></tr>
+<tr class="memitem:ga51e09b03cbc26b28d6832e2bc44f1fba" id="r_ga51e09b03cbc26b28d6832e2bc44f1fba"><td class="memItemLeft">static constexpr <a class="el" href="#ga9cabfce1d7f0f03e553edf468c3ad5d5">result_type</a>&#160;</td><td class="memItemRight"><a class="el" href="#ga51e09b03cbc26b28d6832e2bc44f1fba">RandX::SplitMix64::min</a> () noexcept</td></tr>
+<tr class="memdesc:ga51e09b03cbc26b28d6832e2bc44f1fba"><td class="mdescLeft">&#160;</td><td class="mdescRight">输出范围下界  <br /></td></tr>
+<tr class="memitem:gae3f2f9751994d0a305d15ab3f927e9a7" id="r_gae3f2f9751994d0a305d15ab3f927e9a7"><td class="memItemLeft">static constexpr <a class="el" href="#ga9cabfce1d7f0f03e553edf468c3ad5d5">result_type</a>&#160;</td><td class="memItemRight"><a class="el" href="#gae3f2f9751994d0a305d15ab3f927e9a7">RandX::SplitMix64::max</a> () noexcept</td></tr>
+<tr class="memdesc:gae3f2f9751994d0a305d15ab3f927e9a7"><td class="mdescLeft">&#160;</td><td class="mdescRight">输出范围上界  <br /></td></tr>
+<tr class="memitem:ga0c34adfdb68372729e3232a983a49fdc" id="r_ga0c34adfdb68372729e3232a983a49fdc"><td class="memItemLeft">constexpr <a class="el" href="#gade679f83a18ce7451c504090a4379fe9">state_type</a>&#160;</td><td class="memItemRight"><a class="el" href="#ga0c34adfdb68372729e3232a983a49fdc">RandX::SplitMix64::serialize</a> () const noexcept</td></tr>
+<tr class="memdesc:ga0c34adfdb68372729e3232a983a49fdc"><td class="mdescLeft">&#160;</td><td class="mdescRight">序列化引擎状态  <br /></td></tr>
+<tr class="memitem:gab5b13d78315ce4bdeb2c092435cb92a5" id="r_gab5b13d78315ce4bdeb2c092435cb92a5"><td class="memItemLeft">constexpr void&#160;</td><td class="memItemRight"><a class="el" href="#gab5b13d78315ce4bdeb2c092435cb92a5">RandX::SplitMix64::deserialize</a> (<a class="el" href="#gade679f83a18ce7451c504090a4379fe9">state_type</a> state) noexcept</td></tr>
+<tr class="memdesc:gab5b13d78315ce4bdeb2c092435cb92a5"><td class="mdescLeft">&#160;</td><td class="mdescRight">从状态恢复引擎  <br /></td></tr>
+<tr class="memitem:ga09a1b8a42aa47a5d91693b740009fd97" id="r_ga09a1b8a42aa47a5d91693b740009fd97"><td class="memItemLeft">static constexpr <a class="el" href="#ga765fcd9b6b6b4e1c73ff84cd3006160b">result_type</a>&#160;</td><td class="memItemRight"><a class="el" href="#ga09a1b8a42aa47a5d91693b740009fd97">RandX::detail::EngineBase&lt; Derived, ResultType, N &gt;::min</a> () noexcept</td></tr>
+<tr class="memitem:ga968a8b6ecd4806c6a1ab457c5df7ace7" id="r_ga968a8b6ecd4806c6a1ab457c5df7ace7"><td class="memItemLeft">static constexpr <a class="el" href="#ga765fcd9b6b6b4e1c73ff84cd3006160b">result_type</a>&#160;</td><td class="memItemRight"><a class="el" href="#ga968a8b6ecd4806c6a1ab457c5df7ace7">RandX::detail::EngineBase&lt; Derived, ResultType, N &gt;::max</a> () noexcept</td></tr>
+<tr class="memitem:ga4ef2f0bcf7c83241ec181b908f2e04a9" id="r_ga4ef2f0bcf7c83241ec181b908f2e04a9"><td class="memItemLeft">constexpr void&#160;</td><td class="memItemRight"><a class="el" href="#ga4ef2f0bcf7c83241ec181b908f2e04a9">RandX::detail::EngineBase&lt; Derived, ResultType, N &gt;::discard</a> (unsigned long long z) noexcept</td></tr>
+<tr class="memitem:ga871e2d003dbfcd8daf0c954116f617a0" id="r_ga871e2d003dbfcd8daf0c954116f617a0"><td class="memItemLeft">constexpr <a class="el" href="#gaae22e269e127b6d31a70f69a6153e2b7">state_type</a>&#160;</td><td class="memItemRight"><a class="el" href="#ga871e2d003dbfcd8daf0c954116f617a0">RandX::detail::EngineBase&lt; Derived, ResultType, N &gt;::serialize</a> () const noexcept</td></tr>
+<tr class="memitem:gaa3be91a4faeca615cdc0611630c16b25" id="r_gaa3be91a4faeca615cdc0611630c16b25"><td class="memItemLeft">constexpr void&#160;</td><td class="memItemRight"><a class="el" href="#gaa3be91a4faeca615cdc0611630c16b25">RandX::detail::EngineBase&lt; Derived, ResultType, N &gt;::deserialize</a> (const <a class="el" href="#gaae22e269e127b6d31a70f69a6153e2b7">state_type</a> &amp;s) noexcept</td></tr>
+<tr class="memitem:ga52f877f19ed4720729721218189ebd8a" id="r_ga52f877f19ed4720729721218189ebd8a"><td class="memItemLeft">&#160;</td><td class="memItemRight"><a class="el" href="#ga52f877f19ed4720729721218189ebd8a">RandX::detail::EngineBase&lt; Derived, ResultType, N &gt;::EngineBase</a> ()=default</td></tr>
+<tr class="memitem:gab13e162e2d1d924c2e3beeaa9758a709" id="r_gab13e162e2d1d924c2e3beeaa9758a709"><td class="memItemLeft">constexpr&#160;</td><td class="memItemRight"><a class="el" href="#gab13e162e2d1d924c2e3beeaa9758a709">RandX::detail::EngineBase&lt; Derived, ResultType, N &gt;::EngineBase</a> (const <a class="el" href="#gaae22e269e127b6d31a70f69a6153e2b7">state_type</a> &amp;state) noexcept</td></tr>
+<tr class="memitem:ga525520445ea535cb0c606cf08b37ef43" id="r_ga525520445ea535cb0c606cf08b37ef43"><td class="memTemplParams" colspan="2">template&lt;class SeedSeq&gt; <br />
+requires (!std::same_as&lt;std::remove_cvref_t&lt;SeedSeq&gt;, <a class="el" href="#gaae22e269e127b6d31a70f69a6153e2b7">state_type</a>&gt; &amp;&amp; !std::same_as&lt;std::remove_cvref_t&lt;SeedSeq&gt;, Derived&gt;)</td></tr>
+<tr class="memitem:ga525520445ea535cb0c606cf08b37ef43 template"><td class="memItemLeft">constexpr&#160;</td><td class="memItemRight"><a class="el" href="#ga525520445ea535cb0c606cf08b37ef43">RandX::detail::EngineBase&lt; Derived, ResultType, N &gt;::EngineBase</a> (SeedSeq &amp;seq)</td></tr>
+<tr class="memitem:ga37cfeb73f6074f7f98bdd8d0c0641fed" id="r_ga37cfeb73f6074f7f98bdd8d0c0641fed"><td class="memItemLeft">constexpr&#160;</td><td class="memItemRight"><a class="el" href="#ga37cfeb73f6074f7f98bdd8d0c0641fed">RandX::detail::EngineBase&lt; Derived, ResultType, N &gt;::EngineBase</a> (std::uint64_t seed) noexcept</td></tr>
+<tr class="memitem:gabd1ad45551e70b8d6ff8222c2f0ae89c" id="r_gabd1ad45551e70b8d6ff8222c2f0ae89c"><td class="memTemplParams" colspan="2">template&lt;std::size_t K&gt; </td></tr>
+<tr class="memitem:gabd1ad45551e70b8d6ff8222c2f0ae89c template"><td class="memItemLeft">constexpr void&#160;</td><td class="memItemRight"><a class="el" href="#gabd1ad45551e70b8d6ff8222c2f0ae89c">RandX::detail::EngineBase&lt; Derived, ResultType, N &gt;::jumpPoly</a> (const ResultType(&amp;poly)[K]) noexcept</td></tr>
+<tr class="memitem:gaa6d400f29f45ebed459345486687bd48" id="r_gaa6d400f29f45ebed459345486687bd48"><td class="memItemLeft">constexpr&#160;</td><td class="memItemRight"><a class="el" href="#gaa6d400f29f45ebed459345486687bd48">RandX::Xoshiro256StarStar::Xoshiro256StarStar</a> () noexcept</td></tr>
+<tr class="memdesc:gaa6d400f29f45ebed459345486687bd48"><td class="mdescLeft">&#160;</td><td class="mdescRight">&lt; 状态类型（4×uint64）  <br /></td></tr>
+<tr class="memitem:gaea195b075ca6d516a89050555c4e1cb6" id="r_gaea195b075ca6d516a89050555c4e1cb6"><td class="memItemLeft">constexpr&#160;</td><td class="memItemRight"><a class="el" href="#gaea195b075ca6d516a89050555c4e1cb6">RandX::Xoshiro256StarStar::Xoshiro256StarStar</a> (std::uint64_t seed) noexcept</td></tr>
+<tr class="memdesc:gaea195b075ca6d516a89050555c4e1cb6"><td class="mdescLeft">&#160;</td><td class="mdescRight">以指定种子构造引擎  <br /></td></tr>
+<tr class="memitem:gacc9341c620584b09c25e26664707f8e9" id="r_gacc9341c620584b09c25e26664707f8e9"><td class="memTemplParams" colspan="2">template&lt;class SeedSeq&gt; <br />
+requires (!std::same_as&lt;std::remove_cvref_t&lt;SeedSeq&gt;, Xoshiro256StarStar&gt;)</td></tr>
+<tr class="memitem:gacc9341c620584b09c25e26664707f8e9 template"><td class="memItemLeft">constexpr&#160;</td><td class="memItemRight"><a class="el" href="#gacc9341c620584b09c25e26664707f8e9">RandX::Xoshiro256StarStar::Xoshiro256StarStar</a> (SeedSeq &amp;seq)</td></tr>
+<tr class="memdesc:gacc9341c620584b09c25e26664707f8e9"><td class="mdescLeft">&#160;</td><td class="mdescRight">从 std::seed_seq 播种  <br /></td></tr>
+<tr class="memitem:ga8ea050b9183042a230d042999b91cb8b" id="r_ga8ea050b9183042a230d042999b91cb8b"><td class="memItemLeft">constexpr&#160;</td><td class="memItemRight"><a class="el" href="#ga8ea050b9183042a230d042999b91cb8b">RandX::Xoshiro256StarStar::Xoshiro256StarStar</a> (<a class="el" href="classRandX_1_1Xoshiro256StarStar.html#a030d4a9821f32793be5a7f4dd7464da9">state_type</a> state) noexcept</td></tr>
+<tr class="memdesc:ga8ea050b9183042a230d042999b91cb8b"><td class="mdescLeft">&#160;</td><td class="mdescRight">从状态数组直接构造  <br /></td></tr>
+<tr class="memitem:gaaafa43e95239d5153dc50fa525d9a4fd" id="r_gaaafa43e95239d5153dc50fa525d9a4fd"><td class="memItemLeft">constexpr <a class="el" href="classRandX_1_1Xoshiro256StarStar.html#a035190021ecf3959f2d3fb5858712844">result_type</a>&#160;</td><td class="memItemRight"><a class="el" href="#gaaafa43e95239d5153dc50fa525d9a4fd">RandX::Xoshiro256StarStar::operator()</a> () noexcept</td></tr>
+<tr class="memdesc:gaaafa43e95239d5153dc50fa525d9a4fd"><td class="mdescLeft">&#160;</td><td class="mdescRight">生成下一个 64 位随机数  <br /></td></tr>
+<tr class="memitem:ga1b5ea67cd26317ad5c9be321c47c72ab" id="r_ga1b5ea67cd26317ad5c9be321c47c72ab"><td class="memItemLeft">constexpr void&#160;</td><td class="memItemRight"><a class="el" href="#ga1b5ea67cd26317ad5c9be321c47c72ab">RandX::Xoshiro256StarStar::jump</a> () noexcept</td></tr>
+<tr class="memdesc:ga1b5ea67cd26317ad5c9be321c47c72ab"><td class="mdescLeft">&#160;</td><td class="mdescRight">前进 2^128 步，用于创建并行子序列  <br /></td></tr>
+<tr class="memitem:ga55ea951db16614f68afe188bd65768cc" id="r_ga55ea951db16614f68afe188bd65768cc"><td class="memItemLeft">constexpr void&#160;</td><td class="memItemRight"><a class="el" href="#ga55ea951db16614f68afe188bd65768cc">RandX::Xoshiro256StarStar::longJump</a> () noexcept</td></tr>
+<tr class="memdesc:ga55ea951db16614f68afe188bd65768cc"><td class="mdescLeft">&#160;</td><td class="mdescRight">前进 2^192 步，用于创建更稀疏的并行子序列  <br /></td></tr>
+<tr class="memitem:gaf44ed8963c4552101835f52d316a2379" id="r_gaf44ed8963c4552101835f52d316a2379"><td class="memItemLeft">constexpr&#160;</td><td class="memItemRight"><a class="el" href="#gaf44ed8963c4552101835f52d316a2379">RandX::Xoroshiro128StarStar::Xoroshiro128StarStar</a> () noexcept</td></tr>
+<tr class="memdesc:gaf44ed8963c4552101835f52d316a2379"><td class="mdescLeft">&#160;</td><td class="mdescRight">&lt; 状态类型（2×uint64）  <br /></td></tr>
+<tr class="memitem:ga78e14b3a6ee3931b470e42e9887ba56f" id="r_ga78e14b3a6ee3931b470e42e9887ba56f"><td class="memItemLeft">constexpr&#160;</td><td class="memItemRight"><a class="el" href="#ga78e14b3a6ee3931b470e42e9887ba56f">RandX::Xoroshiro128StarStar::Xoroshiro128StarStar</a> (std::uint64_t seed) noexcept</td></tr>
+<tr class="memdesc:ga78e14b3a6ee3931b470e42e9887ba56f"><td class="mdescLeft">&#160;</td><td class="mdescRight">以指定种子构造引擎  <br /></td></tr>
+<tr class="memitem:gacd4d82b1c3d681ba7d84a669491e9cb8" id="r_gacd4d82b1c3d681ba7d84a669491e9cb8"><td class="memTemplParams" colspan="2">template&lt;class SeedSeq&gt; <br />
+requires (!std::same_as&lt;std::remove_cvref_t&lt;SeedSeq&gt;, Xoroshiro128StarStar&gt;)</td></tr>
+<tr class="memitem:gacd4d82b1c3d681ba7d84a669491e9cb8 template"><td class="memItemLeft">constexpr&#160;</td><td class="memItemRight"><a class="el" href="#gacd4d82b1c3d681ba7d84a669491e9cb8">RandX::Xoroshiro128StarStar::Xoroshiro128StarStar</a> (SeedSeq &amp;seq)</td></tr>
+<tr class="memdesc:gacd4d82b1c3d681ba7d84a669491e9cb8"><td class="mdescLeft">&#160;</td><td class="mdescRight">从 std::seed_seq 播种  <br /></td></tr>
+<tr class="memitem:ga72c61c892c2a1430ce3ece0c5a02319f" id="r_ga72c61c892c2a1430ce3ece0c5a02319f"><td class="memItemLeft">constexpr&#160;</td><td class="memItemRight"><a class="el" href="#ga72c61c892c2a1430ce3ece0c5a02319f">RandX::Xoroshiro128StarStar::Xoroshiro128StarStar</a> (<a class="el" href="classRandX_1_1Xoroshiro128StarStar.html#afade931dd86086df5a82cc638f3aebe4">state_type</a> state) noexcept</td></tr>
+<tr class="memdesc:ga72c61c892c2a1430ce3ece0c5a02319f"><td class="mdescLeft">&#160;</td><td class="mdescRight">从状态数组直接构造  <br /></td></tr>
+<tr class="memitem:ga510df2fdc3a5adebd5e39f2978d3b92f" id="r_ga510df2fdc3a5adebd5e39f2978d3b92f"><td class="memItemLeft">constexpr <a class="el" href="classRandX_1_1Xoroshiro128StarStar.html#a67d5e1d759c4ad157e3450a05c52b654">result_type</a>&#160;</td><td class="memItemRight"><a class="el" href="#ga510df2fdc3a5adebd5e39f2978d3b92f">RandX::Xoroshiro128StarStar::operator()</a> () noexcept</td></tr>
+<tr class="memdesc:ga510df2fdc3a5adebd5e39f2978d3b92f"><td class="mdescLeft">&#160;</td><td class="mdescRight">生成下一个 64 位随机数  <br /></td></tr>
+<tr class="memitem:gabdad4e704be0b81705ab153cf7931fa5" id="r_gabdad4e704be0b81705ab153cf7931fa5"><td class="memItemLeft">constexpr void&#160;</td><td class="memItemRight"><a class="el" href="#gabdad4e704be0b81705ab153cf7931fa5">RandX::Xoroshiro128StarStar::jump</a> () noexcept</td></tr>
+<tr class="memdesc:gabdad4e704be0b81705ab153cf7931fa5"><td class="mdescLeft">&#160;</td><td class="mdescRight">前进 2^64 步，用于创建并行子序列  <br /></td></tr>
+<tr class="memitem:ga0da191055e5d6e88866a423d392c7e10" id="r_ga0da191055e5d6e88866a423d392c7e10"><td class="memItemLeft">constexpr void&#160;</td><td class="memItemRight"><a class="el" href="#ga0da191055e5d6e88866a423d392c7e10">RandX::Xoroshiro128StarStar::longJump</a> () noexcept</td></tr>
+<tr class="memdesc:ga0da191055e5d6e88866a423d392c7e10"><td class="mdescLeft">&#160;</td><td class="mdescRight">前进 2^96 步，用于创建更稀疏的并行子序列  <br /></td></tr>
+<tr class="memitem:gacfdd19152243c03e37989a8a22b2c680" id="r_gacfdd19152243c03e37989a8a22b2c680"><td class="memItemLeft">constexpr&#160;</td><td class="memItemRight"><a class="el" href="#gacfdd19152243c03e37989a8a22b2c680">RandX::Xoshiro128StarStar::Xoshiro128StarStar</a> () noexcept</td></tr>
+<tr class="memdesc:gacfdd19152243c03e37989a8a22b2c680"><td class="mdescLeft">&#160;</td><td class="mdescRight">&lt; 状态类型（4×uint32）  <br /></td></tr>
+<tr class="memitem:ga6d031abb24f1d790086d6e8dedcd0dcc" id="r_ga6d031abb24f1d790086d6e8dedcd0dcc"><td class="memItemLeft">constexpr&#160;</td><td class="memItemRight"><a class="el" href="#ga6d031abb24f1d790086d6e8dedcd0dcc">RandX::Xoshiro128StarStar::Xoshiro128StarStar</a> (std::uint64_t seed) noexcept</td></tr>
+<tr class="memdesc:ga6d031abb24f1d790086d6e8dedcd0dcc"><td class="mdescLeft">&#160;</td><td class="mdescRight">以指定种子构造引擎  <br /></td></tr>
+<tr class="memitem:ga92b051c8a049d47801092cc6ba0f6eac" id="r_ga92b051c8a049d47801092cc6ba0f6eac"><td class="memTemplParams" colspan="2">template&lt;class SeedSeq&gt; <br />
+requires (!std::same_as&lt;std::remove_cvref_t&lt;SeedSeq&gt;, Xoshiro128StarStar&gt;)</td></tr>
+<tr class="memitem:ga92b051c8a049d47801092cc6ba0f6eac template"><td class="memItemLeft">constexpr&#160;</td><td class="memItemRight"><a class="el" href="#ga92b051c8a049d47801092cc6ba0f6eac">RandX::Xoshiro128StarStar::Xoshiro128StarStar</a> (SeedSeq &amp;seq)</td></tr>
+<tr class="memdesc:ga92b051c8a049d47801092cc6ba0f6eac"><td class="mdescLeft">&#160;</td><td class="mdescRight">从 std::seed_seq 播种  <br /></td></tr>
+<tr class="memitem:ga85c3959e7dfd351e86396ac4bd9d08d8" id="r_ga85c3959e7dfd351e86396ac4bd9d08d8"><td class="memItemLeft">constexpr&#160;</td><td class="memItemRight"><a class="el" href="#ga85c3959e7dfd351e86396ac4bd9d08d8">RandX::Xoshiro128StarStar::Xoshiro128StarStar</a> (<a class="el" href="classRandX_1_1Xoshiro128StarStar.html#ac50cca820aa25209c1f93bf3295d51b5">state_type</a> state) noexcept</td></tr>
+<tr class="memdesc:ga85c3959e7dfd351e86396ac4bd9d08d8"><td class="mdescLeft">&#160;</td><td class="mdescRight">从状态数组直接构造  <br /></td></tr>
+<tr class="memitem:ga48653c48882bbf26399a56cb3aaffa6b" id="r_ga48653c48882bbf26399a56cb3aaffa6b"><td class="memItemLeft">constexpr <a class="el" href="classRandX_1_1Xoshiro128StarStar.html#a597cc2485631d8e086a727725070bb55">result_type</a>&#160;</td><td class="memItemRight"><a class="el" href="#ga48653c48882bbf26399a56cb3aaffa6b">RandX::Xoshiro128StarStar::operator()</a> () noexcept</td></tr>
+<tr class="memdesc:ga48653c48882bbf26399a56cb3aaffa6b"><td class="mdescLeft">&#160;</td><td class="mdescRight">生成下一个 32 位随机数  <br /></td></tr>
+<tr class="memitem:ga5059822961a4b8b53c7fe9397a62a6a3" id="r_ga5059822961a4b8b53c7fe9397a62a6a3"><td class="memItemLeft">constexpr void&#160;</td><td class="memItemRight"><a class="el" href="#ga5059822961a4b8b53c7fe9397a62a6a3">RandX::Xoshiro128StarStar::jump</a> () noexcept</td></tr>
+<tr class="memdesc:ga5059822961a4b8b53c7fe9397a62a6a3"><td class="mdescLeft">&#160;</td><td class="mdescRight">前进 2^64 步，用于创建并行子序列  <br /></td></tr>
+<tr class="memitem:gaf26d81e7e63abcac3345f4e2032f5677" id="r_gaf26d81e7e63abcac3345f4e2032f5677"><td class="memItemLeft">constexpr void&#160;</td><td class="memItemRight"><a class="el" href="#gaf26d81e7e63abcac3345f4e2032f5677">RandX::Xoshiro128StarStar::longJump</a> () noexcept</td></tr>
+<tr class="memdesc:gaf26d81e7e63abcac3345f4e2032f5677"><td class="mdescLeft">&#160;</td><td class="mdescRight">前进 2^96 步，用于创建更稀疏的并行子序列  <br /></td></tr>
+<tr class="memitem:ga28275c6d25b82de99f10c69252177740" id="r_ga28275c6d25b82de99f10c69252177740"><td class="memItemLeft">constexpr&#160;</td><td class="memItemRight"><a class="el" href="#ga28275c6d25b82de99f10c69252177740">RandX::Xoroshiro64StarStar::Xoroshiro64StarStar</a> () noexcept</td></tr>
+<tr class="memdesc:ga28275c6d25b82de99f10c69252177740"><td class="mdescLeft">&#160;</td><td class="mdescRight">&lt; 状态类型（2×uint32）  <br /></td></tr>
+<tr class="memitem:ga53c41428f28993f85601251534447e88" id="r_ga53c41428f28993f85601251534447e88"><td class="memItemLeft">constexpr&#160;</td><td class="memItemRight"><a class="el" href="#ga53c41428f28993f85601251534447e88">RandX::Xoroshiro64StarStar::Xoroshiro64StarStar</a> (std::uint64_t seed) noexcept</td></tr>
+<tr class="memdesc:ga53c41428f28993f85601251534447e88"><td class="mdescLeft">&#160;</td><td class="mdescRight">以指定种子构造引擎  <br /></td></tr>
+<tr class="memitem:gadb0ad57561a76115d6b00f8d072ee7a2" id="r_gadb0ad57561a76115d6b00f8d072ee7a2"><td class="memTemplParams" colspan="2">template&lt;class SeedSeq&gt; <br />
+requires (!std::same_as&lt;std::remove_cvref_t&lt;SeedSeq&gt;, Xoroshiro64StarStar&gt;)</td></tr>
+<tr class="memitem:gadb0ad57561a76115d6b00f8d072ee7a2 template"><td class="memItemLeft">constexpr&#160;</td><td class="memItemRight"><a class="el" href="#gadb0ad57561a76115d6b00f8d072ee7a2">RandX::Xoroshiro64StarStar::Xoroshiro64StarStar</a> (SeedSeq &amp;seq)</td></tr>
+<tr class="memdesc:gadb0ad57561a76115d6b00f8d072ee7a2"><td class="mdescLeft">&#160;</td><td class="mdescRight">从 std::seed_seq 播种  <br /></td></tr>
+<tr class="memitem:ga4641b3e3cbca3795544fe9b053f5b8d1" id="r_ga4641b3e3cbca3795544fe9b053f5b8d1"><td class="memItemLeft">constexpr&#160;</td><td class="memItemRight"><a class="el" href="#ga4641b3e3cbca3795544fe9b053f5b8d1">RandX::Xoroshiro64StarStar::Xoroshiro64StarStar</a> (<a class="el" href="classRandX_1_1Xoroshiro64StarStar.html#a180c2c2e4bb74593659ead4122bd7b4e">state_type</a> state) noexcept</td></tr>
+<tr class="memdesc:ga4641b3e3cbca3795544fe9b053f5b8d1"><td class="mdescLeft">&#160;</td><td class="mdescRight">从状态数组直接构造  <br /></td></tr>
+<tr class="memitem:ga115222c8197b5999000a14c936e1570d" id="r_ga115222c8197b5999000a14c936e1570d"><td class="memItemLeft">constexpr <a class="el" href="classRandX_1_1Xoroshiro64StarStar.html#ac7131e4ac79f86b20c42ba60302bccac">result_type</a>&#160;</td><td class="memItemRight"><a class="el" href="#ga115222c8197b5999000a14c936e1570d">RandX::Xoroshiro64StarStar::operator()</a> () noexcept</td></tr>
+<tr class="memdesc:ga115222c8197b5999000a14c936e1570d"><td class="mdescLeft">&#160;</td><td class="mdescRight">生成下一个 32 位随机数  <br /></td></tr>
+<tr class="memitem:ga50100f3a6ab8ecf548942e8ddac5e6e7" id="r_ga50100f3a6ab8ecf548942e8ddac5e6e7"><td class="memItemLeft">constexpr&#160;</td><td class="memItemRight"><a class="el" href="#ga50100f3a6ab8ecf548942e8ddac5e6e7">RandX::SFC64::SFC64</a> () noexcept</td></tr>
+<tr class="memdesc:ga50100f3a6ab8ecf548942e8ddac5e6e7"><td class="mdescLeft">&#160;</td><td class="mdescRight">&lt; 状态类型（4×uint64）  <br /></td></tr>
+<tr class="memitem:ga301c478ab305ab3143e2569260a8d470" id="r_ga301c478ab305ab3143e2569260a8d470"><td class="memItemLeft">constexpr&#160;</td><td class="memItemRight"><a class="el" href="#ga301c478ab305ab3143e2569260a8d470">RandX::SFC64::SFC64</a> (std::uint64_t seed) noexcept</td></tr>
+<tr class="memdesc:ga301c478ab305ab3143e2569260a8d470"><td class="mdescLeft">&#160;</td><td class="mdescRight">以指定种子构造引擎（SplitMix64 填充 3 状态字 + counter=1 + 12 轮预热）  <br /></td></tr>
+<tr class="memitem:gac469a63f4d84d98187691881341ae03b" id="r_gac469a63f4d84d98187691881341ae03b"><td class="memTemplParams" colspan="2">template&lt;class SeedSeq&gt; <br />
+requires (!std::same_as&lt;std::remove_cvref_t&lt;SeedSeq&gt;, SFC64&gt;)</td></tr>
+<tr class="memitem:gac469a63f4d84d98187691881341ae03b template"><td class="memItemLeft">constexpr&#160;</td><td class="memItemRight"><a class="el" href="#gac469a63f4d84d98187691881341ae03b">RandX::SFC64::SFC64</a> (SeedSeq &amp;seq)</td></tr>
+<tr class="memdesc:gac469a63f4d84d98187691881341ae03b"><td class="mdescLeft">&#160;</td><td class="mdescRight">从 std::seed_seq 播种（填充 3 状态字 + counter=1 + 12 轮预热）  <br /></td></tr>
+<tr class="memitem:ga5a9d70fd5d5b96d2986ea37203d165e3" id="r_ga5a9d70fd5d5b96d2986ea37203d165e3"><td class="memItemLeft">constexpr&#160;</td><td class="memItemRight"><a class="el" href="#ga5a9d70fd5d5b96d2986ea37203d165e3">RandX::SFC64::SFC64</a> (<a class="el" href="structRandX_1_1detail_1_1EngineBase.html#aae22e269e127b6d31a70f69a6153e2b7">state_type</a> state) noexcept</td></tr>
+<tr class="memdesc:ga5a9d70fd5d5b96d2986ea37203d165e3"><td class="mdescLeft">&#160;</td><td class="mdescRight">从状态数组直接构造  <br /></td></tr>
+<tr class="memitem:ga87af6323951310dc46869756e063b02b" id="r_ga87af6323951310dc46869756e063b02b"><td class="memItemLeft">constexpr <a class="el" href="classRandX_1_1SFC64.html#a20ce98517d40b8a5cce929522f8a3d78">result_type</a>&#160;</td><td class="memItemRight"><a class="el" href="#ga87af6323951310dc46869756e063b02b">RandX::SFC64::operator()</a> () noexcept</td></tr>
+<tr class="memdesc:ga87af6323951310dc46869756e063b02b"><td class="mdescLeft">&#160;</td><td class="mdescRight">生成下一个 64 位随机数  <br /></td></tr>
+<tr class="memitem:ga3debd9912e4d0138be63c5d502fa5893" id="r_ga3debd9912e4d0138be63c5d502fa5893"><td class="memItemLeft">constexpr&#160;</td><td class="memItemRight"><a class="el" href="#ga3debd9912e4d0138be63c5d502fa5893">RandX::RomuDuoJr::RomuDuoJr</a> () noexcept</td></tr>
+<tr class="memdesc:ga3debd9912e4d0138be63c5d502fa5893"><td class="mdescLeft">&#160;</td><td class="mdescRight">&lt; 状态类型（2×uint64）  <br /></td></tr>
+<tr class="memitem:ga6f58211e5e02081a23470038d1d21aae" id="r_ga6f58211e5e02081a23470038d1d21aae"><td class="memItemLeft">constexpr&#160;</td><td class="memItemRight"><a class="el" href="#ga6f58211e5e02081a23470038d1d21aae">RandX::RomuDuoJr::RomuDuoJr</a> (std::uint64_t seed) noexcept</td></tr>
+<tr class="memdesc:ga6f58211e5e02081a23470038d1d21aae"><td class="mdescLeft">&#160;</td><td class="mdescRight">以指定种子构造引擎  <br /></td></tr>
+<tr class="memitem:gae1a3543f47ef4d5fb7eb59e09c9915f9" id="r_gae1a3543f47ef4d5fb7eb59e09c9915f9"><td class="memTemplParams" colspan="2">template&lt;class SeedSeq&gt; <br />
+requires (!std::same_as&lt;std::remove_cvref_t&lt;SeedSeq&gt;, RomuDuoJr&gt;)</td></tr>
+<tr class="memitem:gae1a3543f47ef4d5fb7eb59e09c9915f9 template"><td class="memItemLeft">constexpr&#160;</td><td class="memItemRight"><a class="el" href="#gae1a3543f47ef4d5fb7eb59e09c9915f9">RandX::RomuDuoJr::RomuDuoJr</a> (SeedSeq &amp;seq)</td></tr>
+<tr class="memdesc:gae1a3543f47ef4d5fb7eb59e09c9915f9"><td class="mdescLeft">&#160;</td><td class="mdescRight">从 std::seed_seq 播种  <br /></td></tr>
+<tr class="memitem:gad23ae81a13bb60e52b51a7222b0fbaa7" id="r_gad23ae81a13bb60e52b51a7222b0fbaa7"><td class="memItemLeft">constexpr&#160;</td><td class="memItemRight"><a class="el" href="#gad23ae81a13bb60e52b51a7222b0fbaa7">RandX::RomuDuoJr::RomuDuoJr</a> (<a class="el" href="classRandX_1_1RomuDuoJr.html#a0616e73042272cb8387b0d16e3c02af7">state_type</a> state) noexcept</td></tr>
+<tr class="memdesc:gad23ae81a13bb60e52b51a7222b0fbaa7"><td class="mdescLeft">&#160;</td><td class="mdescRight">从状态数组直接构造  <br /></td></tr>
+<tr class="memitem:ga8bb016d9558a8cf38610c9e48eb53c04" id="r_ga8bb016d9558a8cf38610c9e48eb53c04"><td class="memItemLeft">constexpr <a class="el" href="classRandX_1_1RomuDuoJr.html#a9b165b938823eb9e3e90be86edae80d2">result_type</a>&#160;</td><td class="memItemRight"><a class="el" href="#ga8bb016d9558a8cf38610c9e48eb53c04">RandX::RomuDuoJr::operator()</a> () noexcept</td></tr>
+<tr class="memdesc:ga8bb016d9558a8cf38610c9e48eb53c04"><td class="mdescLeft">&#160;</td><td class="mdescRight">生成下一个 64 位随机数  <br /></td></tr>
+<tr class="memitem:ga1f5117fb49a59cc58cff4326775810a4" id="r_ga1f5117fb49a59cc58cff4326775810a4"><td class="memItemLeft">&#160;</td><td class="memItemRight"><a class="el" href="#ga1f5117fb49a59cc58cff4326775810a4">RandX::ChaCha20::ChaCha20</a> (const ChaCha20 &amp;)=delete</td></tr>
+<tr class="memitem:ga79c89368f7ba9e2b2aeac04f49a8db20" id="r_ga79c89368f7ba9e2b2aeac04f49a8db20"><td class="memItemLeft"><a class="el" href="#ga1f5117fb49a59cc58cff4326775810a4">ChaCha20</a> &amp;&#160;</td><td class="memItemRight"><a class="el" href="#ga79c89368f7ba9e2b2aeac04f49a8db20">RandX::ChaCha20::operator=</a> (const <a class="el" href="#ga1f5117fb49a59cc58cff4326775810a4">ChaCha20</a> &amp;)=delete</td></tr>
+<tr class="memitem:gab2801a03ff2cb81fdfd5145c6a6f9c8a" id="r_gab2801a03ff2cb81fdfd5145c6a6f9c8a"><td class="memItemLeft">&#160;</td><td class="memItemRight"><a class="el" href="#gab2801a03ff2cb81fdfd5145c6a6f9c8a">RandX::ChaCha20::ChaCha20</a> (ChaCha20 &amp;&amp;other) noexcept</td></tr>
+<tr class="memitem:ga69ea997497f6c762e797adbb4a034a67" id="r_ga69ea997497f6c762e797adbb4a034a67"><td class="memItemLeft"><a class="el" href="#ga1f5117fb49a59cc58cff4326775810a4">ChaCha20</a> &amp;&#160;</td><td class="memItemRight"><a class="el" href="#ga69ea997497f6c762e797adbb4a034a67">RandX::ChaCha20::operator=</a> (<a class="el" href="#ga1f5117fb49a59cc58cff4326775810a4">ChaCha20</a> &amp;&amp;other) noexcept</td></tr>
+<tr class="memitem:gaeb7649217d5b1bc135e2f7a0aff9b333" id="r_gaeb7649217d5b1bc135e2f7a0aff9b333"><td class="memItemLeft">&#160;</td><td class="memItemRight"><a class="el" href="#gaeb7649217d5b1bc135e2f7a0aff9b333">RandX::ChaCha20::~ChaCha20</a> () noexcept</td></tr>
+<tr class="memitem:ga2e62d75b07086490beb256baf624ba3c" id="r_ga2e62d75b07086490beb256baf624ba3c"><td class="memItemLeft">&#160;</td><td class="memItemRight"><a class="el" href="#ga2e62d75b07086490beb256baf624ba3c">RandX::ChaCha20::ChaCha20</a> ()</td></tr>
+<tr class="memdesc:ga2e62d75b07086490beb256baf624ba3c"><td class="mdescLeft">&#160;</td><td class="mdescRight">构造方式 1：从 OS 熵自动播种（密码学安全，默认）  <br /></td></tr>
+<tr class="memitem:ga511360d879b1c3180145e6aaf0ef0005" id="r_ga511360d879b1c3180145e6aaf0ef0005"><td class="memItemLeft">&#160;</td><td class="memItemRight"><a class="el" href="#ga511360d879b1c3180145e6aaf0ef0005">RandX::ChaCha20::ChaCha20</a> (std::uint64_t seed)</td></tr>
+<tr class="memdesc:ga511360d879b1c3180145e6aaf0ef0005"><td class="mdescLeft">&#160;</td><td class="mdescRight">构造方式 2：以显式 64 位种子构造  <br /></td></tr>
+<tr class="memitem:gae2350365c60e78dc535e353304144b76" id="r_gae2350365c60e78dc535e353304144b76"><td class="memItemLeft">&#160;</td><td class="memItemRight"><a class="el" href="#gae2350365c60e78dc535e353304144b76">RandX::ChaCha20::ChaCha20</a> (const std::uint8_t *key, std::size_t keyLen, const std::uint8_t *nonce, std::size_t nonceLen, std::uint32_t counter=0)</td></tr>
+<tr class="memdesc:gae2350365c60e78dc535e353304144b76"><td class="mdescLeft">&#160;</td><td class="mdescRight">构造方式 3：直接指定 key + nonce + counter（高级用法/测试复现）  <br /></td></tr>
+<tr class="memitem:ga65041f507a11f1aca6d8c74fafd49ebb" id="r_ga65041f507a11f1aca6d8c74fafd49ebb"><td class="memItemLeft"><a class="el" href="#gabd7f9eda16e91dd982bc149824c38af7">result_type</a>&#160;</td><td class="memItemRight"><a class="el" href="#ga65041f507a11f1aca6d8c74fafd49ebb">RandX::ChaCha20::operator()</a> ()</td></tr>
+<tr class="memdesc:ga65041f507a11f1aca6d8c74fafd49ebb"><td class="mdescLeft">&#160;</td><td class="mdescRight">生成下一个 64 位随机数  <br /></td></tr>
+<tr class="memitem:ga836ea0fcf81e607e7f6b8893e2f0f280" id="r_ga836ea0fcf81e607e7f6b8893e2f0f280"><td class="memItemLeft">void&#160;</td><td class="memItemRight"><a class="el" href="#ga836ea0fcf81e607e7f6b8893e2f0f280">RandX::ChaCha20::discard</a> (unsigned long long n)</td></tr>
+<tr class="memdesc:ga836ea0fcf81e607e7f6b8893e2f0f280"><td class="mdescLeft">&#160;</td><td class="mdescRight">跳过 n 个输出  <br /></td></tr>
+<tr class="memitem:gaabf99f29ec05ab87f9b3ca5e78861f05" id="r_gaabf99f29ec05ab87f9b3ca5e78861f05"><td class="memItemLeft">void&#160;</td><td class="memItemRight"><a class="el" href="#gaabf99f29ec05ab87f9b3ca5e78861f05">RandX::ChaCha20::reseed</a> ()</td></tr>
+<tr class="memdesc:gaabf99f29ec05ab87f9b3ca5e78861f05"><td class="mdescLeft">&#160;</td><td class="mdescRight">从 OS 熵重新播种  <br /></td></tr>
+<tr class="memitem:ga1d33b35f85728a49d9f616c7dd7ffdb6" id="r_ga1d33b35f85728a49d9f616c7dd7ffdb6"><td class="memItemLeft">static constexpr <a class="el" href="#gabd7f9eda16e91dd982bc149824c38af7">result_type</a>&#160;</td><td class="memItemRight"><a class="el" href="#ga1d33b35f85728a49d9f616c7dd7ffdb6">RandX::ChaCha20::min</a> () noexcept</td></tr>
+<tr class="memdesc:ga1d33b35f85728a49d9f616c7dd7ffdb6"><td class="mdescLeft">&#160;</td><td class="mdescRight">输出范围下界  <br /></td></tr>
+<tr class="memitem:gae1798f4ade802faffd522d460ffaad2e" id="r_gae1798f4ade802faffd522d460ffaad2e"><td class="memItemLeft">static constexpr <a class="el" href="#gabd7f9eda16e91dd982bc149824c38af7">result_type</a>&#160;</td><td class="memItemRight"><a class="el" href="#gae1798f4ade802faffd522d460ffaad2e">RandX::ChaCha20::max</a> () noexcept</td></tr>
+<tr class="memdesc:gae1798f4ade802faffd522d460ffaad2e"><td class="mdescLeft">&#160;</td><td class="mdescRight">输出范围上界  <br /></td></tr>
+<tr class="memitem:gaac79734ea6021a1ea727376c67a98443" id="r_gaac79734ea6021a1ea727376c67a98443"><td class="memTemplParams" colspan="2">template&lt;std::same_as&lt; std::uint32_t &gt; Uint32&gt; </td></tr>
+<tr class="memitem:gaac79734ea6021a1ea727376c67a98443 template"><td class="memItemLeft">constexpr float&#160;</td><td class="memItemRight"><a class="el" href="#gaac79734ea6021a1ea727376c67a98443">RandX::FloatFromBits</a> (Uint32 i) noexcept</td></tr>
+<tr class="memitem:ga75013a684be97ef5de3539b3f07ce3fb" id="r_ga75013a684be97ef5de3539b3f07ce3fb"><td class="memTemplParams" colspan="2">template&lt;std::same_as&lt; std::uint64_t &gt; Uint64&gt; </td></tr>
+<tr class="memitem:ga75013a684be97ef5de3539b3f07ce3fb template"><td class="memItemLeft">constexpr double&#160;</td><td class="memItemRight"><a class="el" href="#ga75013a684be97ef5de3539b3f07ce3fb">RandX::DoubleFromBits</a> (Uint64 i) noexcept</td></tr>
+<tr class="memitem:ga315f8716997942607c4b8917e3691e42" id="r_ga315f8716997942607c4b8917e3691e42"><td class="memTemplParams" colspan="2">template&lt;class CharT, class Traits, detail::SerializableEngine Engine&gt; </td></tr>
+<tr class="memitem:ga315f8716997942607c4b8917e3691e42 template"><td class="memItemLeft">std::basic_ostream&lt; CharT, Traits &gt; &amp;&#160;</td><td class="memItemRight"><a class="el" href="#ga315f8716997942607c4b8917e3691e42">RandX::operator&lt;&lt;</a> (std::basic_ostream&lt; CharT, Traits &gt; &amp;os, const Engine &amp;engine)</td></tr>
+<tr class="memitem:ga47411229740263b9d94ddbf5c50b6127" id="r_ga47411229740263b9d94ddbf5c50b6127"><td class="memTemplParams" colspan="2">template&lt;class CharT, class Traits, detail::SerializableEngine Engine&gt; </td></tr>
+<tr class="memitem:ga47411229740263b9d94ddbf5c50b6127 template"><td class="memItemLeft">std::basic_istream&lt; CharT, Traits &gt; &amp;&#160;</td><td class="memItemRight"><a class="el" href="#ga47411229740263b9d94ddbf5c50b6127">RandX::operator&gt;&gt;</a> (std::basic_istream&lt; CharT, Traits &gt; &amp;is, Engine &amp;engine)</td></tr>
+<tr class="memitem:gaa82567759ff174faf923397ea9b0c71f" id="r_gaa82567759ff174faf923397ea9b0c71f"><td class="memItemLeft">std::uint64_t&#160;</td><td class="memItemRight"><a class="el" href="#gaa82567759ff174faf923397ea9b0c71f">RandX::RandomSeed</a> ()</td></tr>
+<tr class="memdesc:gaa82567759ff174faf923397ea9b0c71f"><td class="mdescLeft">&#160;</td><td class="mdescRight">生成非确定性的 64 位种子  <br /></td></tr>
+<tr class="memitem:ga7dba92b95d7c5e6eb2d1db3c6a3b2ddf" id="r_ga7dba92b95d7c5e6eb2d1db3c6a3b2ddf"><td class="memItemLeft"><a class="el" href="classRandX_1_1Xoshiro256StarStar.html">Xoshiro256StarStar</a> &amp;&#160;</td><td class="memItemRight"><a class="el" href="#ga7dba92b95d7c5e6eb2d1db3c6a3b2ddf">RandX::DefaultEngine</a> ()</td></tr>
+<tr class="memitem:ga45356e8e8d0fc3425e0b574d5b152b78" id="r_ga45356e8e8d0fc3425e0b574d5b152b78"><td class="memItemLeft">void&#160;</td><td class="memItemRight"><a class="el" href="#ga45356e8e8d0fc3425e0b574d5b152b78">RandX::ResetThreadLocalEngine</a> ()</td></tr>
+<tr class="memdesc:ga45356e8e8d0fc3425e0b574d5b152b78"><td class="mdescLeft">&#160;</td><td class="mdescRight">重新播种当前线程的默认引擎（用于 POSIX fork() 产生子进程后重置引擎状态）  <br /></td></tr>
+</table><table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 id="header-var-members" class="groupheader"><a id="var-members" name="var-members"></a>
+变量</h2></td></tr>
+<tr class="memitem:ga786eb44bf5cf9100072c15276b955fbb" id="r_ga786eb44bf5cf9100072c15276b955fbb"><td class="memItemLeft">static constexpr int&#160;</td><td class="memItemRight"><a class="el" href="#ga786eb44bf5cf9100072c15276b955fbb">RandX::detail::EngineBase&lt; Derived, ResultType, N &gt;::Bits</a> = static_cast&lt;int&gt;(sizeof(ResultType) * 8)</td></tr>
+<tr class="memitem:ga6a526af9c4dfbb2274436d0ef4ff8baa" id="r_ga6a526af9c4dfbb2274436d0ef4ff8baa"><td class="memItemLeft"><a class="el" href="#gaae22e269e127b6d31a70f69a6153e2b7">state_type</a>&#160;</td><td class="memItemRight"><a class="el" href="#ga6a526af9c4dfbb2274436d0ef4ff8baa">RandX::detail::EngineBase&lt; Derived, ResultType, N &gt;::s_</a> {}</td></tr>
+</table><table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 id="header-friend-members" class="groupheader"><a id="friend-members" name="friend-members"></a>
+友元</h2></td></tr>
+<tr class="memitem:ga6e08f397818c44cb1e1f93c3c89627eb" id="r_ga6e08f397818c44cb1e1f93c3c89627eb"><td class="memItemLeft">auto&#160;</td><td class="memItemRight"><a class="el" href="#ga6e08f397818c44cb1e1f93c3c89627eb">RandX::SplitMix64::operator&lt;=&gt;</a> (const <a class="el" href="#ga66f6b33cb3b7559e673f2b97cbd11d3f">SplitMix64</a> &amp;, const <a class="el" href="#ga66f6b33cb3b7559e673f2b97cbd11d3f">SplitMix64</a> &amp;)=default</td></tr>
+<tr class="memitem:gae95817078766214a8bdcd20cfb57675e" id="r_gae95817078766214a8bdcd20cfb57675e"><td class="memItemLeft">auto&#160;</td><td class="memItemRight"><a class="el" href="#gae95817078766214a8bdcd20cfb57675e">RandX::detail::EngineBase&lt; Derived, ResultType, N &gt;::operator&lt;=&gt;</a> (const <a class="el" href="#ga52f877f19ed4720729721218189ebd8a">EngineBase</a> &amp;, const <a class="el" href="#ga52f877f19ed4720729721218189ebd8a">EngineBase</a> &amp;)=default</td></tr>
+</table>
+<a name="details" id="details"></a><h2 id="header-details" class="groupheader">详细描述</h2>
+<div class="textblock"><p>8 个伪随机数生成引擎（7 非 CSPRNG + 1 <a class="el" href="classRandX_1_1ChaCha20.html" title="ChaCha20 密码学安全伪随机数生成器（CSPRNG），64 位输出，符合 RFC 8439。">ChaCha20</a> CSPRNG） </p>
+</div><a name="doc-typedef-members" id="doc-typedef-members"></a><h2 id="header-doc-typedef-members" class="groupheader">类型定义说明</h2>
+<a id="gabd7f9eda16e91dd982bc149824c38af7" name="gabd7f9eda16e91dd982bc149824c38af7"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#gabd7f9eda16e91dd982bc149824c38af7">&#9670;&#160;</a></span>result_type <span class="overload">[1/3]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">using <a class="el" href="#gabd7f9eda16e91dd982bc149824c38af7">RandX::ChaCha20::result_type</a> = std::uint64_t</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>输出类型 </p>
+
+</div>
+</div>
+<a id="ga765fcd9b6b6b4e1c73ff84cd3006160b" name="ga765fcd9b6b6b4e1c73ff84cd3006160b"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga765fcd9b6b6b4e1c73ff84cd3006160b">&#9670;&#160;</a></span>result_type <span class="overload">[2/3]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;class Derived, class ResultType, std::size_t N&gt; </div>
+      <table class="memname">
+        <tr>
+          <td class="memname">using <a class="el" href="structRandX_1_1detail_1_1EngineBase.html">RandX::detail::EngineBase</a>&lt; Derived, ResultType, N &gt;::result_type = ResultType</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="ga9cabfce1d7f0f03e553edf468c3ad5d5" name="ga9cabfce1d7f0f03e553edf468c3ad5d5"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga9cabfce1d7f0f03e553edf468c3ad5d5">&#9670;&#160;</a></span>result_type <span class="overload">[3/3]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">using <a class="el" href="#ga9cabfce1d7f0f03e553edf468c3ad5d5">RandX::SplitMix64::result_type</a> = std::uint64_t</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>输出类型 </p>
+
+</div>
+</div>
+<a id="gaae22e269e127b6d31a70f69a6153e2b7" name="gaae22e269e127b6d31a70f69a6153e2b7"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#gaae22e269e127b6d31a70f69a6153e2b7">&#9670;&#160;</a></span>state_type <span class="overload">[1/2]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;class Derived, class ResultType, std::size_t N&gt; </div>
+      <table class="memname">
+        <tr>
+          <td class="memname">using <a class="el" href="structRandX_1_1detail_1_1EngineBase.html">RandX::detail::EngineBase</a>&lt; Derived, ResultType, N &gt;::state_type = std::array&lt;ResultType, N&gt;</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="gade679f83a18ce7451c504090a4379fe9" name="gade679f83a18ce7451c504090a4379fe9"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#gade679f83a18ce7451c504090a4379fe9">&#9670;&#160;</a></span>state_type <span class="overload">[2/2]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">using <a class="el" href="#gade679f83a18ce7451c504090a4379fe9">RandX::SplitMix64::state_type</a> = std::uint64_t</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>状态类型（1×uint64） </p>
+
+</div>
+</div>
+<a name="doc-func-members" id="doc-func-members"></a><h2 id="header-doc-func-members" class="groupheader">函数说明</h2>
+<a id="ga2e62d75b07086490beb256baf624ba3c" name="ga2e62d75b07086490beb256baf624ba3c"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga2e62d75b07086490beb256baf624ba3c">&#9670;&#160;</a></span>ChaCha20() <span class="overload">[1/5]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">RandX::ChaCha20::ChaCha20 </td>
+          <td>(</td>
+          <td class="paramname"><span class="paramname"><em></em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>构造方式 1：从 OS 熵自动播种（密码学安全，默认） </p>
+<dl class="section note"><dt>注解</dt><dd>推荐用于生产环境的密码学安全场景 </dd></dl>
+<div class="dynheader">
+函数调用图:</div>
+<div class="dyncontent">
+<div class="center"><img src="group__engines_ga2e62d75b07086490beb256baf624ba3c_cgraph.png" border="0" usemap="#agroup__engines_ga2e62d75b07086490beb256baf624ba3c_cgraph" loading="lazy" alt=""/></div>
+<map name="agroup__engines_ga2e62d75b07086490beb256baf624ba3c_cgraph" id="agroup__engines_ga2e62d75b07086490beb256baf624ba3c_cgraph">
+<area shape="rect" title="构造方式 1：从 OS 熵自动播种（密码学安全，默认）" alt="" coords="5,38,217,63"/>
+<area shape="rect" href="group__engines.html#gaabf99f29ec05ab87f9b3ca5e78861f05" title="从 OS 熵重新播种" alt="" coords="265,38,456,63"/>
+<area shape="poly" title=" " alt="" coords="218,48,251,48,251,53,218,53"/>
+<area shape="rect" href="group__csprng.html#ga31b80b51d6bc9e44f68c5232803bb6d6" title="用 OS 密码学熵源填充 [buf, buf+n) 字节" alt="" coords="504,13,711,38"/>
+<area shape="poly" title=" " alt="" coords="456,38,490,35,491,40,457,44"/>
+<area shape="rect" href="namespaceRandX_1_1detail.html#aea45979fec3d8bd006581404baf9c7a9" title=" " alt="" coords="510,62,705,87"/>
+<area shape="poly" title=" " alt="" coords="457,57,497,61,496,67,456,63"/>
+<area shape="rect" href="namespaceRandX_1_1detail.html#a02fce2f64f9c2eb6dbe7390a26aab73a" title=" " alt="" coords="759,5,965,45"/>
+<area shape="poly" title=" " alt="" coords="711,23,745,23,745,28,711,28"/>
+</map>
+</div>
+
+</div>
+</div>
+<a id="gab2801a03ff2cb81fdfd5145c6a6f9c8a" name="gab2801a03ff2cb81fdfd5145c6a6f9c8a"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#gab2801a03ff2cb81fdfd5145c6a6f9c8a">&#9670;&#160;</a></span>ChaCha20() <span class="overload">[2/5]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">RandX::ChaCha20::ChaCha20 </td>
+          <td>(</td>
+          <td class="paramtype">ChaCha20 &amp;&amp;</td>          <td class="paramname"><span class="paramname"><em>other</em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel noexcept">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<div class="dynheader">
+函数调用图:</div>
+<div class="dyncontent">
+<div class="center"><img src="group__engines_gab2801a03ff2cb81fdfd5145c6a6f9c8a_cgraph.png" border="0" usemap="#agroup__engines_gab2801a03ff2cb81fdfd5145c6a6f9c8a_cgraph" loading="lazy" alt=""/></div>
+<map name="agroup__engines_gab2801a03ff2cb81fdfd5145c6a6f9c8a_cgraph" id="agroup__engines_gab2801a03ff2cb81fdfd5145c6a6f9c8a_cgraph">
+<area shape="rect" title=" " alt="" coords="5,55,217,80"/>
+<area shape="rect" href="group__engines.html#ga1f5117fb49a59cc58cff4326775810a4" title=" " alt="" coords="265,29,477,55"/>
+<area shape="poly" title=" " alt="" coords="217,54,251,51,252,56,218,60"/>
+<area shape="rect" href="namespaceRandX_1_1detail.html#aea45979fec3d8bd006581404baf9c7a9" title=" " alt="" coords="274,79,469,104"/>
+<area shape="poly" title=" " alt="" coords="218,74,260,78,260,84,217,80"/>
+<area shape="poly" title=" " alt="" coords="330,31,320,21,325,11,342,5,371,3,408,7,418,11,422,17,418,20,415,15,406,12,371,8,344,10,329,15,326,20,333,27"/>
+</map>
+</div>
+
+</div>
+</div>
+<a id="ga1f5117fb49a59cc58cff4326775810a4" name="ga1f5117fb49a59cc58cff4326775810a4"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga1f5117fb49a59cc58cff4326775810a4">&#9670;&#160;</a></span>ChaCha20() <span class="overload">[3/5]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">RandX::ChaCha20::ChaCha20 </td>
+          <td>(</td>
+          <td class="paramtype">const ChaCha20 &amp;</td>          <td class="paramname"><span class="paramname"><em></em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel delete">delete</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<div class="dynheader">
+函数调用图:</div>
+<div class="dyncontent">
+<div class="center"><img src="group__engines_ga1f5117fb49a59cc58cff4326775810a4_cgraph.png" border="0" usemap="#agroup__engines_ga1f5117fb49a59cc58cff4326775810a4_cgraph" loading="lazy" alt=""/></div>
+<map name="agroup__engines_ga1f5117fb49a59cc58cff4326775810a4_cgraph" id="agroup__engines_ga1f5117fb49a59cc58cff4326775810a4_cgraph">
+<area shape="rect" title=" " alt="" coords="5,29,217,55"/>
+<area shape="poly" title=" " alt="" coords="77,31,69,21,73,11,88,5,111,3,141,6,152,15,149,20,139,11,111,8,89,10,77,15,75,20,81,28"/>
+</map>
+</div>
+
+</div>
+</div>
+<a id="gae2350365c60e78dc535e353304144b76" name="gae2350365c60e78dc535e353304144b76"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#gae2350365c60e78dc535e353304144b76">&#9670;&#160;</a></span>ChaCha20() <span class="overload">[4/5]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">RandX::ChaCha20::ChaCha20 </td>
+          <td>(</td>
+          <td class="paramtype">const std::uint8_t *</td>          <td class="paramname"><span class="paramname"><em>key</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">std::size_t</td>          <td class="paramname"><span class="paramname"><em>keyLen</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const std::uint8_t *</td>          <td class="paramname"><span class="paramname"><em>nonce</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">std::size_t</td>          <td class="paramname"><span class="paramname"><em>nonceLen</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">std::uint32_t</td>          <td class="paramname"><span class="paramname"><em>counter</em></span><span class="paramdefsep"> = </span><span class="paramdefval">0</span>&#160;)</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>构造方式 3：直接指定 key + nonce + counter（高级用法/测试复现） </p>
+<dl class="params"><dt>参数</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">key</td><td>密钥指针，须为 32 字节 </td></tr>
+    <tr><td class="paramname">keyLen</td><td>密钥长度（字节），须为 32，否则抛出 std::invalid_argument </td></tr>
+    <tr><td class="paramname">nonce</td><td>随机数指针，须为 12 字节 </td></tr>
+    <tr><td class="paramname">nonceLen</td><td>随机数长度（字节），须为 12，否则抛出 std::invalid_argument </td></tr>
+    <tr><td class="paramname">counter</td><td>32-bit block 计数器初值（默认 0；KAT 测试时显式传 1） </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section note"><dt>注解</dt><dd>此构造路径不调用 SecureRandomBytes，调用方须自行保证 key/nonce 的熵源 </dd></dl>
+
+</div>
+</div>
+<a id="ga511360d879b1c3180145e6aaf0ef0005" name="ga511360d879b1c3180145e6aaf0ef0005"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga511360d879b1c3180145e6aaf0ef0005">&#9670;&#160;</a></span>ChaCha20() <span class="overload">[5/5]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">RandX::ChaCha20::ChaCha20 </td>
+          <td>(</td>
+          <td class="paramtype">std::uint64_t</td>          <td class="paramname"><span class="paramname"><em>seed</em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel explicit">explicit</span><span class="mlabel nodiscard">nodiscard</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>构造方式 2：以显式 64 位种子构造 </p>
+<dl class="params"><dt>参数</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">seed</td><td>64 位种子值 </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section note"><dt>注解</dt><dd>仅用于测试/复现，非密码学安全（种子空间仅 64-bit） </dd></dl>
+
+</div>
+</div>
+<a id="ga7dba92b95d7c5e6eb2d1db3c6a3b2ddf" name="ga7dba92b95d7c5e6eb2d1db3c6a3b2ddf"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga7dba92b95d7c5e6eb2d1db3c6a3b2ddf">&#9670;&#160;</a></span>DefaultEngine()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="classRandX_1_1Xoshiro256StarStar.html">Xoshiro256StarStar</a> &amp; RandX::DefaultEngine </td>
+          <td>(</td>
+          <td class="paramname"><span class="paramname"><em></em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel nodiscard">nodiscard</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<div class="dynheader">
+函数调用图:</div>
+<div class="dyncontent">
+<div class="center"><img src="group__engines_ga7dba92b95d7c5e6eb2d1db3c6a3b2ddf_cgraph.png" border="0" usemap="#agroup__engines_ga7dba92b95d7c5e6eb2d1db3c6a3b2ddf_cgraph" loading="lazy" alt=""/></div>
+<map name="agroup__engines_ga7dba92b95d7c5e6eb2d1db3c6a3b2ddf_cgraph" id="agroup__engines_ga7dba92b95d7c5e6eb2d1db3c6a3b2ddf_cgraph">
+<area shape="rect" title=" " alt="" coords="5,42,169,67"/>
+<area shape="rect" href="group__engines.html#gaa82567759ff174faf923397ea9b0c71f" title="生成非确定性的 64 位种子" alt="" coords="217,42,376,67"/>
+<area shape="poly" title=" " alt="" coords="170,52,204,52,204,57,170,57"/>
+<area shape="rect" href="namespaceRandX_1_1detail.html#a02fce2f64f9c2eb6dbe7390a26aab73a" title=" " alt="" coords="435,5,642,45"/>
+<area shape="poly" title=" " alt="" coords="376,42,421,37,422,42,377,48"/>
+<area shape="rect" href="namespaceRandX_1_1detail.html#a23a58952bbe85de475f50a4f1e6acfce" title=" " alt="" coords="424,70,653,95"/>
+<area shape="poly" title=" " alt="" coords="377,61,416,66,415,71,376,66"/>
+</map>
+</div>
+
+</div>
+</div>
+<a id="gaa3be91a4faeca615cdc0611630c16b25" name="gaa3be91a4faeca615cdc0611630c16b25"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#gaa3be91a4faeca615cdc0611630c16b25">&#9670;&#160;</a></span>deserialize() <span class="overload">[1/2]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;class Derived, class ResultType, std::size_t N&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">void <a class="el" href="structRandX_1_1detail_1_1EngineBase.html">RandX::detail::EngineBase</a>&lt; Derived, ResultType, N &gt;::deserialize </td>
+          <td>(</td>
+          <td class="paramtype">const <a class="el" href="#gaae22e269e127b6d31a70f69a6153e2b7">state_type</a> &amp;</td>          <td class="paramname"><span class="paramname"><em>s</em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel constexpr">constexpr</span><span class="mlabel noexcept">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="gab5b13d78315ce4bdeb2c092435cb92a5" name="gab5b13d78315ce4bdeb2c092435cb92a5"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#gab5b13d78315ce4bdeb2c092435cb92a5">&#9670;&#160;</a></span>deserialize() <span class="overload">[2/2]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">void RandX::SplitMix64::deserialize </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="#gade679f83a18ce7451c504090a4379fe9">state_type</a></td>          <td class="paramname"><span class="paramname"><em>state</em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel constexpr">constexpr</span><span class="mlabel noexcept">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>从状态恢复引擎 </p>
+<dl class="params"><dt>参数</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">state</td><td><a class="el" href="#ga0c34adfdb68372729e3232a983a49fdc" title="序列化引擎状态">serialize()</a> 返回的状态 </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section see"><dt>参见</dt><dd><a class="el" href="#ga0c34adfdb68372729e3232a983a49fdc" title="序列化引擎状态">serialize()</a> </dd></dl>
+
+</div>
+</div>
+<a id="ga836ea0fcf81e607e7f6b8893e2f0f280" name="ga836ea0fcf81e607e7f6b8893e2f0f280"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga836ea0fcf81e607e7f6b8893e2f0f280">&#9670;&#160;</a></span>discard() <span class="overload">[1/3]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">void RandX::ChaCha20::discard </td>
+          <td>(</td>
+          <td class="paramtype">unsigned long long</td>          <td class="paramname"><span class="paramname"><em>n</em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>跳过 n 个输出 </p>
+<dl class="params"><dt>参数</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">n</td><td>跳过次数 </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<a id="ga4ef2f0bcf7c83241ec181b908f2e04a9" name="ga4ef2f0bcf7c83241ec181b908f2e04a9"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga4ef2f0bcf7c83241ec181b908f2e04a9">&#9670;&#160;</a></span>discard() <span class="overload">[2/3]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;class Derived, class ResultType, std::size_t N&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">void <a class="el" href="structRandX_1_1detail_1_1EngineBase.html">RandX::detail::EngineBase</a>&lt; Derived, ResultType, N &gt;::discard </td>
+          <td>(</td>
+          <td class="paramtype">unsigned long long</td>          <td class="paramname"><span class="paramname"><em>z</em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel constexpr">constexpr</span><span class="mlabel noexcept">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="ga565ef6815d96d0870fe4891bcd00b735" name="ga565ef6815d96d0870fe4891bcd00b735"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga565ef6815d96d0870fe4891bcd00b735">&#9670;&#160;</a></span>discard() <span class="overload">[3/3]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">void RandX::SplitMix64::discard </td>
+          <td>(</td>
+          <td class="paramtype">unsigned long long</td>          <td class="paramname"><span class="paramname"><em>n</em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel constexpr">constexpr</span><span class="mlabel noexcept">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>跳过 n 个输出 </p>
+<dl class="params"><dt>参数</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">n</td><td>跳过次数 </td></tr>
+  </table>
+  </dd>
+</dl>
+<div class="dynheader">
+函数调用图:</div>
+<div class="dyncontent">
+<div class="center"><img src="group__engines_ga565ef6815d96d0870fe4891bcd00b735_cgraph.png" border="0" usemap="#agroup__engines_ga565ef6815d96d0870fe4891bcd00b735_cgraph" loading="lazy" alt=""/></div>
+<map name="agroup__engines_ga565ef6815d96d0870fe4891bcd00b735_cgraph" id="agroup__engines_ga565ef6815d96d0870fe4891bcd00b735_cgraph">
+<area shape="rect" title="跳过 n 个输出" alt="" coords="5,5,155,45"/>
+<area shape="rect" href="group__engines.html#ga4da87e9fe812fbb47b35614daa59c464" title="生成下一个 64 位随机数" alt="" coords="203,5,352,45"/>
+<area shape="poly" title=" " alt="" coords="155,23,189,23,189,28,155,28"/>
+</map>
+</div>
+
+</div>
+</div>
+<a id="ga75013a684be97ef5de3539b3f07ce3fb" name="ga75013a684be97ef5de3539b3f07ce3fb"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga75013a684be97ef5de3539b3f07ce3fb">&#9670;&#160;</a></span>DoubleFromBits()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;std::same_as&lt; std::uint64_t &gt; Uint64&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">double RandX::DoubleFromBits </td>
+          <td>(</td>
+          <td class="paramtype">Uint64</td>          <td class="paramname"><span class="paramname"><em>i</em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel nodiscard">nodiscard</span><span class="mlabel constexpr">constexpr</span><span class="mlabel noexcept">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="ga52f877f19ed4720729721218189ebd8a" name="ga52f877f19ed4720729721218189ebd8a"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga52f877f19ed4720729721218189ebd8a">&#9670;&#160;</a></span>EngineBase() <span class="overload">[1/4]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;class Derived, class ResultType, std::size_t N&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="structRandX_1_1detail_1_1EngineBase.html">RandX::detail::EngineBase</a>&lt; Derived, ResultType, N &gt;::EngineBase </td>
+          <td>(</td>
+          <td class="paramname"><span class="paramname"><em></em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel protected">protected</span><span class="mlabel default">default</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="gab13e162e2d1d924c2e3beeaa9758a709" name="gab13e162e2d1d924c2e3beeaa9758a709"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#gab13e162e2d1d924c2e3beeaa9758a709">&#9670;&#160;</a></span>EngineBase() <span class="overload">[2/4]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;class Derived, class ResultType, std::size_t N&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="structRandX_1_1detail_1_1EngineBase.html">RandX::detail::EngineBase</a>&lt; Derived, ResultType, N &gt;::EngineBase </td>
+          <td>(</td>
+          <td class="paramtype">const <a class="el" href="#gaae22e269e127b6d31a70f69a6153e2b7">state_type</a> &amp;</td>          <td class="paramname"><span class="paramname"><em>state</em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel explicit">explicit</span><span class="mlabel constexpr">constexpr</span><span class="mlabel protected">protected</span><span class="mlabel noexcept">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="ga525520445ea535cb0c606cf08b37ef43" name="ga525520445ea535cb0c606cf08b37ef43"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga525520445ea535cb0c606cf08b37ef43">&#9670;&#160;</a></span>EngineBase() <span class="overload">[3/4]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;class Derived, class ResultType, std::size_t N&gt; </div>
+<div class="memtemplate">
+template&lt;class SeedSeq&gt; <br />
+requires (!std::same_as&lt;std::remove_cvref_t&lt;SeedSeq&gt;, <a class="el" href="#gaae22e269e127b6d31a70f69a6153e2b7">state_type</a>&gt; &amp;&amp; !std::same_as&lt;std::remove_cvref_t&lt;SeedSeq&gt;, Derived&gt;)</div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="structRandX_1_1detail_1_1EngineBase.html">RandX::detail::EngineBase</a>&lt; Derived, ResultType, N &gt;::EngineBase </td>
+          <td>(</td>
+          <td class="paramtype">SeedSeq &amp;</td>          <td class="paramname"><span class="paramname"><em>seq</em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel explicit">explicit</span><span class="mlabel constexpr">constexpr</span><span class="mlabel protected">protected</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="ga37cfeb73f6074f7f98bdd8d0c0641fed" name="ga37cfeb73f6074f7f98bdd8d0c0641fed"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga37cfeb73f6074f7f98bdd8d0c0641fed">&#9670;&#160;</a></span>EngineBase() <span class="overload">[4/4]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;class Derived, class ResultType, std::size_t N&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="structRandX_1_1detail_1_1EngineBase.html">RandX::detail::EngineBase</a>&lt; Derived, ResultType, N &gt;::EngineBase </td>
+          <td>(</td>
+          <td class="paramtype">std::uint64_t</td>          <td class="paramname"><span class="paramname"><em>seed</em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel explicit">explicit</span><span class="mlabel constexpr">constexpr</span><span class="mlabel protected">protected</span><span class="mlabel noexcept">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="gaac79734ea6021a1ea727376c67a98443" name="gaac79734ea6021a1ea727376c67a98443"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#gaac79734ea6021a1ea727376c67a98443">&#9670;&#160;</a></span>FloatFromBits()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;std::same_as&lt; std::uint32_t &gt; Uint32&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">float RandX::FloatFromBits </td>
+          <td>(</td>
+          <td class="paramtype">Uint32</td>          <td class="paramname"><span class="paramname"><em>i</em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel nodiscard">nodiscard</span><span class="mlabel constexpr">constexpr</span><span class="mlabel noexcept">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="ga1089dfc6d1d08bc874fb867d10f65500" name="ga1089dfc6d1d08bc874fb867d10f65500"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga1089dfc6d1d08bc874fb867d10f65500">&#9670;&#160;</a></span>generateSeedSequence()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;std::size_t N&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">std::array&lt; std::uint64_t, N &gt; RandX::SplitMix64::generateSeedSequence </td>
+          <td>(</td>
+          <td class="paramname"><span class="paramname"><em></em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel nodiscard">nodiscard</span><span class="mlabel constexpr">constexpr</span><span class="mlabel noexcept">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>生成 N 个高质量的 64 位种子序列 </p>
+<dl class="tparams"><dt>模板参数</dt><dd>
+  <table class="tparams">
+    <tr><td class="paramname">N</td><td>生成的种子数量 </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>返回</dt><dd>包含 N 个 uint64 的数组，可用于播种其他引擎 </dd></dl>
+<div class="dynheader">
+函数调用图:</div>
+<div class="dyncontent">
+<div class="center"><img src="group__engines_ga1089dfc6d1d08bc874fb867d10f65500_cgraph.png" border="0" usemap="#agroup__engines_ga1089dfc6d1d08bc874fb867d10f65500_cgraph" loading="lazy" alt=""/></div>
+<map name="agroup__engines_ga1089dfc6d1d08bc874fb867d10f65500_cgraph" id="agroup__engines_ga1089dfc6d1d08bc874fb867d10f65500_cgraph">
+<area shape="rect" title="生成 N 个高质量的 64 位种子序列" alt="" coords="5,5,180,45"/>
+<area shape="rect" href="group__engines.html#ga4da87e9fe812fbb47b35614daa59c464" title="生成下一个 64 位随机数" alt="" coords="228,5,377,45"/>
+<area shape="poly" title=" " alt="" coords="180,23,214,23,214,28,180,28"/>
+</map>
+</div>
+
+</div>
+</div>
+<a id="ga908fb5d9c9a0e53e24e487d45ed8963f" name="ga908fb5d9c9a0e53e24e487d45ed8963f"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga908fb5d9c9a0e53e24e487d45ed8963f">&#9670;&#160;</a></span>IsAllZero() <span class="overload">[1/2]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;std::size_t N&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">bool RandX::detail::IsAllZero </td>
+          <td>(</td>
+          <td class="paramtype">const std::array&lt; std::uint32_t, N &gt; &amp;</td>          <td class="paramname"><span class="paramname"><em>state</em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel nodiscard">nodiscard</span><span class="mlabel constexpr">constexpr</span><span class="mlabel noexcept">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="ga13d22746812b03016bbb2ff7b5c0d49d" name="ga13d22746812b03016bbb2ff7b5c0d49d"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga13d22746812b03016bbb2ff7b5c0d49d">&#9670;&#160;</a></span>IsAllZero() <span class="overload">[2/2]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;std::size_t N&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">bool RandX::detail::IsAllZero </td>
+          <td>(</td>
+          <td class="paramtype">const std::array&lt; std::uint64_t, N &gt; &amp;</td>          <td class="paramname"><span class="paramname"><em>state</em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel nodiscard">nodiscard</span><span class="mlabel constexpr">constexpr</span><span class="mlabel noexcept">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="ga5da95d4782cee71328b54d5d6b0a01e8" name="ga5da95d4782cee71328b54d5d6b0a01e8"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga5da95d4782cee71328b54d5d6b0a01e8">&#9670;&#160;</a></span>IsValidState()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;typename State&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">bool RandX::detail::IsValidState </td>
+          <td>(</td>
+          <td class="paramtype">const State &amp;</td>          <td class="paramname"><span class="paramname"><em>state</em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel nodiscard">nodiscard</span><span class="mlabel constexpr">constexpr</span><span class="mlabel noexcept">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<div class="dynheader">
+函数调用图:</div>
+<div class="dyncontent">
+<div class="center"><img src="group__engines_ga5da95d4782cee71328b54d5d6b0a01e8_cgraph.png" border="0" usemap="#agroup__engines_ga5da95d4782cee71328b54d5d6b0a01e8_cgraph" loading="lazy" alt=""/></div>
+<map name="agroup__engines_ga5da95d4782cee71328b54d5d6b0a01e8_cgraph" id="agroup__engines_ga5da95d4782cee71328b54d5d6b0a01e8_cgraph">
+<area shape="rect" title=" " alt="" coords="5,5,200,31"/>
+<area shape="rect" href="group__engines.html#ga13d22746812b03016bbb2ff7b5c0d49d" title=" " alt="" coords="248,5,423,31"/>
+<area shape="poly" title=" " alt="" coords="200,15,234,15,234,21,200,21"/>
+</map>
+</div>
+
+</div>
+</div>
+<a id="gabdad4e704be0b81705ab153cf7931fa5" name="gabdad4e704be0b81705ab153cf7931fa5"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#gabdad4e704be0b81705ab153cf7931fa5">&#9670;&#160;</a></span>jump() <span class="overload">[1/3]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">void RandX::Xoroshiro128StarStar::jump </td>
+          <td>(</td>
+          <td class="paramname"><span class="paramname"><em></em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel constexpr">constexpr</span><span class="mlabel noexcept">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>前进 2^64 步，用于创建并行子序列 </p>
+<dl class="section note"><dt>注解</dt><dd>等价于调用 2^64 次 operator() </dd></dl>
+<dl class="section see"><dt>参见</dt><dd><a class="el" href="#ga0da191055e5d6e88866a423d392c7e10" title="前进 2^96 步，用于创建更稀疏的并行子序列">longJump()</a>, <a class="el" href="group__strings.html#gac722df563360f3f0d5c591daaa92f95c" title="从同一种子创建第 streamId 个不重叠子序列的引擎">MakeStreamEngine()</a> </dd></dl>
+<div class="dynheader">
+函数调用图:</div>
+<div class="dyncontent">
+<div class="center"><img src="group__engines_gabdad4e704be0b81705ab153cf7931fa5_cgraph.png" border="0" usemap="#agroup__engines_gabdad4e704be0b81705ab153cf7931fa5_cgraph" loading="lazy" alt=""/></div>
+<map name="agroup__engines_gabdad4e704be0b81705ab153cf7931fa5_cgraph" id="agroup__engines_gabdad4e704be0b81705ab153cf7931fa5_cgraph">
+<area shape="rect" title="前进 2^64 步，用于创建并行子序列" alt="" coords="5,13,216,53"/>
+<area shape="rect" href="group__engines.html#gabd1ad45551e70b8d6ff8222c2f0ae89c" title=" " alt="" coords="264,5,471,60"/>
+<area shape="poly" title=" " alt="" coords="216,30,250,30,250,35,216,35"/>
+</map>
+</div>
+
+</div>
+</div>
+<a id="ga5059822961a4b8b53c7fe9397a62a6a3" name="ga5059822961a4b8b53c7fe9397a62a6a3"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga5059822961a4b8b53c7fe9397a62a6a3">&#9670;&#160;</a></span>jump() <span class="overload">[2/3]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">void RandX::Xoshiro128StarStar::jump </td>
+          <td>(</td>
+          <td class="paramname"><span class="paramname"><em></em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel constexpr">constexpr</span><span class="mlabel noexcept">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>前进 2^64 步，用于创建并行子序列 </p>
+<dl class="section note"><dt>注解</dt><dd>等价于调用 2^64 次 operator() </dd></dl>
+<dl class="section see"><dt>参见</dt><dd><a class="el" href="#gaf26d81e7e63abcac3345f4e2032f5677" title="前进 2^96 步，用于创建更稀疏的并行子序列">longJump()</a>, <a class="el" href="group__strings.html#gac722df563360f3f0d5c591daaa92f95c" title="从同一种子创建第 streamId 个不重叠子序列的引擎">MakeStreamEngine()</a> </dd></dl>
+<div class="dynheader">
+函数调用图:</div>
+<div class="dyncontent">
+<div class="center"><img src="group__engines_ga5059822961a4b8b53c7fe9397a62a6a3_cgraph.png" border="0" usemap="#agroup__engines_ga5059822961a4b8b53c7fe9397a62a6a3_cgraph" loading="lazy" alt=""/></div>
+<map name="agroup__engines_ga5059822961a4b8b53c7fe9397a62a6a3_cgraph" id="agroup__engines_ga5059822961a4b8b53c7fe9397a62a6a3_cgraph">
+<area shape="rect" title="前进 2^64 步，用于创建并行子序列" alt="" coords="5,13,203,53"/>
+<area shape="rect" href="group__engines.html#gabd1ad45551e70b8d6ff8222c2f0ae89c" title=" " alt="" coords="251,5,444,60"/>
+<area shape="poly" title=" " alt="" coords="203,30,237,30,237,35,203,35"/>
+</map>
+</div>
+
+</div>
+</div>
+<a id="ga1b5ea67cd26317ad5c9be321c47c72ab" name="ga1b5ea67cd26317ad5c9be321c47c72ab"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga1b5ea67cd26317ad5c9be321c47c72ab">&#9670;&#160;</a></span>jump() <span class="overload">[3/3]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">void RandX::Xoshiro256StarStar::jump </td>
+          <td>(</td>
+          <td class="paramname"><span class="paramname"><em></em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel constexpr">constexpr</span><span class="mlabel noexcept">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>前进 2^128 步，用于创建并行子序列 </p>
+<dl class="section note"><dt>注解</dt><dd>等价于调用 2^128 次 operator() </dd></dl>
+<dl class="section see"><dt>参见</dt><dd><a class="el" href="#ga55ea951db16614f68afe188bd65768cc" title="前进 2^192 步，用于创建更稀疏的并行子序列">longJump()</a>, <a class="el" href="group__strings.html#gac722df563360f3f0d5c591daaa92f95c" title="从同一种子创建第 streamId 个不重叠子序列的引擎">MakeStreamEngine()</a> </dd></dl>
+<div class="dynheader">
+函数调用图:</div>
+<div class="dyncontent">
+<div class="center"><img src="group__engines_ga1b5ea67cd26317ad5c9be321c47c72ab_cgraph.png" border="0" usemap="#agroup__engines_ga1b5ea67cd26317ad5c9be321c47c72ab_cgraph" loading="lazy" alt=""/></div>
+<map name="agroup__engines_ga1b5ea67cd26317ad5c9be321c47c72ab_cgraph" id="agroup__engines_ga1b5ea67cd26317ad5c9be321c47c72ab_cgraph">
+<area shape="rect" title="前进 2^128 步，用于创建并行子序列" alt="" coords="5,13,203,53"/>
+<area shape="rect" href="group__engines.html#gabd1ad45551e70b8d6ff8222c2f0ae89c" title=" " alt="" coords="251,5,444,60"/>
+<area shape="poly" title=" " alt="" coords="203,30,237,30,237,35,203,35"/>
+</map>
+</div>
+
+</div>
+</div>
+<a id="gabd1ad45551e70b8d6ff8222c2f0ae89c" name="gabd1ad45551e70b8d6ff8222c2f0ae89c"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#gabd1ad45551e70b8d6ff8222c2f0ae89c">&#9670;&#160;</a></span>jumpPoly()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;class Derived, class ResultType, std::size_t N&gt; </div>
+<div class="memtemplate">
+template&lt;std::size_t K&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">void <a class="el" href="structRandX_1_1detail_1_1EngineBase.html">RandX::detail::EngineBase</a>&lt; Derived, ResultType, N &gt;::jumpPoly </td>
+          <td>(</td>
+          <td class="paramtype">const ResultType(&amp;)</td>          <td class="paramname"><span class="paramname"><em>poly</em></span>[K]</td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel constexpr">constexpr</span><span class="mlabel protected">protected</span><span class="mlabel noexcept">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="ga0da191055e5d6e88866a423d392c7e10" name="ga0da191055e5d6e88866a423d392c7e10"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga0da191055e5d6e88866a423d392c7e10">&#9670;&#160;</a></span>longJump() <span class="overload">[1/3]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">void RandX::Xoroshiro128StarStar::longJump </td>
+          <td>(</td>
+          <td class="paramname"><span class="paramname"><em></em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel constexpr">constexpr</span><span class="mlabel noexcept">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>前进 2^96 步，用于创建更稀疏的并行子序列 </p>
+<dl class="section note"><dt>注解</dt><dd>等价于调用 2^96 次 operator() </dd></dl>
+<dl class="section see"><dt>参见</dt><dd><a class="el" href="#gabdad4e704be0b81705ab153cf7931fa5" title="前进 2^64 步，用于创建并行子序列">jump()</a>, <a class="el" href="group__strings.html#gac722df563360f3f0d5c591daaa92f95c" title="从同一种子创建第 streamId 个不重叠子序列的引擎">MakeStreamEngine()</a> </dd></dl>
+<div class="dynheader">
+函数调用图:</div>
+<div class="dyncontent">
+<div class="center"><img src="group__engines_ga0da191055e5d6e88866a423d392c7e10_cgraph.png" border="0" usemap="#agroup__engines_ga0da191055e5d6e88866a423d392c7e10_cgraph" loading="lazy" alt=""/></div>
+<map name="agroup__engines_ga0da191055e5d6e88866a423d392c7e10_cgraph" id="agroup__engines_ga0da191055e5d6e88866a423d392c7e10_cgraph">
+<area shape="rect" title="前进 2^96 步，用于创建更稀疏的并行子序列" alt="" coords="5,13,216,53"/>
+<area shape="rect" href="group__engines.html#gabd1ad45551e70b8d6ff8222c2f0ae89c" title=" " alt="" coords="264,5,471,60"/>
+<area shape="poly" title=" " alt="" coords="216,30,250,30,250,35,216,35"/>
+</map>
+</div>
+
+</div>
+</div>
+<a id="gaf26d81e7e63abcac3345f4e2032f5677" name="gaf26d81e7e63abcac3345f4e2032f5677"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#gaf26d81e7e63abcac3345f4e2032f5677">&#9670;&#160;</a></span>longJump() <span class="overload">[2/3]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">void RandX::Xoshiro128StarStar::longJump </td>
+          <td>(</td>
+          <td class="paramname"><span class="paramname"><em></em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel constexpr">constexpr</span><span class="mlabel noexcept">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>前进 2^96 步，用于创建更稀疏的并行子序列 </p>
+<dl class="section note"><dt>注解</dt><dd>等价于调用 2^96 次 operator() </dd></dl>
+<dl class="section see"><dt>参见</dt><dd><a class="el" href="#ga5059822961a4b8b53c7fe9397a62a6a3" title="前进 2^64 步，用于创建并行子序列">jump()</a>, <a class="el" href="group__strings.html#gac722df563360f3f0d5c591daaa92f95c" title="从同一种子创建第 streamId 个不重叠子序列的引擎">MakeStreamEngine()</a> </dd></dl>
+<div class="dynheader">
+函数调用图:</div>
+<div class="dyncontent">
+<div class="center"><img src="group__engines_gaf26d81e7e63abcac3345f4e2032f5677_cgraph.png" border="0" usemap="#agroup__engines_gaf26d81e7e63abcac3345f4e2032f5677_cgraph" loading="lazy" alt=""/></div>
+<map name="agroup__engines_gaf26d81e7e63abcac3345f4e2032f5677_cgraph" id="agroup__engines_gaf26d81e7e63abcac3345f4e2032f5677_cgraph">
+<area shape="rect" title="前进 2^96 步，用于创建更稀疏的并行子序列" alt="" coords="5,13,203,53"/>
+<area shape="rect" href="group__engines.html#gabd1ad45551e70b8d6ff8222c2f0ae89c" title=" " alt="" coords="251,5,444,60"/>
+<area shape="poly" title=" " alt="" coords="203,30,237,30,237,35,203,35"/>
+</map>
+</div>
+
+</div>
+</div>
+<a id="ga55ea951db16614f68afe188bd65768cc" name="ga55ea951db16614f68afe188bd65768cc"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga55ea951db16614f68afe188bd65768cc">&#9670;&#160;</a></span>longJump() <span class="overload">[3/3]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">void RandX::Xoshiro256StarStar::longJump </td>
+          <td>(</td>
+          <td class="paramname"><span class="paramname"><em></em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel constexpr">constexpr</span><span class="mlabel noexcept">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>前进 2^192 步，用于创建更稀疏的并行子序列 </p>
+<dl class="section note"><dt>注解</dt><dd>等价于调用 2^192 次 operator() </dd></dl>
+<dl class="section see"><dt>参见</dt><dd><a class="el" href="#ga1b5ea67cd26317ad5c9be321c47c72ab" title="前进 2^128 步，用于创建并行子序列">jump()</a>, <a class="el" href="group__strings.html#gac722df563360f3f0d5c591daaa92f95c" title="从同一种子创建第 streamId 个不重叠子序列的引擎">MakeStreamEngine()</a> </dd></dl>
+<div class="dynheader">
+函数调用图:</div>
+<div class="dyncontent">
+<div class="center"><img src="group__engines_ga55ea951db16614f68afe188bd65768cc_cgraph.png" border="0" usemap="#agroup__engines_ga55ea951db16614f68afe188bd65768cc_cgraph" loading="lazy" alt=""/></div>
+<map name="agroup__engines_ga55ea951db16614f68afe188bd65768cc_cgraph" id="agroup__engines_ga55ea951db16614f68afe188bd65768cc_cgraph">
+<area shape="rect" title="前进 2^192 步，用于创建更稀疏的并行子序列" alt="" coords="5,13,203,53"/>
+<area shape="rect" href="group__engines.html#gabd1ad45551e70b8d6ff8222c2f0ae89c" title=" " alt="" coords="251,5,444,60"/>
+<area shape="poly" title=" " alt="" coords="203,30,237,30,237,35,203,35"/>
+</map>
+</div>
+
+</div>
+</div>
+<a id="gae1798f4ade802faffd522d460ffaad2e" name="gae1798f4ade802faffd522d460ffaad2e"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#gae1798f4ade802faffd522d460ffaad2e">&#9670;&#160;</a></span>max() <span class="overload">[1/3]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">constexpr <a class="el" href="#gabd7f9eda16e91dd982bc149824c38af7">result_type</a> RandX::ChaCha20::max </td>
+          <td>(</td>
+          <td class="paramname"><span class="paramname"><em></em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel static">static</span><span class="mlabel nodiscard">nodiscard</span><span class="mlabel constexpr">constexpr</span><span class="mlabel noexcept">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>输出范围上界 </p>
+<dl class="section return"><dt>返回</dt><dd>2^64 - 1 </dd></dl>
+
+</div>
+</div>
+<a id="ga968a8b6ecd4806c6a1ab457c5df7ace7" name="ga968a8b6ecd4806c6a1ab457c5df7ace7"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga968a8b6ecd4806c6a1ab457c5df7ace7">&#9670;&#160;</a></span>max() <span class="overload">[2/3]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;class Derived, class ResultType, std::size_t N&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">constexpr <a class="el" href="#ga765fcd9b6b6b4e1c73ff84cd3006160b">result_type</a> <a class="el" href="structRandX_1_1detail_1_1EngineBase.html">RandX::detail::EngineBase</a>&lt; Derived, ResultType, N &gt;::max </td>
+          <td>(</td>
+          <td class="paramname"><span class="paramname"><em></em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel static">static</span><span class="mlabel nodiscard">nodiscard</span><span class="mlabel constexpr">constexpr</span><span class="mlabel noexcept">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="gae3f2f9751994d0a305d15ab3f927e9a7" name="gae3f2f9751994d0a305d15ab3f927e9a7"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#gae3f2f9751994d0a305d15ab3f927e9a7">&#9670;&#160;</a></span>max() <span class="overload">[3/3]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="#ga9cabfce1d7f0f03e553edf468c3ad5d5">SplitMix64::result_type</a> RandX::SplitMix64::max </td>
+          <td>(</td>
+          <td class="paramname"><span class="paramname"><em></em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel static">static</span><span class="mlabel nodiscard">nodiscard</span><span class="mlabel constexpr">constexpr</span><span class="mlabel noexcept">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>输出范围上界 </p>
+<dl class="section return"><dt>返回</dt><dd>2^64 - 1 </dd></dl>
+
+</div>
+</div>
+<a id="ga1d33b35f85728a49d9f616c7dd7ffdb6" name="ga1d33b35f85728a49d9f616c7dd7ffdb6"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga1d33b35f85728a49d9f616c7dd7ffdb6">&#9670;&#160;</a></span>min() <span class="overload">[1/3]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">constexpr <a class="el" href="#gabd7f9eda16e91dd982bc149824c38af7">result_type</a> RandX::ChaCha20::min </td>
+          <td>(</td>
+          <td class="paramname"><span class="paramname"><em></em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel static">static</span><span class="mlabel nodiscard">nodiscard</span><span class="mlabel constexpr">constexpr</span><span class="mlabel noexcept">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>输出范围下界 </p>
+<dl class="section return"><dt>返回</dt><dd>0 </dd></dl>
+<div class="dynheader">
+函数调用图:</div>
+<div class="dyncontent">
+<div class="center"><img src="group__engines_ga1d33b35f85728a49d9f616c7dd7ffdb6_cgraph.png" border="0" usemap="#agroup__engines_ga1d33b35f85728a49d9f616c7dd7ffdb6_cgraph" loading="lazy" alt=""/></div>
+<map name="agroup__engines_ga1d33b35f85728a49d9f616c7dd7ffdb6_cgraph" id="agroup__engines_ga1d33b35f85728a49d9f616c7dd7ffdb6_cgraph">
+<area shape="rect" title="输出范围下界" alt="" coords="5,29,176,55"/>
+<area shape="poly" title=" " alt="" coords="62,31,56,21,59,11,71,5,91,3,114,6,124,15,121,19,112,11,91,8,73,10,63,15,61,20,67,28"/>
+</map>
+</div>
+
+</div>
+</div>
+<a id="ga09a1b8a42aa47a5d91693b740009fd97" name="ga09a1b8a42aa47a5d91693b740009fd97"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga09a1b8a42aa47a5d91693b740009fd97">&#9670;&#160;</a></span>min() <span class="overload">[2/3]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;class Derived, class ResultType, std::size_t N&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">constexpr <a class="el" href="#ga765fcd9b6b6b4e1c73ff84cd3006160b">result_type</a> <a class="el" href="structRandX_1_1detail_1_1EngineBase.html">RandX::detail::EngineBase</a>&lt; Derived, ResultType, N &gt;::min </td>
+          <td>(</td>
+          <td class="paramname"><span class="paramname"><em></em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel static">static</span><span class="mlabel nodiscard">nodiscard</span><span class="mlabel constexpr">constexpr</span><span class="mlabel noexcept">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="ga51e09b03cbc26b28d6832e2bc44f1fba" name="ga51e09b03cbc26b28d6832e2bc44f1fba"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga51e09b03cbc26b28d6832e2bc44f1fba">&#9670;&#160;</a></span>min() <span class="overload">[3/3]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="#ga9cabfce1d7f0f03e553edf468c3ad5d5">SplitMix64::result_type</a> RandX::SplitMix64::min </td>
+          <td>(</td>
+          <td class="paramname"><span class="paramname"><em></em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel static">static</span><span class="mlabel nodiscard">nodiscard</span><span class="mlabel constexpr">constexpr</span><span class="mlabel noexcept">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>输出范围下界 </p>
+<dl class="section return"><dt>返回</dt><dd>0 </dd></dl>
+
+</div>
+</div>
+<a id="ga65041f507a11f1aca6d8c74fafd49ebb" name="ga65041f507a11f1aca6d8c74fafd49ebb"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga65041f507a11f1aca6d8c74fafd49ebb">&#9670;&#160;</a></span>operator()() <span class="overload">[1/8]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="#gabd7f9eda16e91dd982bc149824c38af7">ChaCha20::result_type</a> RandX::ChaCha20::operator() </td>
+          <td>(</td>
+          <td class="paramname"><span class="paramname"><em></em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>生成下一个 64 位随机数 </p>
+<dl class="section return"><dt>返回</dt><dd>[<a class="el" href="#ga1d33b35f85728a49d9f616c7dd7ffdb6" title="输出范围下界">min()</a>, <a class="el" href="#gae1798f4ade802faffd522d460ffaad2e" title="输出范围上界">max()</a>] 区间内的密码学安全伪随机数 </dd></dl>
+
+</div>
+</div>
+<a id="ga8bb016d9558a8cf38610c9e48eb53c04" name="ga8bb016d9558a8cf38610c9e48eb53c04"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga8bb016d9558a8cf38610c9e48eb53c04">&#9670;&#160;</a></span>operator()() <span class="overload">[2/8]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="classRandX_1_1RomuDuoJr.html#a9b165b938823eb9e3e90be86edae80d2">RomuDuoJr::result_type</a> RandX::RomuDuoJr::operator() </td>
+          <td>(</td>
+          <td class="paramname"><span class="paramname"><em></em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel constexpr">constexpr</span><span class="mlabel noexcept">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>生成下一个 64 位随机数 </p>
+<dl class="section return"><dt>返回</dt><dd>[<a class="el" href="#ga09a1b8a42aa47a5d91693b740009fd97">min()</a>, <a class="el" href="#ga968a8b6ecd4806c6a1ab457c5df7ace7">max()</a>] 区间内的伪随机数 </dd></dl>
+<div class="dynheader">
+函数调用图:</div>
+<div class="dyncontent">
+<div class="center"><img src="group__engines_ga8bb016d9558a8cf38610c9e48eb53c04_cgraph.png" border="0" usemap="#agroup__engines_ga8bb016d9558a8cf38610c9e48eb53c04_cgraph" loading="lazy" alt=""/></div>
+<map name="agroup__engines_ga8bb016d9558a8cf38610c9e48eb53c04_cgraph" id="agroup__engines_ga8bb016d9558a8cf38610c9e48eb53c04_cgraph">
+<area shape="rect" title="生成下一个 64 位随机数" alt="" coords="5,5,224,31"/>
+<area shape="rect" href="group__engines.html#ga9ff9f37cb91755aeca8c059a5b75207c" title=" " alt="" coords="272,5,419,31"/>
+<area shape="poly" title=" " alt="" coords="224,15,258,15,258,21,224,21"/>
+</map>
+</div>
+
+</div>
+</div>
+<a id="ga87af6323951310dc46869756e063b02b" name="ga87af6323951310dc46869756e063b02b"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga87af6323951310dc46869756e063b02b">&#9670;&#160;</a></span>operator()() <span class="overload">[3/8]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="classRandX_1_1SFC64.html#a20ce98517d40b8a5cce929522f8a3d78">SFC64::result_type</a> RandX::SFC64::operator() </td>
+          <td>(</td>
+          <td class="paramname"><span class="paramname"><em></em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel constexpr">constexpr</span><span class="mlabel noexcept">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>生成下一个 64 位随机数 </p>
+<dl class="section return"><dt>返回</dt><dd>[<a class="el" href="#ga09a1b8a42aa47a5d91693b740009fd97">min()</a>, <a class="el" href="#ga968a8b6ecd4806c6a1ab457c5df7ace7">max()</a>] 区间内的伪随机数 </dd></dl>
+<div class="dynheader">
+函数调用图:</div>
+<div class="dyncontent">
+<div class="center"><img src="group__engines_ga87af6323951310dc46869756e063b02b_cgraph.png" border="0" usemap="#agroup__engines_ga87af6323951310dc46869756e063b02b_cgraph" loading="lazy" alt=""/></div>
+<map name="agroup__engines_ga87af6323951310dc46869756e063b02b_cgraph" id="agroup__engines_ga87af6323951310dc46869756e063b02b_cgraph">
+<area shape="rect" title="生成下一个 64 位随机数" alt="" coords="5,5,192,31"/>
+<area shape="rect" href="group__engines.html#ga9ff9f37cb91755aeca8c059a5b75207c" title=" " alt="" coords="240,5,387,31"/>
+<area shape="poly" title=" " alt="" coords="192,15,226,15,226,21,192,21"/>
+</map>
+</div>
+
+</div>
+</div>
+<a id="ga4da87e9fe812fbb47b35614daa59c464" name="ga4da87e9fe812fbb47b35614daa59c464"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga4da87e9fe812fbb47b35614daa59c464">&#9670;&#160;</a></span>operator()() <span class="overload">[4/8]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="#ga9cabfce1d7f0f03e553edf468c3ad5d5">SplitMix64::result_type</a> RandX::SplitMix64::operator() </td>
+          <td>(</td>
+          <td class="paramname"><span class="paramname"><em></em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel constexpr">constexpr</span><span class="mlabel noexcept">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>生成下一个 64 位随机数 </p>
+<dl class="section return"><dt>返回</dt><dd>[<a class="el" href="#ga51e09b03cbc26b28d6832e2bc44f1fba" title="输出范围下界">min()</a>, <a class="el" href="#gae3f2f9751994d0a305d15ab3f927e9a7" title="输出范围上界">max()</a>] 区间内的伪随机数 </dd></dl>
+
+</div>
+</div>
+<a id="ga510df2fdc3a5adebd5e39f2978d3b92f" name="ga510df2fdc3a5adebd5e39f2978d3b92f"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga510df2fdc3a5adebd5e39f2978d3b92f">&#9670;&#160;</a></span>operator()() <span class="overload">[5/8]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="classRandX_1_1Xoroshiro128StarStar.html#a67d5e1d759c4ad157e3450a05c52b654">Xoroshiro128StarStar::result_type</a> RandX::Xoroshiro128StarStar::operator() </td>
+          <td>(</td>
+          <td class="paramname"><span class="paramname"><em></em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel constexpr">constexpr</span><span class="mlabel noexcept">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>生成下一个 64 位随机数 </p>
+<dl class="section return"><dt>返回</dt><dd>[<a class="el" href="#ga09a1b8a42aa47a5d91693b740009fd97">min()</a>, <a class="el" href="#ga968a8b6ecd4806c6a1ab457c5df7ace7">max()</a>] 区间内的伪随机数 </dd></dl>
+<div class="dynheader">
+函数调用图:</div>
+<div class="dyncontent">
+<div class="center"><img src="group__engines_ga510df2fdc3a5adebd5e39f2978d3b92f_cgraph.png" border="0" usemap="#agroup__engines_ga510df2fdc3a5adebd5e39f2978d3b92f_cgraph" loading="lazy" alt=""/></div>
+<map name="agroup__engines_ga510df2fdc3a5adebd5e39f2978d3b92f_cgraph" id="agroup__engines_ga510df2fdc3a5adebd5e39f2978d3b92f_cgraph">
+<area shape="rect" title="生成下一个 64 位随机数" alt="" coords="5,5,216,45"/>
+<area shape="rect" href="group__engines.html#ga9ff9f37cb91755aeca8c059a5b75207c" title=" " alt="" coords="264,13,411,38"/>
+<area shape="poly" title=" " alt="" coords="216,23,250,23,250,28,216,28"/>
+</map>
+</div>
+
+</div>
+</div>
+<a id="ga115222c8197b5999000a14c936e1570d" name="ga115222c8197b5999000a14c936e1570d"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga115222c8197b5999000a14c936e1570d">&#9670;&#160;</a></span>operator()() <span class="overload">[6/8]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="classRandX_1_1Xoroshiro64StarStar.html#ac7131e4ac79f86b20c42ba60302bccac">Xoroshiro64StarStar::result_type</a> RandX::Xoroshiro64StarStar::operator() </td>
+          <td>(</td>
+          <td class="paramname"><span class="paramname"><em></em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel constexpr">constexpr</span><span class="mlabel noexcept">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>生成下一个 32 位随机数 </p>
+<dl class="section return"><dt>返回</dt><dd>[<a class="el" href="#ga09a1b8a42aa47a5d91693b740009fd97">min()</a>, <a class="el" href="#ga968a8b6ecd4806c6a1ab457c5df7ace7">max()</a>] 区间内的伪随机数 </dd></dl>
+<div class="dynheader">
+函数调用图:</div>
+<div class="dyncontent">
+<div class="center"><img src="group__engines_ga115222c8197b5999000a14c936e1570d_cgraph.png" border="0" usemap="#agroup__engines_ga115222c8197b5999000a14c936e1570d_cgraph" loading="lazy" alt=""/></div>
+<map name="agroup__engines_ga115222c8197b5999000a14c936e1570d_cgraph" id="agroup__engines_ga115222c8197b5999000a14c936e1570d_cgraph">
+<area shape="rect" title="生成下一个 32 位随机数" alt="" coords="5,5,208,45"/>
+<area shape="rect" href="group__engines.html#ga9ff9f37cb91755aeca8c059a5b75207c" title=" " alt="" coords="256,13,403,38"/>
+<area shape="poly" title=" " alt="" coords="208,23,242,23,242,28,208,28"/>
+</map>
+</div>
+
+</div>
+</div>
+<a id="ga48653c48882bbf26399a56cb3aaffa6b" name="ga48653c48882bbf26399a56cb3aaffa6b"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga48653c48882bbf26399a56cb3aaffa6b">&#9670;&#160;</a></span>operator()() <span class="overload">[7/8]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="classRandX_1_1Xoshiro128StarStar.html#a597cc2485631d8e086a727725070bb55">Xoshiro128StarStar::result_type</a> RandX::Xoshiro128StarStar::operator() </td>
+          <td>(</td>
+          <td class="paramname"><span class="paramname"><em></em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel constexpr">constexpr</span><span class="mlabel noexcept">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>生成下一个 32 位随机数 </p>
+<dl class="section return"><dt>返回</dt><dd>[<a class="el" href="#ga09a1b8a42aa47a5d91693b740009fd97">min()</a>, <a class="el" href="#ga968a8b6ecd4806c6a1ab457c5df7ace7">max()</a>] 区间内的伪随机数 </dd></dl>
+<div class="dynheader">
+函数调用图:</div>
+<div class="dyncontent">
+<div class="center"><img src="group__engines_ga48653c48882bbf26399a56cb3aaffa6b_cgraph.png" border="0" usemap="#agroup__engines_ga48653c48882bbf26399a56cb3aaffa6b_cgraph" loading="lazy" alt=""/></div>
+<map name="agroup__engines_ga48653c48882bbf26399a56cb3aaffa6b_cgraph" id="agroup__engines_ga48653c48882bbf26399a56cb3aaffa6b_cgraph">
+<area shape="rect" title="生成下一个 32 位随机数" alt="" coords="5,5,203,45"/>
+<area shape="rect" href="group__engines.html#ga9ff9f37cb91755aeca8c059a5b75207c" title=" " alt="" coords="251,13,397,38"/>
+<area shape="poly" title=" " alt="" coords="203,23,236,23,236,28,203,28"/>
+</map>
+</div>
+
+</div>
+</div>
+<a id="gaaafa43e95239d5153dc50fa525d9a4fd" name="gaaafa43e95239d5153dc50fa525d9a4fd"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#gaaafa43e95239d5153dc50fa525d9a4fd">&#9670;&#160;</a></span>operator()() <span class="overload">[8/8]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="classRandX_1_1Xoshiro256StarStar.html#a035190021ecf3959f2d3fb5858712844">Xoshiro256StarStar::result_type</a> RandX::Xoshiro256StarStar::operator() </td>
+          <td>(</td>
+          <td class="paramname"><span class="paramname"><em></em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel constexpr">constexpr</span><span class="mlabel noexcept">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>生成下一个 64 位随机数 </p>
+<dl class="section return"><dt>返回</dt><dd>[<a class="el" href="#ga09a1b8a42aa47a5d91693b740009fd97">min()</a>, <a class="el" href="#ga968a8b6ecd4806c6a1ab457c5df7ace7">max()</a>] 区间内的伪随机数 </dd></dl>
+<div class="dynheader">
+函数调用图:</div>
+<div class="dyncontent">
+<div class="center"><img src="group__engines_gaaafa43e95239d5153dc50fa525d9a4fd_cgraph.png" border="0" usemap="#agroup__engines_gaaafa43e95239d5153dc50fa525d9a4fd_cgraph" loading="lazy" alt=""/></div>
+<map name="agroup__engines_gaaafa43e95239d5153dc50fa525d9a4fd_cgraph" id="agroup__engines_gaaafa43e95239d5153dc50fa525d9a4fd_cgraph">
+<area shape="rect" title="生成下一个 64 位随机数" alt="" coords="5,5,203,45"/>
+<area shape="rect" href="group__engines.html#ga9ff9f37cb91755aeca8c059a5b75207c" title=" " alt="" coords="251,13,397,38"/>
+<area shape="poly" title=" " alt="" coords="203,23,236,23,236,28,203,28"/>
+</map>
+</div>
+
+</div>
+</div>
+<a id="ga315f8716997942607c4b8917e3691e42" name="ga315f8716997942607c4b8917e3691e42"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga315f8716997942607c4b8917e3691e42">&#9670;&#160;</a></span>operator&lt;&lt;()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;class CharT, class Traits, detail::SerializableEngine Engine&gt; </div>
+      <table class="memname">
+        <tr>
+          <td class="memname">std::basic_ostream&lt; CharT, Traits &gt; &amp; RandX::operator&lt;&lt; </td>
+          <td>(</td>
+          <td class="paramtype">std::basic_ostream&lt; CharT, Traits &gt; &amp;</td>          <td class="paramname"><span class="paramname"><em>os</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const Engine &amp;</td>          <td class="paramname"><span class="paramname"><em>engine</em></span>&#160;)</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="ga69ea997497f6c762e797adbb4a034a67" name="ga69ea997497f6c762e797adbb4a034a67"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga69ea997497f6c762e797adbb4a034a67">&#9670;&#160;</a></span>operator=() <span class="overload">[1/2]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="#ga1f5117fb49a59cc58cff4326775810a4">ChaCha20</a> &amp; RandX::ChaCha20::operator= </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="#ga1f5117fb49a59cc58cff4326775810a4">ChaCha20</a> &amp;&amp;</td>          <td class="paramname"><span class="paramname"><em>other</em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel noexcept">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<div class="dynheader">
+函数调用图:</div>
+<div class="dyncontent">
+<div class="center"><img src="group__engines_ga69ea997497f6c762e797adbb4a034a67_cgraph.png" border="0" usemap="#agroup__engines_ga69ea997497f6c762e797adbb4a034a67_cgraph" loading="lazy" alt=""/></div>
+<map name="agroup__engines_ga69ea997497f6c762e797adbb4a034a67_cgraph" id="agroup__engines_ga69ea997497f6c762e797adbb4a034a67_cgraph">
+<area shape="rect" title=" " alt="" coords="5,55,217,80"/>
+<area shape="rect" href="group__engines.html#ga1f5117fb49a59cc58cff4326775810a4" title=" " alt="" coords="265,29,477,55"/>
+<area shape="poly" title=" " alt="" coords="217,54,251,51,252,56,218,60"/>
+<area shape="rect" href="namespaceRandX_1_1detail.html#aea45979fec3d8bd006581404baf9c7a9" title=" " alt="" coords="274,79,469,104"/>
+<area shape="poly" title=" " alt="" coords="218,74,260,78,260,84,217,80"/>
+<area shape="poly" title=" " alt="" coords="330,31,320,21,325,11,342,5,371,3,408,7,418,11,422,17,418,20,415,15,406,12,371,8,344,10,329,15,326,20,333,27"/>
+</map>
+</div>
+
+</div>
+</div>
+<a id="ga79c89368f7ba9e2b2aeac04f49a8db20" name="ga79c89368f7ba9e2b2aeac04f49a8db20"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga79c89368f7ba9e2b2aeac04f49a8db20">&#9670;&#160;</a></span>operator=() <span class="overload">[2/2]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="#ga1f5117fb49a59cc58cff4326775810a4">ChaCha20</a> &amp; RandX::ChaCha20::operator= </td>
+          <td>(</td>
+          <td class="paramtype">const <a class="el" href="#ga1f5117fb49a59cc58cff4326775810a4">ChaCha20</a> &amp;</td>          <td class="paramname"><span class="paramname"><em></em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel delete">delete</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<div class="dynheader">
+函数调用图:</div>
+<div class="dyncontent">
+<div class="center"><img src="group__engines_ga79c89368f7ba9e2b2aeac04f49a8db20_cgraph.png" border="0" usemap="#agroup__engines_ga79c89368f7ba9e2b2aeac04f49a8db20_cgraph" loading="lazy" alt=""/></div>
+<map name="agroup__engines_ga79c89368f7ba9e2b2aeac04f49a8db20_cgraph" id="agroup__engines_ga79c89368f7ba9e2b2aeac04f49a8db20_cgraph">
+<area shape="rect" title=" " alt="" coords="5,79,217,104"/>
+<area shape="poly" title=" " alt="" coords="70,80,60,70,65,60,82,54,111,52,148,56,158,61,162,66,158,69,155,65,146,61,111,57,84,59,69,64,66,70,73,77"/>
+<area shape="rect" href="group__engines.html#ga1f5117fb49a59cc58cff4326775810a4" title=" " alt="" coords="265,29,477,55"/>
+<area shape="poly" title=" " alt="" coords="178,76,290,55,291,60,179,81"/>
+<area shape="rect" href="group__engines.html#ga836ea0fcf81e607e7f6b8893e2f0f280" title="跳过 n 个输出" alt="" coords="275,79,468,104"/>
+<area shape="poly" title=" " alt="" coords="217,89,261,89,261,94,217,94"/>
+<area shape="rect" href="group__engines.html#gaabf99f29ec05ab87f9b3ca5e78861f05" title="从 OS 熵重新播种" alt="" coords="276,128,467,153"/>
+<area shape="poly" title=" " alt="" coords="179,101,291,123,290,128,178,107"/>
+<area shape="poly" title=" " alt="" coords="330,31,321,21,326,11,343,5,371,3,407,7,418,11,422,17,417,20,414,15,406,12,371,8,344,10,329,15,326,20,334,27"/>
+<area shape="rect" href="group__csprng.html#ga31b80b51d6bc9e44f68c5232803bb6d6" title="用 OS 密码学熵源填充 [buf, buf+n) 字节" alt="" coords="525,103,732,128"/>
+<area shape="poly" title=" " alt="" coords="467,129,511,124,512,130,467,134"/>
+<area shape="rect" href="namespaceRandX_1_1detail.html#aea45979fec3d8bd006581404baf9c7a9" title=" " alt="" coords="531,152,726,177"/>
+<area shape="poly" title=" " alt="" coords="467,147,518,152,517,157,467,152"/>
+<area shape="rect" href="namespaceRandX_1_1detail.html#a02fce2f64f9c2eb6dbe7390a26aab73a" title=" " alt="" coords="780,95,987,135"/>
+<area shape="poly" title=" " alt="" coords="732,113,766,113,766,118,732,118"/>
+</map>
+</div>
+
+</div>
+</div>
+<a id="ga47411229740263b9d94ddbf5c50b6127" name="ga47411229740263b9d94ddbf5c50b6127"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga47411229740263b9d94ddbf5c50b6127">&#9670;&#160;</a></span>operator&gt;&gt;()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;class CharT, class Traits, detail::SerializableEngine Engine&gt; </div>
+      <table class="memname">
+        <tr>
+          <td class="memname">std::basic_istream&lt; CharT, Traits &gt; &amp; RandX::operator&gt;&gt; </td>
+          <td>(</td>
+          <td class="paramtype">std::basic_istream&lt; CharT, Traits &gt; &amp;</td>          <td class="paramname"><span class="paramname"><em>is</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">Engine &amp;</td>          <td class="paramname"><span class="paramname"><em>engine</em></span>&#160;)</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<div class="dynheader">
+函数调用图:</div>
+<div class="dyncontent">
+<div class="center"><img src="group__engines_ga47411229740263b9d94ddbf5c50b6127_cgraph.png" border="0" usemap="#agroup__engines_ga47411229740263b9d94ddbf5c50b6127_cgraph" loading="lazy" alt=""/></div>
+<map name="agroup__engines_ga47411229740263b9d94ddbf5c50b6127_cgraph" id="agroup__engines_ga47411229740263b9d94ddbf5c50b6127_cgraph">
+<area shape="rect" title=" " alt="" coords="5,5,155,31"/>
+<area shape="rect" href="group__engines.html#ga5da95d4782cee71328b54d5d6b0a01e8" title=" " alt="" coords="203,5,397,31"/>
+<area shape="poly" title=" " alt="" coords="155,15,189,15,189,21,155,21"/>
+<area shape="rect" href="group__engines.html#ga13d22746812b03016bbb2ff7b5c0d49d" title=" " alt="" coords="445,5,620,31"/>
+<area shape="poly" title=" " alt="" coords="398,15,431,15,431,21,398,21"/>
+</map>
+</div>
+
+</div>
+</div>
+<a id="gaa82567759ff174faf923397ea9b0c71f" name="gaa82567759ff174faf923397ea9b0c71f"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#gaa82567759ff174faf923397ea9b0c71f">&#9670;&#160;</a></span>RandomSeed()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">std::uint64_t RandX::RandomSeed </td>
+          <td>(</td>
+          <td class="paramname"><span class="paramname"><em></em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel nodiscard">nodiscard</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>生成非确定性的 64 位种子 </p>
+<dl class="section return"><dt>返回</dt><dd>优先硬件 RNG 的种子值 </dd></dl>
+<dl class="section note"><dt>注解</dt><dd>优先级链：RDRAND (x86_64) → <a class="el" href="namespaceRandX_1_1detail.html#a02fce2f64f9c2eb6dbe7390a26aab73a">detail::GetOsEntropyBytes</a> → std::random_device → 时间戳回退 </dd></dl>
+<div class="dynheader">
+函数调用图:</div>
+<div class="dyncontent">
+<div class="center"><img src="group__engines_gaa82567759ff174faf923397ea9b0c71f_cgraph.png" border="0" usemap="#agroup__engines_gaa82567759ff174faf923397ea9b0c71f_cgraph" loading="lazy" alt=""/></div>
+<map name="agroup__engines_gaa82567759ff174faf923397ea9b0c71f_cgraph" id="agroup__engines_gaa82567759ff174faf923397ea9b0c71f_cgraph">
+<area shape="rect" title="生成非确定性的 64 位种子" alt="" coords="5,42,164,67"/>
+<area shape="rect" href="namespaceRandX_1_1detail.html#a02fce2f64f9c2eb6dbe7390a26aab73a" title=" " alt="" coords="223,5,430,45"/>
+<area shape="poly" title=" " alt="" coords="164,42,209,37,210,42,165,48"/>
+<area shape="rect" href="namespaceRandX_1_1detail.html#a23a58952bbe85de475f50a4f1e6acfce" title=" " alt="" coords="212,70,441,95"/>
+<area shape="poly" title=" " alt="" coords="165,61,204,66,203,71,164,66"/>
+</map>
+</div>
+
+</div>
+</div>
+<a id="gaabf99f29ec05ab87f9b3ca5e78861f05" name="gaabf99f29ec05ab87f9b3ca5e78861f05"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#gaabf99f29ec05ab87f9b3ca5e78861f05">&#9670;&#160;</a></span>reseed()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">void RandX::ChaCha20::reseed </td>
+          <td>(</td>
+          <td class="paramname"><span class="paramname"><em></em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>从 OS 熵重新播种 </p>
+<dl class="section note"><dt>注解</dt><dd>手动触发，重置 counter 与字节缓存 </dd></dl>
+<div class="dynheader">
+函数调用图:</div>
+<div class="dyncontent">
+<div class="center"><img src="group__engines_gaabf99f29ec05ab87f9b3ca5e78861f05_cgraph.png" border="0" usemap="#agroup__engines_gaabf99f29ec05ab87f9b3ca5e78861f05_cgraph" loading="lazy" alt=""/></div>
+<map name="agroup__engines_gaabf99f29ec05ab87f9b3ca5e78861f05_cgraph" id="agroup__engines_gaabf99f29ec05ab87f9b3ca5e78861f05_cgraph">
+<area shape="rect" title="从 OS 熵重新播种" alt="" coords="5,38,196,63"/>
+<area shape="rect" href="group__csprng.html#ga31b80b51d6bc9e44f68c5232803bb6d6" title="用 OS 密码学熵源填充 [buf, buf+n) 字节" alt="" coords="244,13,451,38"/>
+<area shape="poly" title=" " alt="" coords="196,38,230,35,231,40,197,44"/>
+<area shape="rect" href="namespaceRandX_1_1detail.html#aea45979fec3d8bd006581404baf9c7a9" title=" " alt="" coords="250,62,445,87"/>
+<area shape="poly" title=" " alt="" coords="197,57,237,61,236,67,196,63"/>
+<area shape="rect" href="namespaceRandX_1_1detail.html#a02fce2f64f9c2eb6dbe7390a26aab73a" title=" " alt="" coords="499,5,705,45"/>
+<area shape="poly" title=" " alt="" coords="451,23,485,23,485,28,451,28"/>
+</map>
+</div>
+
+</div>
+</div>
+<a id="ga45356e8e8d0fc3425e0b574d5b152b78" name="ga45356e8e8d0fc3425e0b574d5b152b78"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga45356e8e8d0fc3425e0b574d5b152b78">&#9670;&#160;</a></span>ResetThreadLocalEngine()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">void RandX::ResetThreadLocalEngine </td>
+          <td>(</td>
+          <td class="paramname"><span class="paramname"><em></em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>重新播种当前线程的默认引擎（用于 POSIX fork() 产生子进程后重置引擎状态） </p>
+<div class="dynheader">
+函数调用图:</div>
+<div class="dyncontent">
+<div class="center"><img src="group__engines_ga45356e8e8d0fc3425e0b574d5b152b78_cgraph.png" border="0" usemap="#agroup__engines_ga45356e8e8d0fc3425e0b574d5b152b78_cgraph" loading="lazy" alt=""/></div>
+<map name="agroup__engines_ga45356e8e8d0fc3425e0b574d5b152b78_cgraph" id="agroup__engines_ga45356e8e8d0fc3425e0b574d5b152b78_cgraph">
+<area shape="rect" title="重新播种当前线程的默认引擎（用于 POSIX fork() 产生子进程后重置引擎状态）" alt="" coords="5,42,237,67"/>
+<area shape="rect" href="group__engines.html#ga7dba92b95d7c5e6eb2d1db3c6a3b2ddf" title=" " alt="" coords="285,17,449,42"/>
+<area shape="poly" title=" " alt="" coords="237,40,272,36,272,42,238,45"/>
+<area shape="rect" href="group__engines.html#gaa82567759ff174faf923397ea9b0c71f" title="生成非确定性的 64 位种子" alt="" coords="497,42,656,67"/>
+<area shape="poly" title=" " alt="" coords="237,52,484,52,484,57,237,57"/>
+<area shape="poly" title=" " alt="" coords="450,37,484,41,484,46,449,42"/>
+<area shape="rect" href="namespaceRandX_1_1detail.html#a02fce2f64f9c2eb6dbe7390a26aab73a" title=" " alt="" coords="715,5,922,45"/>
+<area shape="poly" title=" " alt="" coords="656,42,701,37,702,42,657,48"/>
+<area shape="rect" href="namespaceRandX_1_1detail.html#a23a58952bbe85de475f50a4f1e6acfce" title=" " alt="" coords="704,70,933,95"/>
+<area shape="poly" title=" " alt="" coords="657,61,696,66,695,71,656,66"/>
+</map>
+</div>
+
+</div>
+</div>
+<a id="ga3debd9912e4d0138be63c5d502fa5893" name="ga3debd9912e4d0138be63c5d502fa5893"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga3debd9912e4d0138be63c5d502fa5893">&#9670;&#160;</a></span>RomuDuoJr() <span class="overload">[1/4]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">RandX::RomuDuoJr::RomuDuoJr </td>
+          <td>(</td>
+          <td class="paramname"><span class="paramname"><em></em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel constexpr">constexpr</span><span class="mlabel noexcept">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>&lt; 状态类型（2×uint64） </p>
+<p>默认构造（使用 DefaultSeed） </p>
+
+</div>
+</div>
+<a id="gae1a3543f47ef4d5fb7eb59e09c9915f9" name="gae1a3543f47ef4d5fb7eb59e09c9915f9"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#gae1a3543f47ef4d5fb7eb59e09c9915f9">&#9670;&#160;</a></span>RomuDuoJr() <span class="overload">[2/4]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;class SeedSeq&gt; <br />
+requires (!std::same_as&lt;std::remove_cvref_t&lt;SeedSeq&gt;, RomuDuoJr&gt;)</div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">RandX::RomuDuoJr::RomuDuoJr </td>
+          <td>(</td>
+          <td class="paramtype">SeedSeq &amp;</td>          <td class="paramname"><span class="paramname"><em>seq</em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel explicit">explicit</span><span class="mlabel nodiscard">nodiscard</span><span class="mlabel constexpr">constexpr</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>从 std::seed_seq 播种 </p>
+<dl class="params"><dt>参数</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">seq</td><td>种子序列对象 </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<a id="gad23ae81a13bb60e52b51a7222b0fbaa7" name="gad23ae81a13bb60e52b51a7222b0fbaa7"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#gad23ae81a13bb60e52b51a7222b0fbaa7">&#9670;&#160;</a></span>RomuDuoJr() <span class="overload">[3/4]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">RandX::RomuDuoJr::RomuDuoJr </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="classRandX_1_1RomuDuoJr.html#a0616e73042272cb8387b0d16e3c02af7">state_type</a></td>          <td class="paramname"><span class="paramname"><em>state</em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel explicit">explicit</span><span class="mlabel nodiscard">nodiscard</span><span class="mlabel constexpr">constexpr</span><span class="mlabel noexcept">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>从状态数组直接构造 </p>
+<dl class="params"><dt>参数</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">state</td><td><a class="el" href="#ga871e2d003dbfcd8daf0c954116f617a0">serialize()</a> 返回的状态 </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<a id="ga6f58211e5e02081a23470038d1d21aae" name="ga6f58211e5e02081a23470038d1d21aae"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga6f58211e5e02081a23470038d1d21aae">&#9670;&#160;</a></span>RomuDuoJr() <span class="overload">[4/4]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">RandX::RomuDuoJr::RomuDuoJr </td>
+          <td>(</td>
+          <td class="paramtype">std::uint64_t</td>          <td class="paramname"><span class="paramname"><em>seed</em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel explicit">explicit</span><span class="mlabel nodiscard">nodiscard</span><span class="mlabel constexpr">constexpr</span><span class="mlabel noexcept">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>以指定种子构造引擎 </p>
+<dl class="params"><dt>参数</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">seed</td><td>64 位种子值 </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<a id="ga397bb159bd3de2e94fa7cf303214679d" name="ga397bb159bd3de2e94fa7cf303214679d"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga397bb159bd3de2e94fa7cf303214679d">&#9670;&#160;</a></span>RotL() <span class="overload">[1/2]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">std::uint32_t RandX::detail::RotL </td>
+          <td>(</td>
+          <td class="paramtype">const std::uint32_t</td>          <td class="paramname"><span class="paramname"><em>x</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const int</td>          <td class="paramname"><span class="paramname"><em>s</em></span>&#160;)</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel nodiscard">nodiscard</span><span class="mlabel constexpr">constexpr</span><span class="mlabel noexcept">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="ga9ff9f37cb91755aeca8c059a5b75207c" name="ga9ff9f37cb91755aeca8c059a5b75207c"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga9ff9f37cb91755aeca8c059a5b75207c">&#9670;&#160;</a></span>RotL() <span class="overload">[2/2]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">std::uint64_t RandX::detail::RotL </td>
+          <td>(</td>
+          <td class="paramtype">const std::uint64_t</td>          <td class="paramname"><span class="paramname"><em>x</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const int</td>          <td class="paramname"><span class="paramname"><em>s</em></span>&#160;)</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel nodiscard">nodiscard</span><span class="mlabel constexpr">constexpr</span><span class="mlabel noexcept">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="ga871e2d003dbfcd8daf0c954116f617a0" name="ga871e2d003dbfcd8daf0c954116f617a0"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga871e2d003dbfcd8daf0c954116f617a0">&#9670;&#160;</a></span>serialize() <span class="overload">[1/2]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;class Derived, class ResultType, std::size_t N&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="#gaae22e269e127b6d31a70f69a6153e2b7">state_type</a> <a class="el" href="structRandX_1_1detail_1_1EngineBase.html">RandX::detail::EngineBase</a>&lt; Derived, ResultType, N &gt;::serialize </td>
+          <td>(</td>
+          <td class="paramname"><span class="paramname"><em></em></span></td><td>)</td>
+          <td> const</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel nodiscard">nodiscard</span><span class="mlabel constexpr">constexpr</span><span class="mlabel noexcept">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="ga0c34adfdb68372729e3232a983a49fdc" name="ga0c34adfdb68372729e3232a983a49fdc"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga0c34adfdb68372729e3232a983a49fdc">&#9670;&#160;</a></span>serialize() <span class="overload">[2/2]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="#gade679f83a18ce7451c504090a4379fe9">SplitMix64::state_type</a> RandX::SplitMix64::serialize </td>
+          <td>(</td>
+          <td class="paramname"><span class="paramname"><em></em></span></td><td>)</td>
+          <td> const</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel nodiscard">nodiscard</span><span class="mlabel constexpr">constexpr</span><span class="mlabel noexcept">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>序列化引擎状态 </p>
+<dl class="section return"><dt>返回</dt><dd>当前状态值 </dd></dl>
+<dl class="section see"><dt>参见</dt><dd><a class="el" href="#gab5b13d78315ce4bdeb2c092435cb92a5" title="从状态恢复引擎">deserialize()</a> </dd></dl>
+
+</div>
+</div>
+<a id="ga50100f3a6ab8ecf548942e8ddac5e6e7" name="ga50100f3a6ab8ecf548942e8ddac5e6e7"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga50100f3a6ab8ecf548942e8ddac5e6e7">&#9670;&#160;</a></span>SFC64() <span class="overload">[1/4]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">RandX::SFC64::SFC64 </td>
+          <td>(</td>
+          <td class="paramname"><span class="paramname"><em></em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel constexpr">constexpr</span><span class="mlabel noexcept">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>&lt; 状态类型（4×uint64） </p>
+<p>默认构造（使用 DefaultSeed） </p>
+<div class="dynheader">
+函数调用图:</div>
+<div class="dyncontent">
+<div class="center"><img src="group__engines_ga50100f3a6ab8ecf548942e8ddac5e6e7_cgraph.png" border="0" usemap="#agroup__engines_ga50100f3a6ab8ecf548942e8ddac5e6e7_cgraph" loading="lazy" alt=""/></div>
+<map name="agroup__engines_ga50100f3a6ab8ecf548942e8ddac5e6e7_cgraph" id="agroup__engines_ga50100f3a6ab8ecf548942e8ddac5e6e7_cgraph">
+<area shape="rect" title="&lt; 状态类型（4×uint64）" alt="" coords="5,29,168,55"/>
+<area shape="poly" title=" " alt="" coords="59,31,54,21,57,11,68,5,87,3,109,6,119,15,115,19,107,11,87,8,70,10,61,15,59,20,64,28"/>
+</map>
+</div>
+
+</div>
+</div>
+<a id="gac469a63f4d84d98187691881341ae03b" name="gac469a63f4d84d98187691881341ae03b"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#gac469a63f4d84d98187691881341ae03b">&#9670;&#160;</a></span>SFC64() <span class="overload">[2/4]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;class SeedSeq&gt; <br />
+requires (!std::same_as&lt;std::remove_cvref_t&lt;SeedSeq&gt;, SFC64&gt;)</div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">RandX::SFC64::SFC64 </td>
+          <td>(</td>
+          <td class="paramtype">SeedSeq &amp;</td>          <td class="paramname"><span class="paramname"><em>seq</em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel explicit">explicit</span><span class="mlabel nodiscard">nodiscard</span><span class="mlabel constexpr">constexpr</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>从 std::seed_seq 播种（填充 3 状态字 + counter=1 + 12 轮预热） </p>
+<dl class="params"><dt>参数</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">seq</td><td>种子序列对象 </td></tr>
+  </table>
+  </dd>
+</dl>
+<div class="dynheader">
+函数调用图:</div>
+<div class="dyncontent">
+<div class="center"><img src="group__engines_gac469a63f4d84d98187691881341ae03b_cgraph.png" border="0" usemap="#agroup__engines_gac469a63f4d84d98187691881341ae03b_cgraph" loading="lazy" alt=""/></div>
+<map name="agroup__engines_gac469a63f4d84d98187691881341ae03b_cgraph" id="agroup__engines_gac469a63f4d84d98187691881341ae03b_cgraph">
+<area shape="rect" title="从 std::seed_seq 播种（填充 3 状态字 + counter=1 + 12 轮预热）" alt="" coords="5,43,168,68"/>
+<area shape="rect" href="group__engines.html#ga87af6323951310dc46869756e063b02b" title="生成下一个 64 位随机数" alt="" coords="216,5,403,31"/>
+<area shape="poly" title=" " alt="" coords="163,40,219,30,220,36,164,45"/>
+<area shape="rect" href="group__engines.html#ga50100f3a6ab8ecf548942e8ddac5e6e7" title="&lt; 状态类型（4×uint64）" alt="" coords="228,79,391,104"/>
+<area shape="poly" title=" " alt="" coords="166,65,217,74,216,79,165,71"/>
+<area shape="rect" href="group__engines.html#ga9ff9f37cb91755aeca8c059a5b75207c" title=" " alt="" coords="451,5,597,31"/>
+<area shape="poly" title=" " alt="" coords="403,15,437,15,437,21,403,21"/>
+<area shape="poly" title=" " alt="" coords="274,80,267,70,271,60,285,54,309,52,339,56,351,65,348,69,337,61,309,57,287,59,275,64,272,70,279,77"/>
+</map>
+</div>
+
+</div>
+</div>
+<a id="ga5a9d70fd5d5b96d2986ea37203d165e3" name="ga5a9d70fd5d5b96d2986ea37203d165e3"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga5a9d70fd5d5b96d2986ea37203d165e3">&#9670;&#160;</a></span>SFC64() <span class="overload">[3/4]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">RandX::SFC64::SFC64 </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="structRandX_1_1detail_1_1EngineBase.html#aae22e269e127b6d31a70f69a6153e2b7">state_type</a></td>          <td class="paramname"><span class="paramname"><em>state</em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel explicit">explicit</span><span class="mlabel nodiscard">nodiscard</span><span class="mlabel constexpr">constexpr</span><span class="mlabel noexcept">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>从状态数组直接构造 </p>
+<dl class="params"><dt>参数</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">state</td><td><a class="el" href="#ga871e2d003dbfcd8daf0c954116f617a0">serialize()</a> 返回的状态 </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<a id="ga301c478ab305ab3143e2569260a8d470" name="ga301c478ab305ab3143e2569260a8d470"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga301c478ab305ab3143e2569260a8d470">&#9670;&#160;</a></span>SFC64() <span class="overload">[4/4]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">RandX::SFC64::SFC64 </td>
+          <td>(</td>
+          <td class="paramtype">std::uint64_t</td>          <td class="paramname"><span class="paramname"><em>seed</em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel explicit">explicit</span><span class="mlabel nodiscard">nodiscard</span><span class="mlabel constexpr">constexpr</span><span class="mlabel noexcept">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>以指定种子构造引擎（SplitMix64 填充 3 状态字 + counter=1 + 12 轮预热） </p>
+<dl class="params"><dt>参数</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">seed</td><td>64 位种子值 </td></tr>
+  </table>
+  </dd>
+</dl>
+<div class="dynheader">
+函数调用图:</div>
+<div class="dyncontent">
+<div class="center"><img src="group__engines_ga301c478ab305ab3143e2569260a8d470_cgraph.png" border="0" usemap="#agroup__engines_ga301c478ab305ab3143e2569260a8d470_cgraph" loading="lazy" alt=""/></div>
+<map name="agroup__engines_ga301c478ab305ab3143e2569260a8d470_cgraph" id="agroup__engines_ga301c478ab305ab3143e2569260a8d470_cgraph">
+<area shape="rect" title="以指定种子构造引擎（SplitMix64 填充 3 状态字 + counter=1 + 12 轮预热）" alt="" coords="5,5,168,31"/>
+<area shape="rect" href="group__engines.html#ga87af6323951310dc46869756e063b02b" title="生成下一个 64 位随机数" alt="" coords="216,5,403,31"/>
+<area shape="poly" title=" " alt="" coords="168,15,202,15,202,21,168,21"/>
+<area shape="rect" href="group__engines.html#ga9ff9f37cb91755aeca8c059a5b75207c" title=" " alt="" coords="451,5,597,31"/>
+<area shape="poly" title=" " alt="" coords="403,15,437,15,437,21,403,21"/>
+</map>
+</div>
+
+</div>
+</div>
+<a id="gadbb568035db4c8770c4f2d4714915f70" name="gadbb568035db4c8770c4f2d4714915f70"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#gadbb568035db4c8770c4f2d4714915f70">&#9670;&#160;</a></span>SplitMix64() <span class="overload">[1/2]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;class SeedSeq&gt; <br />
+requires (!std::same_as&lt;std::remove_cvref_t&lt;SeedSeq&gt;, SplitMix64&gt;)</div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">RandX::SplitMix64::SplitMix64 </td>
+          <td>(</td>
+          <td class="paramtype">SeedSeq &amp;</td>          <td class="paramname"><span class="paramname"><em>seq</em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel explicit">explicit</span><span class="mlabel nodiscard">nodiscard</span><span class="mlabel constexpr">constexpr</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>从 std::seed_seq 播种 </p>
+<dl class="params"><dt>参数</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">seq</td><td>种子序列对象 </td></tr>
+  </table>
+  </dd>
+</dl>
+<div class="dynheader">
+函数调用图:</div>
+<div class="dyncontent">
+<div class="center"><img src="group__engines_gadbb568035db4c8770c4f2d4714915f70_cgraph.png" border="0" usemap="#agroup__engines_gadbb568035db4c8770c4f2d4714915f70_cgraph" loading="lazy" alt=""/></div>
+<map name="agroup__engines_gadbb568035db4c8770c4f2d4714915f70_cgraph" id="agroup__engines_gadbb568035db4c8770c4f2d4714915f70_cgraph">
+<area shape="rect" title="从 std::seed_seq 播种" alt="" coords="5,5,155,45"/>
+<area shape="rect" href="group__engines.html#ga66f6b33cb3b7559e673f2b97cbd11d3f" title="以指定状态构造引擎" alt="" coords="203,5,352,45"/>
+<area shape="poly" title=" " alt="" coords="155,23,189,23,189,28,155,28"/>
+</map>
+</div>
+
+</div>
+</div>
+<a id="ga66f6b33cb3b7559e673f2b97cbd11d3f" name="ga66f6b33cb3b7559e673f2b97cbd11d3f"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga66f6b33cb3b7559e673f2b97cbd11d3f">&#9670;&#160;</a></span>SplitMix64() <span class="overload">[2/2]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">RandX::SplitMix64::SplitMix64 </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="#gade679f83a18ce7451c504090a4379fe9">state_type</a></td>          <td class="paramname"><span class="paramname"><em>state</em></span><span class="paramdefsep"> = </span><span class="paramdefval"><a class="el" href="namespaceRandX.html#a9288902b59860f71275deb0d807f69b6">DefaultSeed</a></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel explicit">explicit</span><span class="mlabel nodiscard">nodiscard</span><span class="mlabel constexpr">constexpr</span><span class="mlabel noexcept">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>以指定状态构造引擎 </p>
+<dl class="params"><dt>参数</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">state</td><td>64 位初始状态值 </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<a id="gaf44ed8963c4552101835f52d316a2379" name="gaf44ed8963c4552101835f52d316a2379"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#gaf44ed8963c4552101835f52d316a2379">&#9670;&#160;</a></span>Xoroshiro128StarStar() <span class="overload">[1/4]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">RandX::Xoroshiro128StarStar::Xoroshiro128StarStar </td>
+          <td>(</td>
+          <td class="paramname"><span class="paramname"><em></em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel constexpr">constexpr</span><span class="mlabel noexcept">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>&lt; 状态类型（2×uint64） </p>
+<p>默认构造（使用 DefaultSeed） </p>
+
+</div>
+</div>
+<a id="gacd4d82b1c3d681ba7d84a669491e9cb8" name="gacd4d82b1c3d681ba7d84a669491e9cb8"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#gacd4d82b1c3d681ba7d84a669491e9cb8">&#9670;&#160;</a></span>Xoroshiro128StarStar() <span class="overload">[2/4]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;class SeedSeq&gt; <br />
+requires (!std::same_as&lt;std::remove_cvref_t&lt;SeedSeq&gt;, Xoroshiro128StarStar&gt;)</div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">RandX::Xoroshiro128StarStar::Xoroshiro128StarStar </td>
+          <td>(</td>
+          <td class="paramtype">SeedSeq &amp;</td>          <td class="paramname"><span class="paramname"><em>seq</em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel explicit">explicit</span><span class="mlabel nodiscard">nodiscard</span><span class="mlabel constexpr">constexpr</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>从 std::seed_seq 播种 </p>
+<dl class="params"><dt>参数</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">seq</td><td>种子序列对象 </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<a id="ga72c61c892c2a1430ce3ece0c5a02319f" name="ga72c61c892c2a1430ce3ece0c5a02319f"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga72c61c892c2a1430ce3ece0c5a02319f">&#9670;&#160;</a></span>Xoroshiro128StarStar() <span class="overload">[3/4]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">RandX::Xoroshiro128StarStar::Xoroshiro128StarStar </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="classRandX_1_1Xoroshiro128StarStar.html#afade931dd86086df5a82cc638f3aebe4">state_type</a></td>          <td class="paramname"><span class="paramname"><em>state</em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel explicit">explicit</span><span class="mlabel nodiscard">nodiscard</span><span class="mlabel constexpr">constexpr</span><span class="mlabel noexcept">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>从状态数组直接构造 </p>
+<dl class="params"><dt>参数</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">state</td><td><a class="el" href="#ga871e2d003dbfcd8daf0c954116f617a0">serialize()</a> 返回的状态 </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<a id="ga78e14b3a6ee3931b470e42e9887ba56f" name="ga78e14b3a6ee3931b470e42e9887ba56f"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga78e14b3a6ee3931b470e42e9887ba56f">&#9670;&#160;</a></span>Xoroshiro128StarStar() <span class="overload">[4/4]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">RandX::Xoroshiro128StarStar::Xoroshiro128StarStar </td>
+          <td>(</td>
+          <td class="paramtype">std::uint64_t</td>          <td class="paramname"><span class="paramname"><em>seed</em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel explicit">explicit</span><span class="mlabel nodiscard">nodiscard</span><span class="mlabel constexpr">constexpr</span><span class="mlabel noexcept">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>以指定种子构造引擎 </p>
+<dl class="params"><dt>参数</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">seed</td><td>64 位种子值 </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<a id="ga28275c6d25b82de99f10c69252177740" name="ga28275c6d25b82de99f10c69252177740"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga28275c6d25b82de99f10c69252177740">&#9670;&#160;</a></span>Xoroshiro64StarStar() <span class="overload">[1/4]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">RandX::Xoroshiro64StarStar::Xoroshiro64StarStar </td>
+          <td>(</td>
+          <td class="paramname"><span class="paramname"><em></em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel constexpr">constexpr</span><span class="mlabel noexcept">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>&lt; 状态类型（2×uint32） </p>
+<p>默认构造（使用 DefaultSeed） </p>
+
+</div>
+</div>
+<a id="gadb0ad57561a76115d6b00f8d072ee7a2" name="gadb0ad57561a76115d6b00f8d072ee7a2"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#gadb0ad57561a76115d6b00f8d072ee7a2">&#9670;&#160;</a></span>Xoroshiro64StarStar() <span class="overload">[2/4]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;class SeedSeq&gt; <br />
+requires (!std::same_as&lt;std::remove_cvref_t&lt;SeedSeq&gt;, Xoroshiro64StarStar&gt;)</div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">RandX::Xoroshiro64StarStar::Xoroshiro64StarStar </td>
+          <td>(</td>
+          <td class="paramtype">SeedSeq &amp;</td>          <td class="paramname"><span class="paramname"><em>seq</em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel explicit">explicit</span><span class="mlabel nodiscard">nodiscard</span><span class="mlabel constexpr">constexpr</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>从 std::seed_seq 播种 </p>
+<dl class="params"><dt>参数</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">seq</td><td>种子序列对象 </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<a id="ga4641b3e3cbca3795544fe9b053f5b8d1" name="ga4641b3e3cbca3795544fe9b053f5b8d1"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga4641b3e3cbca3795544fe9b053f5b8d1">&#9670;&#160;</a></span>Xoroshiro64StarStar() <span class="overload">[3/4]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">RandX::Xoroshiro64StarStar::Xoroshiro64StarStar </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="classRandX_1_1Xoroshiro64StarStar.html#a180c2c2e4bb74593659ead4122bd7b4e">state_type</a></td>          <td class="paramname"><span class="paramname"><em>state</em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel explicit">explicit</span><span class="mlabel nodiscard">nodiscard</span><span class="mlabel constexpr">constexpr</span><span class="mlabel noexcept">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>从状态数组直接构造 </p>
+<dl class="params"><dt>参数</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">state</td><td><a class="el" href="#ga871e2d003dbfcd8daf0c954116f617a0">serialize()</a> 返回的状态 </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<a id="ga53c41428f28993f85601251534447e88" name="ga53c41428f28993f85601251534447e88"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga53c41428f28993f85601251534447e88">&#9670;&#160;</a></span>Xoroshiro64StarStar() <span class="overload">[4/4]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">RandX::Xoroshiro64StarStar::Xoroshiro64StarStar </td>
+          <td>(</td>
+          <td class="paramtype">std::uint64_t</td>          <td class="paramname"><span class="paramname"><em>seed</em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel explicit">explicit</span><span class="mlabel nodiscard">nodiscard</span><span class="mlabel constexpr">constexpr</span><span class="mlabel noexcept">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>以指定种子构造引擎 </p>
+<dl class="params"><dt>参数</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">seed</td><td>64 位种子值 </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<a id="gacfdd19152243c03e37989a8a22b2c680" name="gacfdd19152243c03e37989a8a22b2c680"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#gacfdd19152243c03e37989a8a22b2c680">&#9670;&#160;</a></span>Xoshiro128StarStar() <span class="overload">[1/4]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">RandX::Xoshiro128StarStar::Xoshiro128StarStar </td>
+          <td>(</td>
+          <td class="paramname"><span class="paramname"><em></em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel constexpr">constexpr</span><span class="mlabel noexcept">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>&lt; 状态类型（4×uint32） </p>
+<p>默认构造（使用 DefaultSeed） </p>
+
+</div>
+</div>
+<a id="ga92b051c8a049d47801092cc6ba0f6eac" name="ga92b051c8a049d47801092cc6ba0f6eac"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga92b051c8a049d47801092cc6ba0f6eac">&#9670;&#160;</a></span>Xoshiro128StarStar() <span class="overload">[2/4]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;class SeedSeq&gt; <br />
+requires (!std::same_as&lt;std::remove_cvref_t&lt;SeedSeq&gt;, Xoshiro128StarStar&gt;)</div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">RandX::Xoshiro128StarStar::Xoshiro128StarStar </td>
+          <td>(</td>
+          <td class="paramtype">SeedSeq &amp;</td>          <td class="paramname"><span class="paramname"><em>seq</em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel explicit">explicit</span><span class="mlabel nodiscard">nodiscard</span><span class="mlabel constexpr">constexpr</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>从 std::seed_seq 播种 </p>
+<dl class="params"><dt>参数</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">seq</td><td>种子序列对象 </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<a id="ga85c3959e7dfd351e86396ac4bd9d08d8" name="ga85c3959e7dfd351e86396ac4bd9d08d8"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga85c3959e7dfd351e86396ac4bd9d08d8">&#9670;&#160;</a></span>Xoshiro128StarStar() <span class="overload">[3/4]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">RandX::Xoshiro128StarStar::Xoshiro128StarStar </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="classRandX_1_1Xoshiro128StarStar.html#ac50cca820aa25209c1f93bf3295d51b5">state_type</a></td>          <td class="paramname"><span class="paramname"><em>state</em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel explicit">explicit</span><span class="mlabel nodiscard">nodiscard</span><span class="mlabel constexpr">constexpr</span><span class="mlabel noexcept">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>从状态数组直接构造 </p>
+<dl class="params"><dt>参数</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">state</td><td><a class="el" href="#ga871e2d003dbfcd8daf0c954116f617a0">serialize()</a> 返回的状态 </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<a id="ga6d031abb24f1d790086d6e8dedcd0dcc" name="ga6d031abb24f1d790086d6e8dedcd0dcc"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga6d031abb24f1d790086d6e8dedcd0dcc">&#9670;&#160;</a></span>Xoshiro128StarStar() <span class="overload">[4/4]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">RandX::Xoshiro128StarStar::Xoshiro128StarStar </td>
+          <td>(</td>
+          <td class="paramtype">std::uint64_t</td>          <td class="paramname"><span class="paramname"><em>seed</em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel explicit">explicit</span><span class="mlabel nodiscard">nodiscard</span><span class="mlabel constexpr">constexpr</span><span class="mlabel noexcept">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>以指定种子构造引擎 </p>
+<dl class="params"><dt>参数</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">seed</td><td>64 位种子值 </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<a id="gaa6d400f29f45ebed459345486687bd48" name="gaa6d400f29f45ebed459345486687bd48"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#gaa6d400f29f45ebed459345486687bd48">&#9670;&#160;</a></span>Xoshiro256StarStar() <span class="overload">[1/4]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">RandX::Xoshiro256StarStar::Xoshiro256StarStar </td>
+          <td>(</td>
+          <td class="paramname"><span class="paramname"><em></em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel constexpr">constexpr</span><span class="mlabel noexcept">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>&lt; 状态类型（4×uint64） </p>
+<p>默认构造（使用 DefaultSeed） </p>
+
+</div>
+</div>
+<a id="gacc9341c620584b09c25e26664707f8e9" name="gacc9341c620584b09c25e26664707f8e9"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#gacc9341c620584b09c25e26664707f8e9">&#9670;&#160;</a></span>Xoshiro256StarStar() <span class="overload">[2/4]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;class SeedSeq&gt; <br />
+requires (!std::same_as&lt;std::remove_cvref_t&lt;SeedSeq&gt;, Xoshiro256StarStar&gt;)</div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">RandX::Xoshiro256StarStar::Xoshiro256StarStar </td>
+          <td>(</td>
+          <td class="paramtype">SeedSeq &amp;</td>          <td class="paramname"><span class="paramname"><em>seq</em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel explicit">explicit</span><span class="mlabel nodiscard">nodiscard</span><span class="mlabel constexpr">constexpr</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>从 std::seed_seq 播种 </p>
+<dl class="params"><dt>参数</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">seq</td><td>种子序列对象 </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<a id="ga8ea050b9183042a230d042999b91cb8b" name="ga8ea050b9183042a230d042999b91cb8b"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga8ea050b9183042a230d042999b91cb8b">&#9670;&#160;</a></span>Xoshiro256StarStar() <span class="overload">[3/4]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">RandX::Xoshiro256StarStar::Xoshiro256StarStar </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="classRandX_1_1Xoshiro256StarStar.html#a030d4a9821f32793be5a7f4dd7464da9">state_type</a></td>          <td class="paramname"><span class="paramname"><em>state</em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel explicit">explicit</span><span class="mlabel nodiscard">nodiscard</span><span class="mlabel constexpr">constexpr</span><span class="mlabel noexcept">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>从状态数组直接构造 </p>
+<dl class="params"><dt>参数</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">state</td><td><a class="el" href="#ga871e2d003dbfcd8daf0c954116f617a0">serialize()</a> 返回的状态 </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<a id="gaea195b075ca6d516a89050555c4e1cb6" name="gaea195b075ca6d516a89050555c4e1cb6"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#gaea195b075ca6d516a89050555c4e1cb6">&#9670;&#160;</a></span>Xoshiro256StarStar() <span class="overload">[4/4]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">RandX::Xoshiro256StarStar::Xoshiro256StarStar </td>
+          <td>(</td>
+          <td class="paramtype">std::uint64_t</td>          <td class="paramname"><span class="paramname"><em>seed</em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel explicit">explicit</span><span class="mlabel nodiscard">nodiscard</span><span class="mlabel constexpr">constexpr</span><span class="mlabel noexcept">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>以指定种子构造引擎 </p>
+<dl class="params"><dt>参数</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">seed</td><td>64 位种子值 </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<a id="gaeb7649217d5b1bc135e2f7a0aff9b333" name="gaeb7649217d5b1bc135e2f7a0aff9b333"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#gaeb7649217d5b1bc135e2f7a0aff9b333">&#9670;&#160;</a></span>~ChaCha20()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">RandX::ChaCha20::~ChaCha20 </td>
+          <td>(</td>
+          <td class="paramname"><span class="paramname"><em></em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel noexcept">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<div class="dynheader">
+函数调用图:</div>
+<div class="dyncontent">
+<div class="center"><img src="group__engines_gaeb7649217d5b1bc135e2f7a0aff9b333_cgraph.png" border="0" usemap="#agroup__engines_gaeb7649217d5b1bc135e2f7a0aff9b333_cgraph" loading="lazy" alt=""/></div>
+<map name="agroup__engines_gaeb7649217d5b1bc135e2f7a0aff9b333_cgraph" id="agroup__engines_gaeb7649217d5b1bc135e2f7a0aff9b333_cgraph">
+<area shape="rect" title=" " alt="" coords="5,5,228,31"/>
+<area shape="rect" href="namespaceRandX_1_1detail.html#aea45979fec3d8bd006581404baf9c7a9" title=" " alt="" coords="276,5,471,31"/>
+<area shape="poly" title=" " alt="" coords="228,15,262,15,262,21,228,21"/>
+</map>
+</div>
+
+</div>
+</div>
+<a name="doc-var-members" id="doc-var-members"></a><h2 id="header-doc-var-members" class="groupheader">变量说明</h2>
+<a id="ga786eb44bf5cf9100072c15276b955fbb" name="ga786eb44bf5cf9100072c15276b955fbb"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga786eb44bf5cf9100072c15276b955fbb">&#9670;&#160;</a></span>Bits</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;class Derived, class ResultType, std::size_t N&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">constexpr int <a class="el" href="structRandX_1_1detail_1_1EngineBase.html">RandX::detail::EngineBase</a>&lt; Derived, ResultType, N &gt;::Bits = static_cast&lt;int&gt;(sizeof(ResultType) * 8)</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel static">static</span><span class="mlabel constexpr">constexpr</span><span class="mlabel protected">protected</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="ga6a526af9c4dfbb2274436d0ef4ff8baa" name="ga6a526af9c4dfbb2274436d0ef4ff8baa"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga6a526af9c4dfbb2274436d0ef4ff8baa">&#9670;&#160;</a></span>s_</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;class Derived, class ResultType, std::size_t N&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="#gaae22e269e127b6d31a70f69a6153e2b7">state_type</a> <a class="el" href="structRandX_1_1detail_1_1EngineBase.html">RandX::detail::EngineBase</a>&lt; Derived, ResultType, N &gt;::s_ {}</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel protected">protected</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a name="doc-friend-members" id="doc-friend-members"></a><h2 id="header-doc-friend-members" class="groupheader">友元</h2>
+<a id="gae95817078766214a8bdcd20cfb57675e" name="gae95817078766214a8bdcd20cfb57675e"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#gae95817078766214a8bdcd20cfb57675e">&#9670;&#160;</a></span>operator&lt;=&gt; <span class="overload">[1/2]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;class Derived, class ResultType, std::size_t N&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">auto operator&lt;=&gt; </td>
+          <td>(</td>
+          <td class="paramtype">const <a class="el" href="#ga52f877f19ed4720729721218189ebd8a">EngineBase</a>&lt; Derived, ResultType, N &gt; &amp;</td>          <td class="paramname"><span class="paramname"><em></em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const <a class="el" href="#ga52f877f19ed4720729721218189ebd8a">EngineBase</a>&lt; Derived, ResultType, N &gt; &amp;</td>          <td class="paramname"><span class="paramname"><em></em></span>&#160;)</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel friend">friend</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="ga6e08f397818c44cb1e1f93c3c89627eb" name="ga6e08f397818c44cb1e1f93c3c89627eb"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga6e08f397818c44cb1e1f93c3c89627eb">&#9670;&#160;</a></span>operator&lt;=&gt; <span class="overload">[2/2]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">auto operator&lt;=&gt; </td>
+          <td>(</td>
+          <td class="paramtype">const <a class="el" href="#ga66f6b33cb3b7559e673f2b97cbd11d3f">SplitMix64</a> &amp;</td>          <td class="paramname"><span class="paramname"><em></em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const <a class="el" href="#ga66f6b33cb3b7559e673f2b97cbd11d3f">SplitMix64</a> &amp;</td>          <td class="paramname"><span class="paramname"><em></em></span>&#160;)</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel friend">friend</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+</div>
+</div>
+</div><!-- contents -->
+</div><!-- doc-content -->
+<div id="page-nav" class="page-nav-panel">
+<div id="page-nav-resize-handle"></div>
+<div id="page-nav-tree">
+<div id="page-nav-contents">
+</div><!-- page-nav-contents -->
+</div><!-- page-nav-tree -->
+</div><!-- page-nav -->
+</div><!-- container -->
+<!-- start footer part -->
+<div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
+  <ul>
+    <li class="footer">制作者 <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.17.0 </li>
+  </ul>
+</div>
+</body>
+</html>

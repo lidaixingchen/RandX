@@ -1,0 +1,574 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "https://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="zh">
+<head>
+<meta http-equiv="Content-Type" content="text/xhtml;charset=UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=11"/>
+<meta name="generator" content="Doxygen 1.17.0"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>RandX: RandX::detail::EngineBase&lt; Derived, ResultType, N &gt; 模板结构体 参考</title>
+<link href="tabs.css" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src="codefolding.js"></script>
+<script type="text/javascript" src="clipboard.js"></script>
+<link href="navtree.css" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src="navtreedata.js"></script>
+<script type="text/javascript" src="navtree.js"></script>
+<script type="text/javascript" src="cookie.js"></script>
+<link href="search/search.css" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src="search/searchdata.js"></script>
+<script type="text/javascript" src="search/search.js"></script>
+<script type="module">
+import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+const theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'default';
+mermaid.initialize({ startOnLoad: true, theme: theme });
+</script>
+<link href="doxygen.css" rel="stylesheet" type="text/css" />
+</head>
+<body>
+<div id="top"><!-- do not remove this div, it is closed by doxygen! -->
+<div id="titlearea">
+<table cellspacing="0" cellpadding="0">
+ <tbody>
+ <tr id="projectrow">
+  <td id="projectalign">
+   <div id="projectname">RandX<span id="projectnumber">&#160;1.4.3</span>
+   </div>
+   <div id="projectbrief">基于 xoshiro/xoroshiro 算法族的纯头文件伪随机数生成器库</div>
+  </td>
+ </tr>
+ </tbody>
+</table>
+</div>
+<!-- end header part -->
+<!-- 制作者 Doxygen 1.17.0 -->
+<script type="text/javascript">
+let searchBox = new SearchBox("searchBox", "search/",'.html');
+</script>
+<script type="text/javascript">
+document.addEventListener('DOMContentLoaded', codefold.init);
+</script>
+<script type="text/javascript" src="menudata.js"></script>
+<script type="text/javascript" src="menu.js"></script>
+<script type="text/javascript">
+document.addEventListener('DOMContentLoaded', () => {
+  initMenu('',true);
+  init_search();
+});
+</script>
+<div id="main-nav-mobile">
+<div class="sm sm-dox"><input id="main-menu-state" type="checkbox"/>
+<label class="main-menu-btn" for="main-menu-state">
+<span class="main-menu-btn-icon"></span> Toggle main menu visibility</label>
+<span id="searchBoxPos1" style="position:absolute;right:8px;top:8px;height:36px;"></span>
+</div>
+</div><!-- main-nav-mobile -->
+<div id="main-nav">
+  <ul class="sm sm-dox" id="main-menu">
+    <li id="searchBoxPos2" style="float:right">
+        <div id="MSearchBox" class="MSearchBoxInactive">
+        <span class="left">
+          <span id="MSearchSelect" class="search-icon" onmouseover="return searchBox.OnSearchSelectShow()" onmouseout="return searchBox.OnSearchSelectHide()"><span class="search-icon-dropdown"></span></span>
+          <input type="text" id="MSearchField" value="" placeholder="搜索" accesskey="S"
+               onfocus="searchBox.OnSearchFieldFocus(true)" 
+               onblur="searchBox.OnSearchFieldFocus(false)" 
+               onkeyup="searchBox.OnSearchFieldChange(event)"/>
+          </span><span class="right">
+            <a id="MSearchClose" href="javascript:searchBox.CloseResultsWindow()"><div id="MSearchCloseImg" class="close-icon"></div></a>
+          </span>
+        </div>
+    </li>
+  </ul>
+</div><!-- main-nav -->
+</div><!-- top -->
+<div id="side-nav" class="ui-resizable side-nav-resizable">
+  <div id="nav-tree">
+    <div id="nav-tree-contents">
+      <div id="nav-sync" class="sync"></div>
+    </div>
+  </div>
+  <div id="splitbar" style="-moz-user-select:none;" 
+       class="ui-resizable-handle">
+  </div>
+</div>
+<script type="text/javascript">
+document.addEventListener('DOMContentLoaded',() => { initNavTree('structRandX_1_1detail_1_1EngineBase.html','','structRandX_1_1detail_1_1EngineBase-members'); });
+</script>
+<div id="container">
+<div id="doc-content">
+<!-- window showing the filter options -->
+<div id="MSearchSelectWindow"
+     onmouseover="return searchBox.OnSearchSelectShow()"
+     onmouseout="return searchBox.OnSearchSelectHide()"
+     onkeydown="return searchBox.OnSearchSelectKey(event)">
+</div>
+
+<!-- iframe showing the search results (closed by default) -->
+<div id="MSearchResultsWindow">
+<div id="MSearchResults">
+<div class="SRPage">
+<div id="SRIndex">
+<div id="SRResults"></div>
+<div class="SRStatus" id="Loading">载入中...</div>
+<div class="SRStatus" id="Searching">搜索中...</div>
+<div class="SRStatus" id="NoMatches">未找到</div>
+</div>
+</div>
+</div>
+</div>
+
+<div class="header">
+  <div class="headertitle"><div class="title">RandX::detail::EngineBase&lt; Derived, ResultType, N &gt; 模板结构体 参考<div class="ingroups"><a class="el" href="group__engines.html">引擎</a></div></div></div>
+</div><!--header-->
+<div class="contents">
+
+<p><code>#include &lt;<a class="el" href="RandX_8hpp_source.html">RandX.hpp</a>&gt;</code></p>
+<table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 id="header-pub-types" class="groupheader"><a id="pub-types" name="pub-types"></a>
+Public 类型</h2></td></tr>
+<tr class="memitem:ga765fcd9b6b6b4e1c73ff84cd3006160b" id="r_ga765fcd9b6b6b4e1c73ff84cd3006160b"><td class="memItemLeft">using&#160;</td><td class="memItemRight"><a class="el" href="group__engines.html#ga765fcd9b6b6b4e1c73ff84cd3006160b">result_type</a> = ResultType</td></tr>
+<tr class="memitem:gaae22e269e127b6d31a70f69a6153e2b7" id="r_gaae22e269e127b6d31a70f69a6153e2b7"><td class="memItemLeft">using&#160;</td><td class="memItemRight"><a class="el" href="group__engines.html#gaae22e269e127b6d31a70f69a6153e2b7">state_type</a> = std::array&lt;ResultType, N&gt;</td></tr>
+<tr class="memitem:a765fcd9b6b6b4e1c73ff84cd3006160b" id="r_a765fcd9b6b6b4e1c73ff84cd3006160b"><td class="memItemLeft">using&#160;</td><td class="memItemRight"><a class="el" href="#a765fcd9b6b6b4e1c73ff84cd3006160b">result_type</a> = ResultType</td></tr>
+<tr class="memitem:aae22e269e127b6d31a70f69a6153e2b7" id="r_aae22e269e127b6d31a70f69a6153e2b7"><td class="memItemLeft">using&#160;</td><td class="memItemRight"><a class="el" href="#aae22e269e127b6d31a70f69a6153e2b7">state_type</a> = std::array&lt;ResultType, N&gt;</td></tr>
+</table><table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 id="header-pub-methods" class="groupheader"><a id="pub-methods" name="pub-methods"></a>
+Public 成员函数</h2></td></tr>
+<tr class="memitem:ga4ef2f0bcf7c83241ec181b908f2e04a9" id="r_ga4ef2f0bcf7c83241ec181b908f2e04a9"><td class="memItemLeft">constexpr void&#160;</td><td class="memItemRight"><a class="el" href="group__engines.html#ga4ef2f0bcf7c83241ec181b908f2e04a9">discard</a> (unsigned long long z) noexcept</td></tr>
+<tr class="memitem:ga871e2d003dbfcd8daf0c954116f617a0" id="r_ga871e2d003dbfcd8daf0c954116f617a0"><td class="memItemLeft">constexpr <a class="el" href="group__engines.html#gaae22e269e127b6d31a70f69a6153e2b7">state_type</a>&#160;</td><td class="memItemRight"><a class="el" href="group__engines.html#ga871e2d003dbfcd8daf0c954116f617a0">serialize</a> () const noexcept</td></tr>
+<tr class="memitem:gaa3be91a4faeca615cdc0611630c16b25" id="r_gaa3be91a4faeca615cdc0611630c16b25"><td class="memItemLeft">constexpr void&#160;</td><td class="memItemRight"><a class="el" href="group__engines.html#gaa3be91a4faeca615cdc0611630c16b25">deserialize</a> (const <a class="el" href="group__engines.html#gaae22e269e127b6d31a70f69a6153e2b7">state_type</a> &amp;s) noexcept</td></tr>
+<tr class="memitem:a4ef2f0bcf7c83241ec181b908f2e04a9" id="r_a4ef2f0bcf7c83241ec181b908f2e04a9"><td class="memItemLeft">constexpr void&#160;</td><td class="memItemRight"><a class="el" href="#a4ef2f0bcf7c83241ec181b908f2e04a9">discard</a> (unsigned long long z) noexcept</td></tr>
+<tr class="memitem:a871e2d003dbfcd8daf0c954116f617a0" id="r_a871e2d003dbfcd8daf0c954116f617a0"><td class="memItemLeft">constexpr <a class="el" href="group__engines.html#gaae22e269e127b6d31a70f69a6153e2b7">state_type</a>&#160;</td><td class="memItemRight"><a class="el" href="#a871e2d003dbfcd8daf0c954116f617a0">serialize</a> () const noexcept</td></tr>
+<tr class="memitem:aa3be91a4faeca615cdc0611630c16b25" id="r_aa3be91a4faeca615cdc0611630c16b25"><td class="memItemLeft">constexpr void&#160;</td><td class="memItemRight"><a class="el" href="#aa3be91a4faeca615cdc0611630c16b25">deserialize</a> (const <a class="el" href="group__engines.html#gaae22e269e127b6d31a70f69a6153e2b7">state_type</a> &amp;s) noexcept</td></tr>
+</table><table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 id="header-pub-static-methods" class="groupheader"><a id="pub-static-methods" name="pub-static-methods"></a>
+静态 Public 成员函数</h2></td></tr>
+<tr class="memitem:ga09a1b8a42aa47a5d91693b740009fd97" id="r_ga09a1b8a42aa47a5d91693b740009fd97"><td class="memItemLeft">static constexpr <a class="el" href="group__engines.html#ga765fcd9b6b6b4e1c73ff84cd3006160b">result_type</a>&#160;</td><td class="memItemRight"><a class="el" href="group__engines.html#ga09a1b8a42aa47a5d91693b740009fd97">min</a> () noexcept</td></tr>
+<tr class="memitem:ga968a8b6ecd4806c6a1ab457c5df7ace7" id="r_ga968a8b6ecd4806c6a1ab457c5df7ace7"><td class="memItemLeft">static constexpr <a class="el" href="group__engines.html#ga765fcd9b6b6b4e1c73ff84cd3006160b">result_type</a>&#160;</td><td class="memItemRight"><a class="el" href="group__engines.html#ga968a8b6ecd4806c6a1ab457c5df7ace7">max</a> () noexcept</td></tr>
+<tr class="memitem:a09a1b8a42aa47a5d91693b740009fd97" id="r_a09a1b8a42aa47a5d91693b740009fd97"><td class="memItemLeft">static constexpr <a class="el" href="group__engines.html#ga765fcd9b6b6b4e1c73ff84cd3006160b">result_type</a>&#160;</td><td class="memItemRight"><a class="el" href="#a09a1b8a42aa47a5d91693b740009fd97">min</a> () noexcept</td></tr>
+<tr class="memitem:a968a8b6ecd4806c6a1ab457c5df7ace7" id="r_a968a8b6ecd4806c6a1ab457c5df7ace7"><td class="memItemLeft">static constexpr <a class="el" href="group__engines.html#ga765fcd9b6b6b4e1c73ff84cd3006160b">result_type</a>&#160;</td><td class="memItemRight"><a class="el" href="#a968a8b6ecd4806c6a1ab457c5df7ace7">max</a> () noexcept</td></tr>
+</table><table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 id="header-pro-methods" class="groupheader"><a id="pro-methods" name="pro-methods"></a>
+Protected 成员函数</h2></td></tr>
+<tr class="memitem:ga52f877f19ed4720729721218189ebd8a" id="r_ga52f877f19ed4720729721218189ebd8a"><td class="memItemLeft">&#160;</td><td class="memItemRight"><a class="el" href="group__engines.html#ga52f877f19ed4720729721218189ebd8a">EngineBase</a> ()=default</td></tr>
+<tr class="memitem:gab13e162e2d1d924c2e3beeaa9758a709" id="r_gab13e162e2d1d924c2e3beeaa9758a709"><td class="memItemLeft">constexpr&#160;</td><td class="memItemRight"><a class="el" href="group__engines.html#gab13e162e2d1d924c2e3beeaa9758a709">EngineBase</a> (const <a class="el" href="group__engines.html#gaae22e269e127b6d31a70f69a6153e2b7">state_type</a> &amp;state) noexcept</td></tr>
+<tr class="memitem:ga525520445ea535cb0c606cf08b37ef43" id="r_ga525520445ea535cb0c606cf08b37ef43"><td class="memTemplParams" colspan="2">template&lt;class SeedSeq&gt; <br />
+requires (!std::same_as&lt;std::remove_cvref_t&lt;SeedSeq&gt;, <a class="el" href="group__engines.html#gaae22e269e127b6d31a70f69a6153e2b7">state_type</a>&gt; &amp;&amp; !std::same_as&lt;std::remove_cvref_t&lt;SeedSeq&gt;, Derived&gt;)</td></tr>
+<tr class="memitem:ga525520445ea535cb0c606cf08b37ef43 template"><td class="memItemLeft">constexpr&#160;</td><td class="memItemRight"><a class="el" href="group__engines.html#ga525520445ea535cb0c606cf08b37ef43">EngineBase</a> (SeedSeq &amp;seq)</td></tr>
+<tr class="memitem:ga37cfeb73f6074f7f98bdd8d0c0641fed" id="r_ga37cfeb73f6074f7f98bdd8d0c0641fed"><td class="memItemLeft">constexpr&#160;</td><td class="memItemRight"><a class="el" href="group__engines.html#ga37cfeb73f6074f7f98bdd8d0c0641fed">EngineBase</a> (std::uint64_t seed) noexcept</td></tr>
+<tr class="memitem:gabd1ad45551e70b8d6ff8222c2f0ae89c" id="r_gabd1ad45551e70b8d6ff8222c2f0ae89c"><td class="memTemplParams" colspan="2">template&lt;std::size_t K&gt; </td></tr>
+<tr class="memitem:gabd1ad45551e70b8d6ff8222c2f0ae89c template"><td class="memItemLeft">constexpr void&#160;</td><td class="memItemRight"><a class="el" href="group__engines.html#gabd1ad45551e70b8d6ff8222c2f0ae89c">jumpPoly</a> (const ResultType(&amp;poly)[K]) noexcept</td></tr>
+<tr class="memitem:a52f877f19ed4720729721218189ebd8a" id="r_a52f877f19ed4720729721218189ebd8a"><td class="memItemLeft">&#160;</td><td class="memItemRight"><a class="el" href="#a52f877f19ed4720729721218189ebd8a">EngineBase</a> ()=default</td></tr>
+<tr class="memitem:ab13e162e2d1d924c2e3beeaa9758a709" id="r_ab13e162e2d1d924c2e3beeaa9758a709"><td class="memItemLeft">constexpr&#160;</td><td class="memItemRight"><a class="el" href="#ab13e162e2d1d924c2e3beeaa9758a709">EngineBase</a> (const <a class="el" href="group__engines.html#gaae22e269e127b6d31a70f69a6153e2b7">state_type</a> &amp;state) noexcept</td></tr>
+<tr class="memitem:a0b9fdd69760943aae3f1a7671c62d98a" id="r_a0b9fdd69760943aae3f1a7671c62d98a"><td class="memTemplParams" colspan="2">template&lt;class SeedSeq, std::enable_if_t&lt;!std::is_same_v&lt; std::decay_t&lt; SeedSeq &gt;, <a class="el" href="group__engines.html#gaae22e269e127b6d31a70f69a6153e2b7">state_type</a> &gt; &amp;&amp;!std::is_same_v&lt; std::decay_t&lt; SeedSeq &gt;, Derived &gt; &gt; * = nullptr&gt; </td></tr>
+<tr class="memitem:a0b9fdd69760943aae3f1a7671c62d98a template"><td class="memItemLeft">constexpr&#160;</td><td class="memItemRight"><a class="el" href="#a0b9fdd69760943aae3f1a7671c62d98a">EngineBase</a> (SeedSeq &amp;seq)</td></tr>
+<tr class="memitem:a37cfeb73f6074f7f98bdd8d0c0641fed" id="r_a37cfeb73f6074f7f98bdd8d0c0641fed"><td class="memItemLeft">constexpr&#160;</td><td class="memItemRight"><a class="el" href="#a37cfeb73f6074f7f98bdd8d0c0641fed">EngineBase</a> (std::uint64_t seed) noexcept</td></tr>
+<tr class="memitem:abd1ad45551e70b8d6ff8222c2f0ae89c" id="r_abd1ad45551e70b8d6ff8222c2f0ae89c"><td class="memTemplParams" colspan="2">template&lt;std::size_t K&gt; </td></tr>
+<tr class="memitem:abd1ad45551e70b8d6ff8222c2f0ae89c template"><td class="memItemLeft">constexpr void&#160;</td><td class="memItemRight"><a class="el" href="#abd1ad45551e70b8d6ff8222c2f0ae89c">jumpPoly</a> (const ResultType(&amp;poly)[K]) noexcept</td></tr>
+</table><table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 id="header-pro-attribs" class="groupheader"><a id="pro-attribs" name="pro-attribs"></a>
+Protected 属性</h2></td></tr>
+<tr class="memitem:ga6a526af9c4dfbb2274436d0ef4ff8baa" id="r_ga6a526af9c4dfbb2274436d0ef4ff8baa"><td class="memItemLeft"><a class="el" href="group__engines.html#gaae22e269e127b6d31a70f69a6153e2b7">state_type</a>&#160;</td><td class="memItemRight"><a class="el" href="group__engines.html#ga6a526af9c4dfbb2274436d0ef4ff8baa">s_</a> {}</td></tr>
+</table><table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 id="header-pro-static-attribs" class="groupheader"><a id="pro-static-attribs" name="pro-static-attribs"></a>
+静态 Protected 属性</h2></td></tr>
+<tr class="memitem:ga786eb44bf5cf9100072c15276b955fbb" id="r_ga786eb44bf5cf9100072c15276b955fbb"><td class="memItemLeft">static constexpr int&#160;</td><td class="memItemRight"><a class="el" href="group__engines.html#ga786eb44bf5cf9100072c15276b955fbb">Bits</a> = static_cast&lt;int&gt;(sizeof(ResultType) * 8)</td></tr>
+</table><table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 id="header-friends" class="groupheader"><a id="friends" name="friends"></a>
+友元</h2></td></tr>
+<tr class="memitem:gae95817078766214a8bdcd20cfb57675e" id="r_gae95817078766214a8bdcd20cfb57675e"><td class="memItemLeft">auto&#160;</td><td class="memItemRight"><a class="el" href="group__engines.html#gae95817078766214a8bdcd20cfb57675e">operator&lt;=&gt;</a> (const <a class="el" href="group__engines.html#ga52f877f19ed4720729721218189ebd8a">EngineBase</a> &amp;, const <a class="el" href="group__engines.html#ga52f877f19ed4720729721218189ebd8a">EngineBase</a> &amp;)=default</td></tr>
+<tr class="memitem:af3d4c08cbca5d516c13ed04009a66b12" id="r_af3d4c08cbca5d516c13ed04009a66b12"><td class="memItemLeft">bool&#160;</td><td class="memItemRight"><a class="el" href="#af3d4c08cbca5d516c13ed04009a66b12">operator==</a> (const <a class="el" href="group__engines.html#ga52f877f19ed4720729721218189ebd8a">EngineBase</a> &amp;lhs, const <a class="el" href="group__engines.html#ga52f877f19ed4720729721218189ebd8a">EngineBase</a> &amp;rhs) noexcept</td></tr>
+<tr class="memitem:af0a5ce7150c05cf0326fe80ba9eebe44" id="r_af0a5ce7150c05cf0326fe80ba9eebe44"><td class="memItemLeft">bool&#160;</td><td class="memItemRight"><a class="el" href="#af0a5ce7150c05cf0326fe80ba9eebe44">operator!=</a> (const <a class="el" href="group__engines.html#ga52f877f19ed4720729721218189ebd8a">EngineBase</a> &amp;lhs, const <a class="el" href="group__engines.html#ga52f877f19ed4720729721218189ebd8a">EngineBase</a> &amp;rhs) noexcept</td></tr>
+</table>
+<a name="doc-typedef-members" id="doc-typedef-members"></a><h2 id="header-doc-typedef-members" class="groupheader">成员类型定义说明</h2>
+<a id="a765fcd9b6b6b4e1c73ff84cd3006160b" name="a765fcd9b6b6b4e1c73ff84cd3006160b"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a765fcd9b6b6b4e1c73ff84cd3006160b">&#9670;&#160;</a></span>result_type</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;class Derived, class ResultType, std::size_t N&gt; </div>
+      <table class="memname">
+        <tr>
+          <td class="memname">using <a class="el" href="structRandX_1_1detail_1_1EngineBase.html">RandX::detail::EngineBase</a>&lt; Derived, ResultType, N &gt;::result_type = ResultType</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="aae22e269e127b6d31a70f69a6153e2b7" name="aae22e269e127b6d31a70f69a6153e2b7"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aae22e269e127b6d31a70f69a6153e2b7">&#9670;&#160;</a></span>state_type</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;class Derived, class ResultType, std::size_t N&gt; </div>
+      <table class="memname">
+        <tr>
+          <td class="memname">using <a class="el" href="structRandX_1_1detail_1_1EngineBase.html">RandX::detail::EngineBase</a>&lt; Derived, ResultType, N &gt;::state_type = std::array&lt;ResultType, N&gt;</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a name="doc-constructors" id="doc-constructors"></a><h2 id="header-doc-constructors" class="groupheader">构造及析构函数说明</h2>
+<a id="a52f877f19ed4720729721218189ebd8a" name="a52f877f19ed4720729721218189ebd8a"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a52f877f19ed4720729721218189ebd8a">&#9670;&#160;</a></span>EngineBase() <span class="overload">[1/4]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;class Derived, class ResultType, std::size_t N&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="structRandX_1_1detail_1_1EngineBase.html">RandX::detail::EngineBase</a>&lt; Derived, ResultType, N &gt;::EngineBase </td>
+          <td>(</td>
+          <td class="paramname"><span class="paramname"><em></em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel protected">protected</span><span class="mlabel default">default</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="ab13e162e2d1d924c2e3beeaa9758a709" name="ab13e162e2d1d924c2e3beeaa9758a709"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ab13e162e2d1d924c2e3beeaa9758a709">&#9670;&#160;</a></span>EngineBase() <span class="overload">[2/4]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;class Derived, class ResultType, std::size_t N&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="structRandX_1_1detail_1_1EngineBase.html">RandX::detail::EngineBase</a>&lt; Derived, ResultType, N &gt;::EngineBase </td>
+          <td>(</td>
+          <td class="paramtype">const <a class="el" href="group__engines.html#gaae22e269e127b6d31a70f69a6153e2b7">state_type</a> &amp;</td>          <td class="paramname"><span class="paramname"><em>state</em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel explicit">explicit</span><span class="mlabel constexpr">constexpr</span><span class="mlabel protected">protected</span><span class="mlabel noexcept">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="a0b9fdd69760943aae3f1a7671c62d98a" name="a0b9fdd69760943aae3f1a7671c62d98a"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a0b9fdd69760943aae3f1a7671c62d98a">&#9670;&#160;</a></span>EngineBase() <span class="overload">[3/4]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;class Derived, class ResultType, std::size_t N&gt; </div>
+<div class="memtemplate">
+template&lt;class SeedSeq, std::enable_if_t&lt;!std::is_same_v&lt; std::decay_t&lt; SeedSeq &gt;, <a class="el" href="group__engines.html#gaae22e269e127b6d31a70f69a6153e2b7">state_type</a> &gt; &amp;&amp;!std::is_same_v&lt; std::decay_t&lt; SeedSeq &gt;, Derived &gt; &gt; * = nullptr&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="structRandX_1_1detail_1_1EngineBase.html">RandX::detail::EngineBase</a>&lt; Derived, ResultType, N &gt;::EngineBase </td>
+          <td>(</td>
+          <td class="paramtype">SeedSeq &amp;</td>          <td class="paramname"><span class="paramname"><em>seq</em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel explicit">explicit</span><span class="mlabel constexpr">constexpr</span><span class="mlabel protected">protected</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="a37cfeb73f6074f7f98bdd8d0c0641fed" name="a37cfeb73f6074f7f98bdd8d0c0641fed"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a37cfeb73f6074f7f98bdd8d0c0641fed">&#9670;&#160;</a></span>EngineBase() <span class="overload">[4/4]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;class Derived, class ResultType, std::size_t N&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="structRandX_1_1detail_1_1EngineBase.html">RandX::detail::EngineBase</a>&lt; Derived, ResultType, N &gt;::EngineBase </td>
+          <td>(</td>
+          <td class="paramtype">std::uint64_t</td>          <td class="paramname"><span class="paramname"><em>seed</em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel explicit">explicit</span><span class="mlabel constexpr">constexpr</span><span class="mlabel protected">protected</span><span class="mlabel noexcept">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a name="doc-func-members" id="doc-func-members"></a><h2 id="header-doc-func-members" class="groupheader">成员函数说明</h2>
+<a id="aa3be91a4faeca615cdc0611630c16b25" name="aa3be91a4faeca615cdc0611630c16b25"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aa3be91a4faeca615cdc0611630c16b25">&#9670;&#160;</a></span>deserialize()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;class Derived, class ResultType, std::size_t N&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">void <a class="el" href="structRandX_1_1detail_1_1EngineBase.html">RandX::detail::EngineBase</a>&lt; Derived, ResultType, N &gt;::deserialize </td>
+          <td>(</td>
+          <td class="paramtype">const <a class="el" href="group__engines.html#gaae22e269e127b6d31a70f69a6153e2b7">state_type</a> &amp;</td>          <td class="paramname"><span class="paramname"><em>s</em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel constexpr">constexpr</span><span class="mlabel noexcept">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="a4ef2f0bcf7c83241ec181b908f2e04a9" name="a4ef2f0bcf7c83241ec181b908f2e04a9"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a4ef2f0bcf7c83241ec181b908f2e04a9">&#9670;&#160;</a></span>discard()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;class Derived, class ResultType, std::size_t N&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">void <a class="el" href="structRandX_1_1detail_1_1EngineBase.html">RandX::detail::EngineBase</a>&lt; Derived, ResultType, N &gt;::discard </td>
+          <td>(</td>
+          <td class="paramtype">unsigned long long</td>          <td class="paramname"><span class="paramname"><em>z</em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel constexpr">constexpr</span><span class="mlabel noexcept">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="abd1ad45551e70b8d6ff8222c2f0ae89c" name="abd1ad45551e70b8d6ff8222c2f0ae89c"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#abd1ad45551e70b8d6ff8222c2f0ae89c">&#9670;&#160;</a></span>jumpPoly()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;class Derived, class ResultType, std::size_t N&gt; </div>
+<div class="memtemplate">
+template&lt;std::size_t K&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">void <a class="el" href="structRandX_1_1detail_1_1EngineBase.html">RandX::detail::EngineBase</a>&lt; Derived, ResultType, N &gt;::jumpPoly </td>
+          <td>(</td>
+          <td class="paramtype">const ResultType(&amp;)</td>          <td class="paramname"><span class="paramname"><em>poly</em></span>[K]</td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel constexpr">constexpr</span><span class="mlabel protected">protected</span><span class="mlabel noexcept">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="a968a8b6ecd4806c6a1ab457c5df7ace7" name="a968a8b6ecd4806c6a1ab457c5df7ace7"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a968a8b6ecd4806c6a1ab457c5df7ace7">&#9670;&#160;</a></span>max()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;class Derived, class ResultType, std::size_t N&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">constexpr <a class="el" href="group__engines.html#ga765fcd9b6b6b4e1c73ff84cd3006160b">result_type</a> <a class="el" href="structRandX_1_1detail_1_1EngineBase.html">RandX::detail::EngineBase</a>&lt; Derived, ResultType, N &gt;::max </td>
+          <td>(</td>
+          <td class="paramname"><span class="paramname"><em></em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel static">static</span><span class="mlabel nodiscard">nodiscard</span><span class="mlabel constexpr">constexpr</span><span class="mlabel noexcept">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="a09a1b8a42aa47a5d91693b740009fd97" name="a09a1b8a42aa47a5d91693b740009fd97"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a09a1b8a42aa47a5d91693b740009fd97">&#9670;&#160;</a></span>min()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;class Derived, class ResultType, std::size_t N&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">constexpr <a class="el" href="group__engines.html#ga765fcd9b6b6b4e1c73ff84cd3006160b">result_type</a> <a class="el" href="structRandX_1_1detail_1_1EngineBase.html">RandX::detail::EngineBase</a>&lt; Derived, ResultType, N &gt;::min </td>
+          <td>(</td>
+          <td class="paramname"><span class="paramname"><em></em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel static">static</span><span class="mlabel nodiscard">nodiscard</span><span class="mlabel constexpr">constexpr</span><span class="mlabel noexcept">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="a871e2d003dbfcd8daf0c954116f617a0" name="a871e2d003dbfcd8daf0c954116f617a0"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a871e2d003dbfcd8daf0c954116f617a0">&#9670;&#160;</a></span>serialize()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;class Derived, class ResultType, std::size_t N&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="group__engines.html#gaae22e269e127b6d31a70f69a6153e2b7">state_type</a> <a class="el" href="structRandX_1_1detail_1_1EngineBase.html">RandX::detail::EngineBase</a>&lt; Derived, ResultType, N &gt;::serialize </td>
+          <td>(</td>
+          <td class="paramname"><span class="paramname"><em></em></span></td><td>)</td>
+          <td> const</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel nodiscard">nodiscard</span><span class="mlabel constexpr">constexpr</span><span class="mlabel noexcept">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a name="doc-related-members" id="doc-related-members"></a><h2 id="header-doc-related-members" class="groupheader">友元及相关符号说明</h2>
+<a id="af0a5ce7150c05cf0326fe80ba9eebe44" name="af0a5ce7150c05cf0326fe80ba9eebe44"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#af0a5ce7150c05cf0326fe80ba9eebe44">&#9670;&#160;</a></span>operator!=</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;class Derived, class ResultType, std::size_t N&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">bool operator!= </td>
+          <td>(</td>
+          <td class="paramtype">const <a class="el" href="group__engines.html#ga52f877f19ed4720729721218189ebd8a">EngineBase</a>&lt; Derived, ResultType, N &gt; &amp;</td>          <td class="paramname"><span class="paramname"><em>lhs</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const <a class="el" href="group__engines.html#ga52f877f19ed4720729721218189ebd8a">EngineBase</a>&lt; Derived, ResultType, N &gt; &amp;</td>          <td class="paramname"><span class="paramname"><em>rhs</em></span>&#160;)</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel friend">friend</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="af3d4c08cbca5d516c13ed04009a66b12" name="af3d4c08cbca5d516c13ed04009a66b12"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#af3d4c08cbca5d516c13ed04009a66b12">&#9670;&#160;</a></span>operator==</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;class Derived, class ResultType, std::size_t N&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">bool operator== </td>
+          <td>(</td>
+          <td class="paramtype">const <a class="el" href="group__engines.html#ga52f877f19ed4720729721218189ebd8a">EngineBase</a>&lt; Derived, ResultType, N &gt; &amp;</td>          <td class="paramname"><span class="paramname"><em>lhs</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const <a class="el" href="group__engines.html#ga52f877f19ed4720729721218189ebd8a">EngineBase</a>&lt; Derived, ResultType, N &gt; &amp;</td>          <td class="paramname"><span class="paramname"><em>rhs</em></span>&#160;)</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel friend">friend</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<hr/>该结构体的文档由以下文件生成:<ul>
+<li><a class="el" href="RandX_8hpp_source.html">RandX.hpp</a></li>
+<li><a class="el" href="RandX__Cpp17_8hpp_source.html">RandX_Cpp17.hpp</a></li>
+</ul>
+</div><!-- contents -->
+</div><!-- doc-content -->
+<div id="page-nav" class="page-nav-panel">
+<div id="page-nav-resize-handle"></div>
+<div id="page-nav-tree">
+<div id="page-nav-contents">
+</div><!-- page-nav-contents -->
+</div><!-- page-nav-tree -->
+</div><!-- page-nav -->
+</div><!-- container -->
+<!-- start footer part -->
+<div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
+  <ul>
+    <li class="navelem"><a href="namespaceRandX.html">RandX</a></li><li class="navelem"><a href="namespaceRandX_1_1detail.html">detail</a></li><li class="navelem"><a href="structRandX_1_1detail_1_1EngineBase.html">EngineBase</a></li>
+    <li class="footer">制作者 <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.17.0 </li>
+  </ul>
+</div>
+</body>
+</html>

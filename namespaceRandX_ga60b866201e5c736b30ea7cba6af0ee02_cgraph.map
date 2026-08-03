@@ -1,0 +1,11 @@
+<map id="RandX::RandSample" name="RandX::RandSample">
+<area shape="rect" id="Node000001" title="无放回抽样（输入迭代器版，reservoir sampling Algorithm R）" alt="" coords="5,42,160,67"/>
+<area shape="rect" id="Node000002" href="$group__engines.html#ga7dba92b95d7c5e6eb2d1db3c6a3b2ddf" title=" " alt="" coords="208,42,372,67"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="160,52,195,52,195,57,160,57"/>
+<area shape="rect" id="Node000003" href="$group__engines.html#gaa82567759ff174faf923397ea9b0c71f" title="生成非确定性的 64 位种子" alt="" coords="420,42,579,67"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="372,52,406,52,406,57,372,57"/>
+<area shape="rect" id="Node000004" href="$namespaceRandX_1_1detail.html#a02fce2f64f9c2eb6dbe7390a26aab73a" title=" " alt="" coords="638,5,845,45"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="579,42,624,37,625,42,579,48"/>
+<area shape="rect" id="Node000005" href="$namespaceRandX_1_1detail.html#a23a58952bbe85de475f50a4f1e6acfce" title=" " alt="" coords="627,70,856,95"/>
+<area shape="poly" id="edge4_Node000003_Node000005" title=" " alt="" coords="579,61,618,66,618,71,579,66"/>
+</map>
