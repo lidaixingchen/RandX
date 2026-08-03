@@ -847,8 +847,8 @@ TEST_SUITE("RandSample 迭代器版")
         constexpr int N = 200;
         constexpr int n = 10;
         constexpr int TRIALS = 10000;
-        std::vector<int> v(static_cast<std::size_t>(N));
-        for (int i = 0; i < N; ++i) v[static_cast<std::size_t>(i)] = i;
+        std::list<int> v;
+        for (int i = 0; i < N; ++i) v.push_back(i);
         int firstHalf = 0, secondHalf = 0;
         for (int t = 0; t < TRIALS; ++t)
         {

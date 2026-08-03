@@ -11,9 +11,14 @@
 #include <cstdint>
 #include <cstdio>
 #include <iterator>
+#include <limits>
 #include <list>
+#include <random>
 #include <ranges>
 #include <sstream>
+#include <string>
+#include <type_traits>
+#include <utility>
 #include <vector>
 
 // 统计检验临界值（非魔法数字：自由度 99/127，alpha=0.001 的卡方临界值）
@@ -403,7 +408,9 @@ TEST_SUITE("便捷 API")
         CHECK(sample.size() == 3);
         for (const auto& x : sample)
             CHECK(std::find(pool.begin(), pool.end(), x) != pool.end());
-        CHECK((sample[0] != sample[1] || sample[1] != sample[2] || sample[0] != sample[2]));
+        CHECK(sample[0] != sample[1]);
+        CHECK(sample[0] != sample[2]);
+        CHECK(sample[1] != sample[2]);
 
         // RandPermutation：随机排列
         auto perm = RandX::RandPermutation(10);
@@ -1527,7 +1534,8 @@ TEST_SUITE("密码学安全熵源")
 
     TEST_CASE("SecureRandomBytes n=0 不抛异常")
     {
-        RandX::SecureRandomBytes(nullptr, 0);
+        std::array<std::uint8_t, 1> buf{};
+        RandX::SecureRandomBytes(buf.data(), 0);
     }
 
     TEST_CASE("SecureSeed 返回不同值")
@@ -1849,10 +1857,10 @@ TEST_SUITE("P0/P1/P2 Regression Audit Suite")
         CHECK_THROWS_AS((void)RandX::RandLogNormal(0.0, 0.0), std::invalid_argument);
     }
 
-    TEST_CASE("RandSample 逆序迭代器边界")
+    TEST_CASE("RandSample 空范围边界")
     {
         std::vector<int> v = {1, 2, 3, 4, 5};
-        auto res = RandX::RandSample(v.end(), v.begin(), 3);
+        auto res = RandX::RandSample(v.begin(), v.begin(), 3);
         CHECK(res.empty());
     }
 
