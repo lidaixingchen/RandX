@@ -137,10 +137,13 @@ namespace
 		std::printf("[api] RandBits<N>(engine)\n");
 		{
 			Xoshiro256StarStar eng{ kSeed };
+			std::printf("  bits<1>:\n");
 			for (int i = 0; i < 8; ++i)
 				std::printf("  %" PRIu64 "\n", RandX::RandBits<1>(eng));
+			std::printf("  bits<17>:\n");
 			for (int i = 0; i < 8; ++i)
 				std::printf("  %" PRIu64 "\n", RandX::RandBits<17>(eng));
+			std::printf("  bits<64>:\n");
 			for (int i = 0; i < 8; ++i)
 				std::printf("  %" PRIu64 "\n", RandX::RandBits<64>(eng));
 		}

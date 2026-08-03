@@ -40,10 +40,10 @@ int main()
         for (int i = 0; i < 5; ++i)
             std::printf("  %" PRIu64 "\n", rng());
     }
-    // RandIntCE
+    // RandIntCE with seed 12345
     {
-        constexpr int v = RandX::RandIntCE(0, 100);
-        std::printf("RandIntCE(0,100) = %d\n", v);
+        constexpr int v = RandX::RandIntCE<int, 12345>(0, 100);
+        std::printf("RandIntCE<int, 12345>(0,100) = %d\n", v);
     }
     return 0;
 }

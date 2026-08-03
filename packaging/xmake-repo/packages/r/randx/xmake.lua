@@ -28,6 +28,8 @@ package("randx")
             #include <cstdint>
             static void test() {
                 std::uint64_t v = RandX::RandInt<std::uint64_t>(0, 1000);
+                std::uint8_t buf[16];
+                RandX::SecureRandomBytes(buf, sizeof(buf));
                 (void)v;
             }
         ]]}, {configs = {languages = "c++23"}}))
@@ -36,6 +38,8 @@ package("randx")
             #include <cstdint>
             static void test() {
                 std::uint64_t v = RandX::RandInt<std::uint64_t>(0, 1000);
+                std::uint8_t buf[16];
+                RandX::SecureRandomBytes(buf, sizeof(buf));
                 (void)v;
             }
         ]]}, {configs = {languages = "c++17"}}))
