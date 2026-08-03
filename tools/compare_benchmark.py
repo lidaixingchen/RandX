@@ -39,11 +39,11 @@ def load_results(path: str) -> dict:
 
 
 def normalize_ms(value: float, unit: str) -> float:
-    """将 cpu_time 归一化到毫秒。单位未知时按 ms 处理并打印警告。"""
+    """将 cpu_time 归一化到毫秒。单位未知时报错误并退出（退出码 2）。"""
     factors = {"ns": 1e-6, "us": 1e-3, "ms": 1.0, "s": 1000.0}
     if unit not in factors:
-        print(f"警告：未知 time_unit '{unit}'，按 ms 处理", file=sys.stderr)
-        return value
+        print(f"错误：未知 time_unit '{unit}'，请检查输入文件", file=sys.stderr)
+        sys.exit(2)
     return value * factors[unit]
 
 
@@ -61,6 +61,13 @@ def main() -> None:
     if not current or not baseline:
         print("错误：current/baseline 缺少 median 聚合条目，无法对比"
               "（请确认使用了 --benchmark_report_aggregates_only=true）",
+              file=sys.stderr)
+        sys.exit(2)
+
+    common = set(current) & set(baseline)
+    if not common:
+        print("错误：current 与 baseline 无公共 benchmark 名称，"
+              "可能是基准改名或参数变化导致，请检查输入",
               file=sys.stderr)
         sys.exit(2)
 

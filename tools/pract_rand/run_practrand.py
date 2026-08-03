@@ -138,23 +138,26 @@ def test_engine(
     print(f"\n[test] {engine} (length={length})", file=sys.stderr)
     print(f"  cmd: {' '.join(gen_cmd)} | {' '.join(pr_cmd)}", file=sys.stderr)
 
-    gen = subprocess.Popen(gen_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    gen = subprocess.Popen(gen_cmd, stdout=subprocess.PIPE, stderr=sys.stderr)
     pr = subprocess.Popen(pr_cmd, stdin=gen.stdout, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     assert gen.stdout is not None
     gen.stdout.close()  # 允许 gen 收到 SIGPIPE 当 pr 退出
 
     output = ""
-    assert pr.stdout is not None
-    for line in pr.stdout:
-        text = line.decode("utf-8", errors="replace")
-        output += text
-        # 实时回显进度（PractRand 每 2 的幂次输出一行）
-        sys.stderr.write(text)
-        sys.stderr.flush()
+    try:
+        assert pr.stdout is not None
+        for line in pr.stdout:
+            text = line.decode("utf-8", errors="replace")
+            output += text
+            # 实时回显进度（PractRand 每 2 的幂次输出一行）
+            sys.stderr.write(text)
+            sys.stderr.flush()
 
-    pr.wait()
-    gen.terminate()
-    gen.wait()
+        pr.wait()
+    finally:
+        if gen.poll() is None:
+            gen.terminate()
+            gen.wait()
 
     # 判定失败：PractRand 退出码非 0 即判失败，文本关键字解析作补充
     if pr.returncode != 0:

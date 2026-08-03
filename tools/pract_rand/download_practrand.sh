@@ -12,13 +12,26 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BUILD_DIR="${SCRIPT_DIR}/PractRand_build"
 SRC_DIR="${SCRIPT_DIR}/PractRand_src"
 
+# 检查命令行依赖
+for cmd in git g++; do
+    command -v "$cmd" >/dev/null 2>&1 || { echo "错误：缺少依赖 $cmd，请先安装" >&2; exit 1; }
+done
+
 # PractRand 上游（镜像仓库）
 PRACTRAND_REPO="https://github.com/csc-lab/PractRand.git"
 # 锁定版本分支或 tag
 PRACTRAND_TAG="main"
 
 echo "[1/4] 清理旧构建 ..."
-rm -rf "${BUILD_DIR}" "${SRC_DIR}"
+case "${BUILD_DIR}" in
+  "${SCRIPT_DIR}"/*)
+    rm -rf "${BUILD_DIR}" "${SRC_DIR}"
+    ;;
+  *)
+    echo "错误：BUILD_DIR 路径异常 (${BUILD_DIR})，拒绝清理" >&2
+    exit 1
+    ;;
+esac
 
 echo "[2/4] 克隆 PractRand ..."
 git clone --depth 1 --branch "${PRACTRAND_TAG}" "${PRACTRAND_REPO}" "${SRC_DIR}"
