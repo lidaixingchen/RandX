@@ -118,6 +118,7 @@ jobs:
         run: cl /std:c++latest /W4 /EHsc /Od /I third_party /Fe:test_randx.exe test_randx.cpp
       - name: Test (C++23 with doctest)
         if: matrix.std == 'c++23'
+        timeout-minutes: 3
         shell: cmd
         run: test_randx.exe --reporters=xml --duration=true
       - name: Build quick benchmark
@@ -130,6 +131,7 @@ jobs:
         run: cl /std:c++17 /W4 /EHsc /Od /I third_party /Fe:test_randx_cpp17.exe test_randx_cpp17.cpp
       - name: Test (C++17 with doctest)
         if: matrix.std == 'c++17'
+        timeout-minutes: 3
         shell: cmd
         run: test_randx_cpp17.exe --reporters=xml --duration=true
       - name: Build (C++20 char8_t coverage)
@@ -138,6 +140,7 @@ jobs:
         run: cl /std:c++20 /W4 /EHsc /Od /I third_party /Fe:test_randx_cpp17.exe test_randx_cpp17.cpp
       - name: Test (C++20 char8_t coverage)
         if: matrix.std == 'c++20'
+        timeout-minutes: 3
         shell: cmd
         run: test_randx_cpp17.exe --reporters=xml --duration=true
 
