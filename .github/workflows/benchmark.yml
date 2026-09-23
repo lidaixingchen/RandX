@@ -24,6 +24,13 @@ on:
       - 'CMakeLists.txt'
       - 'tools/compare_benchmark.py'
       - '.github/workflows/benchmark.yml'
+  workflow_dispatch:
+    inputs:
+      force_update_baseline:
+        description: '强制更新基准测试基线'
+        type: boolean
+        required: false
+        default: false
 
 permissions:
   contents: read
@@ -50,6 +57,7 @@ jobs:
       - name: Configure & Build
         run: |
           cmake -B build -DRANDX_BUILD_BENCHMARK=ON \
+            -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_CXX_COMPILER=g++-14 -DCMAKE_CXX_STANDARD=23
           cmake --build build --target benchmark_gbench -j$(nproc)
 
@@ -86,6 +94,7 @@ jobs:
       - name: Compare with Baseline
         id: compare
         if: hashFiles('baseline/result.json') != ''
+        continue-on-error: ${{ inputs.force_update_baseline == true || inputs.force_update_baseline == 'true' }}
         # 门禁：超容差即失败拦截。共享 runner 噪声较大（median 聚合下波动
         # 通常在 10%~20%），容差由记录型时期的 15% 放宽至 25% 以降低误报
         run: python3 tools/compare_benchmark.py result.json baseline/result.json --tolerance 0.25
@@ -139,7 +148,7 @@ jobs:
             });
 
       - name: Upload Current Result as Baseline
-        if: github.ref == 'refs/heads/master' && github.event_name == 'push'
+        if: (success() && github.ref == 'refs/heads/master' && github.event_name == 'push') || (hashFiles('result.json') != '' && !cancelled() && (inputs.force_update_baseline == true || inputs.force_update_baseline == 'true'))
         uses: actions/upload-artifact@v4
         with:
           name: benchmark-baseline

@@ -187,6 +187,7 @@ jobs:
       - name: Configure & build examples
         run: |
           cmake -B build -DRANDX_BUILD_EXAMPLES=ON \
+            -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_CXX_COMPILER=g++-14
           cmake --build build
 

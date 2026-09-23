@@ -241,7 +241,12 @@ namespace RandX
 			requires (!std::same_as<std::remove_cvref_t<SeedSeq>, state_type>
 				&& !std::same_as<std::remove_cvref_t<SeedSeq>, SplitMix64>)
 		[[nodiscard]]
-		explicit constexpr SplitMix64(SeedSeq& seq);
+		explicit constexpr SplitMix64(SeedSeq& seq)
+		{
+			std::array<std::uint32_t, 2> seeds;
+			seq.generate(seeds.data(), seeds.data() + seeds.size());
+			m_state = (static_cast<std::uint64_t>(seeds[0]) << 32) | seeds[1];
+		}
 
 		/// @brief 生成下一个 64 位随机数
 		/// @return [min(), max()] 区间内的伪随机数
@@ -362,14 +367,14 @@ namespace RandX
 				if constexpr (sizeof(result_type) == 8)
 				{
 					std::array<std::uint32_t, N * 2> raw;
-					seq.generate(raw.begin(), raw.end());
+					seq.generate(raw.data(), raw.data() + raw.size());
 					for (std::size_t i = 0; i < N; ++i)
 						s_[i] = (static_cast<result_type>(raw[2 * i]) << 32) | raw[2 * i + 1];
 				}
 				else
 				{
 					std::array<std::uint32_t, N> raw;
-					seq.generate(raw.begin(), raw.end());
+					seq.generate(raw.data(), raw.data() + raw.size());
 					for (std::size_t i = 0; i < N; ++i)
 						s_[i] = static_cast<result_type>(raw[i]);
 				}
@@ -650,7 +655,20 @@ namespace RandX
 			requires (!std::same_as<std::remove_cvref_t<SeedSeq>, state_type>
 				&& !std::same_as<std::remove_cvref_t<SeedSeq>, SFC64>)
 		[[nodiscard]]
-		explicit constexpr SFC64(SeedSeq& seq);
+		explicit constexpr SFC64(SeedSeq& seq)
+			: Base()
+		{
+			std::array<std::uint32_t, 8> seeds;
+			seq.generate(seeds.data(), seeds.data() + seeds.size());
+			s_[0] = (static_cast<std::uint64_t>(seeds[0]) << 32) | seeds[1];
+			s_[1] = (static_cast<std::uint64_t>(seeds[2]) << 32) | seeds[3];
+			s_[2] = (static_cast<std::uint64_t>(seeds[4]) << 32) | seeds[5];
+			s_[3] = 1;
+			// 全零状态会导致输出可预测，强制修正
+			if ((s_[0] | s_[1] | s_[2]) == 0) s_[0] = 0x9E3779B97F4A7C15ULL;
+			// 与种子构造函数一致：12 轮预热
+			for (int i = 0; i < 12; ++i) { operator()(); }
+		}
 
 		/// @brief 从状态数组直接构造
 		/// @param state serialize() 返回的状态
@@ -1151,15 +1169,6 @@ namespace RandX
 	inline constexpr SplitMix64::SplitMix64(const state_type state) noexcept
 		: m_state(state) {}
 
-	template <detail::SeedSequence SeedSeq>
-		requires (!std::same_as<std::remove_cvref_t<SeedSeq>, SplitMix64::state_type>
-			&& !std::same_as<std::remove_cvref_t<SeedSeq>, SplitMix64>)
-	inline constexpr SplitMix64::SplitMix64(SeedSeq& seq)
-	{
-		std::array<std::uint32_t, 2> seeds;
-		seq.generate(seeds.begin(), seeds.end());
-		m_state = (static_cast<std::uint64_t>(seeds[0]) << 32) | seeds[1];
-	}
 
 	inline constexpr SplitMix64::result_type SplitMix64::operator()() noexcept
 	{
@@ -1333,23 +1342,6 @@ namespace RandX
 		for (int i = 0; i < 12; ++i) { operator()(); }
 	}
 
-	template <detail::SeedSequence SeedSeq>
-		requires (!std::same_as<std::remove_cvref_t<SeedSeq>, SFC64::state_type>
-			&& !std::same_as<std::remove_cvref_t<SeedSeq>, SFC64>)
-	inline constexpr SFC64::SFC64(SeedSeq& seq)
-		: Base()
-	{
-		std::array<std::uint32_t, 8> seeds;
-		seq.generate(seeds.begin(), seeds.end());
-		s_[0] = (static_cast<std::uint64_t>(seeds[0]) << 32) | seeds[1];
-		s_[1] = (static_cast<std::uint64_t>(seeds[2]) << 32) | seeds[3];
-		s_[2] = (static_cast<std::uint64_t>(seeds[4]) << 32) | seeds[5];
-		s_[3] = 1;
-		// 全零状态会导致输出可预测，强制修正
-		if ((s_[0] | s_[1] | s_[2]) == 0) s_[0] = 0x9E3779B97F4A7C15ULL;
-		// 与种子构造函数一致：12 轮预热
-		for (int i = 0; i < 12; ++i) { operator()(); }
-	}
 
 	inline constexpr SFC64::result_type SFC64::operator()() noexcept
 	{

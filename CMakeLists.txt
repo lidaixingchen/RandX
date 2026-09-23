@@ -178,7 +178,7 @@ if(RANDX_BUILD_EXAMPLES)
                                  -S "${CMAKE_CURRENT_SOURCE_DIR}/examples/consumer_validation"
                                  -G "${CMAKE_GENERATOR}"
                                  ${CONSUMER_CMAKE_ARGS}
-        COMMAND ${CMAKE_COMMAND} --build "${CONSUMER_BUILD_DIR}" --config $<CONFIG>
+        COMMAND ${CMAKE_COMMAND} --build "${CONSUMER_BUILD_DIR}" $<$<BOOL:$<CONFIG>>:--config> $<$<BOOL:$<CONFIG>>:$<CONFIG>>
         COMMENT "构建下游消费者工程验证用例 (find_package(RandX CONFIG))"
     )
 endif()

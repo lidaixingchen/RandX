@@ -385,14 +385,14 @@ namespace RandX
 				if constexpr (sizeof(result_type) == 8)
 				{
 					std::array<std::uint32_t, N * 2> raw;
-					seq.generate(raw.begin(), raw.end());
+					seq.generate(raw.data(), raw.data() + raw.size());
 					for (std::size_t i = 0; i < N; ++i)
 						s_[i] = (static_cast<result_type>(raw[2 * i]) << 32) | raw[2 * i + 1];
 				}
 				else
 				{
 					std::array<std::uint32_t, N> raw;
-					seq.generate(raw.begin(), raw.end());
+					seq.generate(raw.data(), raw.data() + raw.size());
 					for (std::size_t i = 0; i < N; ++i)
 						s_[i] = static_cast<result_type>(raw[i]);
 				}
@@ -1008,7 +1008,7 @@ namespace RandX
 	inline constexpr SplitMix64::SplitMix64(SeedSeq& seq)
 	{
 		std::array<std::uint32_t, 2> seeds;
-		seq.generate(seeds.begin(), seeds.end());
+		seq.generate(seeds.data(), seeds.data() + seeds.size());
 		m_state = (static_cast<std::uint64_t>(seeds[0]) << 32) | seeds[1];
 	}
 
@@ -1191,7 +1191,7 @@ namespace RandX
 		: Base()
 	{
 		std::array<std::uint32_t, 8> seeds;
-		seq.generate(seeds.begin(), seeds.end());
+		seq.generate(seeds.data(), seeds.data() + seeds.size());
 		s_[0] = (static_cast<std::uint64_t>(seeds[0]) << 32) | seeds[1];
 		s_[1] = (static_cast<std::uint64_t>(seeds[2]) << 32) | seeds[3];
 		s_[2] = (static_cast<std::uint64_t>(seeds[4]) << 32) | seeds[5];
