@@ -3134,10 +3134,11 @@ namespace RandX
 	{
 		if (!std::isfinite(a) || !std::isfinite(b) || a <= T{0} || b <= T{0})
 			throw std::invalid_argument("RandBeta: invalid a or b");
-		std::gamma_distribution<T> distA(a, T{1});
-		std::gamma_distribution<T> distB(b, T{1});
-		const T x = distA(engine);
-		const T y = distB(engine);
+		const T epsilon = std::numeric_limits<T>::epsilon();
+		const T resolutionShape = T{1} / (epsilon * epsilon);
+		// Gamma 样本的相对标准差为 1/sqrt(shape)，低于浮点分辨率时取其均值。
+		const T x = a >= resolutionShape ? a : std::gamma_distribution<T>(a, T{1})(engine);
+		const T y = b >= resolutionShape ? b : std::gamma_distribution<T>(b, T{1})(engine);
 		return detail::NormalizeBetaSample(x, y);
 	}
 

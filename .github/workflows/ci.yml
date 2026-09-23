@@ -120,7 +120,7 @@ jobs:
         if: matrix.std == 'c++23'
         timeout-minutes: 3
         shell: cmd
-        run: test_randx.exe --reporters=xml --duration=true
+        run: test_randx.exe
       - name: Build quick benchmark
         if: matrix.std == 'c++23'
         shell: cmd
@@ -133,7 +133,7 @@ jobs:
         if: matrix.std == 'c++17'
         timeout-minutes: 3
         shell: cmd
-        run: test_randx_cpp17.exe --reporters=xml --duration=true
+        run: test_randx_cpp17.exe
       - name: Build (C++20 char8_t coverage)
         if: matrix.std == 'c++20'
         shell: cmd
@@ -142,7 +142,7 @@ jobs:
         if: matrix.std == 'c++20'
         timeout-minutes: 3
         shell: cmd
-        run: test_randx_cpp17.exe --reporters=xml --duration=true
+        run: test_randx_cpp17.exe
 
   # 跨标准序列一致性检查：同一生成器分别以 C++23（RandX.hpp）与
   # C++17（RandX_Cpp17.hpp）编译，固定种子输出各引擎与便捷 API 序列后逐字节比对，

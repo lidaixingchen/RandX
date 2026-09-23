@@ -2306,15 +2306,14 @@ TEST_SUITE("功能契约与边界扩展验证 (C++17)")
         double mean = sum / n_samples;
         CHECK(doctest::Approx(mean).epsilon(0.05) == 0.5);
 
-        try
-        {
-            double big_sample = RandX::RandBeta(rng, 1e308, 1e308);
-            CHECK(std::isfinite(big_sample));
-            CHECK(doctest::Approx(big_sample).epsilon(1e-6) == 0.5);
-        }
-        catch (const std::domain_error&)
-        {
-            CHECK(true);
-        }
+        const double largeShape = (std::numeric_limits<double>::max)();
+        double big_sample = RandX::RandBeta(rng, largeShape, largeShape);
+        CHECK(std::isfinite(big_sample));
+        CHECK(big_sample == 0.5);
+
+        double skewed_sample = RandX::RandBeta(rng, 2.0, largeShape);
+        CHECK(std::isfinite(skewed_sample));
+        CHECK(skewed_sample >= 0.0);
+        CHECK(skewed_sample <= 1.0);
     }
 }
