@@ -9,6 +9,10 @@ tools/pract_rand/
 ├── gen_practrand_stream.cpp   引擎原始字节流生成器（C++）
 ├── run_practrand.py           测试驱动（Python3）
 ├── download_practrand.sh      PractRand 下载与构建脚本（Bash）
+├── practrand.lock             上游仓库与版本锁定文件
+├── tests/                     驱动单元测试与判定用例
+│   ├── fixtures/              PractRand 判定文本样本
+│   └── test_run_practrand.py  测试驱动状态机与优先级测试
 └── README.md                  本文件
 ```
 
@@ -19,7 +23,7 @@ tools/pract_rand/
 ```bash
 cd tools/pract_rand
 bash download_practrand.sh
-# 产物：./PractRand_build/RNG_output
+# 产物：./PractRand_build/RNG_test
 ```
 
 环境要求：g++、make、git。CI 中由 nightly workflow 自动完成。
@@ -56,26 +60,26 @@ python3 run_practrand.py --keep-going
 
 ## 引擎列表
 
-| 引擎名（CLI 参数） | 类型号 | 输出位宽 |
-|--------------------|--------|----------|
-| `xoshiro256`       | 统计 | 64-bit |
-| `xoroshiro128`     | 统计 | 64-bit |
-| `xoshiro128`       | 统计 | 32-bit |
-| `xoroshiro64`      | 统计 | 32-bit |
-| `splitmix64`       | 统计 | 64-bit |
-| `sfc64`            | 统计 | 64-bit |
-| `romuduojr`        | 统计 | 64-bit |
-| `chacha20`         | CSPRNG | 64-bit |
+| 引擎名（CLI 参数） | 类型号 | 输出位宽 | 输入流模式 |
+|--------------------|--------|----------|------------|
+| `xoshiro256`       | 统计 | 64-bit | `stdin64` |
+| `xoroshiro128`     | 统计 | 64-bit | `stdin64` |
+| `xoshiro128`       | 统计 | 32-bit | `stdin32` |
+| `xoroshiro64`      | 统计 | 32-bit | `stdin32` |
+| `splitmix64`       | 统计 | 64-bit | `stdin64` |
+| `sfc64`            | 统计 | 64-bit | `stdin64` |
+| `romuduojr`        | 统计 | 64-bit | `stdin64` |
+| `chacha20`         | CSPRNG | 64-bit | `stdin64` |
 
 引擎名不区分大小写，可带或不带 `**` 后缀（如 `xoshiro256` 等价 `xoshiro256**`）。
 
-## 失败判定
+## 报告状态与退出码
 
-PractRand 输出中包含以下任一关键字即判失败：
-- `FAIL`（任何大小写）
-- `!!`（行首的严重警告）
-
-通过则退出码 0；失败则退出码 1；环境错误（无 PractRand / 编译失败）退出码 2。
+驱动输出结构化状态，定义如下：
+- `0 (pass)`: 具备有效统计报告、达到目标测试量、测试项 > 0 且无 FAIL 判定。
+- `1 (statistical_failure)`: 统计报告出现 FAIL 或行首严重警告。
+- `2 (environment_error)`: 工具缺失、启动失败或进程异常退出。
+- `3 (inconclusive)`: 超时、取消、未达目标测试量或缺少有效结果。
 
 ## CI 集成
 
@@ -85,10 +89,10 @@ PractRand 输出中包含以下任一关键字即判失败：
 
 ```bash
 # 编译生成器
-g++ -std=c++17 -O2 -Wall -Wextra -Wno-unknown-pragmas -I ../..
+g++ -std=c++17 -O2 -Wall -Wextra -Wno-unknown-pragmas -I ../.. \
     -o gen_practrand_stream gen_practrand_stream.cpp
 # （Windows 加 -lbcrypt；macOS 加 -framework Security）
 
-# 管道到 PractRand
-./gen_practrand_stream sfc64 | ./PractRand_build/RNG_output -stdin -tl 4GB -te 1
+# 管道到 PractRand（64位引擎使用 stdin64，32位引擎使用 stdin32）
+./gen_practrand_stream sfc64 | ./PractRand_build/RNG_test stdin64 -tlmin 4GB -tlmax 4GB -te 1
 ```

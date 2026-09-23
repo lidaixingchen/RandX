@@ -1,0 +1,7 @@
+RNG_test using PractRand version 0.95
+RNG = RNG_stdin64, seed = 0x9e3779b97f4a7c15
+test set = core, folding = standard (64 bit)
+
+rng=RNG_stdin64, seed=0x9e3779b97f4a7c15
+length= 16 megabytes (2^24 bytes), time= 0.05 seconds
+  no anomalies in 60 test result(s)

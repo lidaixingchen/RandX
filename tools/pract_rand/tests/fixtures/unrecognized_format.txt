@@ -1,0 +1,2 @@
+Error: unrecognized option '--unknown-arg'
+Try 'RNG_test --help' for more information.

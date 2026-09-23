@@ -12,6 +12,8 @@ benchmark_gbench
 
 # CMake 构建目录
 build/
+build*/
+install*/
 out/
 CMakeCache.txt
 CMakeFiles/
@@ -22,6 +24,10 @@ CTestTestfile.cmake
 tools/pract_rand/gen_practrand_stream
 tools/pract_rand/PractRand_build/
 tools/pract_rand/PractRand_src/
+
+# Python
+__pycache__/
+*.pyc
 
 # IDE
 .vs/

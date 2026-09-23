@@ -3,7 +3,7 @@
 # 用法：bash download_practrand.sh
 #
 # 产物：
-#   PractRand_build/RNG_output   PractRand 测试驱动
+#   PractRand_build/RNG_test   PractRand 测试驱动
 #
 # 环境要求：g++、make、git
 set -euo pipefail
@@ -17,10 +17,9 @@ for cmd in git g++; do
     command -v "$cmd" >/dev/null 2>&1 || { echo "错误：缺少依赖 $cmd，请先安装" >&2; exit 1; }
 done
 
-# PractRand 上游（镜像仓库）
+# PractRand 上游（镜像仓库）与锁定 commit
 PRACTRAND_REPO="https://github.com/csc-lab/PractRand.git"
-# 锁定版本分支或 tag
-PRACTRAND_TAG="main"
+PRACTRAND_COMMIT="949dc49b7875b47a988d8bcf5c34dbf758f1a4e1"
 
 echo "[1/4] 清理旧构建 ..."
 case "${BUILD_DIR}" in
@@ -33,11 +32,12 @@ case "${BUILD_DIR}" in
     ;;
 esac
 
-echo "[2/4] 克隆 PractRand ..."
-git clone --depth 1 --branch "${PRACTRAND_TAG}" "${PRACTRAND_REPO}" "${SRC_DIR}"
-
-echo "[3/4] 构建 RNG_output ..."
+echo "[2/4] 克隆 PractRand (${PRACTRAND_COMMIT}) ..."
+git clone "${PRACTRAND_REPO}" "${SRC_DIR}"
 pushd "${SRC_DIR}" >/dev/null
+git checkout "${PRACTRAND_COMMIT}"
+
+echo "[3/4] 构建 RNG_test ..."
 mkdir -p bin
 shopt -s nullglob
 SOURCES=(src/*.cpp src/*/*.cpp src/*/*/*.cpp)
@@ -46,14 +46,14 @@ if [ ${#SOURCES[@]} -eq 0 ]; then
     echo "错误：未找到 PractRand 源文件" >&2
     exit 1
 fi
-g++ -O3 -Iinclude -I. "${SOURCES[@]}" tools/RNG_output.cpp -o bin/RNG_output -lpthread
+g++ -O3 -Iinclude -I. "${SOURCES[@]}" tools/RNG_test.cpp -o bin/RNG_test -lpthread
 popd >/dev/null
 
 echo "[4/4] 拷贝产物到 ${BUILD_DIR}/ ..."
 mkdir -p "${BUILD_DIR}"
-cp "${SRC_DIR}/bin/RNG_output" "${BUILD_DIR}/RNG_output"
+cp "${SRC_DIR}/bin/RNG_test" "${BUILD_DIR}/RNG_test"
 
 # 清理源码（保留构建目录）
 rm -rf "${SRC_DIR}"
 
-echo "完成：${BUILD_DIR}/RNG_output"
+echo "完成：${BUILD_DIR}/RNG_test"

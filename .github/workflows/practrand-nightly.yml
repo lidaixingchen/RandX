@@ -54,7 +54,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: tools/pract_rand/PractRand_build
-          key: practrand-${{ hashFiles('tools/pract_rand/download_practrand.sh') }}
+          key: practrand-v2-${{ runner.os }}-${{ hashFiles('tools/pract_rand/download_practrand.sh', 'tools/pract_rand/practrand.lock') }}
 
       - name: Build PractRand
         if: steps.cache-practrand.outputs.cache-hit != 'true'

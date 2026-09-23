@@ -1,0 +1,8 @@
+RNG_test using PractRand version 0.95
+RNG = RNG_stdin64, seed = 0x9e3779b97f4a7c15
+test set = core, folding = standard (64 bit)
+
+rng=RNG_stdin64, seed=0x9e3779b97f4a7c15
+length= 32 megabytes (2^25 bytes), time= 0.1 seconds
+  Test Name: BCFN(2+0,13-0,T)                  ... mildly suspicious
+  ...and 125 other test result(s)

@@ -1,0 +1,6 @@
+RNG_test using PractRand version 0.95
+Usage: RNG_test RNG_name [options]
+Options:
+  -tlmin [length]
+  -tlmax [length]
+  -te [fold]
