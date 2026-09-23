@@ -1,2 +1,12 @@
 @PACKAGE_INIT@
 include("${CMAKE_CURRENT_LIST_DIR}/RandXTargets.cmake")
+
+# 兼容别名容错
+if(TARGET RandX::Cpp17 AND NOT TARGET RandX::RandX_Cpp17)
+    add_library(RandX::RandX_Cpp17 INTERFACE IMPORTED)
+    set_target_properties(RandX::RandX_Cpp17 PROPERTIES INTERFACE_LINK_LIBRARIES RandX::Cpp17)
+endif()
+if(TARGET RandX::Cpp23 AND NOT TARGET RandX::RandX_Cpp23)
+    add_library(RandX::RandX_Cpp23 INTERFACE IMPORTED)
+    set_target_properties(RandX::RandX_Cpp23 PROPERTIES INTERFACE_LINK_LIBRARIES RandX::Cpp23)
+endif()

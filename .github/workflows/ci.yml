@@ -14,6 +14,8 @@ on:
       - 'benchmark.cpp'
       - 'benchmark_gbench.cpp'
       - 'CMakeLists.txt'
+      - 'cmake/**'
+      - 'tools/**'
       - 'third_party/**'
       - '.github/workflows/ci.yml'
   pull_request:
@@ -29,6 +31,8 @@ on:
       - 'benchmark.cpp'
       - 'benchmark_gbench.cpp'
       - 'CMakeLists.txt'
+      - 'cmake/**'
+      - 'tools/**'
       - 'third_party/**'
       - '.github/workflows/ci.yml'
 
@@ -118,21 +122,21 @@ jobs:
         if: matrix.std == 'c++23'
         shell: cmd
         run: |
-          cl /std:c++latest /W4 /EHsc /O2 /I third_party /Fe:test_randx.exe test_randx.cpp
-          test_randx.exe
-          cl /std:c++latest /W4 /EHsc /O2 /Fe:benchmark.exe benchmark.cpp
+          cl /std:c++latest /W4 /EHsc /O2 /I third_party /Fe:test_randx.exe test_randx.cpp || exit /b 1
+          test_randx.exe || exit /b 1
+          cl /std:c++latest /W4 /EHsc /O2 /Fe:benchmark.exe benchmark.cpp || exit /b 1
       - name: Build & Test (C++17 with doctest)
         if: matrix.std == 'c++17'
         shell: cmd
         run: |
-          cl /std:c++17 /W4 /EHsc /O2 /I third_party /Fe:test_randx_cpp17.exe test_randx_cpp17.cpp
-          test_randx_cpp17.exe
+          cl /std:c++17 /W4 /EHsc /O2 /I third_party /Fe:test_randx_cpp17.exe test_randx_cpp17.cpp || exit /b 1
+          test_randx_cpp17.exe || exit /b 1
       - name: Build & Test (C++20 char8_t coverage)
         if: matrix.std == 'c++20'
         shell: cmd
         run: |
-          cl /std:c++20 /W4 /EHsc /O2 /I third_party /Fe:test_randx_cpp17.exe test_randx_cpp17.cpp
-          test_randx_cpp17.exe
+          cl /std:c++20 /W4 /EHsc /O2 /I third_party /Fe:test_randx_cpp17.exe test_randx_cpp17.cpp || exit /b 1
+          test_randx_cpp17.exe || exit /b 1
 
   # 跨标准序列一致性检查：同一生成器分别以 C++23（RandX.hpp）与
   # C++17（RandX_Cpp17.hpp）编译，固定种子输出各引擎与便捷 API 序列后逐字节比对，
