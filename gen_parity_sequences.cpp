@@ -110,11 +110,23 @@ namespace
 			for (int i = 0; i < 32; ++i)
 				std::printf("  %a\n", RandX::RandReal(eng, 0.0, 1.0));
 		}
+		std::printf("[api] RandReal<float>(engine, 0.0f, 1.0f)\n");
+		{
+			Xoshiro256StarStar eng{ kSeed };
+			for (int i = 0; i < 32; ++i)
+				std::printf("  %a\n", static_cast<double>(RandX::RandReal(eng, 0.0f, 1.0f)));
+		}
 		std::printf("[api] RandCanonical<double>(engine)\n");
 		{
 			Xoshiro256StarStar eng{ kSeed };
 			for (int i = 0; i < 16; ++i)
 				std::printf("  %a\n", RandX::RandCanonical<double>(eng));
+		}
+		std::printf("[api] RandCanonical<float>(engine)\n");
+		{
+			Xoshiro256StarStar eng{ kSeed };
+			for (int i = 0; i < 16; ++i)
+				std::printf("  %a\n", static_cast<double>(RandX::RandCanonical<float>(eng)));
 		}
 		std::printf("[api] RandBool(engine, 0.3)\n");
 		{
@@ -249,6 +261,16 @@ namespace
 			Xoshiro256StarStar eng{ kSeed };
 			for (int i = 0; i < 4; ++i)
 				std::printf("  %s\n", RandX::RandUUID(eng).c_str());
+		}
+		std::printf("[api] 32-bit engine RandCanonical and RandUUID\n");
+		{
+			RandX::Xoshiro128StarStar eng32{ kSeed };
+			for (int i = 0; i < 8; ++i)
+				std::printf("  canonical_d: %a\n", RandX::RandCanonical<double>(eng32));
+			for (int i = 0; i < 8; ++i)
+				std::printf("  canonical_f: %a\n", static_cast<double>(RandX::RandCanonical<float>(eng32)));
+			for (int i = 0; i < 4; ++i)
+				std::printf("  uuid: %s\n", RandX::RandUUID(eng32).c_str());
 		}
 	}
 

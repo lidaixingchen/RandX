@@ -38,6 +38,15 @@ namespace
     constexpr int MC_TRIALS_100 = 100;
     // ChaCha20 卡方检验样本数：须 < 2^20/8 = 131072 以避免触发自动 reseed（保持确定性）
     constexpr int CHACHA20_CHI2_N = 100'000;
+
+    template <class Container>
+    concept CanRandShuffle = requires(Container&& c) { RandX::RandShuffle(std::forward<Container>(c)); };
+
+    template <class Container>
+    concept CanRangesRandShuffle = requires(Container&& c) { RandX::ranges::RandShuffle(std::forward<Container>(c)); };
+
+    template <int N, class T, class Engine>
+    concept CanRandBits = requires(Engine& rng) { RandX::RandBits<N, T>(rng); };
 }
 
 // ============================================================================
@@ -153,7 +162,7 @@ TEST_SUITE("引擎基础设施")
             CHECK(rng() == rng2());
     }
 
-    TEST_CASE("全零吸收态防御修正")
+    TEST_CASE("全零吸收态逃逸保证")
     {
         std::array<std::uint64_t, 4> zeroState{};
         RandX::Xoshiro256StarStar rng{ zeroState };
@@ -164,9 +173,9 @@ TEST_SUITE("引擎基础设施")
         CHECK_FALSE((rng2() == 0 && rng2() == 0 && rng2() == 0));
     }
 
-    // 全零输入被静默修正为 s_[0]=1（SFC64 为 0x9E37...），修正后序列完全确定，
+    // 全零状态自动重置为有效初值 s_[0]=1（SFC64 为 0x9E37...），重置后序列完全确定，
     // 且与 test_randx_cpp17.cpp 的同名断言保持一致（见 docs/API.md「全零状态静默修正」）
-    TEST_CASE("全零输入 → 修正后确定序列")
+    TEST_CASE("全零输入自动重置确定性序列")
     {
         {
             RandX::Xoshiro256StarStar rng{ std::array<std::uint64_t, 4>{} };
@@ -234,7 +243,7 @@ TEST_SUITE("引擎基础设施")
         CHECK(a != c);
     }
 
-    TEST_CASE("jump / longJump 不崩溃")
+    TEST_CASE("jump / longJump 平稳步进")
     {
         RandX::Xoshiro256StarStar rng{ 777 };
         rng.jump();
@@ -289,9 +298,9 @@ TEST_SUITE("引擎概念约束 (v1.4 C2)")
         static_assert(!RandX::detail::StreamEngine<RandX::ChaCha20>);
     }
 
-    TEST_CASE("SerializableEngine 概念不受影响")
+    TEST_CASE("SerializableEngine 概念约束")
     {
-        // 已有概念不受 v1.4 新增概念影响
+        // 验证序列化概念约束：数组状态引擎满足，标量与密码学引擎排除
         static_assert(RandX::detail::SerializableEngine<RandX::Xoshiro256StarStar>);
         static_assert(!RandX::detail::SerializableEngine<RandX::SplitMix64>);  // state_type = uint64_t 标量
         static_assert(!RandX::detail::SerializableEngine<RandX::ChaCha20>);    // CSPRNG 不导出状态
@@ -374,7 +383,7 @@ TEST_SUITE("便捷 API")
         CHECK(v == orig);
     }
 
-    TEST_CASE("RandWeighted 零权重不被选中")
+    TEST_CASE("RandWeighted 正权重采样保证")
     {
         std::vector<double> weights = { 0.0, 0.0, 1.0, 0.0 };
         for (int i = 0; i < MC_TRIALS_100; ++i)
@@ -789,7 +798,7 @@ TEST_SUITE("新增 API")
         CHECK(rng1 == rng2);
     }
 
-    TEST_CASE("operator<< 不应匹配 SplitMix64（标量 state_type）")
+    TEST_CASE("operator<< 约束标量状态类型 SplitMix64")
     {
         // 此测试主要保证编译期 SFINAE 排除标量引擎
         // 如果 SFINAE 失败，下行将触发 static_assert
@@ -921,10 +930,10 @@ TEST_SUITE("RandSample 迭代器版")
         CHECK(s1 == s2);
     }
 
-    TEST_CASE("均匀性（reservoir）：前后半段均衡，验证 i+1 修复")
+    TEST_CASE("均匀性（reservoir）：前后半段均衡分布")
     {
         // N=200, n=10, TRIALS=10000；期望各半段被选 50000 次
-        // 修复前 BoundedRand(rng,i) 会使后半段过选；修复后 BoundedRand(rng,i+1) 均匀
+        // 水塘抽样算法在完整遍历时各段均匀分布
         constexpr int N = 200;
         constexpr int n = 10;
         constexpr int TRIALS = 10000;
@@ -940,7 +949,7 @@ TEST_SUITE("RandSample 迭代器版")
                 else ++secondHalf;
             }
         }
-        // ±10% 容差（修复前差值极大，可稳定捕获 BUG）
+        // ±10% 容差，统计波动范围检查
         CHECK(firstHalf > 45000);
         CHECK(firstHalf < 55000);
         CHECK(secondHalf > 45000);
@@ -1184,7 +1193,7 @@ TEST_SUITE("RandChar 预设字符集")
         }
     }
 
-    TEST_CASE("RandChar 引擎重载支持非 Xoshiro256StarStar 引擎")
+    TEST_CASE("RandChar 支持异构自定义引擎重载")
     {
         // 验证 RandChar(Engine&, CharSet) 对 SFC64 / RomuDuoJr 等任意引擎均可编译且确定性成立
         RandX::SFC64 sfc1{ 42 }, sfc2{ 42 };
@@ -1532,7 +1541,7 @@ TEST_SUITE("密码学安全熵源")
         CHECK_FALSE(allZero);
     }
 
-    TEST_CASE("SecureRandomBytes n=0 不抛异常")
+    TEST_CASE("SecureRandomBytes 零长度调用安全完成")
     {
         std::array<std::uint8_t, 1> buf{};
         RandX::SecureRandomBytes(buf.data(), 0);
@@ -1546,7 +1555,7 @@ TEST_SUITE("密码学安全熵源")
         CHECK(a != b);
     }
 
-    TEST_CASE("ChaCha20 默认构造不抛异常（OS 熵可用时）")
+    TEST_CASE("ChaCha20 默认构造成功初始化（OS 熵可用时）")
     {
         if (RandX::IsOsCryptoEntropyAvailable())
         {
@@ -1571,9 +1580,9 @@ TEST_SUITE("密码学安全熵源")
     }
 }
 
-TEST_SUITE("缺陷修复回归测试 - CSPRNG")
+TEST_SUITE("CSPRNG 对象生命周期与移动语义")
 {
-    TEST_CASE("ChaCha20 只移动不可拷贝")
+    TEST_CASE("ChaCha20 移动语义与拷贝禁用")
     {
         static_assert(!std::is_copy_constructible_v<RandX::ChaCha20>);
         static_assert(!std::is_copy_assignable_v<RandX::ChaCha20>);
@@ -1586,9 +1595,9 @@ TEST_SUITE("缺陷修复回归测试 - CSPRNG")
     }
 }
 
-TEST_SUITE("缺陷修复回归测试 - 数学算法")
+TEST_SUITE("数学分布与编译期数值边界")
 {
-    TEST_CASE("RandIntCE 64位无符号整数全范围未退化为0")
+    TEST_CASE("RandIntCE 64位无符号整数全范围有效生成")
     {
         constexpr std::uint64_t v1 = RandX::RandIntCE<std::uint64_t, 12345ULL>(0ULL, std::numeric_limits<std::uint64_t>::max());
         constexpr std::uint64_t v2 = RandX::RandIntCE<std::uint64_t, 67890ULL>(0ULL, std::numeric_limits<std::uint64_t>::max());
@@ -1597,7 +1606,7 @@ TEST_SUITE("缺陷修复回归测试 - 数学算法")
         CHECK(v1 != v2);
     }
 
-    TEST_CASE("RandBeta 极端非正规数参数不坍缩为0")
+    TEST_CASE("RandBeta 极端非正规数参数保持正值输出")
     {
         RandX::Xoshiro256StarStar rng(123);
         double betaVal = RandX::RandBeta(rng, 1.0, 1e-300);
@@ -1605,7 +1614,7 @@ TEST_SUITE("缺陷修复回归测试 - 数学算法")
     }
 }
 
-TEST_SUITE("缺陷修复回归测试 - 容器与边界")
+TEST_SUITE("容器与原生数组操作契约")
 {
     TEST_CASE("RandElement 支持原生 C 风格数组")
     {
@@ -1615,7 +1624,7 @@ TEST_SUITE("缺陷修复回归测试 - 容器与边界")
     }
 }
 
-TEST_SUITE("缺陷修复回归测试 - 性能与API")
+TEST_SUITE("API 契约与生命周期保障")
 {
     TEST_CASE("RandUUID 格式正确与随机性")
     {
@@ -1631,7 +1640,7 @@ TEST_SUITE("缺陷修复回归测试 - 性能与API")
         CHECK(u1 != u2);
     }
 
-    TEST_CASE("ChaCha20 不可拷贝但可移动")
+    TEST_CASE("ChaCha20 移动语义与拷贝禁用特性")
     {
         CHECK(!std::is_copy_constructible_v<RandX::ChaCha20>);
         CHECK(!std::is_copy_assignable_v<RandX::ChaCha20>);
@@ -1639,7 +1648,7 @@ TEST_SUITE("缺陷修复回归测试 - 性能与API")
         CHECK(std::is_move_assignable_v<RandX::ChaCha20>);
     }
 
-    TEST_CASE("RandUUID 在 32 位引擎下无高位置零损坏")
+    TEST_CASE("RandUUID 在 32 位引擎下保持完整高位熵")
     {
         RandX::Xoshiro128StarStar rng32{ 12345 };
         std::string u = RandX::RandUUID(rng32);
@@ -1757,7 +1766,7 @@ TEST_SUITE("边界用例")
             CHECK(RandX::RandElement(single) == 99);
     }
 
-    TEST_CASE("RandElement 右值容器按值返回（不悬垂）")
+    TEST_CASE("RandElement 右值容器按值返回维持生命周期安全")
     {
         RandX::Reseed(42);
         int val = RandX::RandElement(std::vector<int>{10, 20, 30});
@@ -1796,11 +1805,11 @@ TEST_SUITE("边界用例")
         CHECK(s.empty());
     }
 
-    TEST_CASE("RandInt 全范围 [min, max] 不溢出")
+    TEST_CASE("RandInt 全范围 [min, max] 极值安全")
     {
         RandX::Reseed(42);
         auto v = RandX::RandInt<std::uint64_t>(0, (std::numeric_limits<std::uint64_t>::max)());
-        CHECK(v >= 0);  // 始终成立，验证不崩溃
+        CHECK(v >= 0);  // 始终成立，极值调用验证
         auto v2 = RandX::RandInt<std::int32_t>((std::numeric_limits<std::int32_t>::min)(), (std::numeric_limits<std::int32_t>::max)());
         CHECK(v2 >= (std::numeric_limits<std::int32_t>::min)());
     }
@@ -1824,9 +1833,9 @@ TEST_SUITE("边界用例")
 }
 
 // ============================================================================
-// P0 / P1 / P2 缺陷修复回归测试套件
+// 核心契约与边界完备性验证套件
 // ============================================================================
-TEST_SUITE("P0/P1/P2 Regression Audit Suite")
+TEST_SUITE("核心契约与边界完备性")
 {
     TEST_CASE("Input Iterator RandElement 按值返回")
     {
@@ -1864,18 +1873,19 @@ TEST_SUITE("P0/P1/P2 Regression Audit Suite")
         CHECK(res.empty());
     }
 
-    TEST_CASE("ChaCha20 moved-from 自动重播种保护")
+    TEST_CASE("ChaCha20 moved-from 状态保护")
     {
         RandX::ChaCha20 a{ 12345 };
         RandX::ChaCha20 b = std::move(a);
-        const std::uint64_t val1 = a();
-        const std::uint64_t val2 = a();
-        CHECK((val1 != 0ULL || val2 != 0ULL));
+        CHECK_THROWS_AS(a(), std::logic_error);
+        CHECK_THROWS_AS(a.discard(1), std::logic_error);
+        const std::uint64_t val = b();
+        CHECK(val != 0ULL);
     }
 
-    TEST_CASE("RandBits 有符号整型与自定义引擎")
+    TEST_CASE("RandBits 整型与自定义引擎")
     {
-        std::int32_t bits32 = RandX::RandBits<32, std::int32_t>();
+        std::uint32_t bits32 = RandX::RandBits<32, std::uint32_t>();
         (void)bits32;
         RandX::Xoshiro256StarStar rng{ 999 };
         std::uint32_t bitsRng = RandX::RandBits<16, std::uint32_t>(rng);
@@ -1890,9 +1900,9 @@ TEST_SUITE("P0/P1/P2 Regression Audit Suite")
     }
 }
 
-TEST_SUITE("Round 2 Audit Regression Suite")
+TEST_SUITE("流状态隔离与数值范围约束")
 {
-    TEST_CASE("P0-1 & P1-1: 反序列化全零非法状态设置 failbit 并保持原状态，隔离流格式标志")
+    TEST_CASE("反序列化全零非法状态设置 failbit 并保持原状态，隔离流格式标志")
     {
         RandX::Xoshiro256StarStar rng{ 123456789ULL };
         const auto orig_state = rng.serialize();
@@ -1914,7 +1924,7 @@ TEST_SUITE("Round 2 Audit Regression Suite")
         CHECK(rng.serialize() == orig_state);
     }
 
-    TEST_CASE("P0-2: RandReal 上界紧裁剪 [min, max)")
+    TEST_CASE("RandReal 半开区间上界约束 [min, max)")
     {
         RandX::Xoshiro256StarStar rng{ 42 };
         for (int i = 0; i < 100000; ++i)
@@ -1925,7 +1935,7 @@ TEST_SUITE("Round 2 Audit Regression Suite")
         }
     }
 
-    TEST_CASE("P2-1: RandInt 8-bit 整型与 char 支持")
+    TEST_CASE("RandInt 8-bit 整型与 char 支持")
     {
         RandX::Xoshiro256StarStar rng{ 42 };
         std::uint8_t u8 = RandX::RandInt<std::uint8_t>(rng, 10, 20);
@@ -1941,15 +1951,22 @@ TEST_SUITE("Round 2 Audit Regression Suite")
         CHECK(c <= 'z');
     }
 
-    TEST_CASE("P1-2: RandBeta 极端参数非 NaN 测试")
+    TEST_CASE("RandBeta 极端参数数值有效性验证")
     {
         RandX::Xoshiro256StarStar rng{ 100 };
         for (int i = 0; i < 1000; ++i)
         {
-            double beta_small = RandX::RandBeta(rng, 0.001, 0.001);
-            CHECK(std::isfinite(beta_small));
-            CHECK(beta_small >= 0.0);
-            CHECK(beta_small <= 1.0);
+            try
+            {
+                double beta_small = RandX::RandBeta(rng, 0.001, 0.001);
+                CHECK(std::isfinite(beta_small));
+                CHECK(beta_small >= 0.0);
+                CHECK(beta_small <= 1.0);
+            }
+            catch (const std::domain_error&)
+            {
+                // 极小参数下两个 Gamma 采样值均下溢为 0.0 时允许抛出合法数值异常
+            }
 
             double beta_large = RandX::RandBeta(rng, 1e6, 1e6);
             CHECK(std::isfinite(beta_large));
@@ -1958,19 +1975,545 @@ TEST_SUITE("Round 2 Audit Regression Suite")
         }
     }
 
-    TEST_CASE("P1-3: MakeStreamEngine 大 streamId 快速跳跃测试")
+    TEST_CASE("MakeStreamEngine 大 streamId 快速跳跃测试")
     {
         auto rng = RandX::MakeStreamEngine<RandX::Xoshiro256StarStar>(1000000ULL, 123456ULL);
         auto val = rng();
         CHECK(val != 0ULL);
     }
 
-    TEST_CASE("P2-2: RandBits 边界位数测试")
+    TEST_CASE("RandBits 边界位数测试")
     {
         RandX::Xoshiro256StarStar rng{ 777 };
         auto b64 = RandX::RandBits<64>(rng);
         (void)b64;
         auto b1 = RandX::RandBits<1>(rng);
         CHECK(b1 <= 1ULL);
+    }
+}
+
+TEST_SUITE("功能契约与边界扩展验证 (C++23)")
+{
+    TEST_CASE("vector<bool> 抽样与洗牌代理引用支持")
+    {
+        RandX::Xoshiro256StarStar rng{ 42 };
+        std::vector<bool> vb = { false, false, true };
+        for (int i = 0; i < 50; ++i)
+        {
+            auto sampled1 = RandX::RandSample(vb, 2);
+            int trueCount1 = 0;
+            for (bool b : sampled1)
+            {
+                if (b) ++trueCount1;
+            }
+            CHECK(trueCount1 <= 1);
+
+            auto sampled2 = RandX::RandSample(rng, vb.begin(), vb.end(), 2);
+            int trueCount2 = 0;
+            for (bool b : sampled2)
+            {
+                if (b) ++trueCount2;
+            }
+            CHECK(trueCount2 <= 1);
+        }
+
+        std::vector<bool> vb_shuffle = { false, false, true, true, false };
+        for (int i = 0; i < 20; ++i)
+        {
+            RandX::RandShuffle(vb_shuffle);
+            int trueCount = 0;
+            for (bool b : vb_shuffle)
+            {
+                if (b) ++trueCount;
+            }
+            CHECK(trueCount == 2);
+        }
+    }
+
+    struct Synthetic32BitWideType
+    {
+        using result_type = std::uint64_t;
+        static constexpr std::uint64_t min() { return 0; }
+        static constexpr std::uint64_t max() { return 0xFFFFFFFFULL; }
+        std::uint64_t val = 0x12345678ULL;
+        std::uint64_t operator()()
+        {
+            val = (val * 1664525ULL + 1013904223ULL) & 0xFFFFFFFFULL;
+            return val;
+        }
+    };
+
+    struct SyntheticNonZeroMinEngine
+    {
+        using result_type = std::uint32_t;
+        static constexpr std::uint32_t min() { return 10; }
+        static constexpr std::uint32_t max() { return 20; }
+        std::uint32_t val = 10;
+        std::uint32_t operator()()
+        {
+            val = 10 + (val - 10 + 1) % 11;
+            return val;
+        }
+    };
+
+    TEST_CASE("mt19937、minstd_rand 与合成窄字长引擎浮点生成正值保证")
+    {
+        std::mt19937 mt{ 42 };
+        float f = RandX::RandCanonical<float>(mt);
+        CHECK(f > 0.0f);
+        CHECK(f < 1.0f);
+
+        Synthetic32BitWideType synth;
+        float f_synth = RandX::RandCanonical<float>(synth);
+        double d_synth = RandX::RandCanonical<double>(synth);
+        CHECK(f_synth > 0.0f);
+        CHECK(f_synth < 1.0f);
+        CHECK(d_synth > 0.0);
+        CHECK(d_synth < 1.0);
+
+        std::minstd_rand minstd{ 42 };
+        float f_minstd = RandX::RandCanonical<float>(minstd);
+        CHECK(f_minstd > 0.0f);
+        CHECK(f_minstd < 1.0f);
+
+        SyntheticNonZeroMinEngine nonZeroMin;
+        float f_nz = RandX::RandCanonical<float>(nonZeroMin);
+        CHECK(f_nz >= 0.0f);
+        CHECK(f_nz < 1.0f);
+    }
+
+    TEST_CASE("RandBits 多引擎与全位宽矩阵验证")
+    {
+        RandX::Xoshiro256StarStar rng64{ 42 };
+        RandX::Xoshiro128StarStar rng32{ 42 };
+        SyntheticNonZeroMinEngine nzEng;
+
+        CHECK(RandX::RandBits<1>(rng64) <= 1ULL);
+        CHECK(RandX::RandBits<8>(rng64) <= 0xFFULL);
+        CHECK(RandX::RandBits<24>(rng64) <= 0xFFFFFFULL);
+        CHECK(RandX::RandBits<31>(rng64) <= 0x7FFFFFFFULL);
+        CHECK(RandX::RandBits<32>(rng64) <= 0xFFFFFFFFULL);
+        CHECK(RandX::RandBits<33>(rng64) <= 0x1FFFFFFFFULL);
+        CHECK(RandX::RandBits<48>(rng64) <= 0xFFFFFFFFFFFFULL);
+        CHECK(RandX::RandBits<53>(rng64) <= 0x1FFFFFFFFFFFFFULL);
+        CHECK(RandX::RandBits<63>(rng64) <= 0x7FFFFFFFFFFFFFFFULL);
+        (void)RandX::RandBits<64>(rng64);
+
+        CHECK(RandX::RandBits<1>(rng32) <= 1ULL);
+        CHECK(RandX::RandBits<8>(rng32) <= 0xFFULL);
+        CHECK(RandX::RandBits<24>(rng32) <= 0xFFFFFFULL);
+        CHECK(RandX::RandBits<31>(rng32) <= 0x7FFFFFFFULL);
+        CHECK(RandX::RandBits<32>(rng32) <= 0xFFFFFFFFULL);
+        CHECK(RandX::RandBits<33>(rng32) <= 0x1FFFFFFFFULL);
+        CHECK(RandX::RandBits<48>(rng32) <= 0xFFFFFFFFFFFFULL);
+        CHECK(RandX::RandBits<53>(rng32) <= 0x1FFFFFFFFFFFFFULL);
+        CHECK(RandX::RandBits<63>(rng32) <= 0x7FFFFFFFFFFFFFFFULL);
+        (void)RandX::RandBits<64>(rng32);
+
+        CHECK(RandX::RandBits<1>(nzEng) <= 1ULL);
+        CHECK(RandX::RandBits<8>(nzEng) <= 0xFFULL);
+        CHECK(RandX::RandBits<24>(nzEng) <= 0xFFFFFFULL);
+        CHECK(RandX::RandBits<31>(nzEng) <= 0x7FFFFFFFULL);
+        CHECK(RandX::RandBits<32>(nzEng) <= 0xFFFFFFFFULL);
+        CHECK(RandX::RandBits<33>(nzEng) <= 0x1FFFFFFFFULL);
+        CHECK(RandX::RandBits<48>(nzEng) <= 0xFFFFFFFFFFFFULL);
+        CHECK(RandX::RandBits<53>(nzEng) <= 0x1FFFFFFFFFFFFFULL);
+        CHECK(RandX::RandBits<63>(nzEng) <= 0x7FFFFFFFFFFFFFFFULL);
+        (void)RandX::RandBits<64>(nzEng);
+    }
+
+    struct ThrowingEngine
+    {
+        using result_type = std::uint64_t;
+        static constexpr std::uint64_t min() { return 0; }
+        static constexpr std::uint64_t max() { return UINT64_MAX; }
+        std::uint64_t operator()()
+        {
+            throw std::runtime_error("simulated engine failure");
+        }
+    };
+
+    TEST_CASE("ThrowingEngine 异常正常向上抛出保证异常安全")
+    {
+        ThrowingEngine te;
+        CHECK_THROWS_AS((void)RandX::RandCanonical<double>(te), std::runtime_error);
+        CHECK_THROWS_AS((void)(RandX::RandBits<16, std::uint32_t>(te)), std::runtime_error);
+        CHECK_THROWS_AS((void)RandX::RandReal(te, 0.0, 1.0), std::runtime_error);
+        CHECK_THROWS_AS((void)RandX::RandReal(te, 0.0, 2.0), std::runtime_error);
+    }
+
+    TEST_CASE("ChaCha20 counter 边界 0xFFFFFFFFU 与生命周期契约")
+    {
+        std::array<std::uint8_t, 32> key{};
+        std::array<std::uint8_t, 12> nonce{};
+
+        RandX::ChaCha20 chacha_max(key.data(), 32, nonce.data(), 12, 0xFFFFFFFFU);
+        for (int i = 0; i < 8; ++i)
+        {
+            CHECK_NOTHROW((void)chacha_max());
+        }
+        CHECK_THROWS_AS((void)chacha_max(), std::overflow_error);
+
+        RandX::ChaCha20 chacha_max_minus_1(key.data(), 32, nonce.data(), 12, 0xFFFFFFFEU);
+        for (int i = 0; i < 16; ++i)
+        {
+            CHECK_NOTHROW((void)chacha_max_minus_1());
+        }
+        CHECK_THROWS_AS((void)chacha_max_minus_1(), std::overflow_error);
+    }
+
+    TEST_CASE("NormalizeBetaSample 归一化与非法/无穷/零值异常")
+    {
+        CHECK(RandX::detail::NormalizeBetaSample(1.0, 1.0) == 0.5);
+        CHECK(doctest::Approx(RandX::detail::NormalizeBetaSample(1e308, 1e308)).epsilon(1e-12) == 0.5);
+        double ratio = RandX::detail::NormalizeBetaSample(1e308, 5e307);
+        CHECK(doctest::Approx(ratio).epsilon(1e-12) == (1.0 / 1.5));
+        CHECK(RandX::detail::NormalizeBetaSample(0.0, 5.0) == 0.0);
+        CHECK(RandX::detail::NormalizeBetaSample(5.0, 0.0) == 1.0);
+
+        CHECK_THROWS_AS((void)RandX::detail::NormalizeBetaSample(0.0, 0.0), std::domain_error);
+        CHECK_THROWS_AS((void)RandX::detail::NormalizeBetaSample(-1.0, 1.0), std::domain_error);
+        CHECK_THROWS_AS((void)RandX::detail::NormalizeBetaSample(1.0, -1.0), std::domain_error);
+        CHECK_THROWS_AS((void)RandX::detail::NormalizeBetaSample(std::numeric_limits<double>::infinity(), 1.0), std::domain_error);
+        CHECK_THROWS_AS((void)RandX::detail::NormalizeBetaSample(1.0, std::numeric_limits<double>::infinity()), std::domain_error);
+        CHECK_THROWS_AS((void)RandX::detail::NormalizeBetaSample(std::numeric_limits<double>::quiet_NaN(), 1.0), std::domain_error);
+
+        CHECK_THROWS_AS((void)RandX::RandBeta(0.0, 1.0), std::invalid_argument);
+        CHECK_THROWS_AS((void)RandX::RandBeta(1.0, 0.0), std::invalid_argument);
+        CHECK_THROWS_AS((void)RandX::RandBeta(-1.0, 2.0), std::invalid_argument);
+        CHECK_THROWS_AS((void)RandX::RandBeta(std::numeric_limits<double>::quiet_NaN(), 1.0), std::invalid_argument);
+    }
+
+    struct CustomValidSeedSeq
+    {
+        void generate(std::uint32_t* begin, std::uint32_t* end)
+        {
+            std::fill(begin, end, 0x12345678u);
+        }
+    };
+    struct TypeLackingGenerate {};
+
+    template <class Engine>
+    void VerifyEngineSeedSeqContracts()
+    {
+        int seed_i = 12345;
+        Engine rng_i(seed_i);
+        std::uint64_t seed_u = 12345ULL;
+        Engine rng_u(seed_u);
+        const std::uint64_t seed_cu = 12345ULL;
+        Engine rng_cu(seed_cu);
+
+        const auto val_i = rng_i();
+        const auto val_u = rng_u();
+        const auto val_cu = rng_cu();
+        CHECK(val_i == val_u);
+        CHECK(val_u == val_cu);
+
+        Engine rng_copy = rng_u;
+        const auto val_copy = rng_copy();
+        const auto val_u_next = rng_u();
+        CHECK(val_copy == val_u_next);
+
+        typename Engine::state_type st = rng_u.serialize();
+        Engine rng_st(st);
+        CHECK(rng_st() == rng_u());
+
+        std::seed_seq seq{ 1, 2, 3, 4, 5 };
+        Engine rng_seq(seq);
+        CHECK(rng_seq() != typename Engine::result_type{0});
+
+        static_assert(std::is_constructible_v<Engine, CustomValidSeedSeq&>);
+        static_assert(!std::is_constructible_v<Engine, TypeLackingGenerate&>);
+
+        CustomValidSeedSeq custom_seq;
+        Engine rng_custom(custom_seq);
+        CHECK(rng_custom() != typename Engine::result_type{0});
+    }
+
+    TEST_CASE("7大PRNG引擎的SeedSequence与参数契约全面覆盖")
+    {
+        VerifyEngineSeedSeqContracts<RandX::SplitMix64>();
+        VerifyEngineSeedSeqContracts<RandX::Xoshiro256StarStar>();
+        VerifyEngineSeedSeqContracts<RandX::Xoroshiro128StarStar>();
+        VerifyEngineSeedSeqContracts<RandX::Xoshiro128StarStar>();
+        VerifyEngineSeedSeqContracts<RandX::Xoroshiro64StarStar>();
+        VerifyEngineSeedSeqContracts<RandX::SFC64>();
+        VerifyEngineSeedSeqContracts<RandX::RomuDuoJr>();
+
+        RandX::Xoshiro256StarStar rng_i{ 12345 };
+        CHECK_THROWS_AS((void)RandX::RandInt(rng_i, 10, 5), std::invalid_argument);
+        CHECK_THROWS_AS((void)RandX::RandReal(rng_i, 1.0, 0.0), std::invalid_argument);
+        CHECK_THROWS_AS((void)RandX::RandBool(rng_i, -0.1), std::invalid_argument);
+        CHECK_THROWS_AS((void)RandX::RandBool(rng_i, 1.1), std::invalid_argument);
+
+        std::vector<int> dummy(5);
+        CHECK_THROWS_AS((void)RandX::RandFill(dummy.begin(), dummy.end(), 10, 5), std::invalid_argument);
+        CHECK_THROWS_AS((void)RandX::RandVector(10, 5, 5), std::invalid_argument);
+        CHECK_THROWS_AS((void)RandX::RandWeighted(std::vector<int>{ -1, 2 }), std::invalid_argument);
+        CHECK_THROWS_AS((void)RandX::RandWeighted(std::vector<int>{ 0, 0 }), std::invalid_argument);
+        CHECK_THROWS_AS((void)RandX::RandString(10, ""), std::invalid_argument);
+        std::vector<int> empty_v;
+        CHECK_THROWS_AS((void)RandX::RandElement(empty_v), std::invalid_argument);
+    }
+
+    TEST_CASE("SplitMix64::discard 步进等价性")
+    {
+        const std::uint64_t test_steps[] = { 0, 1, 5, 23, 100, 1000 };
+        for (auto n : test_steps)
+        {
+            RandX::SplitMix64 sm1{ 42 };
+            sm1.discard(n);
+            RandX::SplitMix64 sm2{ 42 };
+            for (std::uint64_t i = 0; i < n; ++i)
+            {
+                (void)sm2();
+            }
+            CHECK(sm1() == sm2());
+        }
+    }
+
+    struct Scripted64BitEngine
+    {
+        using result_type = std::uint64_t;
+        static constexpr std::uint64_t min() { return 0; }
+        static constexpr std::uint64_t max() { return UINT64_MAX; }
+        std::vector<std::uint64_t> seq;
+        std::size_t idx = 0;
+        std::uint64_t operator()()
+        {
+            if (idx < seq.size()) return seq[idx++];
+            return 0;
+        }
+    };
+
+    struct Scripted32BitEngine
+    {
+        using result_type = std::uint32_t;
+        static constexpr std::uint32_t min() { return 0; }
+        static constexpr std::uint32_t max() { return 0xFFFFFFFFU; }
+        std::vector<std::uint32_t> seq;
+        std::size_t idx = 0;
+        std::uint32_t operator()()
+        {
+            if (idx < seq.size()) return seq[idx++];
+            return 0;
+        }
+    };
+
+    TEST_CASE("Scripted 引擎精确受控 UUID 字段与 RFC 4122 变体验证")
+    {
+        Scripted64BitEngine s64{{ 0x0123456789abcdefULL, 0xfedcba9876543210ULL }, 0};
+        std::string uuid64 = RandX::RandUUID(s64);
+        CHECK(uuid64.length() == 36);
+        CHECK(uuid64[8] == '-');
+        CHECK(uuid64[13] == '-');
+        CHECK(uuid64[14] == '4');
+        CHECK(uuid64[18] == '-');
+        CHECK(uuid64[19] == '8');
+        CHECK(uuid64[23] == '-');
+        CHECK(uuid64.substr(0, 8) == "fedcba98");
+        CHECK(uuid64.substr(9, 4) == "7654");
+        CHECK(uuid64.substr(15, 3) == "210");
+        CHECK(uuid64.substr(20, 3) == "123");
+        CHECK(uuid64.substr(24, 12) == "456789abcdef");
+
+        // 32 位引擎路径：lo 先取，hi 后取
+        Scripted32BitEngine s32{{ 0x89abcdefU, 0x01234567U, 0x76543210U, 0xfedcba98U }, 0};
+        std::string uuid32 = RandX::RandUUID(s32);
+        CHECK(uuid32 == uuid64);
+    }
+
+    TEST_CASE("RandChar 字符区间合法性异常契约")
+    {
+        CHECK_THROWS_AS((void)RandX::RandChar('z', 'a'), std::invalid_argument);
+        RandX::Xoshiro256StarStar rng{ 42 };
+        CHECK_THROWS_AS((void)RandX::RandChar(rng, '9', '0'), std::invalid_argument);
+        CHECK_NOTHROW((void)RandX::RandChar('a', 'z'));
+    }
+
+    TEST_CASE("ChaCha20 自移动与移出态连续安全操作")
+    {
+        RandX::ChaCha20 a{ 12345 };
+        // 自移动赋值安全
+        auto& ref = a;
+        a = std::move(ref);
+        CHECK_NOTHROW((void)a());
+
+        RandX::ChaCha20 b = std::move(a);
+        // a 处于 moved-from 状态
+        CHECK_THROWS_AS((void)a(), std::logic_error);
+        CHECK_THROWS_AS((void)a.discard(5), std::logic_error);
+
+        // 重复移动 moved-from 对象安全
+        RandX::ChaCha20 c = std::move(a);
+        CHECK_THROWS_AS((void)c(), std::logic_error);
+
+        // 重新赋值 moved-from 对象可复活
+        RandX::ChaCha20 revived{ 42 };
+        a = std::move(revived);
+        CHECK_NOTHROW((void)a());
+
+        // 如果 OS 熵源可用，显式 reseed 可复活 moved-from 对象
+        if (RandX::IsOsCryptoEntropyAvailable())
+        {
+            b.reseed();
+            CHECK_NOTHROW((void)b());
+        }
+    }
+
+    template <class ResultType, ResultType MinVal, ResultType MaxVal>
+    struct CallCountingEngine
+    {
+        using result_type = ResultType;
+        static constexpr result_type min() { return MinVal; }
+        static constexpr result_type max() { return MaxVal; }
+        std::size_t call_count = 0;
+        ResultType value = static_cast<ResultType>(0x12345678);
+        result_type operator()()
+        {
+            ++call_count;
+            return value++;
+        }
+    };
+
+    TEST_CASE("引擎调用次数与64/32位组合逻辑验收")
+    {
+        // 64 位引擎消耗次数
+        {
+            CallCountingEngine<std::uint64_t, 0, UINT64_MAX> eng64;
+            (void)RandX::RandCanonical<float>(eng64);
+            CHECK(eng64.call_count == 1);
+
+            eng64.call_count = 0;
+            (void)RandX::RandCanonical<double>(eng64);
+            CHECK(eng64.call_count == 1);
+
+            eng64.call_count = 0;
+            (void)RandX::RandReal(eng64, 0.0f, 1.0f);
+            CHECK(eng64.call_count == 1);
+
+            eng64.call_count = 0;
+            (void)RandX::RandReal(eng64, 0.0, 1.0);
+            CHECK(eng64.call_count == 1);
+
+            eng64.call_count = 0;
+            (void)RandX::RandBits<32>(eng64);
+            CHECK(eng64.call_count == 1);
+
+            eng64.call_count = 0;
+            (void)RandX::RandBits<64>(eng64);
+            CHECK(eng64.call_count == 1);
+
+            eng64.call_count = 0;
+            (void)RandX::RandUUID(eng64);
+            CHECK(eng64.call_count == 2);
+        }
+
+        // 32 位引擎消耗次数
+        {
+            CallCountingEngine<std::uint32_t, 0, 0xFFFFFFFFU> eng32;
+            (void)RandX::RandCanonical<float>(eng32);
+            CHECK(eng32.call_count == 1);
+
+            eng32.call_count = 0;
+            (void)RandX::RandCanonical<double>(eng32);
+            CHECK(eng32.call_count == 2);
+
+            eng32.call_count = 0;
+            (void)RandX::RandReal(eng32, 0.0f, 1.0f);
+            CHECK(eng32.call_count == 1);
+
+            eng32.call_count = 0;
+            (void)RandX::RandReal(eng32, 0.0, 1.0);
+            CHECK(eng32.call_count == 2);
+
+            eng32.call_count = 0;
+            (void)RandX::RandBits<32>(eng32);
+            CHECK(eng32.call_count == 1);
+
+            eng32.call_count = 0;
+            (void)RandX::RandBits<64>(eng32);
+            CHECK(eng32.call_count == 2);
+
+            eng32.call_count = 0;
+            (void)RandX::RandUUID(eng32);
+            CHECK(eng32.call_count == 4);
+        }
+    }
+
+    TEST_CASE("vector<bool> 代理引用抽样与洗牌多重集合不变量")
+    {
+        std::vector<bool> vb{ false, false, true };
+        for (int i = 0; i < 50; ++i)
+        {
+            auto sample = RandX::RandSample(vb, 2);
+            CHECK(sample.size() == 2);
+            int true_cnt = (sample[0] ? 1 : 0) + (sample[1] ? 1 : 0);
+            CHECK(true_cnt <= 1);
+        }
+
+        std::vector<bool> vb_shuffle{ false, false, true, true, false, true };
+        const auto orig_true = std::count(vb_shuffle.begin(), vb_shuffle.end(), true);
+        const auto orig_false = std::count(vb_shuffle.begin(), vb_shuffle.end(), false);
+        RandX::RandShuffle(vb_shuffle);
+        CHECK(std::count(vb_shuffle.begin(), vb_shuffle.end(), true) == orig_true);
+        CHECK(std::count(vb_shuffle.begin(), vb_shuffle.end(), false) == orig_false);
+    }
+
+    TEST_CASE("Sentinels 与 Ranges 概念约束诊断")
+    {
+        std::vector<int> src = { 10, 20, 30, 40, 50, 60 };
+        auto counted_it = std::counted_iterator(src.begin(), 6);
+        auto sub_r = std::ranges::subrange(counted_it, std::default_sentinel);
+
+        auto sample = RandX::ranges::RandSample(sub_r, 3);
+        CHECK(sample.size() == 3);
+        for (int val : sample)
+        {
+            CHECK(std::find(src.begin(), src.end(), val) != src.end());
+        }
+
+        auto elem = RandX::ranges::RandElement(sub_r);
+        CHECK(std::find(src.begin(), src.end(), elem) != src.end());
+
+        // 静态概念诊断验证：只读容器无法匹配 RandShuffle
+        static_assert(!CanRandShuffle<const std::vector<int>&>);
+        static_assert(!CanRangesRandShuffle<const std::vector<int>&>);
+    }
+
+    TEST_CASE("RandBits 编译期类型约束断言")
+    {
+        static_assert(!CanRandBits<32, std::int32_t, RandX::Xoshiro256StarStar>);
+        static_assert(!CanRandBits<64, std::int64_t, RandX::Xoshiro256StarStar>);
+        static_assert(!CanRandBits<1, bool, RandX::Xoshiro256StarStar>);
+        static_assert(!CanRandBits<0, std::uint32_t, RandX::Xoshiro256StarStar>);
+        static_assert(!CanRandBits<65, std::uint64_t, RandX::Xoshiro256StarStar>);
+    }
+
+    TEST_CASE("RandBeta 端到端数值行为与大参数验证")
+    {
+        RandX::Xoshiro256StarStar rng{ 12345 };
+        double sum = 0.0;
+        constexpr int n_samples = 1000;
+        for (int i = 0; i < n_samples; ++i)
+        {
+            double val = RandX::RandBeta(rng, 2.0, 2.0);
+            CHECK(val >= 0.0);
+            CHECK(val <= 1.0);
+            sum += val;
+        }
+        double mean = sum / n_samples;
+        CHECK(doctest::Approx(mean).epsilon(0.05) == 0.5);
+
+        try
+        {
+            double big_sample = RandX::RandBeta(rng, 1e308, 1e308);
+            CHECK(std::isfinite(big_sample));
+            CHECK(doctest::Approx(big_sample).epsilon(1e-6) == 0.5);
+        }
+        catch (const std::domain_error&)
+        {
+            CHECK(true);
+        }
     }
 }

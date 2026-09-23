@@ -126,7 +126,9 @@
 #	endif
 #	include <windows.h>
 #	include <bcrypt.h>
-#	pragma comment(lib, "bcrypt.lib")  // 仅 MSVC 生效
+#	if defined(_MSC_VER)
+#		pragma comment(lib, "bcrypt.lib")  // 仅 MSVC 生效
+#	endif
 // MinGW 不支持 #pragma comment(lib)，须手动添加 -lbcrypt 链接选项
 #	if(defined(__MINGW32__) || defined(__MINGW64__)) && !defined(RANDX_SUPPRESS_LINK_HINT)
 #		pragma message("RandX: MinGW 需手动链接 bcrypt（编译命令添加 -lbcrypt）")
@@ -199,6 +201,14 @@ namespace RandX
 		{
 			return !IsAllZero(state);
 		}
+
+		template <class S>
+		concept SeedSequence =
+			!std::is_integral_v<std::remove_cvref_t<S>> &&
+			!std::is_enum_v<std::remove_cvref_t<S>> &&
+			requires(S& s, std::uint32_t* p) {
+				s.generate(p, p);
+			};
 	}
 
 	/// @defgroup engines 引擎
@@ -227,8 +237,9 @@ namespace RandX
 
 		/// @brief 从 std::seed_seq 播种
 		/// @param seq 种子序列对象
-		template <class SeedSeq>
-			requires (!std::same_as<std::remove_cvref_t<SeedSeq>, SplitMix64>)
+		template <detail::SeedSequence SeedSeq>
+			requires (!std::same_as<std::remove_cvref_t<SeedSeq>, state_type>
+				&& !std::same_as<std::remove_cvref_t<SeedSeq>, SplitMix64>)
 		[[nodiscard]]
 		explicit constexpr SplitMix64(SeedSeq& seq);
 
@@ -343,7 +354,7 @@ namespace RandX
 			}
 
 			// SeedSeq 构造（零状态修正，Release 安全）
-			template <class SeedSeq>
+			template <detail::SeedSequence SeedSeq>
 				requires (!std::same_as<std::remove_cvref_t<SeedSeq>, state_type>
 					&& !std::same_as<std::remove_cvref_t<SeedSeq>, Derived>)
 			explicit constexpr EngineBase(SeedSeq& seq)
@@ -422,8 +433,9 @@ namespace RandX
 
 		/// @brief 从 std::seed_seq 播种
 		/// @param seq 种子序列对象
-		template <class SeedSeq>
-			requires (!std::same_as<std::remove_cvref_t<SeedSeq>, Xoshiro256StarStar>)
+		template <detail::SeedSequence SeedSeq>
+			requires (!std::same_as<std::remove_cvref_t<SeedSeq>, state_type>
+				&& !std::same_as<std::remove_cvref_t<SeedSeq>, Xoshiro256StarStar>)
 		[[nodiscard]]
 		explicit constexpr Xoshiro256StarStar(SeedSeq& seq)
 			: Base(seq) {}
@@ -477,8 +489,9 @@ namespace RandX
 
 		/// @brief 从 std::seed_seq 播种
 		/// @param seq 种子序列对象
-		template <class SeedSeq>
-			requires (!std::same_as<std::remove_cvref_t<SeedSeq>, Xoroshiro128StarStar>)
+		template <detail::SeedSequence SeedSeq>
+			requires (!std::same_as<std::remove_cvref_t<SeedSeq>, state_type>
+				&& !std::same_as<std::remove_cvref_t<SeedSeq>, Xoroshiro128StarStar>)
 		[[nodiscard]]
 		explicit constexpr Xoroshiro128StarStar(SeedSeq& seq)
 			: Base(seq) {}
@@ -532,8 +545,9 @@ namespace RandX
 
 		/// @brief 从 std::seed_seq 播种
 		/// @param seq 种子序列对象
-		template <class SeedSeq>
-			requires (!std::same_as<std::remove_cvref_t<SeedSeq>, Xoshiro128StarStar>)
+		template <detail::SeedSequence SeedSeq>
+			requires (!std::same_as<std::remove_cvref_t<SeedSeq>, state_type>
+				&& !std::same_as<std::remove_cvref_t<SeedSeq>, Xoshiro128StarStar>)
 		[[nodiscard]]
 		explicit constexpr Xoshiro128StarStar(SeedSeq& seq)
 			: Base(seq) {}
@@ -587,8 +601,9 @@ namespace RandX
 
 		/// @brief 从 std::seed_seq 播种
 		/// @param seq 种子序列对象
-		template <class SeedSeq>
-			requires (!std::same_as<std::remove_cvref_t<SeedSeq>, Xoroshiro64StarStar>)
+		template <detail::SeedSequence SeedSeq>
+			requires (!std::same_as<std::remove_cvref_t<SeedSeq>, state_type>
+				&& !std::same_as<std::remove_cvref_t<SeedSeq>, Xoroshiro64StarStar>)
 		[[nodiscard]]
 		explicit constexpr Xoroshiro64StarStar(SeedSeq& seq)
 			: Base(seq) {}
@@ -631,8 +646,9 @@ namespace RandX
 
 		/// @brief 从 std::seed_seq 播种（填充 3 状态字 + counter=1 + 12 轮预热）
 		/// @param seq 种子序列对象
-		template <class SeedSeq>
-			requires (!std::same_as<std::remove_cvref_t<SeedSeq>, SFC64>)
+		template <detail::SeedSequence SeedSeq>
+			requires (!std::same_as<std::remove_cvref_t<SeedSeq>, state_type>
+				&& !std::same_as<std::remove_cvref_t<SeedSeq>, SFC64>)
 		[[nodiscard]]
 		explicit constexpr SFC64(SeedSeq& seq);
 
@@ -675,8 +691,9 @@ namespace RandX
 
 		/// @brief 从 std::seed_seq 播种
 		/// @param seq 种子序列对象
-		template <class SeedSeq>
-			requires (!std::same_as<std::remove_cvref_t<SeedSeq>, RomuDuoJr>)
+		template <detail::SeedSequence SeedSeq>
+			requires (!std::same_as<std::remove_cvref_t<SeedSeq>, state_type>
+				&& !std::same_as<std::remove_cvref_t<SeedSeq>, RomuDuoJr>)
 		[[nodiscard]]
 		explicit constexpr RomuDuoJr(SeedSeq& seq)
 			: Base(seq) {}
@@ -773,9 +790,11 @@ namespace RandX
 
 		std::array<std::uint32_t, 12> m_state;   // key(8) + counter(1) + nonce(3)，常数省略（generateBlock 时补齐）
 		std::array<std::uint8_t, 64>  m_buffer;  // 当前 block 的字节缓存
-		std::size_t                   m_bufferPos;       // 缓存消费位置 [0, 64)，==64 时触发新 block
-		std::uint64_t                 m_bytesSinceReseed; // 自上次 reseed 以来输出的字节数
+		std::size_t                   m_bufferPos{ 64 };       // 缓存消费位置 [0, 64)，==64 时触发新 block
+		std::uint64_t                 m_bytesSinceReseed{ 0 }; // 自上次 reseed 以来输出的字节数
 		bool                          m_autoReseed{ false }; // 是否在满 1MB 后自动从 OS 熵重新播种（仅默认无参构造函数启用）
+		bool                          m_counterExhausted{ false }; // 32-bit block 计数器是否已耗尽（0xFFFFFFFF block 已生成）
+		bool                          m_movedFrom{ false }; // 是否处于移出状态
 
 		void generateBlock();        // 跑一次 ChaCha20 block 函数填充 m_buffer
 		void reseedIfNecessary();    // m_bytesSinceReseed >= 阈值时自动 reseed
@@ -816,6 +835,17 @@ namespace RandX
 			while (len--) *p++ = 0;
 		}
 
+		// RAII 敏感内存擦除守卫（覆盖异常展开路径）
+		struct ScopedWiper
+		{
+			void* ptr;
+			std::size_t len;
+			explicit ScopedWiper(void* p, std::size_t l) noexcept : ptr(p), len(l) {}
+			~ScopedWiper() noexcept { SecureWipe(ptr, len); }
+			ScopedWiper(const ScopedWiper&) = delete;
+			ScopedWiper& operator=(const ScopedWiper&) = delete;
+		};
+
 		// 尝试使用 RDRAND 获取 64 位硬件随机数
 		[[nodiscard]]
 		inline bool HardwareRand64(std::uint64_t& out) noexcept
@@ -847,9 +877,10 @@ namespace RandX
 	}
 
 	// ── A3 跨平台 OS 密码学熵源 ──
-	// 用 OS 密码学 API 填充 [buf, buf+n) 字节；成功返回 true。
-	// 平台优先级：Windows BCryptGenRandom → Linux getrandom → macOS SecRandomCopyBytes → std::random_device 兜底
-	// 注：getrandom 可能短读，内部循环直至填满；BCryptGenRandom/SecRandomCopyBytes 一次填满
+	// 用 OS 密码学 API 填充 [buf, buf+n) 字节；成功返回 true，失败或不支持返回 false。
+	// 平台支持：Windows BCryptGenRandom、Linux getrandom、macOS SecRandomCopyBytes。
+	// 注：密码学安全组件在 OS 熵源不可用或失败时直接抛异常，绝不隐式降级至 std::random_device 或非安全源；
+	// getrandom 可能短读，内部循环直至填满；BCryptGenRandom/SecRandomCopyBytes 一次填满。
 	[[nodiscard]]
 	inline bool GetOsEntropyBytes(void* buf, std::size_t n) noexcept
 	{
@@ -899,10 +930,12 @@ namespace RandX
 #	endif
 	}
 
-	// 返回 true 当且仅当编译期检测到 OS 密码学熵源 API（BCryptGenRandom/getrandom/SecRandomCopyBytes）
-	// 返回 false 表示当前运行在 std::random_device 兜底路径，ChaCha20() 默认构造不保证密码学安全
+	// 编译期特性检测：检测目标平台与编译器环境是否支持 OS 密码学熵源 API
+	// （Windows BCryptGenRandom / Linux getrandom / macOS SecRandomCopyBytes）。
+	// 返回 true 表示目标平台支持真 OS 密码学 API；返回 false 表示当前平台缺少 OS 密码学支持。
+	// 密码学安全组件（ChaCha20 / SecureRandomBytes）在熵源不可用或获取失败时直接抛异常，绝不降级。
 	[[nodiscard]]
-	inline bool HasCryptoGradeOsEntropy() noexcept
+	inline constexpr bool HasCryptoGradeOsEntropy() noexcept
 	{
 #	if (defined(_WIN32) && __has_include(<bcrypt.h>)) || (defined(__linux__) && __has_include(<sys/random.h>)) || (defined(__APPLE__) && __has_include(<Security/Security.h>))
 		return true;
@@ -930,21 +963,63 @@ namespace RandX
 		c += d; b ^= c; b = RotL(b, 7);
 	}
 
-	template <class Engine>
-	[[nodiscard]]
-	inline std::uint64_t Generate64Bits(Engine& engine)
-	{
-		if constexpr (sizeof(typename Engine::result_type) >= 8)
+		template <class Engine>
+		inline constexpr bool IsFull64BitEngine =
+			(sizeof(typename Engine::result_type) >= sizeof(std::uint64_t) &&
+			 static_cast<std::uint64_t>(Engine::min()) == 0ULL &&
+			 static_cast<std::uint64_t>(Engine::max()) == (std::numeric_limits<std::uint64_t>::max)());
+
+		template <class Engine>
+		inline constexpr bool IsFull32BitEngine =
+			(static_cast<std::uint64_t>(Engine::min()) == 0ULL &&
+			 static_cast<std::uint64_t>(Engine::max()) == 0xFFFFFFFFULL);
+
+		template <class T>
+		inline T NormalizeBetaSample(T x, T y)
 		{
-			return static_cast<std::uint64_t>(engine());
+			if (!std::isfinite(x) || !std::isfinite(y) || x < T{0} || y < T{0})
+				throw std::domain_error("RandBeta: Gamma sample is not finite or negative");
+			if (x == T{0} && y == T{0})
+				throw std::domain_error("RandBeta: both Gamma samples are zero");
+			if (x == T{0}) return T{0};
+			if (y == T{0}) return T{1};
+			const T sum = x + y;
+			if (std::isfinite(sum))
+			{
+				return x / sum;
+			}
+			if (x >= y && x > T{0})
+			{
+				return T{1} / (T{1} + (y / x));
+			}
+			else if (x < y && y > T{0})
+			{
+				const T r = x / y;
+				return r / (T{1} + r);
+			}
+			throw std::domain_error("RandBeta: unable to normalize Gamma samples");
 		}
-		else
+
+		template <class Engine>
+		[[nodiscard]]
+		inline std::uint64_t Generate64Bits(Engine& engine)
 		{
-			const std::uint64_t lo = static_cast<std::uint64_t>(engine());
-			const std::uint64_t hi = static_cast<std::uint64_t>(engine());
-			return (hi << 32) | lo;
+			if constexpr (IsFull64BitEngine<Engine>)
+			{
+				return static_cast<std::uint64_t>(engine());
+			}
+			else if constexpr (IsFull32BitEngine<Engine>)
+			{
+				const std::uint64_t lo = static_cast<std::uint64_t>(engine());
+				const std::uint64_t hi = static_cast<std::uint64_t>(engine());
+				return (hi << 32) | lo;
+			}
+			else
+			{
+				std::uniform_int_distribution<std::uint64_t> dist(0, (std::numeric_limits<std::uint64_t>::max)());
+				return dist(engine);
+			}
 		}
-	}
 
 	// 字符类型 concept（char/wchar_t/char8_t/char16_t/char32_t）
 	// char8_t 仅在 C++20+ 编译器下为基本类型，用特性检测宏条件启用
@@ -1076,8 +1151,9 @@ namespace RandX
 	inline constexpr SplitMix64::SplitMix64(const state_type state) noexcept
 		: m_state(state) {}
 
-	template <class SeedSeq>
-		requires (!std::same_as<std::remove_cvref_t<SeedSeq>, SplitMix64>)
+	template <detail::SeedSequence SeedSeq>
+		requires (!std::same_as<std::remove_cvref_t<SeedSeq>, SplitMix64::state_type>
+			&& !std::same_as<std::remove_cvref_t<SeedSeq>, SplitMix64>)
 	inline constexpr SplitMix64::SplitMix64(SeedSeq& seq)
 	{
 		std::array<std::uint32_t, 2> seeds;
@@ -1128,7 +1204,7 @@ namespace RandX
 
 	inline constexpr void SplitMix64::discard(const unsigned long long n) noexcept
 	{
-		for (unsigned long long i = 0; i < n; ++i) { operator()(); }
+		m_state += static_cast<std::uint64_t>(n) * 0x9e3779b97f4a7c15ULL;
 	}
 
 	////////////////////////////////////////////////////////////////
@@ -1257,8 +1333,9 @@ namespace RandX
 		for (int i = 0; i < 12; ++i) { operator()(); }
 	}
 
-	template <class SeedSeq>
-		requires (!std::same_as<std::remove_cvref_t<SeedSeq>, SFC64>)
+	template <detail::SeedSequence SeedSeq>
+		requires (!std::same_as<std::remove_cvref_t<SeedSeq>, SFC64::state_type>
+			&& !std::same_as<std::remove_cvref_t<SeedSeq>, SFC64>)
 	inline constexpr SFC64::SFC64(SeedSeq& seq)
 		: Base()
 	{
@@ -1311,9 +1388,9 @@ namespace RandX
 			return hw;
 		if (detail::GetOsEntropyBytes(&hw, sizeof(hw)))
 			return hw;
-		std::random_device rd;
 		try
 		{
+			std::random_device rd;
 			return (static_cast<std::uint64_t>(rd()) << 32) | rd();
 		}
 		catch (...)
@@ -1324,7 +1401,7 @@ namespace RandX
 			const auto threadId = std::hash<std::thread::id>{}(std::this_thread::get_id());
 			static std::atomic<std::uint64_t> counter{0};
 			std::uint64_t stackVar = 0;
-			const std::uint64_t addr = reinterpret_cast<std::uint64_t>(&stackVar);
+			const std::uint64_t addr = static_cast<std::uint64_t>(reinterpret_cast<std::uintptr_t>(&stackVar));
 
 			const std::uint64_t rawSeed = static_cast<std::uint64_t>(t1) ^ static_cast<std::uint64_t>(t2)
 			                              ^ threadId ^ addr ^ counter.fetch_add(1, std::memory_order_relaxed);
@@ -1374,11 +1451,11 @@ namespace RandX
 		return seed;
 	}
 
-	/// @brief 检测 OS 密码学熵源是否可用
-	/// @return true 当且仅当 BCryptGenRandom/getrandom/SecRandomCopyBytes 可用；
-	///         false 表示当前运行在 std::random_device 兜底路径，不保证密码学安全
+	/// @brief 编译期特性检测：检测当前平台是否支持 OS 密码学熵源 API
+	/// @return true 表示支持真 OS 密码学 API（BCryptGenRandom/getrandom/SecRandomCopyBytes）；
+	///         false 表示缺少 OS 密码学支持。密码学安全组件在熵源失败时直接抛异常，绝不隐式降级。
 	[[nodiscard]]
-	inline bool IsOsCryptoEntropyAvailable() noexcept
+	inline constexpr bool IsOsCryptoEntropyAvailable() noexcept
 	{
 		return detail::HasCryptoGradeOsEntropy();
 	}
@@ -1401,11 +1478,16 @@ namespace RandX
 		  m_buffer(other.m_buffer),
 		  m_bufferPos(other.m_bufferPos),
 		  m_bytesSinceReseed(other.m_bytesSinceReseed),
-		  m_autoReseed(other.m_autoReseed)
+		  m_autoReseed(other.m_autoReseed),
+		  m_counterExhausted(other.m_counterExhausted),
+		  m_movedFrom(other.m_movedFrom)
 	{
 		detail::SecureWipe(other.m_state.data(), sizeof(other.m_state));
 		detail::SecureWipe(other.m_buffer.data(), sizeof(other.m_buffer));
-		other.reseed();
+		other.m_movedFrom = true;
+		other.m_bufferPos = 64;
+		other.m_bytesSinceReseed = 0;
+		other.m_counterExhausted = false;
 	}
 
 	inline ChaCha20& ChaCha20::operator=(ChaCha20&& other) noexcept
@@ -1420,10 +1502,15 @@ namespace RandX
 			m_bufferPos = other.m_bufferPos;
 			m_bytesSinceReseed = other.m_bytesSinceReseed;
 			m_autoReseed = other.m_autoReseed;
+			m_counterExhausted = other.m_counterExhausted;
+			m_movedFrom = other.m_movedFrom;
 
 			detail::SecureWipe(other.m_state.data(), sizeof(other.m_state));
 			detail::SecureWipe(other.m_buffer.data(), sizeof(other.m_buffer));
-			other.reseed();
+			other.m_movedFrom = true;
+			other.m_bufferPos = 64;
+			other.m_bytesSinceReseed = 0;
+			other.m_counterExhausted = false;
 		}
 		return *this;
 	}
@@ -1436,7 +1523,8 @@ namespace RandX
 
 	// 构造方式 1：从 OS 熵自动播种（密码学安全，默认）
 	inline ChaCha20::ChaCha20()
-		: m_state{}, m_buffer{}, m_bufferPos(64), m_bytesSinceReseed(0), m_autoReseed(true)
+		: m_state{}, m_buffer{}, m_bufferPos(64), m_bytesSinceReseed(0), m_autoReseed(true),
+		  m_counterExhausted(false), m_movedFrom(false)
 	{
 		reseed();  // 从 OS 熵获取 key + nonce，重置 counter
 	}
@@ -1444,7 +1532,8 @@ namespace RandX
 	// 构造方式 2：显式种子（仅测试/复现，非密码学安全）
 	// 用 SplitMix64 将 64-bit 种子扩展为 32 字节 key + 12 字节 nonce
 	inline ChaCha20::ChaCha20(const std::uint64_t seed)
-		: m_state{}, m_buffer{}, m_bufferPos(64), m_bytesSinceReseed(0), m_autoReseed(false)
+		: m_state{}, m_buffer{}, m_bufferPos(64), m_bytesSinceReseed(0), m_autoReseed(false),
+		  m_counterExhausted(false), m_movedFrom(false)
 	{
 		SplitMix64 sm{ seed };
 		// key: 前 4 次 SplitMix64 输出，每次 8 字节按小端序拆为 2 个 uint32
@@ -1468,12 +1557,11 @@ namespace RandX
 	inline ChaCha20::ChaCha20(const std::uint8_t* key, std::size_t keyLen,
 	                          const std::uint8_t* nonce, std::size_t nonceLen,
 	                          const std::uint32_t counter)
-		: m_state{}, m_buffer{}, m_bufferPos(64), m_bytesSinceReseed(0), m_autoReseed(false)
+		: m_state{}, m_buffer{}, m_bufferPos(64), m_bytesSinceReseed(0), m_autoReseed(false),
+		  m_counterExhausted(false), m_movedFrom(false)
 	{
-		if (keyLen != 32)
-			throw std::invalid_argument("ChaCha20: key must be 32 bytes");
-		if (nonceLen != 12)
-			throw std::invalid_argument("ChaCha20: nonce must be 12 bytes");
+		if (!key || keyLen != 32 || !nonce || nonceLen != 12)
+			throw std::invalid_argument("ChaCha20: invalid key or nonce");
 		// key → m_state[0..7]（小端序）
 		for (int i = 0; i < 8; ++i)
 		{
@@ -1496,13 +1584,14 @@ namespace RandX
 	// 生成一个 ChaCha20 block（64 字节）填充 m_buffer
 	inline void ChaCha20::generateBlock()
 	{
-		if (m_state[8] == 0xFFFFFFFFU)
+		if (m_counterExhausted)
 		{
 			throw std::overflow_error("ChaCha20: 32-bit block counter overflow");
 		}
 
 		// 构造完整 16-word 状态：常数 + key + counter + nonce
 		std::array<std::uint32_t, 16> state{};
+		detail::ScopedWiper stateWiper(state.data(), sizeof(state));
 		state[0] = detail::ChaCha20Constants[0];
 		state[1] = detail::ChaCha20Constants[1];
 		state[2] = detail::ChaCha20Constants[2];
@@ -1514,6 +1603,7 @@ namespace RandX
 		state[15] = m_state[11];                                 // nonce[2]
 
 		std::array<std::uint32_t, 16> working = state;
+		detail::ScopedWiper workingWiper(working.data(), sizeof(working));
 
 		// 20 轮 = 10 次 double-round（列轮 + 对角轮）
 		for (int i = 0; i < 10; ++i)
@@ -1540,7 +1630,14 @@ namespace RandX
 			m_buffer[i * 4 + 3] = static_cast<std::uint8_t>(v >> 24);
 		}
 
-		++m_state[8];   // 递增 counter（2^20 字节阈值远早于 2^32 回绕，自动 reseed 防止复用）
+		if (m_state[8] == 0xFFFFFFFFU)
+		{
+			m_counterExhausted = true;
+		}
+		else
+		{
+			++m_state[8];
+		}
 		m_bufferPos = 0;
 	}
 
@@ -1554,7 +1651,8 @@ namespace RandX
 	// 从 OS 熵重新播种：32 字节新 key + 12 字节新 nonce，重置 counter=0、缓存标记耗尽
 	inline void ChaCha20::reseed()
 	{
-		std::array<std::uint8_t, 44> seed;  // 32(key) + 12(nonce)
+		std::array<std::uint8_t, 44> seed{};  // 32(key) + 12(nonce)
+		detail::ScopedWiper wiper(seed.data(), seed.size());
 		SecureRandomBytes(seed.data(), seed.size());
 		// key → m_state[0..7]（小端序）
 		for (int i = 0; i < 8; ++i)
@@ -1575,16 +1673,23 @@ namespace RandX
 		m_state[8] = 0;            // counter 重置
 		m_bufferPos = 64;          // 强制下次 operator() 触发新 block
 		m_bytesSinceReseed = 0;
-		detail::SecureWipe(seed.data(), seed.size());   // 擦除栈上密钥材料
+		m_counterExhausted = false;
+		m_movedFrom = false;
 		detail::SecureWipe(m_buffer.data(), m_buffer.size()); // 擦除旧 keystream
 	}
 
 	// 生成一个 64-bit 随机数（从缓存取 8 字节，缓存耗尽时生成新 block）
 	inline ChaCha20::result_type ChaCha20::operator()()
 	{
+		if (m_movedFrom)
+			throw std::logic_error("ChaCha20: generator is in moved-from state");
 		reseedIfNecessary();
 		if (m_bufferPos == 64)
+		{
+			if (m_counterExhausted)
+				throw std::overflow_error("ChaCha20: 32-bit block counter overflow");
 			generateBlock();
+		}
 		// 从缓存取 8 字节，小端序组装为 uint64_t
 		std::uint64_t result = 0;
 		for (int i = 0; i < 8; ++i)
@@ -1596,6 +1701,8 @@ namespace RandX
 
 	inline void ChaCha20::discard(const unsigned long long n)
 	{
+		if (m_movedFrom)
+			throw std::logic_error("ChaCha20: generator is in moved-from state");
 		for (unsigned long long i = 0; i < n; ++i) operator()();
 	}
 
@@ -1623,6 +1730,7 @@ namespace RandX
 	/// @param max 上界（含）
 	/// @return 均匀分布于 [min, max] 的随机整数
 	template <std::integral T = int>
+		requires (!std::same_as<std::remove_cv_t<T>, bool>)
 	[[nodiscard]]
 	inline T RandInt(T min, T max)
 	{
@@ -1633,10 +1741,10 @@ namespace RandX
 	/// @param max 上界（含）
 	/// @return 均匀分布于 [0, max] 的随机整数
 	template <std::integral T = int>
+		requires (!std::same_as<std::remove_cv_t<T>, bool>)
 	[[nodiscard]]
 	inline T RandInt(T max)
 	{
-		assert(max >= T{0});
 		return RandInt<T>(T{0}, max);
 	}
 
@@ -1656,21 +1764,21 @@ namespace RandX
 	/// @return [0, 1) 范围内的无偏伪随机浮点数
 	template <std::floating_point T = double>
 	[[nodiscard]]
-	inline T RandCanonical() noexcept
+	inline T RandCanonical()
 	{
 		return RandCanonical<T>(DefaultEngine());
 	}
 
 	/// @brief 生成 [0.0, 1.0) 半开区间的双精度浮点数（直通 Bit-Extraction 极速 API）
 	[[nodiscard]]
-	inline double RandCanonicalDouble() noexcept
+	inline double RandCanonicalDouble()
 	{
 		return RandCanonical<double>();
 	}
 
 	/// @brief 生成 [0.0f, 1.0f) 半开区间的单精度浮点数（直通 Bit-Extraction 极速 API）
 	[[nodiscard]]
-	inline float RandCanonicalFloat() noexcept
+	inline float RandCanonicalFloat()
 	{
 		return RandCanonical<float>();
 	}
@@ -1681,7 +1789,8 @@ namespace RandX
 	[[nodiscard]]
 	inline bool RandBool(double p = 0.5)
 	{
-		assert(std::isfinite(p) && p >= 0.0 && p <= 1.0);
+		if (!std::isfinite(p) || p < 0.0 || p > 1.0)
+			throw std::invalid_argument("RandBool: invalid probability p");
 		std::bernoulli_distribution dist(p);
 		return dist(DefaultEngine());
 	}
@@ -1694,7 +1803,8 @@ namespace RandX
 	[[nodiscard]]
 	inline bool RandBool(Engine& engine, double p = 0.5)
 	{
-		assert(std::isfinite(p) && p >= 0.0 && p <= 1.0);
+		if (!std::isfinite(p) || p < 0.0 || p > 1.0)
+			throw std::invalid_argument("RandBool: invalid probability p");
 		std::bernoulli_distribution dist(p);
 		return dist(engine);
 	}
@@ -1705,7 +1815,6 @@ namespace RandX
 	[[nodiscard]]
 	inline bool RandBernoulli(double p = 0.5)
 	{
-		assert(p >= 0.0 && p <= 1.0);
 		return RandBool(p);
 	}
 
@@ -1717,7 +1826,6 @@ namespace RandX
 	[[nodiscard]]
 	inline bool RandBernoulli(Engine& engine, double p = 0.5)
 	{
-		assert(p >= 0.0 && p <= 1.0);
 		return RandBool(engine, p);
 	}
 
@@ -1730,7 +1838,8 @@ namespace RandX
 	[[nodiscard]]
 	inline CharT RandChar(CharT min, CharT max)
 	{
-		assert(min <= max);
+		if (min > max)
+			throw std::invalid_argument("RandChar: min > max");
 		std::uniform_int_distribution<std::int64_t> dist(
 			static_cast<std::int64_t>(min),
 			static_cast<std::int64_t>(max));
@@ -1756,7 +1865,8 @@ namespace RandX
 	[[nodiscard]]
 	inline CharT RandChar(Engine& engine, CharT min, CharT max)
 	{
-		assert(min <= max);
+		if (min > max)
+			throw std::invalid_argument("RandChar: min > max");
 		std::uniform_int_distribution<std::int64_t> dist(
 			static_cast<std::int64_t>(min),
 			static_cast<std::int64_t>(max));
@@ -1813,12 +1923,12 @@ namespace RandX
 	/// @param last 范围结束迭代器
 	/// @return 指向随机选取元素的迭代器
 	/// @throw std::invalid_argument 范围为空时抛出
-	template <std::random_access_iterator It>
+	template <std::random_access_iterator It, std::sized_sentinel_for<It> Sentinel>
 	[[nodiscard]]
-	inline It RandElement(It first, It last)
+	inline It RandElement(It first, Sentinel last)
 	{
 		using Diff = std::iter_difference_t<It>;
-		const Diff n = std::distance(first, last);
+		const Diff n = static_cast<Diff>(last - first);
 		if (n <= 0)
 			throw std::invalid_argument("RandElement: empty range");
 		return std::next(first, RandInt<Diff>(Diff{0}, n - 1));
@@ -1826,13 +1936,13 @@ namespace RandX
 
 	/// @brief 从迭代器范围内随机取一个元素（输入迭代器：O(n) reservoir sampling）
 	/// @param first 范围起始迭代器
-	/// @param last 范围结束迭代器
+	/// @param last 范围结束迭代器/哨兵
 	/// @return 随机选取的元素值
 	/// @throw std::invalid_argument 范围为空时抛出
-	template <std::input_iterator It>
-		requires (!std::random_access_iterator<It>)
+	template <std::input_iterator It, std::sentinel_for<It> Sentinel>
+		requires (!std::random_access_iterator<It> || !std::sized_sentinel_for<Sentinel, It>)
 	[[nodiscard]]
-	inline std::iter_value_t<It> RandElement(It first, It last)
+	inline std::iter_value_t<It> RandElement(It first, Sentinel last)
 	{
 		if (first == last)
 			throw std::invalid_argument("RandElement: empty range");
@@ -1849,14 +1959,14 @@ namespace RandX
 	/// @brief 从迭代器范围内随机取一个元素（指定引擎，随机访问迭代器）
 	/// @param engine 自定义随机数引擎
 	/// @param first 范围起始迭代器
-	/// @param last 范围结束迭代器
+	/// @param last 范围结束迭代器/哨兵
 	/// @return 指向随机选取元素的迭代器
-	template <std::random_access_iterator It, class Engine>
+	template <std::random_access_iterator It, std::sized_sentinel_for<It> Sentinel, class Engine>
 	[[nodiscard]]
-	inline It RandElement(Engine& engine, It first, It last)
+	inline It RandElement(Engine& engine, It first, Sentinel last)
 	{
 		using Diff = std::iter_difference_t<It>;
-		const Diff n = std::distance(first, last);
+		const Diff n = static_cast<Diff>(last - first);
 		if (n <= 0)
 			throw std::invalid_argument("RandElement: empty range");
 		return std::next(first, RandInt<Diff>(engine, Diff{0}, n - 1));
@@ -1865,12 +1975,12 @@ namespace RandX
 	/// @brief 从迭代器范围内随机取一个元素（指定引擎，输入迭代器）
 	/// @param engine 自定义随机数引擎
 	/// @param first 范围起始迭代器
-	/// @param last 范围结束迭代器
+	/// @param last 范围结束迭代器/哨兵
 	/// @return 随机选取的元素值
-	template <std::input_iterator It, class Engine>
-		requires (!std::random_access_iterator<It>)
+	template <std::input_iterator It, std::sentinel_for<It> Sentinel, class Engine>
+		requires (!std::random_access_iterator<It> || !std::sized_sentinel_for<Sentinel, It>)
 	[[nodiscard]]
-	inline std::iter_value_t<It> RandElement(Engine& engine, It first, It last)
+	inline std::iter_value_t<It> RandElement(Engine& engine, It first, Sentinel last)
 	{
 		if (first == last)
 			throw std::invalid_argument("RandElement: empty range");
@@ -1923,9 +2033,10 @@ namespace RandX
 	/// @brief 随机打乱容器
 	/// @param c 待打乱的容器
 	template <std::ranges::random_access_range Container>
+		requires std::permutable<std::ranges::iterator_t<Container>>
 	inline void RandShuffle(Container&& c)
 	{
-		std::shuffle(c.begin(), c.end(), DefaultEngine());
+		std::ranges::shuffle(c, DefaultEngine());
 	}
 
 	/// @brief 用 [min, max] 范围的随机整数填充迭代器区间
@@ -1935,26 +2046,30 @@ namespace RandX
 	/// @param max 随机数上界（含）
 	/// @note T 从 min/max 推导，不从迭代器 value_type 推导。
 	///       若容器元素类型与 min/max 字面量类型不一致，需显式指定 T 或用匹配类型的字面量。
-	template <class It, class T>
-		requires detail::RandFillable<It, T> && std::integral<T>
-	inline void RandFill(It first, It last, T min, T max)
+	template <class It, class Sentinel, class T>
+		requires detail::RandFillable<It, T> && std::integral<T> && (!std::same_as<std::remove_cv_t<T>, bool>) && std::sentinel_for<Sentinel, It>
+	inline void RandFill(It first, Sentinel last, T min, T max)
 	{
-		assert(min <= max);
-		std::uniform_int_distribution<T> dist(min, max);
+		if (min > max)
+			throw std::invalid_argument("RandFill: min > max");
+		using DistType = std::conditional_t<(sizeof(T) < sizeof(short)),
+			std::conditional_t<std::is_signed_v<T>, int, unsigned int>, T>;
+		std::uniform_int_distribution<DistType> dist(static_cast<DistType>(min), static_cast<DistType>(max));
 		for (; first != last; ++first)
-			*first = dist(DefaultEngine());
+			*first = static_cast<T>(dist(DefaultEngine()));
 	}
 
 	/// @brief 用 [min, max) 范围的随机浮点数填充迭代器区间
 	/// @param first 起始迭代器
-	/// @param last 结束迭代器
+	/// @param last 结束迭代器/哨兵
 	/// @param min 随机数下界（含）
 	/// @param max 随机数上界（不含）
-	template <class It, std::floating_point T>
-		requires std::output_iterator<It, T>
-	inline void RandFill(It first, It last, T min, T max)
+	template <class It, class Sentinel, std::floating_point T>
+		requires std::output_iterator<It, T> && std::sentinel_for<Sentinel, It>
+	inline void RandFill(It first, Sentinel last, T min, T max)
 	{
-		assert(min <= max);
+		if (!std::isfinite(min) || !std::isfinite(max) || min > max)
+			throw std::invalid_argument("RandFill: invalid min or max");
 		std::uniform_real_distribution<T> dist(min, max);
 		for (; first != last; ++first)
 			*first = dist(DefaultEngine());
@@ -1963,30 +2078,34 @@ namespace RandX
 	/// @brief 用 [min, max] 范围的随机整数填充迭代器区间（指定引擎重载）
 	/// @param engine 自定义随机数引擎
 	/// @param first 起始迭代器
-	/// @param last 结束迭代器
+	/// @param last 结束迭代器/哨兵
 	/// @param min 随机数下界（含）
 	/// @param max 随机数上界（含）
-	template <class It, class T, class Engine>
-		requires detail::RandFillable<It, T> && std::integral<T>
-	inline void RandFill(Engine& engine, It first, It last, T min, T max)
+	template <class It, class Sentinel, class T, class Engine>
+		requires detail::RandFillable<It, T> && std::integral<T> && (!std::same_as<std::remove_cv_t<T>, bool>) && std::sentinel_for<Sentinel, It>
+	inline void RandFill(Engine& engine, It first, Sentinel last, T min, T max)
 	{
-		assert(min <= max);
-		std::uniform_int_distribution<T> dist(min, max);
+		if (min > max)
+			throw std::invalid_argument("RandFill: min > max");
+		using DistType = std::conditional_t<(sizeof(T) < sizeof(short)),
+			std::conditional_t<std::is_signed_v<T>, int, unsigned int>, T>;
+		std::uniform_int_distribution<DistType> dist(static_cast<DistType>(min), static_cast<DistType>(max));
 		for (; first != last; ++first)
-			*first = dist(engine);
+			*first = static_cast<T>(dist(engine));
 	}
 
 	/// @brief 用 [min, max) 范围的随机浮点数填充迭代器区间（指定引擎重载）
 	/// @param engine 自定义随机数引擎
 	/// @param first 起始迭代器
-	/// @param last 结束迭代器
+	/// @param last 结束迭代器/哨兵
 	/// @param min 随机数下界（含）
 	/// @param max 随机数上界（不含）
-	template <class It, std::floating_point T, class Engine>
-		requires std::output_iterator<It, T>
-	inline void RandFill(Engine& engine, It first, It last, T min, T max)
+	template <class It, class Sentinel, std::floating_point T, class Engine>
+		requires std::output_iterator<It, T> && std::sentinel_for<Sentinel, It>
+	inline void RandFill(Engine& engine, It first, Sentinel last, T min, T max)
 	{
-		assert(min <= max);
+		if (!std::isfinite(min) || !std::isfinite(max) || min > max)
+			throw std::invalid_argument("RandFill: invalid min or max");
 		std::uniform_real_distribution<T> dist(min, max);
 		for (; first != last; ++first)
 			*first = dist(engine);
@@ -1998,17 +2117,11 @@ namespace RandX
 	/// @param n 生成数量
 	/// @return 含 n 个均匀分布于 [min, max] 的随机整数 vector
 	template <std::integral T = int>
+		requires (!std::same_as<std::remove_cv_t<T>, bool>)
 	[[nodiscard]]
 	inline std::vector<T> RandVector(T min, T max, std::size_t n)
 	{
-		assert(min <= max);
-		std::vector<T> v;
-		v.reserve(n);
-		std::uniform_int_distribution<T> dist(min, max);
-		auto& engine = DefaultEngine();
-		for (std::size_t i = 0; i < n; ++i)
-			v.push_back(dist(engine));
-		return v;
+		return RandVector(DefaultEngine(), min, max, n);
 	}
 
 	/// @brief 生成含 n 个随机浮点数的 vector
@@ -2020,14 +2133,7 @@ namespace RandX
 	[[nodiscard]]
 	inline std::vector<T> RandVector(T min, T max, std::size_t n)
 	{
-		assert(min <= max);
-		std::vector<T> v;
-		v.reserve(n);
-		std::uniform_real_distribution<T> dist(min, max);
-		auto& engine = DefaultEngine();
-		for (std::size_t i = 0; i < n; ++i)
-			v.push_back(dist(engine));
-		return v;
+		return RandVector(DefaultEngine(), min, max, n);
 	}
 
 	/// @brief 生成含 n 个随机整数的 vector（指定引擎重载）
@@ -2037,15 +2143,19 @@ namespace RandX
 	/// @param n 生成数量
 	/// @return 含 n 个均匀分布于 [min, max] 的随机整数 vector
 	template <std::integral T = int, class Engine>
+		requires (!std::same_as<std::remove_cv_t<T>, bool>)
 	[[nodiscard]]
 	inline std::vector<T> RandVector(Engine& engine, T min, T max, std::size_t n)
 	{
-		assert(min <= max);
+		if (min > max)
+			throw std::invalid_argument("RandVector: min > max");
 		std::vector<T> v;
 		v.reserve(n);
-		std::uniform_int_distribution<T> dist(min, max);
+		using DistType = std::conditional_t<(sizeof(T) < sizeof(short)),
+			std::conditional_t<std::is_signed_v<T>, int, unsigned int>, T>;
+		std::uniform_int_distribution<DistType> dist(static_cast<DistType>(min), static_cast<DistType>(max));
 		for (std::size_t i = 0; i < n; ++i)
-			v.push_back(dist(engine));
+			v.push_back(static_cast<T>(dist(engine)));
 		return v;
 	}
 
@@ -2059,7 +2169,8 @@ namespace RandX
 	[[nodiscard]]
 	inline std::vector<T> RandVector(Engine& engine, T min, T max, std::size_t n)
 	{
-		assert(min <= max);
+		if (!std::isfinite(min) || !std::isfinite(max) || min > max)
+			throw std::invalid_argument("RandVector: invalid min or max");
 		std::vector<T> v;
 		v.reserve(n);
 		std::uniform_real_distribution<T> dist(min, max);
@@ -2075,7 +2186,8 @@ namespace RandX
 	[[nodiscard]]
 	inline typename WeightContainer::size_type RandWeighted(const WeightContainer& weights)
 	{
-		assert(!weights.empty() && std::all_of(weights.begin(), weights.end(), [](auto w) { return w >= 0; }) && std::any_of(weights.begin(), weights.end(), [](auto w) { return w > 0; }));
+		if (weights.empty() || !std::all_of(weights.begin(), weights.end(), [](auto w) { return w >= 0; }) || !std::any_of(weights.begin(), weights.end(), [](auto w) { return w > 0; }))
+			throw std::invalid_argument("RandWeighted: invalid weights");
 		using Size = typename WeightContainer::size_type;
 		std::discrete_distribution<Size> dist(weights.begin(), weights.end());
 		return dist(DefaultEngine());
@@ -2089,7 +2201,8 @@ namespace RandX
 	[[nodiscard]]
 	inline typename WeightContainer::size_type RandWeighted(Engine& engine, const WeightContainer& weights)
 	{
-		assert(!weights.empty() && std::all_of(weights.begin(), weights.end(), [](auto w) { return w >= 0; }) && std::any_of(weights.begin(), weights.end(), [](auto w) { return w > 0; }));
+		if (weights.empty() || !std::all_of(weights.begin(), weights.end(), [](auto w) { return w >= 0; }) || !std::any_of(weights.begin(), weights.end(), [](auto w) { return w > 0; }))
+			throw std::invalid_argument("RandWeighted: invalid weights");
 		using Size = typename WeightContainer::size_type;
 		std::discrete_distribution<Size> dist(weights.begin(), weights.end());
 		return dist(engine);
@@ -2122,10 +2235,12 @@ namespace RandX
 	/// @param max 上界（含）
 	/// @return 均匀分布于 [min, max] 的随机整数
 	template <std::integral T, class Engine>
+		requires (!std::same_as<std::remove_cv_t<T>, bool>)
 	[[nodiscard]]
 	inline T RandInt(Engine& engine, T min, T max)
 	{
-		assert(min <= max);
+		if (min > max)
+			throw std::invalid_argument("RandInt: min > max");
 		using DistType = std::conditional_t<(sizeof(T) < sizeof(short)),
 			std::conditional_t<std::is_signed_v<T>, int, unsigned int>, T>;
 		std::uniform_int_distribution<DistType> dist(static_cast<DistType>(min), static_cast<DistType>(max));
@@ -2138,37 +2253,42 @@ namespace RandX
 	/// @return [0, 1) 范围内的无偏伪随机浮点数
 	template <std::floating_point T, class Engine>
 	[[nodiscard]]
-	inline constexpr T RandCanonical(Engine& engine) noexcept
+	inline constexpr T RandCanonical(Engine& engine)
 	{
-		using ResultType = typename Engine::result_type;
-		constexpr std::size_t Bits = sizeof(ResultType) * 8;
-
 		if constexpr (std::same_as<T, double>)
 		{
-			if constexpr (Bits >= 64)
+			if constexpr (detail::IsFull64BitEngine<Engine>)
 			{
 				const std::uint64_t r = static_cast<std::uint64_t>(engine());
 				return static_cast<double>(r >> 11) * 0x1.0p-53;
 			}
-			else
+			else if constexpr (detail::IsFull32BitEngine<Engine>)
 			{
 				const std::uint64_t high = static_cast<std::uint64_t>(engine());
 				const std::uint64_t low  = static_cast<std::uint64_t>(engine());
 				const std::uint64_t r = (high << 32) | low;
 				return static_cast<double>(r >> 11) * 0x1.0p-53;
 			}
+			else
+			{
+				return std::generate_canonical<double, 53>(engine);
+			}
 		}
 		else if constexpr (std::same_as<T, float>)
 		{
-			if constexpr (Bits >= 64)
+			if constexpr (detail::IsFull64BitEngine<Engine>)
 			{
 				const std::uint64_t r = static_cast<std::uint64_t>(engine());
 				return static_cast<float>(r >> 40) * 0x1.0p-24f;
 			}
-			else
+			else if constexpr (detail::IsFull32BitEngine<Engine>)
 			{
 				const std::uint32_t r = static_cast<std::uint32_t>(engine());
 				return static_cast<float>(r >> 8) * 0x1.0p-24f;
+			}
+			else
+			{
+				return std::generate_canonical<float, 24>(engine);
 			}
 		}
 		else
@@ -2186,7 +2306,10 @@ namespace RandX
 	[[nodiscard]]
 	inline T RandReal(Engine& engine, T min = T{0}, T max = T{1})
 	{
-		assert(std::isfinite(min) && std::isfinite(max) && min <= max);
+		if (!std::isfinite(min) || !std::isfinite(max) || min > max)
+			throw std::invalid_argument("RandReal: invalid min or max");
+		if (min == max)
+			return min;
 		if (min == T{0} && max == T{1})
 		{
 			return RandCanonical<T>(engine);
@@ -2306,6 +2429,7 @@ namespace RandX
 	{
 		using T = typename Container::value_type;
 		using Size = typename Container::size_type;
+		if (n == 0 || std::empty(c)) return std::vector<T>{};
 		std::vector<T> pool(c.begin(), c.end());
 		const Size size = static_cast<Size>(pool.size());
 		if (n >= size) return pool;
@@ -2314,9 +2438,7 @@ namespace RandX
 		{
 			std::uniform_int_distribution<Size> dist(i, size - 1);
 			const Size j = dist(rng);
-			auto tmp = std::move(pool[i]);
-			pool[i] = std::move(pool[j]);
-			pool[j] = std::move(tmp);
+			std::ranges::iter_swap(pool.begin() + i, pool.begin() + j);
 		}
 		pool.resize(n);
 		return pool;
@@ -2325,35 +2447,35 @@ namespace RandX
 	// ============================================================
 	// RandSample 迭代器版
 	// 路径 1：随机访问迭代器 —— hash-set / 索引数组双分支
-	// 路径 2：输入迭代器 —— reservoir sampling (Algorithm R, i+1 修复)
+	// 路径 2：输入迭代器 —— reservoir sampling (Algorithm R)
 	// ============================================================
 
 	/// @brief 无放回抽样（随机访问迭代器版，hash-set / 索引数组双分支）
 	/// @param first 范围起始迭代器
-	/// @param last 范围结束迭代器
+	/// @param last 范围结束迭代器/哨兵
 	/// @param n 抽取数量
 	/// @return 含 n 个随机选取元素的 vector
 	// 路径 1：随机访问迭代器（hash-set / 索引数组双分支）
-	template <std::random_access_iterator It>
+	template <std::random_access_iterator It, std::sized_sentinel_for<It> Sentinel>
 	[[nodiscard]]
 	inline std::vector<std::iter_value_t<It>>
-	RandSample(It first, It last, std::iter_difference_t<It> n)
+	RandSample(It first, Sentinel last, std::iter_difference_t<It> n)
 	{
 		using Diff = std::iter_difference_t<It>;
 		using T = std::iter_value_t<It>;
-		const Diff size = std::distance(first, last);
+		const Diff size = static_cast<Diff>(last - first);
 		if (n <= 0 || size <= 0)
 			return {};
 		if (n >= size)
-			return std::vector<T>(first, last);
+			return std::vector<T>(first, first + size);
 
 		auto& rng = DefaultEngine();
 
 		// 分支选择：n·K < size 时 hash-set 内存优（O(n)）；否则索引数组常数优（O(N)）
 		// 用 uint64_t 避免 n*K 溢出（n 是 iter_difference_t，可能 32 位）
 		const auto sizeU = static_cast<std::uint64_t>(size);
-		// 线性阈值：n·K < size 时用 hash-set（实测交叉点 n≈N/127，K=64 留 2× 裕度）
-		if (static_cast<std::uint64_t>(n) * detail::HashSetThresholdK < sizeU)
+		// 线性阈值：n·K < size 时用 hash-set（等价除法比较避免乘法溢出）
+		if (static_cast<std::uint64_t>(n) <= (sizeU - 1) / detail::HashSetThresholdK)
 		{
 			// hash-set 分支：O(n) 内存，O(n) 期望时间
 			std::unordered_set<Diff> selected;
@@ -2393,15 +2515,15 @@ namespace RandX
 
 	/// @brief 无放回抽样（输入迭代器版，reservoir sampling Algorithm R）
 	/// @param first 范围起始迭代器
-	/// @param last 范围结束迭代器
+	/// @param last 范围结束迭代器/哨兵
 	/// @param n 抽取数量
 	/// @return 含 n 个随机选取元素的 vector
-	// 路径 2：输入迭代器（reservoir sampling, Algorithm R, i+1 修复）
-	template <std::input_iterator It>
-		requires (!std::random_access_iterator<It>)
+	// 路径 2：输入迭代器（reservoir sampling, Algorithm R）
+	template <std::input_iterator It, std::sentinel_for<It> Sentinel>
+		requires (!std::random_access_iterator<It> || !std::sized_sentinel_for<Sentinel, It>)
 	[[nodiscard]]
 	inline std::vector<std::iter_value_t<It>>
-	RandSample(It first, It last, std::iter_difference_t<It> n)
+	RandSample(It first, Sentinel last, std::iter_difference_t<It> n)
 	{
 		using Diff = std::iter_difference_t<It>;
 		using T = std::iter_value_t<It>;
@@ -2435,26 +2557,26 @@ namespace RandX
 	/// @brief 无放回抽样（指定引擎，随机访问迭代器版）
 	/// @param engine 自定义随机数引擎
 	/// @param first 范围起始迭代器
-	/// @param last 范围结束迭代器
+	/// @param last 范围结束迭代器/哨兵
 	/// @param n 抽取数量
 	/// @return 含 n 个随机选取元素的 vector
 	// 引擎重载 —— 随机访问迭代器
-	template <std::random_access_iterator It, class Engine>
+	template <std::random_access_iterator It, std::sized_sentinel_for<It> Sentinel, class Engine>
 	[[nodiscard]]
 	inline std::vector<std::iter_value_t<It>>
-	RandSample(Engine& engine, It first, It last, std::iter_difference_t<It> n)
+	RandSample(Engine& engine, It first, Sentinel last, std::iter_difference_t<It> n)
 	{
 		using Diff = std::iter_difference_t<It>;
 		using T = std::iter_value_t<It>;
-		const Diff size = std::distance(first, last);
+		const Diff size = static_cast<Diff>(last - first);
 		if (n <= 0 || size <= 0)
 			return {};
 		if (n >= size)
-			return std::vector<T>(first, last);
+			return std::vector<T>(first, first + size);
 
 		const auto sizeU = static_cast<std::uint64_t>(size);
-		// 线性阈值：n·K < size 时用 hash-set（实测交叉点 n≈N/127，K=64 留 2× 裕度）
-		if (static_cast<std::uint64_t>(n) * detail::HashSetThresholdK < sizeU)
+		// 线性阈值：n·K < size 时用 hash-set（等价除法比较避免乘法溢出）
+		if (static_cast<std::uint64_t>(n) <= (sizeU - 1) / detail::HashSetThresholdK)
 		{
 			// hash-set 分支：用 RandInt 适配任意引擎
 			std::unordered_set<Diff> selected;
@@ -2492,15 +2614,15 @@ namespace RandX
 	/// @brief 无放回抽样（指定引擎，输入迭代器版，reservoir sampling）
 	/// @param engine 自定义随机数引擎
 	/// @param first 范围起始迭代器
-	/// @param last 范围结束迭代器
+	/// @param last 范围结束迭代器/哨兵
 	/// @param n 抽取数量
 	/// @return 含 n 个随机选取元素的 vector
 	// 引擎重载 —— 输入迭代器（reservoir）
-	template <std::input_iterator It, class Engine>
-		requires (!std::random_access_iterator<It>)
+	template <std::input_iterator It, std::sentinel_for<It> Sentinel, class Engine>
+		requires (!std::random_access_iterator<It> || !std::sized_sentinel_for<Sentinel, It>)
 	[[nodiscard]]
 	inline std::vector<std::iter_value_t<It>>
-	RandSample(Engine& engine, It first, It last, std::iter_difference_t<It> n)
+	RandSample(Engine& engine, It first, Sentinel last, std::iter_difference_t<It> n)
 	{
 		using Diff = std::iter_difference_t<It>;
 		using T = std::iter_value_t<It>;
@@ -2541,9 +2663,7 @@ namespace RandX
 		{
 			std::uniform_int_distribution<std::size_t> dist(0, i);
 			const std::size_t j = dist(rng);
-			auto tmp = perm[i];
-			perm[i] = perm[j];
-			perm[j] = tmp;
+			std::swap(perm[i], perm[j]);
 		}
 		return perm;
 	}
@@ -2970,6 +3090,7 @@ namespace RandX
 	/// @param a 形状参数（默认 1）
 	/// @param b 形状参数（默认 1）
 	/// @return 服从 Beta(a, b) 的随机数
+	/// @note 无 STL 对应，自实现 Gamma(a)/(Gamma(a)+Gamma(b))
 	template <class Engine, std::floating_point T = double>
 	[[nodiscard]]
 	inline T RandBeta(Engine& engine, T a = T{1}, T b = T{1})
@@ -2980,24 +3101,16 @@ namespace RandX
 		std::gamma_distribution<T> distB(b, T{1});
 		const T x = distA(engine);
 		const T y = distB(engine);
-		const T sum = x + y;
-		if (sum == T{0} || !std::isfinite(sum))
-		{
-			if (std::isinf(x) && !std::isinf(y)) return T{1};
-			if (!std::isinf(x) && std::isinf(y)) return T{0};
-			const double ratio = 1.0 / (1.0 + (static_cast<double>(b) / static_cast<double>(a)));
-			return RandBool(engine, ratio) ? T{1} : T{0};
-		}
-		return x / sum;
+		return detail::NormalizeBetaSample(x, y);
 	}
 
 	/// @brief 生成 N 位随机整数
 	/// @tparam N 位数（1-64，且不超过 T 的位宽）
 	/// @return 均匀分布于 [0, 2^N) 的随机整数
 	template <int N, std::integral T = std::uint64_t>
-		requires (N > 0 && N <= 64 && N <= static_cast<int>(sizeof(T) * 8))
+		requires (!std::same_as<std::remove_cv_t<T>, bool>) && (N > 0) && (N <= 64) && (N <= std::numeric_limits<T>::digits)
 	[[nodiscard]]
-	inline T RandBits() noexcept
+	inline T RandBits()
 	{
 		return RandBits<N, T>(DefaultEngine());
 	}
@@ -3007,14 +3120,53 @@ namespace RandX
 	/// @param engine 自定义随机数引擎
 	/// @return 均匀分布于 [0, 2^N) 的随机整数
 	template <int N, std::integral T = std::uint64_t, class Engine>
-		requires (N > 0 && N <= 64 && N <= static_cast<int>(sizeof(T) * 8))
+		requires (!std::same_as<std::remove_cv_t<T>, bool>) && (N > 0) && (N <= 64) && (N <= std::numeric_limits<T>::digits)
 	[[nodiscard]]
-	inline T RandBits(Engine& engine) noexcept
+	inline T RandBits(Engine& engine)
 	{
-		if constexpr (N == 64)
-			return static_cast<T>(engine());
+		if constexpr (detail::IsFull64BitEngine<Engine>)
+		{
+			const std::uint64_t val = static_cast<std::uint64_t>(engine());
+			if constexpr (N == 64)
+				return static_cast<T>(val);
+			else
+				return static_cast<T>(val & ((std::uint64_t{1} << N) - 1));
+		}
+		else if constexpr (detail::IsFull32BitEngine<Engine>)
+		{
+			if constexpr (N <= 32)
+			{
+				const std::uint32_t val = static_cast<std::uint32_t>(engine());
+				if constexpr (N == 32)
+					return static_cast<T>(val);
+				else
+					return static_cast<T>(val & ((std::uint32_t{1} << N) - 1));
+			}
+			else
+			{
+				const std::uint64_t lo = static_cast<std::uint64_t>(engine());
+				const std::uint64_t hi = static_cast<std::uint64_t>(engine());
+				const std::uint64_t val = (hi << 32) | lo;
+				if constexpr (N == 64)
+					return static_cast<T>(val);
+				else
+					return static_cast<T>(val & ((std::uint64_t{1} << N) - 1));
+			}
+		}
 		else
-			return static_cast<T>(engine() & ((N >= 64) ? ~std::uint64_t{0} : ((std::uint64_t{1} << (N & 63)) - 1)));
+		{
+			if constexpr (N == 64)
+			{
+				std::uniform_int_distribution<std::uint64_t> dist(0, (std::numeric_limits<std::uint64_t>::max)());
+				return static_cast<T>(dist(engine));
+			}
+			else
+			{
+				constexpr std::uint64_t maxVal = (std::uint64_t{1} << N) - 1;
+				std::uniform_int_distribution<std::uint64_t> dist(0, maxVal);
+				return static_cast<T>(dist(engine));
+			}
+		}
 	}
 
 	/// @brief 生成随机 UUID v4 字符串
@@ -3170,19 +3322,18 @@ namespace RandX
 	/// @param last 结束迭代器
 	/// @note 内部统一使用 Xoshiro256StarStar 在 constexpr 上下文中生成随机排列
 	template <std::random_access_iterator It, std::uint64_t Seed = DefaultSeed>
-	constexpr void ShuffleCE(It first, It last) noexcept
+	constexpr void ShuffleCE(It first, It last)
 	{
-		const auto n = static_cast<std::uint64_t>(last - first);
-		if (n < 2) return;
+		const auto diff = last - first;
+		if (diff < 2) return;
+		const auto n = static_cast<std::uint64_t>(diff);
 		Xoshiro256StarStar rng{ Seed };
 		for (std::uint64_t i = n - 1; i > 0; --i)
 		{
 			const auto j = detail::BoundedRand(rng, i + 1);
 			if (i != j)
 			{
-				auto tmp = std::move(first[i]);
-				first[i] = std::move(first[j]);
-				first[j] = std::move(tmp);
+				std::ranges::iter_swap(first + i, first + j);
 			}
 		}
 	}
@@ -3195,7 +3346,7 @@ namespace RandX
 	/// @return 打乱后的数组副本
 	template <class T, std::size_t N, std::uint64_t Seed = DefaultSeed>
 	[[nodiscard]]
-	constexpr std::array<T, N> ShuffledArray(std::array<T, N> arr) noexcept
+	constexpr std::array<T, N> ShuffledArray(std::array<T, N> arr)
 	{
 		ShuffleCE<decltype(arr.begin()), Seed>(arr.begin(), arr.end());
 		return arr;
@@ -3228,7 +3379,8 @@ namespace RandX
 		/// @return 随机选取的元素值拷贝
 		/// @note 语义差异：迭代器版返回迭代器（可修改原元素），ranges 版返回值拷贝
 		template <std::ranges::input_range R>
-			requires std::ranges::sized_range<R> || std::ranges::forward_range<R>
+			requires (std::ranges::sized_range<R> || std::ranges::forward_range<R>)
+				&& std::copy_constructible<std::ranges::range_value_t<R>>
 		[[nodiscard]]
 		inline std::ranges::range_value_t<R>
 		RandElement(R&& r)
@@ -3245,6 +3397,7 @@ namespace RandX
 		/// @param n 抽取数量
 		/// @return 含 n 个随机选取元素的 vector
 		template <std::ranges::input_range R>
+			requires std::copy_constructible<std::ranges::range_value_t<R>>
 		[[nodiscard]]
 		inline std::vector<std::ranges::range_value_t<R>>
 		RandSample(R&& r, std::ranges::range_difference_t<R> n)
@@ -3252,10 +3405,10 @@ namespace RandX
 			return RandX::RandSample(std::ranges::begin(r), std::ranges::end(r), n);
 		}
 
-		/// @brief 随机打乱 range（要求 random_access + sized）
+		/// @brief 随机打乱 range（要求 random_access + sized + permutable）
 		/// @param r 待打乱的 range
 		template <std::ranges::random_access_range R>
-			requires std::ranges::sized_range<R>
+			requires std::ranges::sized_range<R> && std::permutable<std::ranges::iterator_t<R>>
 		inline void
 		RandShuffle(R&& r)
 		{
