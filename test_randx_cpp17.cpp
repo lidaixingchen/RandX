@@ -1777,11 +1777,22 @@ TEST_SUITE("流状态隔离与数值范围约束 (C++17)")
         }
     }
 
-    TEST_CASE("MakeStreamEngine 大 streamId 快速跳跃测试")
+    TEST_CASE("MakeStreamEngine 流编号跳跃一致性")
     {
-        auto rng = RandX::MakeStreamEngine<RandX::Xoshiro256StarStar>(1000000ULL, 123456ULL);
-        auto val = rng();
-        CHECK(val != 0ULL);
+        constexpr std::uint64_t seed = 123456ULL;
+        constexpr std::uint64_t shortStreamId = 3ULL;
+        constexpr std::uint64_t longStreamId = std::uint64_t{1} << std::numeric_limits<std::uint32_t>::digits;
+
+        auto shortStream = RandX::MakeStreamEngine<RandX::Xoshiro256StarStar>(shortStreamId, seed);
+        RandX::Xoshiro256StarStar expectedShort{ seed };
+        for (std::uint64_t i = 0; i < shortStreamId; ++i)
+            expectedShort.jump();
+        CHECK(shortStream.serialize() == expectedShort.serialize());
+
+        auto longStream = RandX::MakeStreamEngine<RandX::Xoshiro256StarStar>(longStreamId, seed);
+        RandX::Xoshiro256StarStar expectedLong{ seed };
+        expectedLong.longJump();
+        CHECK(longStream.serialize() == expectedLong.serialize());
     }
 
     TEST_CASE("RandBits 边界位数测试")

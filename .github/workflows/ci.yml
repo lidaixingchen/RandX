@@ -52,11 +52,8 @@ jobs:
         std: [c++17, c++20, c++23]
     steps:
       - uses: actions/checkout@v4
-      - name: Install GCC 14
-        run: |
-          sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
-          sudo apt-get update
-          sudo apt-get install -y g++-14
+      - name: Check GCC 14
+        run: g++-14 --version
       - name: Build & Test (C++23 with doctest)
         if: matrix.std == 'c++23'
         run: |
@@ -85,17 +82,14 @@ jobs:
         std: [c++17, c++20, c++23]
     steps:
       - uses: actions/checkout@v4
-      - name: Install Clang 18
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y clang-18
+      - name: Check Clang 18
+        run: clang++-18 --version
       - name: Build & Test (C++23 with doctest)
         if: matrix.std == 'c++23'
         run: |
           clang++-18 -std=c++23 -O2 -Wall -Wextra -I third_party \
             -o test_randx test_randx.cpp
           ./test_randx
-          clang++-18 -std=c++23 -O2 -Wall -Wextra -o benchmark benchmark.cpp
       - name: Build & Test (C++17 with doctest)
         if: matrix.std == 'c++17'
         run: |
@@ -146,11 +140,8 @@ jobs:
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
-      - name: Install GCC 14
-        run: |
-          sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
-          sudo apt-get update
-          sudo apt-get install -y g++-14
+      - name: Check GCC 14
+        run: g++-14 --version
       - name: Build parity generators (C++23 + C++17)
         run: |
           g++-14 -std=c++23 -O2 -Wall -Wextra \
@@ -179,11 +170,8 @@ jobs:
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
-      - name: Install GCC 14
-        run: |
-          sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
-          sudo apt-get update
-          sudo apt-get install -y g++-14
+      - name: Check GCC 14
+        run: g++-14 --version
       - name: Configure & build examples
         run: |
           cmake -B build -DRANDX_BUILD_EXAMPLES=ON \
@@ -196,11 +184,11 @@ jobs:
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
-      - name: Install deps
+      - name: Install lcov
         run: |
-          sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
+          g++-14 --version
           sudo apt-get update
-          sudo apt-get install -y g++-14 lcov
+          sudo apt-get install -y lcov
       - name: Build with coverage
         run: |
           g++-14 -std=c++23 -O0 -g --coverage -I third_party \

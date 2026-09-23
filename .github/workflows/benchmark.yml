@@ -48,11 +48,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install GCC 14
-        run: |
-          sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
-          sudo apt-get update
-          sudo apt-get install -y g++-14
+      - name: Check GCC 14
+        run: g++-14 --version
 
       - name: Configure & Build
         run: |
