@@ -105,32 +105,41 @@ jobs:
 
   msvc:
     runs-on: windows-2025
-    timeout-minutes: 60
+    timeout-minutes: 15
     strategy:
       matrix:
         std: [c++17, c++20, c++23]
     steps:
       - uses: actions/checkout@v4
       - uses: ilammy/msvc-dev-cmd@0b201ec74fa43914dc39ae48a89fd1d8cb592756  # v1
-      - name: Build & Test (C++23 with doctest)
+      - name: Build (C++23 with doctest)
         if: matrix.std == 'c++23'
         shell: cmd
-        run: |
-          cl /std:c++latest /W4 /EHsc /O2 /I third_party /Fe:test_randx.exe test_randx.cpp || exit /b 1
-          test_randx.exe || exit /b 1
-          cl /std:c++latest /W4 /EHsc /O2 /Fe:benchmark.exe benchmark.cpp || exit /b 1
-      - name: Build & Test (C++17 with doctest)
+        run: cl /std:c++latest /W4 /EHsc /Od /I third_party /Fe:test_randx.exe test_randx.cpp
+      - name: Test (C++23 with doctest)
+        if: matrix.std == 'c++23'
+        shell: cmd
+        run: test_randx.exe
+      - name: Build quick benchmark
+        if: matrix.std == 'c++23'
+        shell: cmd
+        run: cl /std:c++latest /W4 /EHsc /O2 /Fe:benchmark.exe benchmark.cpp
+      - name: Build (C++17 with doctest)
         if: matrix.std == 'c++17'
         shell: cmd
-        run: |
-          cl /std:c++17 /W4 /EHsc /O2 /I third_party /Fe:test_randx_cpp17.exe test_randx_cpp17.cpp || exit /b 1
-          test_randx_cpp17.exe || exit /b 1
-      - name: Build & Test (C++20 char8_t coverage)
+        run: cl /std:c++17 /W4 /EHsc /Od /I third_party /Fe:test_randx_cpp17.exe test_randx_cpp17.cpp
+      - name: Test (C++17 with doctest)
+        if: matrix.std == 'c++17'
+        shell: cmd
+        run: test_randx_cpp17.exe
+      - name: Build (C++20 char8_t coverage)
         if: matrix.std == 'c++20'
         shell: cmd
-        run: |
-          cl /std:c++20 /W4 /EHsc /O2 /I third_party /Fe:test_randx_cpp17.exe test_randx_cpp17.cpp || exit /b 1
-          test_randx_cpp17.exe || exit /b 1
+        run: cl /std:c++20 /W4 /EHsc /Od /I third_party /Fe:test_randx_cpp17.exe test_randx_cpp17.cpp
+      - name: Test (C++20 char8_t coverage)
+        if: matrix.std == 'c++20'
+        shell: cmd
+        run: test_randx_cpp17.exe
 
   # 跨标准序列一致性检查：同一生成器分别以 C++23（RandX.hpp）与
   # C++17（RandX_Cpp17.hpp）编译，固定种子输出各引擎与便捷 API 序列后逐字节比对，
