@@ -2190,6 +2190,89 @@ namespace RandX
 		return v;
 	}
 
+	namespace detail
+	{
+		template <class WeightContainer>
+		struct PreparedWeights
+		{
+			using Size = typename WeightContainer::size_type;
+			std::vector<Size> active_indices;
+			std::vector<double> normalized_weights;
+		};
+
+		template <class WeightContainer>
+		[[nodiscard]]
+		inline PreparedWeights<WeightContainer> PrepareWeights(const WeightContainer& weights)
+		{
+			if (weights.empty())
+			{
+				throw std::invalid_argument("RandWeighted: weights container cannot be empty");
+			}
+
+			using RawWeightType = typename WeightContainer::value_type;
+			using WeightType = std::remove_cv_t<RawWeightType>;
+
+			static_assert(std::is_arithmetic_v<WeightType> && !std::is_same_v<WeightType, bool>,
+				"RandWeighted: weight element type must be a non-bool arithmetic type");
+
+			using WorkType = std::conditional_t<
+				(std::numeric_limits<long double>::digits > std::numeric_limits<double>::digits ||
+				 std::numeric_limits<long double>::max_exponent > std::numeric_limits<double>::max_exponent),
+				long double, double>;
+
+			WorkType maxWeight = 0;
+			for (const auto& w : weights)
+			{
+				if constexpr (std::is_floating_point_v<WeightType>)
+				{
+					if (!std::isfinite(w) || w < 0)
+					{
+						throw std::invalid_argument("RandWeighted: weights must be finite and non-negative");
+					}
+				}
+				else
+				{
+					if (w < 0)
+					{
+						throw std::invalid_argument("RandWeighted: weights must be non-negative");
+					}
+				}
+
+				const auto val = static_cast<WorkType>(w);
+				if (val > maxWeight)
+				{
+					maxWeight = val;
+				}
+			}
+
+			if (maxWeight <= 0)
+			{
+				throw std::invalid_argument("RandWeighted: at least one weight must be strictly positive");
+			}
+
+			PreparedWeights<WeightContainer> result;
+			typename WeightContainer::size_type currentIndex = 0;
+
+			for (const auto& w : weights)
+			{
+				if (w > 0)
+				{
+					const WorkType scaled = static_cast<WorkType>(w) / maxWeight;
+					const double doubleWeight = static_cast<double>(scaled);
+					if (doubleWeight <= 0.0)
+					{
+						throw std::range_error("RandWeighted: positive weight underflowed to zero after normalization");
+					}
+					result.active_indices.push_back(currentIndex);
+					result.normalized_weights.push_back(doubleWeight);
+				}
+				++currentIndex;
+			}
+
+			return result;
+		}
+	}
+
 	/// @brief 按权重随机选取索引
 	/// @param weights 权重容器（元素为数值类型）
 	/// @return 按权重概率选中的索引值
@@ -2197,11 +2280,7 @@ namespace RandX
 	[[nodiscard]]
 	inline typename WeightContainer::size_type RandWeighted(const WeightContainer& weights)
 	{
-		if (weights.empty() || !std::all_of(weights.begin(), weights.end(), [](auto w) { return w >= 0; }) || !std::any_of(weights.begin(), weights.end(), [](auto w) { return w > 0; }))
-			throw std::invalid_argument("RandWeighted: invalid weights");
-		using Size = typename WeightContainer::size_type;
-		std::discrete_distribution<Size> dist(weights.begin(), weights.end());
-		return dist(DefaultEngine());
+		return RandWeighted(DefaultEngine(), weights);
 	}
 
 	/// @brief 按权重随机选取索引（指定引擎重载）
@@ -2212,11 +2291,9 @@ namespace RandX
 	[[nodiscard]]
 	inline typename WeightContainer::size_type RandWeighted(Engine& engine, const WeightContainer& weights)
 	{
-		if (weights.empty() || !std::all_of(weights.begin(), weights.end(), [](auto w) { return w >= 0; }) || !std::any_of(weights.begin(), weights.end(), [](auto w) { return w > 0; }))
-			throw std::invalid_argument("RandWeighted: invalid weights");
-		using Size = typename WeightContainer::size_type;
-		std::discrete_distribution<Size> dist(weights.begin(), weights.end());
-		return dist(engine);
+		const auto prepared = detail::PrepareWeights(weights);
+		std::discrete_distribution<std::size_t> dist(prepared.normalized_weights.begin(), prepared.normalized_weights.end());
+		return prepared.active_indices[dist(engine)];
 	}
 
 	/// @brief 按预构建权重分布随机选取索引（支持高频抽取复用，O(1) 复杂度）

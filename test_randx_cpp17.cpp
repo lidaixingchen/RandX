@@ -2661,3 +2661,155 @@ TEST_SUITE("OverloadContract")
     }
 }
 
+// ============================================================================
+// WeightedScale：稳定权重采样验收测试（R2-04）
+// ============================================================================
+TEST_SUITE("WeightedScale")
+{
+    struct CountingEngine
+    {
+        using result_type = std::uint64_t;
+        static constexpr result_type min() { return 0; }
+        static constexpr result_type max() { return UINT64_MAX; }
+
+        std::size_t call_count{ 0 };
+        result_type operator()() noexcept
+        {
+            ++call_count;
+            return 42ULL;
+        }
+    };
+
+    TEST_CASE("大尺度与小尺度归一化")
+    {
+        // 1e308 尺度：两项求和会溢出为 inf，但归一化后各 50%
+        std::vector<double> huge_w = { 1e308, 1e308 };
+        int huge_c0 = 0;
+        for (int i = 0; i < 200; ++i)
+        {
+            auto idx = RandX::RandWeighted(huge_w);
+            CHECK((idx == 0 || idx == 1));
+            if (idx == 0) ++huge_c0;
+        }
+        CHECK(huge_c0 > 20);
+        CHECK(huge_c0 < 180);
+
+        // 1e-300 尺度：小权重不退化
+        std::vector<double> tiny_w = { 1e-300, 1e-300 };
+        int tiny_c0 = 0;
+        for (int i = 0; i < 200; ++i)
+        {
+            auto idx = RandX::RandWeighted(tiny_w);
+            CHECK((idx == 0 || idx == 1));
+            if (idx == 0) ++tiny_c0;
+        }
+        CHECK(tiny_c0 > 20);
+        CHECK(tiny_c0 < 180);
+
+        // 精确二次幂整体缩放性质：相同种子下输出完全一致
+        RandX::Xoshiro256StarStar rng1{ 7777 }, rng2{ 7777 };
+        std::vector<double> w_base = { 1.0, 2.0, 4.0 };
+        std::vector<double> w_scaled = { 1e200, 2e200, 4e200 };
+        for (int i = 0; i < 50; ++i)
+        {
+            auto idx1 = RandX::RandWeighted(rng1, w_base);
+            auto idx2 = RandX::RandWeighted(rng2, w_scaled);
+            CHECK(idx1 == idx2);
+        }
+    }
+
+    TEST_CASE("零权重排除与原下标映射")
+    {
+        // 单个正权重：100% 只返回原下标 2
+        std::vector<int> sparse1 = { 0, 0, 3, 0 };
+        for (int i = 0; i < 1000; ++i)
+        {
+            CHECK(RandX::RandWeighted(sparse1) == 2);
+        }
+
+        // 多个正权重与零权重混合
+        std::vector<double> sparse2 = { 0.0, 5.0, 0.0, 10.0, 0.0 };
+        int c1 = 0, c3 = 0;
+        for (int i = 0; i < 1000; ++i)
+        {
+            auto idx = RandX::RandWeighted(sparse2);
+            CHECK((idx == 1 || idx == 3));
+            if (idx == 1) ++c1;
+            if (idx == 3) ++c3;
+        }
+        CHECK(c1 > 150);
+        CHECK(c3 > 400);
+    }
+
+    TEST_CASE("不合法权重在消费引擎前抛出 invalid_argument")
+    {
+        std::vector<double> empty_w;
+        std::vector<double> all_zero = { 0.0, 0.0, 0.0 };
+        std::vector<double> has_neg = { -1.0, 2.0 };
+        std::vector<double> has_nan = { std::numeric_limits<double>::quiet_NaN(), 2.0 };
+        std::vector<double> has_inf = { std::numeric_limits<double>::infinity(), 2.0 };
+
+        // 默认引擎版本
+        CHECK_THROWS_AS((void)RandX::RandWeighted(empty_w), std::invalid_argument);
+        CHECK_THROWS_AS((void)RandX::RandWeighted(all_zero), std::invalid_argument);
+        CHECK_THROWS_AS((void)RandX::RandWeighted(has_neg), std::invalid_argument);
+        CHECK_THROWS_AS((void)RandX::RandWeighted(has_nan), std::invalid_argument);
+        CHECK_THROWS_AS((void)RandX::RandWeighted(has_inf), std::invalid_argument);
+
+        // 显式 CountingEngine 验证在消费引擎前抛异常
+        CountingEngine ce;
+        CHECK_THROWS_AS((void)RandX::RandWeighted(ce, empty_w), std::invalid_argument);
+        CHECK(ce.call_count == 0);
+        CHECK_THROWS_AS((void)RandX::RandWeighted(ce, all_zero), std::invalid_argument);
+        CHECK(ce.call_count == 0);
+        CHECK_THROWS_AS((void)RandX::RandWeighted(ce, has_neg), std::invalid_argument);
+        CHECK(ce.call_count == 0);
+        CHECK_THROWS_AS((void)RandX::RandWeighted(ce, has_nan), std::invalid_argument);
+        CHECK(ce.call_count == 0);
+        CHECK_THROWS_AS((void)RandX::RandWeighted(ce, has_inf), std::invalid_argument);
+        CHECK(ce.call_count == 0);
+    }
+
+    TEST_CASE("固定种子多标准误统计实验")
+    {
+        constexpr int N = 100000;
+        RandX::Xoshiro256StarStar rng1{ 12345 };
+        std::vector<double> huge_w = { 1e308, 1e308 };
+        int count0 = 0;
+        for (int i = 0; i < N; ++i)
+        {
+            if (RandX::RandWeighted(rng1, huge_w) == 0)
+                ++count0;
+        }
+        // N=100000, p=0.5, sigma ≈ 158.11, 5 sigma ≈ 790
+        CHECK(std::abs(count0 - 50000) < 790);
+
+        RandX::Xoshiro256StarStar rng2{ 12345 };
+        std::vector<double> norm_w = { 1.0, 1.0 };
+        int norm_count0 = 0;
+        for (int i = 0; i < N; ++i)
+        {
+            if (RandX::RandWeighted(rng2, norm_w) == 0)
+                ++norm_count0;
+        }
+        CHECK(std::abs(norm_count0 - 50000) < 790);
+    }
+
+    TEST_CASE("极端动态范围下溢抛出 range_error")
+    {
+        std::vector<double> extreme = { 1e300, 1e-320 };
+        CHECK_THROWS_AS((void)RandX::RandWeighted(extreme), std::range_error);
+    }
+
+    TEST_CASE("预构建 discrete_distribution 透明转发")
+    {
+        RandX::Xoshiro256StarStar rng{ 42 };
+        std::discrete_distribution<int> dist({ 1.0, 2.0, 3.0 });
+        auto v1 = RandX::RandWeighted(dist);
+        CHECK((v1 >= 0 && v1 <= 2));
+        auto v2 = RandX::RandWeighted(rng, dist);
+        CHECK((v2 >= 0 && v2 <= 2));
+    }
+}
+
+
