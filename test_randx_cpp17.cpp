@@ -3157,6 +3157,21 @@ TEST_SUITE("StreamFormatGuard")
         CHECK(iss.fail());
         CHECK(rng.serialize() == orig_state);
     }
+
+    TEST_CASE("外部 setw 掩码不截断反序列化并在退出后恢复原 width")
+    {
+        RandX::Xoshiro256StarStar orig(98765);
+        std::stringstream ss;
+        ss << orig;
+
+        RandX::Xoshiro256StarStar restored(1);
+        ss.width(2);
+        ss >> restored;
+
+        CHECK(!ss.fail());
+        CHECK(orig == restored);
+        CHECK(ss.width() == 2);
+    }
 }
 
 TEST_SUITE("BetaDistributionScale")

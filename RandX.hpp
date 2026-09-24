@@ -1158,7 +1158,8 @@ namespace RandX
 			explicit StreamFormatGuard(StreamType& stream) noexcept
 				: m_stream(stream),
 				  m_flags(stream.flags()),
-				  m_fill(stream.fill())
+				  m_fill(stream.fill()),
+				  m_width(stream.width())
 			{
 			}
 
@@ -1166,6 +1167,7 @@ namespace RandX
 			{
 				m_stream.flags(m_flags);
 				m_stream.fill(m_fill);
+				m_stream.width(m_width);
 			}
 
 			StreamFormatGuard(const StreamFormatGuard&) = delete;
@@ -1175,6 +1177,7 @@ namespace RandX
 			StreamType& m_stream;
 			typename StreamType::fmtflags m_flags;
 			typename StreamType::char_type m_fill;
+			std::streamsize m_width;
 		};
 	}
 
@@ -1201,6 +1204,7 @@ namespace RandX
 		os.setf(std::ios_base::dec, std::ios_base::basefield);
 		os.setf(std::ios_base::left, std::ios_base::adjustfield);
 		os.fill(os.widen(' '));
+		os.width(0);
 
 		const auto space = os.widen(' ');
 		const auto state = engine.serialize();
@@ -1227,6 +1231,7 @@ namespace RandX
 
 		is.setf(std::ios_base::dec, std::ios_base::basefield);
 		is.setf(std::ios_base::skipws);
+		is.width(0);
 
 		typename Engine::state_type state{};
 		std::size_t i = 0;
@@ -1486,7 +1491,10 @@ namespace RandX
 		}
 	}
 
-	// 默认线程局部引擎，使用 RandomSeed() 播种（含 RDRAND → OS API → random_device → 时间戳回退链）
+	/// @brief 获取当前线程专属的默认伪随机数生成引擎
+	/// @return 线程局部 Xoshiro256StarStar 引擎的左值引用
+	/// @warning 返回引用的生命周期严格绑定于当前线程的线程局部存储（TLS），
+	///          严禁跨线程转移引用、捕获引用传递给异地异步任务（如 std::async、线程池）。
 	[[nodiscard]]
 	inline Xoshiro256StarStar& DefaultEngine()
 	{
