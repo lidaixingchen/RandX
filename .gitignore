@@ -24,6 +24,7 @@ CTestTestfile.cmake
 tools/pract_rand/gen_practrand_stream
 tools/pract_rand/PractRand_build/
 tools/pract_rand/PractRand_src/
+tools/pract_rand/logs/
 
 # Python
 __pycache__/

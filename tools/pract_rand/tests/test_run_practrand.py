@@ -1,19 +1,25 @@
 #!/usr/bin/env python3
 """tools/pract_rand/run_practrand.py 驱动与输出解析单元测试套件."""
 
-import unittest
-from pathlib import Path
+import json
+import os
 import sys
+import tempfile
+import unittest
+from dataclasses import asdict
+from pathlib import Path
 
 # 将上一级目录加入 sys.path
 TESTS_DIR = Path(__file__).resolve().parent
 PRACTRAND_DIR = TESTS_DIR.parent
 FIXTURES_DIR = TESTS_DIR / "fixtures"
+MOCK_RUNNER = TESTS_DIR / "helpers" / "mock_runner.py"
 
 if str(PRACTRAND_DIR) not in sys.path:
     sys.path.insert(0, str(PRACTRAND_DIR))
 
 from run_practrand import (
+    atomic_write_json,
     classify_result,
     compute_exit_code,
     compute_overall_exit_code,
@@ -214,6 +220,273 @@ class TestPractRandStatusCategorization(unittest.TestCase):
         self.assertIn("无法启动生成器", res.reason)
 
 
+class TestPractRandTwoAxisCategorization(unittest.TestCase):
+    """测试两轴状态判定模型（覆盖 R2-03 要求的核心场景）."""
+
+    def test_pass_report_with_generator_crash_neg11(self):
+        content = (FIXTURES_DIR / "normal_complete_pass.txt").read_text(encoding="utf-8")
+        res = classify_result(
+            full_output=content,
+            target_bytes=32 * 1024 * 1024,
+            pr_returncode=0,
+            gen_returncode=-11,
+            length="32MB",
+        )
+        self.assertEqual(res.status, "environment_error")
+        self.assertEqual(res.execution_status, "failed")
+        self.assertEqual(res.statistical_status, "pass")
+        self.assertIn("GENERATOR_CRASH", res.reason_codes)
+        self.assertIn("提前异常退出 (退出码 -11)", res.reason)
+
+    def test_pass_report_with_generator_exit_2(self):
+        content = (FIXTURES_DIR / "normal_complete_pass.txt").read_text(encoding="utf-8")
+        res = classify_result(
+            full_output=content,
+            target_bytes=32 * 1024 * 1024,
+            pr_returncode=0,
+            gen_returncode=2,
+            length="32MB",
+        )
+        self.assertEqual(res.status, "environment_error")
+        self.assertEqual(res.execution_status, "failed")
+        self.assertEqual(res.statistical_status, "pass")
+        self.assertIn("GENERATOR_NONZERO_EXIT", res.reason_codes)
+
+    def test_tester_none_exit_code(self):
+        content = (FIXTURES_DIR / "normal_complete_pass.txt").read_text(encoding="utf-8")
+        res = classify_result(
+            full_output=content,
+            target_bytes=32 * 1024 * 1024,
+            pr_returncode=None,
+            gen_returncode=0,
+            length="32MB",
+        )
+        self.assertEqual(res.status, "environment_error")
+        self.assertEqual(res.execution_status, "unknown")
+        self.assertIn("TESTER_UNKNOWN_EXIT", res.reason_codes)
+
+    def test_supervisor_cleanup_after_tester_normal_exit(self):
+        content = (FIXTURES_DIR / "normal_complete_pass.txt").read_text(encoding="utf-8")
+        res = classify_result(
+            full_output=content,
+            target_bytes=32 * 1024 * 1024,
+            pr_returncode=0,
+            gen_returncode=-15,
+            gen_cleanup_requested=True,
+            generator_termination_cause="supervisor_cleanup",
+            length="32MB",
+        )
+        self.assertEqual(res.status, "pass")
+        self.assertEqual(res.execution_status, "ok")
+        self.assertEqual(res.statistical_status, "pass")
+
+    def test_truncated_checkpoint_not_counted_as_complete(self):
+        text = (
+            "RNG_test using PractRand version 0.95\n"
+            "RNG = RNG_stdin64, seed = 0x9e3779b97f4a7c15\n"
+            "test set = core, folding = standard (64 bit)\n\n"
+            "rng=RNG_stdin64, seed=0x9e3779b97f4a7c15\n"
+            "length= 16 megabytes (2^24 bytes), time= 0.05 seconds\n"
+            "  no anomalies in 60 test result(s)\n\n"
+            "rng=RNG_stdin64, seed=0x9e3779b97f4a7c15\n"
+            "length= 32 megabytes (2^25 bytes), time= 0.1 seconds\n"
+        )
+        res = classify_result(
+            full_output=text,
+            target_bytes=32 * 1024 * 1024,
+            pr_returncode=0,
+            gen_returncode=0,
+            length="32MB",
+        )
+        self.assertEqual(res.reported_tested_bytes, 16 * 1024 * 1024)
+        self.assertEqual(res.test_count, 60)
+        self.assertEqual(res.statistical_status, "insufficient_evidence")
+        self.assertEqual(res.status, "inconclusive")
+        self.assertIn("INCOMPLETE_TEST_LENGTH", res.reason_codes)
+
+    def test_early_fail_preserved_across_checkpoints(self):
+        text = (
+            "RNG_test using PractRand version 0.95\n"
+            "rng=RNG_stdin64, seed=0x9e3779b97f4a7c15\n"
+            "length= 16 megabytes (2^24 bytes), time= 0.05 seconds\n"
+            "  Test Name: BCFN(2+0,13-0,T) ... FAIL !\n"
+            "  ...and 59 other test result(s)\n\n"
+            "rng=RNG_stdin64, seed=0x9e3779b97f4a7c15\n"
+            "length= 32 megabytes (2^25 bytes), time= 0.1 seconds\n"
+            "  no anomalies in 126 test result(s)\n"
+        )
+        res = classify_result(
+            full_output=text,
+            target_bytes=32 * 1024 * 1024,
+            pr_returncode=0,
+            gen_returncode=0,
+            length="32MB",
+        )
+        self.assertEqual(res.statistical_status, "failure")
+        self.assertEqual(res.status, "statistical_failure")
+        self.assertIn("STATISTICAL_FAILURE", res.reason_codes)
+
+    def test_double_fault_generator_crash_and_statistical_fail(self):
+        content = (FIXTURES_DIR / "complete_with_fail_exit_0.txt").read_text(encoding="utf-8")
+        res = classify_result(
+            full_output=content,
+            target_bytes=32 * 1024 * 1024,
+            pr_returncode=0,
+            gen_returncode=-11,
+            length="32MB",
+        )
+        self.assertEqual(res.status, "environment_error")
+        self.assertEqual(res.execution_status, "failed")
+        self.assertEqual(res.statistical_status, "failure")
+        self.assertIn("GENERATOR_CRASH", res.reason_codes)
+        self.assertIn("STATISTICAL_FAILURE", res.reason_codes)
+
+
+class TestPractRandSubprocessLifecycle(unittest.TestCase):
+    """测试真实子进程超时、监控与优雅回收（覆盖 R2-02）."""
+
+    def test_silent_subprocess_timeout_and_cleanup(self):
+        res = test_engine(
+            generator=[sys.executable, str(MOCK_RUNNER)],
+            practrand=[sys.executable, str(MOCK_RUNNER)],
+            engine="sfc64",
+            length="32MB",
+            timeout_seconds=0.2,
+            generator_env=dict(os.environ, MOCK_MODE="silent"),
+            tester_env=dict(os.environ, MOCK_MODE="silent"),
+        )
+        self.assertEqual(res.status, "inconclusive")
+        self.assertEqual(res.execution_status, "timeout")
+        self.assertEqual(res.generator["termination_cause"], "timed_out")
+        self.assertEqual(res.tester["termination_cause"], "timed_out")
+
+    def test_banner_silent_subprocess_timeout(self):
+        res = test_engine(
+            generator=[sys.executable, str(MOCK_RUNNER)],
+            practrand=[sys.executable, str(MOCK_RUNNER)],
+            engine="sfc64",
+            length="32MB",
+            timeout_seconds=0.2,
+            generator_env=dict(os.environ, MOCK_MODE="silent"),
+            tester_env=dict(os.environ, MOCK_MODE="banner_silent"),
+        )
+        self.assertEqual(res.status, "inconclusive")
+        self.assertEqual(res.execution_status, "timeout")
+
+    def test_no_newline_silent_timeout(self):
+        res = test_engine(
+            generator=[sys.executable, str(MOCK_RUNNER)],
+            practrand=[sys.executable, str(MOCK_RUNNER)],
+            engine="sfc64",
+            length="32MB",
+            timeout_seconds=0.2,
+            generator_env=dict(os.environ, MOCK_MODE="silent"),
+            tester_env=dict(os.environ, MOCK_MODE="no_newline_silent"),
+        )
+        self.assertEqual(res.status, "inconclusive")
+        self.assertEqual(res.execution_status, "timeout")
+
+    def test_generator_early_crash_reaped(self):
+        res = test_engine(
+            generator=[sys.executable, str(MOCK_RUNNER)],
+            practrand=[sys.executable, str(MOCK_RUNNER)],
+            engine="sfc64",
+            length="32MB",
+            timeout_seconds=1.0,
+            generator_env=dict(os.environ, MOCK_MODE="crash"),
+            tester_env=dict(os.environ, MOCK_MODE="silent"),
+        )
+        self.assertEqual(res.status, "environment_error")
+        self.assertEqual(res.execution_status, "failed")
+        self.assertEqual(res.gen_returncode, 1)
+
+    def test_tester_start_failure_reaps_generator(self):
+        res = test_engine(
+            generator=[sys.executable, str(MOCK_RUNNER)],
+            practrand="/nonexistent/binary/path/to/RNG_test",
+            engine="sfc64",
+            length="32MB",
+            timeout_seconds=1.0,
+            generator_env=dict(os.environ, MOCK_MODE="silent"),
+        )
+        self.assertEqual(res.status, "environment_error")
+        self.assertEqual(res.execution_status, "failed")
+        self.assertEqual(res.generator["termination_cause"], "cancelled")
+
+    def test_normal_complete_reaps_generator(self):
+        res = test_engine(
+            generator=[sys.executable, str(MOCK_RUNNER)],
+            practrand=[sys.executable, str(MOCK_RUNNER)],
+            engine="sfc64",
+            length="32MB",
+            timeout_seconds=5.0,
+            generator_env=dict(os.environ, MOCK_MODE="generator_infinite"),
+            tester_env=dict(os.environ, MOCK_MODE="pass_exit_0"),
+        )
+        self.assertEqual(res.status, "pass")
+        self.assertEqual(res.execution_status, "ok")
+        self.assertEqual(res.statistical_status, "pass")
+        self.assertEqual(res.tester["returncode"], 0)
+        self.assertIn(
+            res.generator["termination_cause"],
+            ("supervisor_cleanup", "expected_sigpipe", "natural_exit"),
+        )
+
+    def test_ignore_sigterm_killed(self):
+        res = test_engine(
+            generator=[sys.executable, str(MOCK_RUNNER)],
+            practrand=[sys.executable, str(MOCK_RUNNER)],
+            engine="sfc64",
+            length="32MB",
+            timeout_seconds=0.2,
+            generator_env=dict(os.environ, MOCK_MODE="ignore_sigterm"),
+            tester_env=dict(os.environ, MOCK_MODE="ignore_sigterm"),
+        )
+        self.assertEqual(res.status, "inconclusive")
+        self.assertEqual(res.execution_status, "timeout")
+
+
+class TestAtomicJsonWriteAndSchema(unittest.TestCase):
+    """测试结构化结果 Schema 2.0 与原子 JSON 写入."""
+
+    def test_atomic_write_json_success(self):
+        with tempfile.TemporaryDirectory() as td:
+            target = Path(td) / "results.json"
+            data = [{"engine": "sfc64", "status": "pass"}]
+            atomic_write_json(target, data)
+            self.assertTrue(target.exists())
+            with open(target, "r", encoding="utf-8") as f:
+                loaded = json.load(f)
+            self.assertEqual(loaded, data)
+
+    def test_atomic_write_json_failure_propagates(self):
+        target = Path(r"Z:\nonexistent_drive_12345\results.json")
+        with self.assertRaises(OSError):
+            atomic_write_json(target, [{"a": 1}])
+
+    def test_test_result_schema_v2(self):
+        tr = TestResult(
+            engine="sfc64",
+            status="environment_error",
+            execution_status="failed",
+            statistical_status="pass",
+            reason="生成器提前异常退出",
+            reason_codes=["GENERATOR_CRASH"],
+            target_bytes=33554432,
+            reported_tested_bytes=33554432,
+            generator={"returncode": -11, "termination_cause": "unexpected_signal", "cleanup_requested": False},
+            tester={"returncode": 0, "termination_cause": "natural_exit"},
+        )
+        d = asdict(tr)
+        self.assertEqual(d["schema_version"], "2.0")
+        self.assertEqual(d["execution_status"], "failed")
+        self.assertEqual(d["statistical_status"], "pass")
+        self.assertEqual(d["status"], "environment_error")
+        self.assertEqual(d["generator"]["returncode"], -11)
+        self.assertEqual(d["tester"]["returncode"], 0)
+        self.assertIn("GENERATOR_CRASH", d["reason_codes"])
+
+
 class TestOverallExitCodePriority(unittest.TestCase):
     """测试总体退出码优先级：1 (stat failure) > 2 (env error) > 3 (inconclusive) > 0 (pass)."""
 
@@ -231,6 +504,9 @@ class TestOverallExitCodePriority(unittest.TestCase):
 
     def test_inconclusive_over_pass(self):
         self.assertEqual(compute_overall_exit_code(["pass", "inconclusive"]), 3)
+
+    def test_empty_engine_list(self):
+        self.assertEqual(compute_overall_exit_code([]), 2)
 
     def test_with_test_result_objects(self):
         r1 = TestResult(status="pass")
