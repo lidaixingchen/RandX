@@ -3357,4 +3357,109 @@ TEST_SUITE("EngineStatePolicy")
     }
 }
 
+TEST_SUITE("StreamFormatGuard")
+{
+    struct FailingBuffer : public std::streambuf
+    {
+    protected:
+        int_type overflow(int_type) override
+        {
+            return traits_type::eof();
+        }
+    };
+
+    TEST_CASE("setfill 与 setw 不产生不可解析状态且格式恢复")
+    {
+        std::stringstream ss;
+        ss.fill('x');
+        ss.width(5);
+        ss.setf(std::ios_base::hex, std::ios_base::basefield);
+        ss.setf(std::ios_base::showbase);
+
+        RandX::Xoshiro256StarStar rng(12345);
+        ss << rng;
+
+        // 检查调用方的 flags 和 fill 恢复
+        CHECK(ss.fill() == 'x');
+        CHECK((ss.flags() & std::ios_base::basefield) == std::ios_base::hex);
+        CHECK((ss.flags() & std::ios_base::showbase));
+
+        // 反序列化成功往返
+        RandX::Xoshiro256StarStar restored(1);
+        ss >> restored;
+        CHECK(!ss.fail());
+        CHECK(rng == restored);
+
+        // wstringstream 正常往返
+        std::wstringstream wss;
+        wss << rng;
+        RandX::Xoshiro256StarStar w_restored(1);
+        wss >> w_restored;
+        CHECK(!wss.fail());
+        CHECK(rng == w_restored);
+    }
+
+    TEST_CASE("输入失败触发异常掩码且恢复格式保持原状态")
+    {
+        // 不足字段触发 failbit 异常
+        std::istringstream iss("123 456");
+        iss.setf(std::ios_base::hex, std::ios_base::basefield);
+        iss.unsetf(std::ios_base::skipws);
+        iss.fill('*');
+        iss.exceptions(std::ios_base::failbit);
+
+        RandX::Xoshiro256StarStar rng(12345);
+        auto orig_state = rng.serialize();
+
+        CHECK_THROWS_AS(iss >> rng, std::ios_base::failure);
+        CHECK(rng.serialize() == orig_state);
+        CHECK(iss.fill() == '*');
+        CHECK((iss.flags() & std::ios_base::basefield) == std::ios_base::hex);
+        CHECK((iss.rdstate() & std::ios_base::failbit));
+    }
+
+    TEST_CASE("受控写入失败设置 badbit 并恢复格式")
+    {
+        FailingBuffer fb;
+        std::ostream os(&fb);
+        os.fill('#');
+        os.setf(std::ios_base::hex, std::ios_base::basefield);
+
+        RandX::Xoshiro256StarStar rng(12345);
+        os << rng;
+
+        CHECK(os.bad());
+        CHECK(os.fill() == '#');
+        CHECK((os.flags() & std::ios_base::basefield) == std::ios_base::hex);
+    }
+
+    TEST_CASE("连续写入与读取两个引擎")
+    {
+        RandX::Xoshiro256StarStar e1(111);
+        RandX::RomuDuoJr e2(222);
+
+        std::stringstream ss;
+        ss << e1 << ' ' << e2;
+
+        RandX::Xoshiro256StarStar r1(1);
+        RandX::RomuDuoJr r2(1);
+
+        ss >> r1 >> r2;
+        CHECK(!ss.fail());
+        CHECK(e1 == r1);
+        CHECK(e2 == r2);
+    }
+
+    TEST_CASE("单独字段输入溢出设置 failbit 并保持原状态")
+    {
+        std::istringstream iss("999999999999999999999999999999999999 0 0 0");
+        RandX::Xoshiro256StarStar rng(12345);
+        auto orig_state = rng.serialize();
+
+        iss >> rng;
+        CHECK(iss.fail());
+        CHECK(rng.serialize() == orig_state);
+    }
+}
+
 

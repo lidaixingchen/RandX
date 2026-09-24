@@ -3526,6 +3526,37 @@ namespace RandX
 	static_assert(RomuDuoJr::min() < RomuDuoJr::max());
 	static_assert(ChaCha20::min() < ChaCha20::max());
 
+	namespace detail
+	{
+		template <class CharT, class Traits>
+		class StreamFormatGuard
+		{
+		public:
+			using StreamType = std::basic_ios<CharT, Traits>;
+
+			explicit StreamFormatGuard(StreamType& stream) noexcept
+				: m_stream(stream),
+				  m_flags(stream.flags()),
+				  m_fill(stream.fill())
+			{
+			}
+
+			~StreamFormatGuard()
+			{
+				m_stream.flags(m_flags);
+				m_stream.fill(m_fill);
+			}
+
+			StreamFormatGuard(const StreamFormatGuard&) = delete;
+			StreamFormatGuard& operator=(const StreamFormatGuard&) = delete;
+
+		private:
+			StreamType& m_stream;
+			typename StreamType::fmtflags m_flags;
+			typename StreamType::char_type m_fill;
+		};
+	}
+
 	// ========================================================================
 	// 流式运算符 operator<< / operator>>
 	// 仅对 state_type 为可索引容器类的引擎生效（is_serializable_engine_v）
@@ -3542,19 +3573,20 @@ namespace RandX
 		typename std::basic_ostream<CharT, Traits>::sentry ok(os);
 		if (!ok) return os;
 
-		const auto flags = os.flags();
-		os.setf(std::ios_base::dec, std::ios_base::basefield);
+		detail::StreamFormatGuard<CharT, Traits> guard(os);
 
-		auto state = engine.serialize();
-		auto it = state.begin();
-		if (it != state.end())
+		os.setf(std::ios_base::dec, std::ios_base::basefield);
+		os.setf(std::ios_base::left, std::ios_base::adjustfield);
+		os.fill(os.widen(' '));
+
+		const auto space = os.widen(' ');
+		const auto state = engine.serialize();
+		for (std::size_t i = 0; i < state.size(); ++i)
 		{
-			os << *it;
-			for (++it; it != state.end(); ++it)
-				os << os.widen(' ') << *it;
+			if (i != 0) os << space;
+			os << state[i];
 		}
 
-		os.flags(flags);
 		return os;
 	}
 
@@ -3569,16 +3601,18 @@ namespace RandX
 		typename std::basic_istream<CharT, Traits>::sentry ok(is);
 		if (!ok) return is;
 
-		const auto flags = is.flags();
+		detail::StreamFormatGuard<CharT, Traits> guard(is);
+
 		is.setf(std::ios_base::dec, std::ios_base::basefield);
 		is.setf(std::ios_base::skipws);
 
 		typename Engine::state_type state{};
 		std::size_t i = 0;
-		for (; i < state.size() && is; ++i)
-			is >> state[i];
+		for (; i < state.size() && (is >> state[i]); ++i)
+		{
+		}
 
-		if (i == state.size() && is && detail::IsValidSnapshot<Engine>(state))
+		if (i == state.size() && detail::IsValidSnapshot<Engine>(state))
 		{
 			engine.deserialize(state);
 		}
@@ -3587,7 +3621,6 @@ namespace RandX
 			is.setstate(std::ios_base::failbit);
 		}
 
-		is.flags(flags);
 		return is;
 	}
 
