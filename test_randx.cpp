@@ -263,10 +263,10 @@ TEST_SUITE("引擎基础设施")
 }
 
 // ============================================================================
-// 引擎概念约束（v1.4 C2：JumpableEngine / StreamEngine 形式化）
+// 引擎概念约束（JumpableEngine / StreamEngine 形式化）
 // 全部为编译期 static_assert，编译通过即测试通过，无运行时开销
 // ============================================================================
-TEST_SUITE("引擎概念约束 (v1.4 C2)")
+TEST_SUITE("引擎概念约束")
 {
     TEST_CASE("JumpableEngine 概念约束")
     {
@@ -492,8 +492,19 @@ TEST_SUITE("便捷 API")
         CHECK((sample[1].id == 10 || sample[1].id == 20 || sample[1].id == 30 || sample[1].id == 40));
     }
 
+    TEST_CASE("RandSample 容器版支持原生数组")
+    {
+        int arr[5] = { 10, 20, 30, 40, 50 };
+        auto sample = RandX::RandSample(arr, std::size_t{3});
+        CHECK(sample.size() == 3);
+        for (int x : sample)
+        {
+            CHECK((x == 10 || x == 20 || x == 30 || x == 40 || x == 50));
+        }
+    }
+
     // ============================================================
-    // 新增分布（v1.2）：Bernoulli/Binomial/LogNormal/Geometric/
+    // 扩展分布：Bernoulli/Binomial/LogNormal/Geometric/
     // Cauchy/Weibull/ExtremeValue/ChiSquared/StudentT/FisherF/Beta
     // ============================================================
     TEST_CASE("RandBernoulli 与 RandBool 引擎重载等价")
@@ -539,6 +550,7 @@ TEST_SUITE("便捷 API")
         CHECK(RandX::RandGeometric<std::uint32_t>(1.0) == 0U);
         CHECK_THROWS_AS((void)RandX::RandGeometric(0.0), std::invalid_argument);
         CHECK_THROWS_AS((void)RandX::RandGeometric(1.5), std::invalid_argument);
+        CHECK_THROWS_AS((void)RandX::RandGeometric<int>(1e-15), std::invalid_argument);
     }
 
     TEST_CASE("RandCauchy 有限值占绝大多数")
@@ -844,7 +856,7 @@ TEST_SUITE("新增 API")
 }
 
 // ============================================================================
-// RandSample 迭代器版（v1.2 新增）
+// RandSample 迭代器版
 // ============================================================================
 TEST_SUITE("RandSample 迭代器版")
 {
@@ -1168,7 +1180,7 @@ TEST_SUITE("ranges 风格 API")
 }
 
 // ============================================================================
-// RandChar / RandString 预设字符集（v1.2 新增）
+// RandChar / RandString 预设字符集
 // ============================================================================
 TEST_SUITE("RandChar 预设字符集")
 {
@@ -1696,6 +1708,7 @@ TEST_SUITE("API 契约与生命周期保障")
     TEST_CASE("RandPoisson 期望为 0 时合法返回 0")
     {
         CHECK(RandX::RandPoisson(0.0) == 0);
+        CHECK_THROWS_AS((void)RandX::RandPoisson<int>(1e15), std::invalid_argument);
     }
 
     TEST_CASE("RandWeighted 引擎重载与分布对象高频复用")
@@ -2908,7 +2921,7 @@ TEST_SUITE("OverloadContract")
 }
 
 // ============================================================================
-// WeightedScale：稳定权重采样验收测试（R2-04）
+// WeightedScale：稳定权重采样验收测试
 // ============================================================================
 TEST_SUITE("WeightedScale")
 {
@@ -3703,6 +3716,20 @@ TEST_SUITE("BetaDistributionScale")
             2.0 / 3.0, 0.0, std::numeric_limits<double>::max(), 0.0);
         CHECK(std::isfinite(helper_val));
         CHECK(helper_val > 0.0);
+
+        // 验证双小尺度参数走对数尺度不抛异常且输出合法
+        for (int i = 0; i < 20; ++i)
+        {
+            double val_small1 = RandX::RandBeta(rng, 1e-10, 1e-10);
+            CHECK(std::isfinite(val_small1));
+            CHECK(val_small1 >= 0.0);
+            CHECK(val_small1 <= 1.0);
+
+            double val_small2 = RandX::RandBeta(rng, 1e-100, 1e-100);
+            CHECK(std::isfinite(val_small2));
+            CHECK(val_small2 >= 0.0);
+            CHECK(val_small2 <= 1.0);
+        }
 
         // 若平台支持扩展精度 long double，验证更大指数范围
         if constexpr (std::numeric_limits<long double>::max_exponent10 > 308)

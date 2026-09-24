@@ -145,7 +145,7 @@ class TestPractRandOutputParser(unittest.TestCase):
 
 
 class TestPractRandStatusCategorization(unittest.TestCase):
-    """测试状态分类规则（覆盖方案 3.5 要求的 12 种场景）."""
+    """测试状态分类规则与判定场景."""
 
     def evaluate_status(
         self,
@@ -255,7 +255,7 @@ class TestPractRandStatusCategorization(unittest.TestCase):
 
 
 class TestPractRandTwoAxisCategorization(unittest.TestCase):
-    """测试两轴状态判定模型（覆盖 R2-03 要求的核心场景）."""
+    """测试两轴状态判定模型核心场景."""
 
     def test_pass_report_with_generator_crash_neg11(self):
         content = (FIXTURES_DIR / "normal_complete_pass.txt").read_text(encoding="utf-8")
@@ -423,7 +423,7 @@ class TestPractRandTwoAxisCategorization(unittest.TestCase):
 
 
 class TestPractRandSubprocessLifecycle(unittest.TestCase):
-    """测试真实子进程超时、监控与优雅回收（覆盖 R2-02）."""
+    """测试真实子进程超时、监控与优雅回收."""
 
     def test_silent_subprocess_timeout_and_cleanup(self):
         res = test_engine(

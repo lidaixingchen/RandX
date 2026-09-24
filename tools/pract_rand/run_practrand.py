@@ -113,7 +113,13 @@ POSIX_SIGTERM = -15
 POSIX_SIGKILL = -9
 POSIX_SIGPIPE = -13
 EXIT_SIGPIPE_SHELL = 141
+WINDOWS_TERMINATE_PROCESS_EXIT_CODE = 1
+POSIX_SIGNAL_OFFSET = 128
 DEFAULT_TEST_TIMEOUT_SECONDS = 14400
+
+SUPERVISOR_ACCEPTABLE_EXIT_CODES = {0, POSIX_SIGPIPE, EXIT_SIGPIPE_SHELL, POSIX_SIGTERM, POSIX_SIGKILL}
+if os.name == "nt":
+    SUPERVISOR_ACCEPTABLE_EXIT_CODES.add(WINDOWS_TERMINATE_PROCESS_EXIT_CODE)
 
 STATUS_EXIT_CODES = {
     "pass": 0,
@@ -458,32 +464,27 @@ def classify_result(
     reason_codes: list[str] = []
     execution_status: str = "ok"
 
-    # 1. 执行轴评定 (execution_status)
-    supervisor_valid_codes = {0, POSIX_SIGPIPE, EXIT_SIGPIPE_SHELL, POSIX_SIGTERM, POSIX_SIGKILL}
-    if os.name == "nt":
-        supervisor_valid_codes.add(1)
-
     gen_is_normal = (
         gen_returncode in (0, POSIX_SIGPIPE, EXIT_SIGPIPE_SHELL)
         or (
             gen_cleanup_requested
             and generator_termination_cause in ("supervisor_cleanup", "cancelled")
-            and gen_returncode in supervisor_valid_codes
+            and gen_returncode in SUPERVISOR_ACCEPTABLE_EXIT_CODES
         )
         or (
             timed_out
             and generator_termination_cause == "timed_out"
-            and gen_returncode in supervisor_valid_codes
+            and gen_returncode in SUPERVISOR_ACCEPTABLE_EXIT_CODES
         )
     )
 
     if gen_returncode is not None and not gen_is_normal:
         execution_status = "failed"
-        reason_codes.append("GENERATOR_CRASH" if (gen_returncode < 0 or gen_returncode > 128) else "GENERATOR_NONZERO_EXIT")
+        reason_codes.append("GENERATOR_CRASH" if (gen_returncode < 0 or gen_returncode > POSIX_SIGNAL_OFFSET) else "GENERATOR_NONZERO_EXIT")
 
     if pr_returncode is not None and pr_returncode != 0:
         execution_status = "failed"
-        reason_codes.append("TESTER_CRASH" if (pr_returncode < 0 or pr_returncode > 128) else "TESTER_NONZERO_EXIT")
+        reason_codes.append("TESTER_CRASH" if (pr_returncode < 0 or pr_returncode > POSIX_SIGNAL_OFFSET) else "TESTER_NONZERO_EXIT")
     elif pr_returncode is None:
         execution_status = "unknown"
         reason_codes.append("TESTER_UNKNOWN_EXIT")
@@ -546,9 +547,6 @@ def classify_result(
             reason = "生成器退出状态未知 (退出码为 None)"
         else:
             reason = "执行环境异常"
-    elif statistical_status == "failure":
-        status = "statistical_failure"
-        reason = "PractRand 报告包含 FAIL 或严重异常标记"
     elif execution_status == "timeout":
         status = "inconclusive"
         reason = f"单引擎测试超时 ({timeout_seconds}s)"
@@ -782,11 +780,8 @@ def test_engine(
                 _terminate_and_kill(gen_proc, timeout=SUBPROCESS_CLEANUP_TIMEOUT_SECONDS)
                 if gen_proc.poll() is not None:
                     rc = gen_proc.returncode
-                    supervisor_codes = {0, POSIX_SIGPIPE, EXIT_SIGPIPE_SHELL, POSIX_SIGTERM, POSIX_SIGKILL}
-                    if os.name == "nt":
-                        supervisor_codes.add(1)
-                    if rc not in supervisor_codes:
-                        gen_term_cause = "unexpected_signal" if (rc < 0 or rc > 128) else "non_zero_exit"
+                    if rc not in SUPERVISOR_ACCEPTABLE_EXIT_CODES:
+                        gen_term_cause = "unexpected_signal" if (rc < 0 or rc > POSIX_SIGNAL_OFFSET) else "non_zero_exit"
             else:
                 rc = gen_proc.returncode
                 if rc in (0, POSIX_SIGPIPE, EXIT_SIGPIPE_SHELL):
@@ -804,11 +799,8 @@ def test_engine(
                 if rc in (0, POSIX_SIGPIPE, EXIT_SIGPIPE_SHELL):
                     gen_term_cause = "natural_exit" if rc == 0 else "expected_sigpipe"
                 elif gen_cleanup_requested:
-                    supervisor_codes = {0, POSIX_SIGPIPE, EXIT_SIGPIPE_SHELL, POSIX_SIGTERM, POSIX_SIGKILL}
-                    if os.name == "nt":
-                        supervisor_codes.add(1)
-                    if rc not in supervisor_codes:
-                        gen_term_cause = "unexpected_signal" if (rc < 0 or rc > 128) else "non_zero_exit"
+                    if rc not in SUPERVISOR_ACCEPTABLE_EXIT_CODES:
+                        gen_term_cause = "unexpected_signal" if (rc < 0 or rc > POSIX_SIGNAL_OFFSET) else "non_zero_exit"
                 else:
                     gen_term_cause = "unexpected_signal" if rc < 0 else "non_zero_exit"
             if pr_proc.poll() is not None:

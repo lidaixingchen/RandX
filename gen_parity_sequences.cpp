@@ -16,6 +16,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
+#include <list>
 #include <string>
 #include <vector>
 
@@ -226,6 +227,26 @@ namespace
 			for (const int x : sample)
 				std::printf("  %d\n", x);
 		}
+		std::printf("[api] RandSample hash-set branch (engine, first, last, 10 of 10000)\n");
+		{
+			Xoshiro256StarStar eng{ kSeed };
+			std::vector<int> v;
+			for (int i = 0; i < 10000; ++i)
+				v.push_back(i);
+			const auto sample = RandX::RandSample(eng, v.begin(), v.end(), 10);
+			for (const int x : sample)
+				std::printf("  %d\n", x);
+		}
+		std::printf("[api] RandSample reservoir branch (engine, list first, last, 5 of 50)\n");
+		{
+			Xoshiro256StarStar eng{ kSeed };
+			std::list<int> lst;
+			for (int i = 0; i < 50; ++i)
+				lst.push_back(i);
+			const auto sample = RandX::RandSample(eng, lst.begin(), lst.end(), 5);
+			for (const int x : sample)
+				std::printf("  %d\n", x);
+		}
 		std::printf("[api] RandFill(engine, first, last, 0, 999)\n");
 		{
 			Xoshiro256StarStar eng{ kSeed };
@@ -310,6 +331,17 @@ namespace
 		std::printf("[default] RandUUID()\n");
 		RandX::Reseed(kSeed);
 		std::printf("  %s\n", RandX::RandUUID().c_str());
+
+		std::printf("[default] RandSample(container, 5)\n");
+		RandX::Reseed(kSeed);
+		{
+			std::vector<int> v;
+			for (int i = 0; i < 20; ++i)
+				v.push_back(i * 3);
+			const auto sample = RandX::RandSample(v, 5);
+			for (const int x : sample)
+				std::printf("  %d\n", x);
+		}
 	}
 }
 

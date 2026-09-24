@@ -11,6 +11,7 @@ on:
       - 'gen_parity_sequences.cpp'
       - 'gen_sequences.cpp'
       - 'examples/**'
+      - 'example.cpp'
       - 'benchmark.cpp'
       - 'benchmark_gbench.cpp'
       - 'CMakeLists.txt'
@@ -28,6 +29,7 @@ on:
       - 'gen_parity_sequences.cpp'
       - 'gen_sequences.cpp'
       - 'examples/**'
+      - 'example.cpp'
       - 'benchmark.cpp'
       - 'benchmark_gbench.cpp'
       - 'CMakeLists.txt'
@@ -172,6 +174,13 @@ jobs:
         timeout-minutes: 3
         shell: cmd
         run: test_randx.exe
+      - name: Build & Test (C++23 with doctest, release mode)
+        if: matrix.std == 'c++23'
+        timeout-minutes: 5
+        shell: cmd
+        run: |
+          cl /std:c++latest /W4 /EHsc /O2 /DNDEBUG /I third_party /Fe:test_randx_release.exe test_randx.cpp
+          test_randx_release.exe
       - name: Build quick benchmark
         if: matrix.std == 'c++23'
         shell: cmd
@@ -185,6 +194,13 @@ jobs:
         timeout-minutes: 3
         shell: cmd
         run: test_randx_cpp17.exe
+      - name: Build & Test (C++17 with doctest, release mode)
+        if: matrix.std == 'c++17'
+        timeout-minutes: 5
+        shell: cmd
+        run: |
+          cl /std:c++17 /W4 /EHsc /O2 /DNDEBUG /I third_party /Fe:test_randx_cpp17_release.exe test_randx_cpp17.cpp
+          test_randx_cpp17_release.exe
       - name: Build (C++20 char8_t coverage)
         if: matrix.std == 'c++20'
         shell: cmd

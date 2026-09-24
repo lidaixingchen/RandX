@@ -2653,12 +2653,12 @@ namespace RandX
 	/// @return 含 n 个随机选取元素的 vector
 	template <std::ranges::random_access_range Container>
 	[[nodiscard]]
-	inline auto RandSample(const Container& c, typename Container::size_type n)
+	inline auto RandSample(const Container& c, std::size_t n)
 	{
-		using T = typename Container::value_type;
-		using Size = typename Container::size_type;
+		using T = std::ranges::range_value_t<Container>;
+		using Size = std::size_t;
 		if (n == 0 || std::empty(c)) return std::vector<T>{};
-		std::vector<T> pool(c.begin(), c.end());
+		std::vector<T> pool(std::ranges::begin(c), std::ranges::end(c));
 		const Size size = static_cast<Size>(pool.size());
 		if (n >= size) return pool;
 		auto& rng = DefaultEngine();
@@ -2997,6 +2997,8 @@ namespace RandX
 	{
 		if (!std::isfinite(mean) || mean < 0.0)
 			throw std::invalid_argument("RandPoisson: mean must be non-negative");
+		if (mean > static_cast<double>((std::numeric_limits<T>::max)()))
+			throw std::invalid_argument("RandPoisson: mean exceeds maximum value of return type");
 		if (mean == 0.0) return T{0};
 		std::poisson_distribution<T> dist(mean);
 		return dist(DefaultEngine());
@@ -3012,6 +3014,8 @@ namespace RandX
 	{
 		if (!std::isfinite(mean) || mean < 0.0)
 			throw std::invalid_argument("RandPoisson: mean must be non-negative");
+		if (mean > static_cast<double>((std::numeric_limits<T>::max)()))
+			throw std::invalid_argument("RandPoisson: mean exceeds maximum value of return type");
 		if (mean == 0.0) return T{0};
 		std::poisson_distribution<T> dist(mean);
 		return dist(engine);
@@ -3115,6 +3119,9 @@ namespace RandX
 			throw std::invalid_argument("RandGeometric: p must be in (0, 1]");
 		if (p == 1.0)
 			return T{0};
+		constexpr double maxT = static_cast<double>((std::numeric_limits<T>::max)());
+		if (p < 1.0 / (maxT + 1.0))
+			throw std::invalid_argument("RandGeometric: p is too small for return type");
 		std::geometric_distribution<T> dist(p);
 		return dist(DefaultEngine());
 	}
@@ -3131,6 +3138,9 @@ namespace RandX
 			throw std::invalid_argument("RandGeometric: p must be in (0, 1]");
 		if (p == 1.0)
 			return T{0};
+		constexpr double maxT = static_cast<double>((std::numeric_limits<T>::max)());
+		if (p < 1.0 / (maxT + 1.0))
+			throw std::invalid_argument("RandGeometric: p is too small for return type");
 		std::geometric_distribution<T> dist(p);
 		return dist(engine);
 	}
@@ -3320,7 +3330,9 @@ namespace RandX
 				effective_shape = shape + WorkT{1};
 				const WorkT u_rand = RandCanonical<WorkT>(engine);
 				const WorkT u_clamped = (u_rand <= WorkT{0}) ? std::numeric_limits<WorkT>::min() : u_rand;
-				extra_log = std::log(u_clamped) / shape;
+				const WorkT raw_extra = std::log(u_clamped) / shape;
+				constexpr WorkT MinLog = -std::numeric_limits<WorkT>::max() * WorkT{0.5};
+				extra_log = (raw_extra < MinLog) ? MinLog : raw_extra;
 			}
 
 			const WorkT d = effective_shape - (WorkT{1} / WorkT{3});
@@ -3455,7 +3467,9 @@ namespace RandX
 		const WorkT wb = static_cast<WorkT>(b);
 
 		constexpr WorkT LargeShapeThreshold = WorkT{1000};
-		if (wa >= LargeShapeThreshold || wb >= LargeShapeThreshold)
+		constexpr WorkT SmallShapeThreshold = WorkT{1e-3};
+		if (wa >= LargeShapeThreshold || wb >= LargeShapeThreshold ||
+		    wa <= SmallShapeThreshold || wb <= SmallShapeThreshold)
 		{
 			WorkT da{0}, ea{0}, db{0}, eb{0};
 			detail::SampleGammaLogScale(engine, wa, da, ea);
