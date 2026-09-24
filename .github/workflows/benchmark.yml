@@ -76,9 +76,9 @@ jobs:
             --jq '.total_count // 0')
           echo "total-count=$TOTAL_COUNT" >> "$GITHUB_OUTPUT"
 
-          # 查询 master 分支最近一次有效（未过期）且非当前 commit 的 baseline artifact 所在 run
+          # 查询 master 分支最近一次有效（未过期）且非当前 run 的 baseline artifact 所在 run
           RUN_ID=$(gh api "repos/${{ github.repository }}/actions/artifacts?name=benchmark-baseline&per_page=30" \
-            --jq '[.artifacts[] | select(.expired == false and .workflow_run.head_branch == "master" and .workflow_run.head_sha != "${{ github.sha }}")] | .[0].workflow_run.id // ""')
+            --jq '[.artifacts[] | select(.expired == false and .workflow_run.head_branch == "master" and ((.workflow_run.id | tostring) != "${{ github.run_id }}"))] | .[0].workflow_run.id // ""')
           echo "run-id=${RUN_ID:-}" >> "$GITHUB_OUTPUT"
 
       - name: Check Baseline Availability
