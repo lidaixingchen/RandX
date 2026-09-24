@@ -2527,3 +2527,347 @@ TEST_SUITE("功能契约与边界扩展验证 (C++23)")
         CHECK(skewed_sample <= 1.0);
     }
 }
+
+TEST_SUITE("OverloadContract")
+{
+    struct ThrowingEngine
+    {
+        using result_type = std::uint32_t;
+        static constexpr result_type min() noexcept { return 0; }
+        static constexpr result_type max() noexcept { return 1000; }
+        result_type operator()()
+        {
+            throw std::runtime_error("ThrowingEngine invoked");
+        }
+    };
+
+    struct MoveOnlyEngine
+    {
+        using result_type = std::uint64_t;
+        static constexpr result_type min() noexcept { return 0; }
+        static constexpr result_type max() noexcept { return UINT64_MAX; }
+        MoveOnlyEngine() = default;
+        MoveOnlyEngine(const MoveOnlyEngine&) = delete;
+        MoveOnlyEngine& operator=(const MoveOnlyEngine&) = delete;
+        MoveOnlyEngine(MoveOnlyEngine&&) = default;
+        MoveOnlyEngine& operator=(MoveOnlyEngine&&) = default;
+        result_type operator()() noexcept { return 42; }
+    };
+
+    struct NotAnEngine { int val{ 0 }; };
+
+    struct IncompleteEngineNoMinMax {
+        using result_type = std::uint32_t;
+        result_type operator()() { return 0; }
+    };
+
+    struct IncompleteEngineSignedResult {
+        using result_type = int;
+        static constexpr int min() { return 0; }
+        static constexpr int max() { return 10; }
+        int operator()() { return 0; }
+    };
+
+    struct IncompleteEngineBoolResult {
+        using result_type = bool;
+        static constexpr bool min() { return false; }
+        static constexpr bool max() { return true; }
+        bool operator()() { return false; }
+    };
+
+    TEST_CASE("RandomEngine 概念与特征检测")
+    {
+        static_assert(RandX::detail::is_random_engine_v<RandX::Xoshiro256StarStar>);
+        static_assert(RandX::detail::is_random_engine_v<RandX::Xoroshiro128StarStar>);
+        static_assert(RandX::detail::is_random_engine_v<RandX::Xoshiro128StarStar>);
+        static_assert(RandX::detail::is_random_engine_v<RandX::Xoroshiro64StarStar>);
+        static_assert(RandX::detail::is_random_engine_v<RandX::SplitMix64>);
+        static_assert(RandX::detail::is_random_engine_v<RandX::SFC64>);
+        static_assert(RandX::detail::is_random_engine_v<RandX::RomuDuoJr>);
+        static_assert(RandX::detail::is_random_engine_v<RandX::ChaCha20>);
+        static_assert(RandX::detail::is_random_engine_v<ThrowingEngine>);
+        static_assert(RandX::detail::is_random_engine_v<MoveOnlyEngine>);
+
+        static_assert(!RandX::detail::is_random_engine_v<NotAnEngine>);
+        static_assert(!RandX::detail::is_random_engine_v<IncompleteEngineNoMinMax>);
+        static_assert(!RandX::detail::is_random_engine_v<IncompleteEngineSignedResult>);
+        static_assert(!RandX::detail::is_random_engine_v<IncompleteEngineBoolResult>);
+        static_assert(!RandX::detail::is_random_engine_v<int>);
+        static_assert(!RandX::detail::is_random_engine_v<double>);
+        static_assert(!RandX::detail::is_random_engine_v<bool>);
+        static_assert(!RandX::detail::is_random_engine_v<std::string>);
+    }
+
+    TEST_CASE("数值左值与常量左值不触发引擎重载歧义")
+    {
+        RandX::Xoshiro256StarStar rng(12345);
+
+        // RandNormal
+        double m = 2.0;
+        double s = 0.5;
+        const double cm = 2.0;
+        const double cs = 0.5;
+        CHECK(std::isfinite(RandX::RandNormal(2.0, 0.5)));
+        CHECK(std::isfinite(RandX::RandNormal(2.0)));
+        CHECK(std::isfinite(RandX::RandNormal()));
+        CHECK(std::isfinite(RandX::RandNormal(m, s)));
+        CHECK(std::isfinite(RandX::RandNormal(m)));
+        CHECK(std::isfinite(RandX::RandNormal(cm, cs)));
+        CHECK(std::isfinite(RandX::RandNormal(cm)));
+        CHECK(std::isfinite(RandX::RandNormal(rng, 2.0, 0.5)));
+        CHECK(std::isfinite(RandX::RandNormal(rng, m, s)));
+        CHECK(std::isfinite(RandX::RandNormal(rng, cm, cs)));
+        CHECK(std::isfinite(RandX::RandNormal(rng, m)));
+        CHECK(std::isfinite(RandX::RandNormal(rng)));
+
+        // RandExp
+        double lam = 1.5;
+        const double clam = 1.5;
+        CHECK(std::isfinite(RandX::RandExp(1.5)));
+        CHECK(std::isfinite(RandX::RandExp(lam)));
+        CHECK(std::isfinite(RandX::RandExp(clam)));
+        CHECK(std::isfinite(RandX::RandExp(rng, 1.5)));
+        CHECK(std::isfinite(RandX::RandExp(rng, lam)));
+        CHECK(std::isfinite(RandX::RandExp(rng, clam)));
+        CHECK(std::isfinite(RandX::RandExp(rng)));
+
+        // RandGamma
+        double a = 2.0, b = 1.5;
+        const double ca = 2.0, cb = 1.5;
+        CHECK(std::isfinite(RandX::RandGamma(2.0, 1.5)));
+        CHECK(std::isfinite(RandX::RandGamma(a, b)));
+        CHECK(std::isfinite(RandX::RandGamma(ca, cb)));
+        CHECK(std::isfinite(RandX::RandGamma(a)));
+        CHECK(std::isfinite(RandX::RandGamma(ca)));
+        CHECK(std::isfinite(RandX::RandGamma(rng, a, b)));
+        CHECK(std::isfinite(RandX::RandGamma(rng, ca, cb)));
+        CHECK(std::isfinite(RandX::RandGamma(rng, a)));
+        CHECK(std::isfinite(RandX::RandGamma(rng)));
+
+        // RandBeta
+        CHECK(std::isfinite(RandX::RandBeta(2.0, 1.5)));
+        CHECK(std::isfinite(RandX::RandBeta(a, b)));
+        CHECK(std::isfinite(RandX::RandBeta(ca, cb)));
+        CHECK(std::isfinite(RandX::RandBeta(rng, a, b)));
+        CHECK(std::isfinite(RandX::RandBeta(rng, ca, cb)));
+
+        // RandLogNormal
+        CHECK(std::isfinite(RandX::RandLogNormal(0.0, 1.0)));
+        CHECK(std::isfinite(RandX::RandLogNormal(m, s)));
+        CHECK(std::isfinite(RandX::RandLogNormal(cm, cs)));
+        CHECK(std::isfinite(RandX::RandLogNormal(m)));
+        CHECK(std::isfinite(RandX::RandLogNormal(cm)));
+        CHECK(std::isfinite(RandX::RandLogNormal(rng, m, s)));
+        CHECK(std::isfinite(RandX::RandLogNormal(rng, cm, cs)));
+        CHECK(std::isfinite(RandX::RandLogNormal(rng, m)));
+        CHECK(std::isfinite(RandX::RandLogNormal(rng)));
+
+        // RandCauchy
+        CHECK(std::isfinite(RandX::RandCauchy(0.0, 1.0)));
+        CHECK(std::isfinite(RandX::RandCauchy(m, s)));
+        CHECK(std::isfinite(RandX::RandCauchy(cm, cs)));
+        CHECK(std::isfinite(RandX::RandCauchy(m)));
+        CHECK(std::isfinite(RandX::RandCauchy(cm)));
+        CHECK(std::isfinite(RandX::RandCauchy(rng, m, s)));
+        CHECK(std::isfinite(RandX::RandCauchy(rng, cm, cs)));
+        CHECK(std::isfinite(RandX::RandCauchy(rng, m)));
+        CHECK(std::isfinite(RandX::RandCauchy(rng)));
+
+        // RandWeibull
+        CHECK(std::isfinite(RandX::RandWeibull(1.0, 2.0)));
+        CHECK(std::isfinite(RandX::RandWeibull(a, b)));
+        CHECK(std::isfinite(RandX::RandWeibull(ca, cb)));
+        CHECK(std::isfinite(RandX::RandWeibull(a)));
+        CHECK(std::isfinite(RandX::RandWeibull(ca)));
+        CHECK(std::isfinite(RandX::RandWeibull(rng, a, b)));
+        CHECK(std::isfinite(RandX::RandWeibull(rng, ca, cb)));
+        CHECK(std::isfinite(RandX::RandWeibull(rng, a)));
+        CHECK(std::isfinite(RandX::RandWeibull(rng)));
+
+        // RandExtremeValue
+        CHECK(std::isfinite(RandX::RandExtremeValue(0.0, 1.0)));
+        CHECK(std::isfinite(RandX::RandExtremeValue(m, s)));
+        CHECK(std::isfinite(RandX::RandExtremeValue(cm, cs)));
+        CHECK(std::isfinite(RandX::RandExtremeValue(m)));
+        CHECK(std::isfinite(RandX::RandExtremeValue(cm)));
+        CHECK(std::isfinite(RandX::RandExtremeValue(rng, m, s)));
+        CHECK(std::isfinite(RandX::RandExtremeValue(rng, cm, cs)));
+        CHECK(std::isfinite(RandX::RandExtremeValue(rng, m)));
+        CHECK(std::isfinite(RandX::RandExtremeValue(rng)));
+
+        // RandChiSquared
+        double deg = 3.0;
+        const double cdeg = 3.0;
+        CHECK(std::isfinite(RandX::RandChiSquared(3.0)));
+        CHECK(std::isfinite(RandX::RandChiSquared(deg)));
+        CHECK(std::isfinite(RandX::RandChiSquared(cdeg)));
+        CHECK(std::isfinite(RandX::RandChiSquared(rng, deg)));
+        CHECK(std::isfinite(RandX::RandChiSquared(rng, cdeg)));
+        CHECK(std::isfinite(RandX::RandChiSquared(rng)));
+
+        // RandStudentT
+        CHECK(std::isfinite(RandX::RandStudentT(3.0)));
+        CHECK(std::isfinite(RandX::RandStudentT(deg)));
+        CHECK(std::isfinite(RandX::RandStudentT(cdeg)));
+        CHECK(std::isfinite(RandX::RandStudentT(rng, deg)));
+        CHECK(std::isfinite(RandX::RandStudentT(rng, cdeg)));
+        CHECK(std::isfinite(RandX::RandStudentT(rng)));
+
+        // RandFisherF
+        CHECK(std::isfinite(RandX::RandFisherF(2.0, 3.0)));
+        CHECK(std::isfinite(RandX::RandFisherF(a, b)));
+        CHECK(std::isfinite(RandX::RandFisherF(ca, cb)));
+        CHECK(std::isfinite(RandX::RandFisherF(a)));
+        CHECK(std::isfinite(RandX::RandFisherF(ca)));
+        CHECK(std::isfinite(RandX::RandFisherF(rng, a, b)));
+        CHECK(std::isfinite(RandX::RandFisherF(rng, ca, cb)));
+        CHECK(std::isfinite(RandX::RandFisherF(rng, a)));
+        CHECK(std::isfinite(RandX::RandFisherF(rng)));
+
+        // RandPoisson
+        CHECK(RandX::RandPoisson(3.0) >= 0);
+        CHECK(RandX::RandPoisson(deg) >= 0);
+        CHECK(RandX::RandPoisson(cdeg) >= 0);
+        CHECK(RandX::RandPoisson(rng, deg) >= 0);
+        CHECK(RandX::RandPoisson(rng, cdeg) >= 0);
+        CHECK(RandX::RandPoisson(rng) >= 0);
+
+        // RandBinomial
+        int trials = 10;
+        const int ctrials = 10;
+        double prob = 0.5;
+        const double cprob = 0.5;
+        CHECK(RandX::RandBinomial(10, 0.5) >= 0);
+        CHECK(RandX::RandBinomial(trials, prob) >= 0);
+        CHECK(RandX::RandBinomial(ctrials, cprob) >= 0);
+        CHECK(RandX::RandBinomial(trials) >= 0);
+        CHECK(RandX::RandBinomial(ctrials) >= 0);
+        CHECK(RandX::RandBinomial(rng, trials, prob) >= 0);
+        CHECK(RandX::RandBinomial(rng, ctrials, cprob) >= 0);
+        CHECK(RandX::RandBinomial(rng, trials) >= 0);
+        CHECK(RandX::RandBinomial(rng) >= 0);
+
+        // RandGeometric
+        CHECK(RandX::RandGeometric(0.5) >= 0);
+        CHECK(RandX::RandGeometric(prob) >= 0);
+        CHECK(RandX::RandGeometric(cprob) >= 0);
+        CHECK(RandX::RandGeometric(rng, prob) >= 0);
+        CHECK(RandX::RandGeometric(rng, cprob) >= 0);
+        CHECK(RandX::RandGeometric(rng) >= 0);
+
+        // RandInt
+        int iv1 = 10, iv2 = 20;
+        const int civ1 = 10, civ2 = 20;
+        int r_int1 = RandX::RandInt(iv1, iv2);
+        CHECK(r_int1 >= 10);
+        CHECK(r_int1 <= 20);
+        int r_int2 = RandX::RandInt(civ1, civ2);
+        CHECK(r_int2 >= 10);
+        CHECK(r_int2 <= 20);
+        int r_int3 = RandX::RandInt(rng, iv1, iv2);
+        CHECK(r_int3 >= 10);
+        CHECK(r_int3 <= 20);
+
+        // RandReal
+        double rv1 = 1.0, rv2 = 5.0;
+        const double crv1 = 1.0, crv2 = 5.0;
+        double r_real1 = RandX::RandReal(rv1, rv2);
+        CHECK(r_real1 >= 1.0);
+        CHECK(r_real1 < 5.0);
+        double r_real2 = RandX::RandReal(crv1, crv2);
+        CHECK(r_real2 >= 1.0);
+        CHECK(r_real2 < 5.0);
+        double r_real3 = RandX::RandReal(rv1);
+        CHECK(r_real3 >= 1.0);
+        CHECK(r_real3 < 2.0);
+        double r_real4 = RandX::RandReal(crv1);
+        CHECK(r_real4 >= 1.0);
+        CHECK(r_real4 < 2.0);
+        double r_real5 = RandX::RandReal(rng, rv1, rv2);
+        CHECK(r_real5 >= 1.0);
+        CHECK(r_real5 < 5.0);
+
+        // RandBool & RandBernoulli
+        double bp = 0.8;
+        const double cbp = 0.8;
+        (void)RandX::RandBool(bp);
+        (void)RandX::RandBool(cbp);
+        (void)RandX::RandBool(rng, bp);
+        (void)RandX::RandBernoulli(bp);
+        (void)RandX::RandBernoulli(cbp);
+        (void)RandX::RandBernoulli(rng, bp);
+
+        // RandChar
+        char ch1 = 'a', ch2 = 'z';
+        const char cch1 = 'a', cch2 = 'z';
+        char ch_out1 = RandX::RandChar(ch1, ch2);
+        CHECK(ch_out1 >= 'a');
+        CHECK(ch_out1 <= 'z');
+        char ch_out2 = RandX::RandChar(cch1, cch2);
+        CHECK(ch_out2 >= 'a');
+        CHECK(ch_out2 <= 'z');
+        char ch_out3 = RandX::RandChar(ch2);
+        CHECK(ch_out3 <= 'z');
+        char ch_out4 = RandX::RandChar(cch2);
+        CHECK(ch_out4 <= 'z');
+        char ch_out5 = RandX::RandChar(rng, ch1, ch2);
+        CHECK(ch_out5 >= 'a');
+        CHECK(ch_out5 <= 'z');
+        char ch_out6 = RandX::RandChar(rng, ch2);
+        CHECK(ch_out6 <= 'z');
+        char ch_out7 = RandX::RandChar(rng, RandX::CharSet::Alpha);
+        CHECK(std::isalpha(static_cast<unsigned char>(ch_out7)));
+
+        // RandBits
+        auto bits1 = RandX::RandBits<16>();
+        CHECK(bits1 < (1ULL << 16));
+        auto bits2 = RandX::RandBits<16>(rng);
+        CHECK(bits2 < (1ULL << 16));
+
+        // RandUUID
+        auto uuid1 = RandX::RandUUID();
+        CHECK(uuid1.size() == 36);
+        auto uuid2 = RandX::RandUUID(rng);
+        CHECK(uuid2.size() == 36);
+
+        // RandVector
+        std::size_t n_elem = 5;
+        const std::size_t cn_elem = 5;
+        auto vec_int1 = RandX::RandVector(iv1, iv2, n_elem);
+        CHECK(vec_int1.size() == 5);
+        auto vec_int2 = RandX::RandVector(rng, iv1, iv2, cn_elem);
+        CHECK(vec_int2.size() == 5);
+        auto vec_real1 = RandX::RandVector(rv1, rv2, n_elem);
+        CHECK(vec_real1.size() == 5);
+        auto vec_real2 = RandX::RandVector(rng, rv1, rv2, cn_elem);
+        CHECK(vec_real2.size() == 5);
+    }
+
+    TEST_CASE("ThrowingEngine 异常可传播")
+    {
+        ThrowingEngine te;
+        CHECK_THROWS_AS((void)RandX::RandNormal(te, 0.0, 1.0), std::runtime_error);
+        CHECK_THROWS_AS((void)RandX::RandInt(te, 1, 10), std::runtime_error);
+        CHECK_THROWS_AS((void)RandX::RandReal(te, 0.0, 1.0), std::runtime_error);
+        CHECK_THROWS_AS((void)RandX::RandBool(te, 0.5), std::runtime_error);
+        CHECK_THROWS_AS((void)RandX::RandExp(te, 1.0), std::runtime_error);
+    }
+
+    TEST_CASE("MoveOnlyEngine 支持")
+    {
+        MoveOnlyEngine moe;
+        int val = RandX::RandInt(moe, 1, 100);
+        CHECK(val >= 1);
+        CHECK(val <= 100);
+    }
+
+    TEST_CASE("同种子下显式引擎与默认引擎一致性")
+    {
+        RandX::Xoshiro256StarStar e1(123456ULL);
+        RandX::Xoshiro256StarStar e2(123456ULL);
+        double v1 = RandX::RandNormal(e1, 3.5);
+        double v2 = RandX::RandNormal(e2, 3.5);
+        CHECK(v1 == v2);
+    }
+}
+

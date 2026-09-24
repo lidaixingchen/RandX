@@ -1303,22 +1303,74 @@ namespace RandX
 		inline constexpr bool is_random_access_container_v =
 			is_random_access_container<C>::value;
 
-		template <class Engine>
-		inline constexpr bool IsFull64BitEngine =
-			(sizeof(typename Engine::result_type) >= sizeof(std::uint64_t) &&
-			 static_cast<std::uint64_t>(Engine::min()) == 0ULL &&
-			 static_cast<std::uint64_t>(Engine::max()) == (std::numeric_limits<std::uint64_t>::max)());
+		template <class E, class = void>
+		struct has_result_type : std::false_type {};
+
+		template <class E>
+		struct has_result_type<E, std::void_t<typename E::result_type>>
+			: std::bool_constant<
+				std::is_unsigned_v<typename E::result_type> &&
+				!std::is_same_v<typename E::result_type, bool>> {};
+
+		template <class E, class = void>
+		struct has_invocable_engine : std::false_type {};
+
+		template <class E>
+		struct has_invocable_engine<E, std::enable_if_t<has_result_type<E>::value,
+			std::void_t<decltype(std::declval<E&>()())>>>
+			: std::is_same<decltype(std::declval<E&>()()), typename E::result_type> {};
+
+		template <class E, class = void>
+		struct has_min_max : std::false_type {};
+
+		template <class E>
+		struct has_min_max<E, std::enable_if_t<has_invocable_engine<E>::value,
+			std::void_t<
+				decltype(E::min()),
+				decltype(E::max()),
+				std::integral_constant<bool, (E::min() < E::max())>
+			>>>
+			: std::bool_constant<
+				std::is_same_v<decltype(E::min()), typename E::result_type> &&
+				std::is_same_v<decltype(E::max()), typename E::result_type> &&
+				(E::min() < E::max())> {};
+
+		template <class E>
+		struct is_random_engine : has_min_max<E> {};
+
+		template <class E>
+		inline constexpr bool is_random_engine_v = is_random_engine<E>::value;
+
+		template <class Engine, class = void>
+		struct is_full_64bit_engine : std::false_type {};
 
 		template <class Engine>
-		inline constexpr bool IsFull32BitEngine =
-			(static_cast<std::uint64_t>(Engine::min()) == 0ULL &&
-			 static_cast<std::uint64_t>(Engine::max()) == 0xFFFFFFFFULL);
+		struct is_full_64bit_engine<Engine, std::enable_if_t<is_random_engine_v<Engine>>>
+			: std::bool_constant<
+				(sizeof(typename Engine::result_type) >= sizeof(std::uint64_t) &&
+				 static_cast<std::uint64_t>(Engine::min()) == 0ULL &&
+				 static_cast<std::uint64_t>(Engine::max()) == (std::numeric_limits<std::uint64_t>::max)())> {};
 
 		template <class Engine>
-		inline constexpr bool is_full_64bit_engine_v = IsFull64BitEngine<Engine>;
+		inline constexpr bool is_full_64bit_engine_v = is_full_64bit_engine<Engine>::value;
 
 		template <class Engine>
-		inline constexpr bool is_full_32bit_engine_v = IsFull32BitEngine<Engine>;
+		inline constexpr bool IsFull64BitEngine = is_full_64bit_engine_v<Engine>;
+
+		template <class Engine, class = void>
+		struct is_full_32bit_engine : std::false_type {};
+
+		template <class Engine>
+		struct is_full_32bit_engine<Engine, std::enable_if_t<is_random_engine_v<Engine>>>
+			: std::bool_constant<
+				(static_cast<std::uint64_t>(Engine::min()) == 0ULL &&
+				 static_cast<std::uint64_t>(Engine::max()) == 0xFFFFFFFFULL)> {};
+
+		template <class Engine>
+		inline constexpr bool is_full_32bit_engine_v = is_full_32bit_engine<Engine>::value;
+
+		template <class Engine>
+		inline constexpr bool IsFull32BitEngine = is_full_32bit_engine_v<Engine>;
 
 		template <class T>
 		inline T NormalizeBetaSample(T x, T y)
@@ -1346,7 +1398,8 @@ namespace RandX
 			throw std::domain_error("RandBeta: unable to normalize Gamma samples");
 		}
 
-		template <class Engine>
+		template <class Engine,
+			std::enable_if_t<is_random_engine_v<Engine>>* = nullptr>
 		[[nodiscard]]
 		inline std::uint64_t Generate64Bits(Engine& engine)
 		{
@@ -1417,6 +1470,12 @@ namespace RandX
 		template <class E>
 		inline constexpr bool is_serializable_engine_v = is_serializable_engine<E>::value;
 	}
+
+	template <class E>
+	using RandomEngine = detail::is_random_engine<E>;
+
+	template <class E>
+	inline constexpr bool is_random_engine_v = detail::is_random_engine_v<E>;
 
 	template <class Engine, std::enable_if_t<detail::HasJump<Engine>::value>* = nullptr>
 	[[nodiscard]]
@@ -1859,7 +1918,8 @@ namespace RandX
 	/// @param engine 自定义随机数引擎
 	/// @param p 为 true 的概率（默认 0.5）
 	/// @return 以概率 p 返回 true
-	template <class Engine>
+	template <class Engine,
+		std::enable_if_t<detail::is_random_engine_v<Engine>>* = nullptr>
 	[[nodiscard]]
 	inline bool RandBool(Engine& engine, double p = 0.5)
 	{
@@ -1882,7 +1942,8 @@ namespace RandX
 	/// @param engine 自定义随机数引擎
 	/// @param p 成功概率（默认 0.5）
 	/// @return 以概率 p 返回 true
-	template <class Engine>
+	template <class Engine,
+		std::enable_if_t<detail::is_random_engine_v<Engine>>* = nullptr>
 	[[nodiscard]]
 	inline bool RandBernoulli(Engine& engine, double p = 0.5)
 	{
@@ -1924,7 +1985,7 @@ namespace RandX
 	/// @param max 上界字符（含）
 	/// @return 均匀分布于 [min, max] 的随机字符
 	template <class CharT, class Engine,
-		std::enable_if_t<detail::is_character_v<CharT>>* = nullptr>
+		std::enable_if_t<detail::is_character_v<CharT> && detail::is_random_engine_v<Engine>>* = nullptr>
 	[[nodiscard]]
 	inline CharT RandChar(Engine& engine, CharT min, CharT max)
 	{
@@ -1941,7 +2002,7 @@ namespace RandX
 	/// @param max 上界字符（含）
 	/// @return 均匀分布于 [CharT{}, max] 的随机字符
 	template <class CharT, class Engine,
-		std::enable_if_t<detail::is_character_v<CharT>>* = nullptr>
+		std::enable_if_t<detail::is_character_v<CharT> && detail::is_random_engine_v<Engine>>* = nullptr>
 	[[nodiscard]]
 	inline CharT RandChar(Engine& engine, CharT max)
 	{
@@ -2022,7 +2083,8 @@ namespace RandX
 	/// @param engine 自定义随机数引擎
 	/// @param cs 预设字符集枚举
 	/// @return 从字符集中均匀选取的 char
-	template <class Engine>
+	template <class Engine,
+		std::enable_if_t<detail::is_random_engine_v<Engine>>* = nullptr>
 	[[nodiscard]]
 	inline char RandChar(Engine& engine, CharSet cs)
 	{
@@ -2111,7 +2173,7 @@ namespace RandX
 	/// @param last 范围结束迭代器
 	/// @return 指向随机选取元素的迭代器
 	template <class It, class Engine,
-		std::enable_if_t<detail::is_random_access_iterator_v<It>>* = nullptr>
+		std::enable_if_t<detail::is_random_access_iterator_v<It> && detail::is_random_engine_v<Engine>>* = nullptr>
 	[[nodiscard]]
 	inline It RandElement(Engine& engine, It first, It last)
 	{
@@ -2129,7 +2191,8 @@ namespace RandX
 	/// @return 随机选取的元素值
 	template <class It, class Engine,
 		std::enable_if_t<detail::is_input_iterator_v<It>
-			&& !detail::is_random_access_iterator_v<It>>* = nullptr>
+			&& !detail::is_random_access_iterator_v<It>
+			&& detail::is_random_engine_v<Engine>>* = nullptr>
 	[[nodiscard]]
 	inline typename std::iterator_traits<It>::value_type RandElement(Engine& engine, It first, It last)
 	{
@@ -2170,7 +2233,8 @@ namespace RandX
 	/// @param mean 均值（默认 0）
 	/// @param stddev 标准差（默认 1）
 	/// @return 服从 N(mean, stddev) 的随机数
-	template <class Engine, class T = double, std::enable_if_t<std::is_floating_point_v<T>>* = nullptr>
+	template <class Engine, class T = double,
+		std::enable_if_t<detail::is_random_engine_v<Engine> && std::is_floating_point_v<T>>* = nullptr>
 	[[nodiscard]]
 	inline T RandNormal(Engine& engine, T mean = T{0}, T stddev = T{1})
 	{
@@ -2233,7 +2297,7 @@ namespace RandX
 	/// @param min 随机数下界（含）
 	/// @param max 随机数上界（含）
 	template <class It, class T, class Engine,
-		std::enable_if_t<detail::is_rand_fillable_v<It, T> && std::is_integral_v<T> && !std::is_same_v<std::remove_cv_t<T>, bool>>* = nullptr>
+		std::enable_if_t<detail::is_rand_fillable_v<It, T> && std::is_integral_v<T> && !std::is_same_v<std::remove_cv_t<T>, bool> && detail::is_random_engine_v<Engine>>* = nullptr>
 	inline void RandFill(Engine& engine, It first, It last, T min, T max)
 	{
 		if (min > max)
@@ -2252,7 +2316,7 @@ namespace RandX
 	/// @param min 随机数下界（含）
 	/// @param max 随机数上界（不含）
 	template <class It, class T, class Engine,
-		std::enable_if_t<detail::is_rand_fillable_v<It, T> && std::is_floating_point_v<T>>* = nullptr>
+		std::enable_if_t<detail::is_rand_fillable_v<It, T> && std::is_floating_point_v<T> && detail::is_random_engine_v<Engine>>* = nullptr>
 	inline void RandFill(Engine& engine, It first, It last, T min, T max)
 	{
 		if (!std::isfinite(min) || !std::isfinite(max) || min > max)
@@ -2295,7 +2359,7 @@ namespace RandX
 	/// @param n 生成数量
 	/// @return 含 n 个均匀分布于 [min, max] 的随机整数 vector
 	template <class T, class Engine,
-		std::enable_if_t<std::is_integral_v<T> && !std::is_same_v<std::remove_cv_t<T>, bool>>* = nullptr>
+		std::enable_if_t<std::is_integral_v<T> && !std::is_same_v<std::remove_cv_t<T>, bool> && detail::is_random_engine_v<Engine>>* = nullptr>
 	[[nodiscard]]
 	inline std::vector<T> RandVector(Engine& engine, T min, T max, std::size_t n)
 	{
@@ -2318,7 +2382,7 @@ namespace RandX
 	/// @param n 生成数量
 	/// @return 含 n 个均匀分布于 [min, max) 的随机浮点数 vector
 	template <class T, class Engine,
-		std::enable_if_t<std::is_floating_point_v<T>>* = nullptr>
+		std::enable_if_t<std::is_floating_point_v<T> && detail::is_random_engine_v<Engine>>* = nullptr>
 	[[nodiscard]]
 	inline std::vector<T> RandVector(Engine& engine, T min, T max, std::size_t n)
 	{
@@ -2350,7 +2414,8 @@ namespace RandX
 	/// @param engine 自定义随机数引擎
 	/// @param weights 权重容器（元素为数值类型）
 	/// @return 按权重概率选中的索引值
-	template <class Engine, class WeightContainer>
+	template <class Engine, class WeightContainer,
+		std::enable_if_t<detail::is_random_engine_v<Engine>>* = nullptr>
 	[[nodiscard]]
 	inline typename WeightContainer::size_type RandWeighted(Engine& engine, const WeightContainer& weights)
 	{
@@ -2375,7 +2440,8 @@ namespace RandX
 	/// @param engine 自定义随机数引擎
 	/// @param dist 预构建的 std::discrete_distribution 对象
 	/// @return 按权重概率选中的索引值
-	template <class Engine, class IntType>
+	template <class Engine, class IntType,
+		std::enable_if_t<detail::is_random_engine_v<Engine>>* = nullptr>
 	[[nodiscard]]
 	inline IntType RandWeighted(Engine& engine, std::discrete_distribution<IntType>& dist)
 	{
@@ -2388,7 +2454,7 @@ namespace RandX
 	/// @param max 上界（含）
 	/// @return 均匀分布于 [min, max] 的随机整数
 	template <class T, class Engine,
-		std::enable_if_t<std::is_integral_v<T> && !std::is_same_v<std::remove_cv_t<T>, bool>>* = nullptr>
+		std::enable_if_t<std::is_integral_v<T> && !std::is_same_v<std::remove_cv_t<T>, bool> && detail::is_random_engine_v<Engine>>* = nullptr>
 	[[nodiscard]]
 	inline T RandInt(Engine& engine, T min, T max)
 	{
@@ -2405,7 +2471,7 @@ namespace RandX
 	/// @param engine 伪随机数生成引擎（自动兼容 32 位与 64 位输出引擎）
 	/// @return [0, 1) 范围内的无偏伪随机浮点数
 	template <typename T = double, class Engine,
-	          typename std::enable_if_t<std::is_floating_point_v<T>, int> = 0>
+	          typename std::enable_if_t<std::is_floating_point_v<T> && detail::is_random_engine_v<Engine>, int> = 0>
 	[[nodiscard]] inline constexpr T RandCanonical(Engine& engine)
 	{
 		if constexpr (std::is_same_v<T, double>)
@@ -2455,7 +2521,8 @@ namespace RandX
 	/// @param min 下界（含，默认 0）
 	/// @param max 上界（不含，默认 1）
 	/// @return 均匀分布于 [min, max) 的随机浮点数
-	template <class T = double, class Engine, std::enable_if_t<std::is_floating_point_v<T>>* = nullptr>
+	template <class T = double, class Engine,
+		std::enable_if_t<std::is_floating_point_v<T> && detail::is_random_engine_v<Engine>>* = nullptr>
 	[[nodiscard]]
 	inline T RandReal(Engine& engine, T min = T{0}, T max = T{1})
 	{
@@ -2608,7 +2675,7 @@ namespace RandX
 
 	// 引擎重载 —— 随机访问迭代器
 	template <class It, class Engine,
-		std::enable_if_t<detail::is_random_access_iterator_v<It>>* = nullptr>
+		std::enable_if_t<detail::is_random_access_iterator_v<It> && detail::is_random_engine_v<Engine>>* = nullptr>
 	[[nodiscard]]
 	inline std::vector<typename std::iterator_traits<It>::value_type>
 	RandSample(Engine& engine, It first, It last, typename std::iterator_traits<It>::difference_type n)
@@ -2660,7 +2727,8 @@ namespace RandX
 	// 引擎重载 —— 输入迭代器（reservoir）
 	template <class It, class Engine,
 		std::enable_if_t<detail::is_input_iterator_v<It>
-			&& !detail::is_random_access_iterator_v<It>>* = nullptr>
+			&& !detail::is_random_access_iterator_v<It>
+			&& detail::is_random_engine_v<Engine>>* = nullptr>
 	[[nodiscard]]
 	inline std::vector<typename std::iterator_traits<It>::value_type>
 	RandSample(Engine& engine, It first, It last, typename std::iterator_traits<It>::difference_type n)
@@ -2746,7 +2814,8 @@ namespace RandX
 	/// @param charset 可用字符集
 	/// @return 从 charset 中均匀选取字符组成的随机字符串
 	/// @throw std::invalid_argument charset 为空时抛出
-	template <class Engine>
+	template <class Engine,
+		std::enable_if_t<detail::is_random_engine_v<Engine>>* = nullptr>
 	[[nodiscard]]
 	inline std::string RandString(Engine& engine, std::size_t n, std::string_view charset)
 	{
@@ -2764,7 +2833,8 @@ namespace RandX
 	/// @param n 字符串长度
 	/// @param cs 预设字符集枚举
 	/// @return 从预设字符集中均匀选取字符组成的随机字符串
-	template <class Engine>
+	template <class Engine,
+		std::enable_if_t<detail::is_random_engine_v<Engine>>* = nullptr>
 	[[nodiscard]]
 	inline std::string RandString(Engine& engine, std::size_t n, CharSet cs)
 	{
@@ -2788,7 +2858,8 @@ namespace RandX
 	/// @param engine 自定义随机数引擎
 	/// @param lambda 速率参数（默认 1，均值 = 1/lambda）
 	/// @return 服从 Exp(lambda) 的随机数
-	template <class Engine, class T = double, std::enable_if_t<std::is_floating_point_v<T>>* = nullptr>
+	template <class Engine, class T = double,
+		std::enable_if_t<detail::is_random_engine_v<Engine> && std::is_floating_point_v<T>>* = nullptr>
 	[[nodiscard]]
 	inline T RandExp(Engine& engine, T lambda = T{1})
 	{
@@ -2816,7 +2887,8 @@ namespace RandX
 	/// @param engine 自定义随机数引擎
 	/// @param mean 均值参数（默认 1.0）
 	/// @return 服从 Poisson(mean) 的随机整数
-	template <class Engine, class T = int, std::enable_if_t<std::is_integral_v<T>>* = nullptr>
+	template <class Engine, class T = int,
+		std::enable_if_t<detail::is_random_engine_v<Engine> && std::is_integral_v<T>>* = nullptr>
 	[[nodiscard]]
 	inline T RandPoisson(Engine& engine, double mean = 1.0)
 	{
@@ -2846,7 +2918,8 @@ namespace RandX
 	/// @param alpha 形状参数（默认 1）
 	/// @param beta 尺度参数（默认 1）
 	/// @return 服从 Gamma(alpha, beta) 的随机数
-	template <class Engine, class T = double, std::enable_if_t<std::is_floating_point_v<T>>* = nullptr>
+	template <class Engine, class T = double,
+		std::enable_if_t<detail::is_random_engine_v<Engine> && std::is_floating_point_v<T>>* = nullptr>
 	[[nodiscard]]
 	inline T RandGamma(Engine& engine, T alpha = T{1}, T beta = T{1})
 	{
@@ -2875,7 +2948,8 @@ namespace RandX
 	/// @param t 试验次数（默认 1）
 	/// @param p 每次成功概率（默认 0.5）
 	/// @return 服从 B(t, p) 的随机整数
-	template <class Engine, class T = int, std::enable_if_t<std::is_integral_v<T>>* = nullptr>
+	template <class Engine, class T = int,
+		std::enable_if_t<detail::is_random_engine_v<Engine> && std::is_integral_v<T>>* = nullptr>
 	[[nodiscard]]
 	inline T RandBinomial(Engine& engine, T t = 1, double p = 0.5)
 	{
@@ -2904,7 +2978,8 @@ namespace RandX
 	/// @param mean 对数均值（默认 0）
 	/// @param stddev 对数标准差（默认 1）
 	/// @return 服从 LogNormal(mean, stddev) 的随机数
-	template <class Engine, class T = double, std::enable_if_t<std::is_floating_point_v<T>>* = nullptr>
+	template <class Engine, class T = double,
+		std::enable_if_t<detail::is_random_engine_v<Engine> && std::is_floating_point_v<T>>* = nullptr>
 	[[nodiscard]]
 	inline T RandLogNormal(Engine& engine, T mean = T{0}, T stddev = T{1})
 	{
@@ -2931,7 +3006,8 @@ namespace RandX
 	/// @param engine 自定义随机数引擎
 	/// @param p 每次成功概率（默认 0.5）
 	/// @return 服从 Geometric(p) 的随机整数
-	template <class Engine, class T = int, std::enable_if_t<std::is_integral_v<T>>* = nullptr>
+	template <class Engine, class T = int,
+		std::enable_if_t<detail::is_random_engine_v<Engine> && std::is_integral_v<T>>* = nullptr>
 	[[nodiscard]]
 	inline T RandGeometric(Engine& engine, double p = 0.5)
 	{
@@ -2960,7 +3036,8 @@ namespace RandX
 	/// @param a 位置参数（默认 0）
 	/// @param b 尺度参数（默认 1）
 	/// @return 服从 Cauchy(a, b) 的随机数
-	template <class Engine, class T = double, std::enable_if_t<std::is_floating_point_v<T>>* = nullptr>
+	template <class Engine, class T = double,
+		std::enable_if_t<detail::is_random_engine_v<Engine> && std::is_floating_point_v<T>>* = nullptr>
 	[[nodiscard]]
 	inline T RandCauchy(Engine& engine, T a = T{0}, T b = T{1})
 	{
@@ -2989,7 +3066,8 @@ namespace RandX
 	/// @param a 形状参数（默认 1）
 	/// @param b 尺度参数（默认 1）
 	/// @return 服从 Weibull(a, b) 的随机数
-	template <class Engine, class T = double, std::enable_if_t<std::is_floating_point_v<T>>* = nullptr>
+	template <class Engine, class T = double,
+		std::enable_if_t<detail::is_random_engine_v<Engine> && std::is_floating_point_v<T>>* = nullptr>
 	[[nodiscard]]
 	inline T RandWeibull(Engine& engine, T a = T{1}, T b = T{1})
 	{
@@ -3018,7 +3096,8 @@ namespace RandX
 	/// @param a 位置参数（默认 0）
 	/// @param b 尺度参数（默认 1）
 	/// @return 服从 ExtremeValue(a, b) 的随机数
-	template <class Engine, class T = double, std::enable_if_t<std::is_floating_point_v<T>>* = nullptr>
+	template <class Engine, class T = double,
+		std::enable_if_t<detail::is_random_engine_v<Engine> && std::is_floating_point_v<T>>* = nullptr>
 	[[nodiscard]]
 	inline T RandExtremeValue(Engine& engine, T a = T{0}, T b = T{1})
 	{
@@ -3045,7 +3124,8 @@ namespace RandX
 	/// @param engine 自定义随机数引擎
 	/// @param n 自由度（默认 1）
 	/// @return 服从 ChiSquared(n) 的随机数
-	template <class Engine, class T = double, std::enable_if_t<std::is_floating_point_v<T>>* = nullptr>
+	template <class Engine, class T = double,
+		std::enable_if_t<detail::is_random_engine_v<Engine> && std::is_floating_point_v<T>>* = nullptr>
 	[[nodiscard]]
 	inline T RandChiSquared(Engine& engine, T n = T{1})
 	{
@@ -3072,7 +3152,8 @@ namespace RandX
 	/// @param engine 自定义随机数引擎
 	/// @param n 自由度（默认 1）
 	/// @return 服从 StudentT(n) 的随机数
-	template <class Engine, class T = double, std::enable_if_t<std::is_floating_point_v<T>>* = nullptr>
+	template <class Engine, class T = double,
+		std::enable_if_t<detail::is_random_engine_v<Engine> && std::is_floating_point_v<T>>* = nullptr>
 	[[nodiscard]]
 	inline T RandStudentT(Engine& engine, T n = T{1})
 	{
@@ -3101,7 +3182,8 @@ namespace RandX
 	/// @param m 第一自由度（默认 1）
 	/// @param n 第二自由度（默认 1）
 	/// @return 服从 FisherF(m, n) 的随机数
-	template <class Engine, class T = double, std::enable_if_t<std::is_floating_point_v<T>>* = nullptr>
+	template <class Engine, class T = double,
+		std::enable_if_t<detail::is_random_engine_v<Engine> && std::is_floating_point_v<T>>* = nullptr>
 	[[nodiscard]]
 	inline T RandFisherF(Engine& engine, T m = T{1}, T n = T{1})
 	{
@@ -3128,7 +3210,8 @@ namespace RandX
 	/// @param a 形状参数（默认 1）
 	/// @param b 形状参数（默认 1）
 	/// @return 服从 Beta(a, b) 的随机数
-	template <class Engine, class T = double, std::enable_if_t<std::is_floating_point_v<T>>* = nullptr>
+	template <class Engine, class T = double,
+		std::enable_if_t<detail::is_random_engine_v<Engine> && std::is_floating_point_v<T>>* = nullptr>
 	[[nodiscard]]
 	inline T RandBeta(Engine& engine, T a = T{1}, T b = T{1})
 	{
@@ -3158,7 +3241,7 @@ namespace RandX
 	/// @param engine 自定义随机数引擎
 	/// @return 均匀分布于 [0, 2^N) 的随机整数
 	template <int N, class T = std::uint64_t, class Engine,
-		std::enable_if_t<std::is_integral_v<T> && !std::is_same_v<std::remove_cv_t<T>, bool> && (N > 0) && (N <= 64) && (N <= std::numeric_limits<T>::digits)>* = nullptr>
+		std::enable_if_t<std::is_integral_v<T> && !std::is_same_v<std::remove_cv_t<T>, bool> && (N > 0) && (N <= 64) && (N <= std::numeric_limits<T>::digits) && detail::is_random_engine_v<Engine>>* = nullptr>
 	[[nodiscard]]
 	inline T RandBits(Engine& engine)
 	{
@@ -3211,7 +3294,8 @@ namespace RandX
 	/// @return 格式为 xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx 的 UUID 字符串
 	/// @warning 使用默认 PRNG（非 CSPRNG），不适用于安全敏感标识符；
 	///          安全场景请改用 ChaCha20 引擎重载或 SecureRandomBytes
-	template <class Engine>
+	template <class Engine,
+		std::enable_if_t<detail::is_random_engine_v<Engine>>* = nullptr>
 	[[nodiscard]]
 	inline std::string RandUUID(Engine& engine)
 	{

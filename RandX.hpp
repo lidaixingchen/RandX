@@ -981,14 +981,30 @@ namespace RandX
 		c += d; b ^= c; b = RotL(b, 7);
 	}
 
+		template <class E>
+		concept RandomEngine =
+			std::uniform_random_bit_generator<E> &&
+			requires { typename E::result_type; } &&
+			std::same_as<typename E::result_type, std::invoke_result_t<E&>> &&
+			(!std::same_as<typename E::result_type, bool>);
+
+		template <class E>
+		inline constexpr bool is_random_engine_v = RandomEngine<E>;
+
 		template <class Engine>
-		inline constexpr bool IsFull64BitEngine =
+		inline constexpr bool IsFull64BitEngine = false;
+
+		template <RandomEngine Engine>
+		inline constexpr bool IsFull64BitEngine<Engine> =
 			(sizeof(typename Engine::result_type) >= sizeof(std::uint64_t) &&
 			 static_cast<std::uint64_t>(Engine::min()) == 0ULL &&
 			 static_cast<std::uint64_t>(Engine::max()) == (std::numeric_limits<std::uint64_t>::max)());
 
 		template <class Engine>
-		inline constexpr bool IsFull32BitEngine =
+		inline constexpr bool IsFull32BitEngine = false;
+
+		template <RandomEngine Engine>
+		inline constexpr bool IsFull32BitEngine<Engine> =
 			(static_cast<std::uint64_t>(Engine::min()) == 0ULL &&
 			 static_cast<std::uint64_t>(Engine::max()) == 0xFFFFFFFFULL);
 
@@ -1018,7 +1034,7 @@ namespace RandX
 			throw std::domain_error("RandBeta: unable to normalize Gamma samples");
 		}
 
-		template <class Engine>
+		template <RandomEngine Engine>
 		[[nodiscard]]
 		inline std::uint64_t Generate64Bits(Engine& engine)
 		{
@@ -1100,6 +1116,9 @@ namespace RandX
 		&& (std::integral<T> || std::floating_point<T>);
 
 	}
+
+	using detail::RandomEngine;
+	using detail::is_random_engine_v;
 
 	// ========================================================================
 	// 流式运算符 operator<< / operator>>
@@ -1791,7 +1810,7 @@ namespace RandX
 	/// @param engine 自定义随机数引擎
 	/// @param p 为 true 的概率（默认 0.5）
 	/// @return 以概率 p 返回 true
-	template <class Engine>
+	template <detail::RandomEngine Engine>
 	[[nodiscard]]
 	inline bool RandBool(Engine& engine, double p = 0.5)
 	{
@@ -1814,7 +1833,7 @@ namespace RandX
 	/// @param engine 自定义随机数引擎
 	/// @param p 成功概率（默认 0.5）
 	/// @return 以概率 p 返回 true
-	template <class Engine>
+	template <detail::RandomEngine Engine>
 	[[nodiscard]]
 	inline bool RandBernoulli(Engine& engine, double p = 0.5)
 	{
@@ -1853,7 +1872,7 @@ namespace RandX
 	/// @param min 下界字符（含）
 	/// @param max 上界字符（含）
 	/// @return 均匀分布于 [min, max] 的随机字符
-	template <detail::Character CharT, class Engine>
+	template <detail::Character CharT, detail::RandomEngine Engine>
 	[[nodiscard]]
 	inline CharT RandChar(Engine& engine, CharT min, CharT max)
 	{
@@ -1869,7 +1888,7 @@ namespace RandX
 	/// @param engine 自定义随机数引擎
 	/// @param max 上界字符（含）
 	/// @return 均匀分布于 [CharT{}, max] 的随机字符
-	template <detail::Character CharT = char, class Engine>
+	template <detail::Character CharT = char, detail::RandomEngine Engine>
 	[[nodiscard]]
 	inline CharT RandChar(Engine& engine, CharT max)
 	{
@@ -1953,7 +1972,7 @@ namespace RandX
 	/// @param first 范围起始迭代器
 	/// @param last 范围结束迭代器/哨兵
 	/// @return 指向随机选取元素的迭代器
-	template <std::random_access_iterator It, std::sized_sentinel_for<It> Sentinel, class Engine>
+	template <std::random_access_iterator It, std::sized_sentinel_for<It> Sentinel, detail::RandomEngine Engine>
 	[[nodiscard]]
 	inline It RandElement(Engine& engine, It first, Sentinel last)
 	{
@@ -1969,7 +1988,7 @@ namespace RandX
 	/// @param first 范围起始迭代器
 	/// @param last 范围结束迭代器/哨兵
 	/// @return 随机选取的元素值
-	template <std::input_iterator It, std::sentinel_for<It> Sentinel, class Engine>
+	template <std::input_iterator It, std::sentinel_for<It> Sentinel, detail::RandomEngine Engine>
 		requires (!std::random_access_iterator<It> || !std::sized_sentinel_for<Sentinel, It>)
 	[[nodiscard]]
 	inline std::iter_value_t<It> RandElement(Engine& engine, It first, Sentinel last)
@@ -2012,7 +2031,7 @@ namespace RandX
 	/// @param mean 均值（默认 0）
 	/// @param stddev 标准差（默认 1）
 	/// @return 服从 N(mean, stddev) 的随机数
-	template <class Engine, std::floating_point T = double>
+	template <detail::RandomEngine Engine, std::floating_point T = double>
 	[[nodiscard]]
 	inline T RandNormal(Engine& engine, T mean = T{0}, T stddev = T{1})
 	{
@@ -2073,7 +2092,7 @@ namespace RandX
 	/// @param last 结束迭代器/哨兵
 	/// @param min 随机数下界（含）
 	/// @param max 随机数上界（含）
-	template <class It, class Sentinel, class T, class Engine>
+	template <class It, class Sentinel, class T, detail::RandomEngine Engine>
 		requires detail::RandFillable<It, T> && std::integral<T> && (!std::same_as<std::remove_cv_t<T>, bool>) && std::sentinel_for<Sentinel, It>
 	inline void RandFill(Engine& engine, It first, Sentinel last, T min, T max)
 	{
@@ -2092,7 +2111,7 @@ namespace RandX
 	/// @param last 结束迭代器/哨兵
 	/// @param min 随机数下界（含）
 	/// @param max 随机数上界（不含）
-	template <class It, class Sentinel, std::floating_point T, class Engine>
+	template <class It, class Sentinel, std::floating_point T, detail::RandomEngine Engine>
 		requires std::output_iterator<It, T> && std::sentinel_for<Sentinel, It>
 	inline void RandFill(Engine& engine, It first, Sentinel last, T min, T max)
 	{
@@ -2134,7 +2153,7 @@ namespace RandX
 	/// @param max 随机数上界（含）
 	/// @param n 生成数量
 	/// @return 含 n 个均匀分布于 [min, max] 的随机整数 vector
-	template <std::integral T = int, class Engine>
+	template <std::integral T = int, detail::RandomEngine Engine>
 		requires (!std::same_as<std::remove_cv_t<T>, bool>)
 	[[nodiscard]]
 	inline std::vector<T> RandVector(Engine& engine, T min, T max, std::size_t n)
@@ -2157,7 +2176,7 @@ namespace RandX
 	/// @param max 随机数上界（不含）
 	/// @param n 生成数量
 	/// @return 含 n 个均匀分布于 [min, max) 的随机浮点数 vector
-	template <std::floating_point T = double, class Engine>
+	template <std::floating_point T = double, detail::RandomEngine Engine>
 	[[nodiscard]]
 	inline std::vector<T> RandVector(Engine& engine, T min, T max, std::size_t n)
 	{
@@ -2189,7 +2208,7 @@ namespace RandX
 	/// @param engine 自定义随机数引擎
 	/// @param weights 权重容器（元素为数值类型）
 	/// @return 按权重概率选中的索引值
-	template <class Engine, class WeightContainer>
+	template <detail::RandomEngine Engine, class WeightContainer>
 	[[nodiscard]]
 	inline typename WeightContainer::size_type RandWeighted(Engine& engine, const WeightContainer& weights)
 	{
@@ -2214,7 +2233,7 @@ namespace RandX
 	/// @param engine 自定义随机数引擎
 	/// @param dist 预构建的 std::discrete_distribution 对象
 	/// @return 按权重概率选中的索引值
-	template <class Engine, class IntType>
+	template <detail::RandomEngine Engine, class IntType>
 	[[nodiscard]]
 	inline IntType RandWeighted(Engine& engine, std::discrete_distribution<IntType>& dist)
 	{
@@ -2226,7 +2245,7 @@ namespace RandX
 	/// @param min 下界（含）
 	/// @param max 上界（含）
 	/// @return 均匀分布于 [min, max] 的随机整数
-	template <std::integral T, class Engine>
+	template <std::integral T, detail::RandomEngine Engine>
 		requires (!std::same_as<std::remove_cv_t<T>, bool>)
 	[[nodiscard]]
 	inline T RandInt(Engine& engine, T min, T max)
@@ -2243,7 +2262,7 @@ namespace RandX
 	/// @tparam T 浮点数类型（float / double）
 	/// @param engine 伪随机数生成引擎（自动兼容 32 位与 64 位输出引擎）
 	/// @return [0, 1) 范围内的无偏伪随机浮点数
-	template <std::floating_point T, class Engine>
+	template <std::floating_point T = double, detail::RandomEngine Engine>
 	[[nodiscard]]
 	inline constexpr T RandCanonical(Engine& engine)
 	{
@@ -2294,7 +2313,7 @@ namespace RandX
 	/// @param min 下界（含，默认 0）
 	/// @param max 上界（不含，默认 1）
 	/// @return 均匀分布于 [min, max) 的随机浮点数
-	template <std::floating_point T, class Engine>
+	template <std::floating_point T = double, detail::RandomEngine Engine>
 	[[nodiscard]]
 	inline T RandReal(Engine& engine, T min = T{0}, T max = T{1})
 	{
@@ -2395,7 +2414,7 @@ namespace RandX
 	/// @param engine 自定义随机数引擎
 	/// @param cs 预设字符集枚举
 	/// @return 从字符集中均匀选取的 char
-	template <class Engine>
+	template <detail::RandomEngine Engine>
 	[[nodiscard]]
 	inline char RandChar(Engine& engine, CharSet cs)
 	{
@@ -2553,7 +2572,7 @@ namespace RandX
 	/// @param n 抽取数量
 	/// @return 含 n 个随机选取元素的 vector
 	// 引擎重载 —— 随机访问迭代器
-	template <std::random_access_iterator It, std::sized_sentinel_for<It> Sentinel, class Engine>
+	template <std::random_access_iterator It, std::sized_sentinel_for<It> Sentinel, detail::RandomEngine Engine>
 	[[nodiscard]]
 	inline std::vector<std::iter_value_t<It>>
 	RandSample(Engine& engine, It first, Sentinel last, std::iter_difference_t<It> n)
@@ -2610,7 +2629,7 @@ namespace RandX
 	/// @param n 抽取数量
 	/// @return 含 n 个随机选取元素的 vector
 	// 引擎重载 —— 输入迭代器（reservoir）
-	template <std::input_iterator It, std::sentinel_for<It> Sentinel, class Engine>
+	template <std::input_iterator It, std::sentinel_for<It> Sentinel, detail::RandomEngine Engine>
 		requires (!std::random_access_iterator<It> || !std::sized_sentinel_for<Sentinel, It>)
 	[[nodiscard]]
 	inline std::vector<std::iter_value_t<It>>
@@ -2700,7 +2719,7 @@ namespace RandX
 	/// @param charset 可用字符集
 	/// @return 从 charset 中均匀选取字符组成的随机字符串
 	/// @throw std::invalid_argument charset 为空时抛出
-	template <class Engine>
+	template <detail::RandomEngine Engine>
 	[[nodiscard]]
 	inline std::string RandString(Engine& engine, std::size_t n, std::string_view charset)
 	{
@@ -2718,7 +2737,7 @@ namespace RandX
 	/// @param n 字符串长度
 	/// @param cs 预设字符集枚举
 	/// @return 从预设字符集中均匀选取字符组成的随机字符串
-	template <class Engine>
+	template <detail::RandomEngine Engine>
 	[[nodiscard]]
 	inline std::string RandString(Engine& engine, std::size_t n, CharSet cs)
 	{
@@ -2742,7 +2761,7 @@ namespace RandX
 	/// @param engine 自定义随机数引擎
 	/// @param lambda 速率参数（默认 1，均值 = 1/lambda）
 	/// @return 服从 Exp(lambda) 的随机数
-	template <class Engine, std::floating_point T = double>
+	template <detail::RandomEngine Engine, std::floating_point T = double>
 	[[nodiscard]]
 	inline T RandExp(Engine& engine, T lambda = T{1})
 	{
@@ -2770,7 +2789,7 @@ namespace RandX
 	/// @param engine 自定义随机数引擎
 	/// @param mean 均值参数（默认 1.0）
 	/// @return 服从 Poisson(mean) 的随机整数
-	template <class Engine, std::integral T = int>
+	template <detail::RandomEngine Engine, std::integral T = int>
 	[[nodiscard]]
 	inline T RandPoisson(Engine& engine, double mean = 1.0)
 	{
@@ -2800,7 +2819,7 @@ namespace RandX
 	/// @param alpha 形状参数（默认 1）
 	/// @param beta 尺度参数（默认 1）
 	/// @return 服从 Gamma(alpha, beta) 的随机数
-	template <class Engine, std::floating_point T = double>
+	template <detail::RandomEngine Engine, std::floating_point T = double>
 	[[nodiscard]]
 	inline T RandGamma(Engine& engine, T alpha = T{1}, T beta = T{1})
 	{
@@ -2829,7 +2848,7 @@ namespace RandX
 	/// @param t 试验次数（默认 1）
 	/// @param p 每次成功概率（默认 0.5）
 	/// @return 服从 B(t, p) 的随机整数
-	template <class Engine, std::integral T = int>
+	template <detail::RandomEngine Engine, std::integral T = int>
 	[[nodiscard]]
 	inline T RandBinomial(Engine& engine, T t = 1, double p = 0.5)
 	{
@@ -2858,7 +2877,7 @@ namespace RandX
 	/// @param mean 对数均值（默认 0）
 	/// @param stddev 对数标准差（默认 1）
 	/// @return 服从 LogNormal(mean, stddev) 的随机数
-	template <class Engine, std::floating_point T = double>
+	template <detail::RandomEngine Engine, std::floating_point T = double>
 	[[nodiscard]]
 	inline T RandLogNormal(Engine& engine, T mean = T{0}, T stddev = T{1})
 	{
@@ -2885,7 +2904,7 @@ namespace RandX
 	/// @param engine 自定义随机数引擎
 	/// @param p 每次成功概率（默认 0.5）
 	/// @return 服从 Geometric(p) 的随机整数
-	template <class Engine, std::integral T = int>
+	template <detail::RandomEngine Engine, std::integral T = int>
 	[[nodiscard]]
 	inline T RandGeometric(Engine& engine, double p = 0.5)
 	{
@@ -2914,7 +2933,7 @@ namespace RandX
 	/// @param a 位置参数（默认 0）
 	/// @param b 尺度参数（默认 1）
 	/// @return 服从 Cauchy(a, b) 的随机数
-	template <class Engine, std::floating_point T = double>
+	template <detail::RandomEngine Engine, std::floating_point T = double>
 	[[nodiscard]]
 	inline T RandCauchy(Engine& engine, T a = T{0}, T b = T{1})
 	{
@@ -2943,7 +2962,7 @@ namespace RandX
 	/// @param a 形状参数（默认 1）
 	/// @param b 尺度参数（默认 1）
 	/// @return 服从 Weibull(a, b) 的随机数
-	template <class Engine, std::floating_point T = double>
+	template <detail::RandomEngine Engine, std::floating_point T = double>
 	[[nodiscard]]
 	inline T RandWeibull(Engine& engine, T a = T{1}, T b = T{1})
 	{
@@ -2972,7 +2991,7 @@ namespace RandX
 	/// @param a 位置参数（默认 0）
 	/// @param b 尺度参数（默认 1）
 	/// @return 服从 ExtremeValue(a, b) 的随机数
-	template <class Engine, std::floating_point T = double>
+	template <detail::RandomEngine Engine, std::floating_point T = double>
 	[[nodiscard]]
 	inline T RandExtremeValue(Engine& engine, T a = T{0}, T b = T{1})
 	{
@@ -2999,7 +3018,7 @@ namespace RandX
 	/// @param engine 自定义随机数引擎
 	/// @param n 自由度（默认 1）
 	/// @return 服从 ChiSquared(n) 的随机数
-	template <class Engine, std::floating_point T = double>
+	template <detail::RandomEngine Engine, std::floating_point T = double>
 	[[nodiscard]]
 	inline T RandChiSquared(Engine& engine, T n = T{1})
 	{
@@ -3026,7 +3045,7 @@ namespace RandX
 	/// @param engine 自定义随机数引擎
 	/// @param n 自由度（默认 1）
 	/// @return 服从 StudentT(n) 的随机数
-	template <class Engine, std::floating_point T = double>
+	template <detail::RandomEngine Engine, std::floating_point T = double>
 	[[nodiscard]]
 	inline T RandStudentT(Engine& engine, T n = T{1})
 	{
@@ -3055,7 +3074,7 @@ namespace RandX
 	/// @param m 第一自由度（默认 1）
 	/// @param n 第二自由度（默认 1）
 	/// @return 服从 FisherF(m, n) 的随机数
-	template <class Engine, std::floating_point T = double>
+	template <detail::RandomEngine Engine, std::floating_point T = double>
 	[[nodiscard]]
 	inline T RandFisherF(Engine& engine, T m = T{1}, T n = T{1})
 	{
@@ -3083,7 +3102,7 @@ namespace RandX
 	/// @param b 形状参数（默认 1）
 	/// @return 服从 Beta(a, b) 的随机数
 	/// @note 无 STL 对应，自实现 Gamma(a)/(Gamma(a)+Gamma(b))
-	template <class Engine, std::floating_point T = double>
+	template <detail::RandomEngine Engine, std::floating_point T = double>
 	[[nodiscard]]
 	inline T RandBeta(Engine& engine, T a = T{1}, T b = T{1})
 	{
@@ -3112,7 +3131,7 @@ namespace RandX
 	/// @tparam N 位数（1-64，且不超过 T 的位宽）
 	/// @param engine 自定义随机数引擎
 	/// @return 均匀分布于 [0, 2^N) 的随机整数
-	template <int N, std::integral T = std::uint64_t, class Engine>
+	template <int N, std::integral T = std::uint64_t, detail::RandomEngine Engine>
 		requires (!std::same_as<std::remove_cv_t<T>, bool>) && (N > 0) && (N <= 64) && (N <= std::numeric_limits<T>::digits)
 	[[nodiscard]]
 	inline T RandBits(Engine& engine)
@@ -3166,7 +3185,7 @@ namespace RandX
 	/// @return 格式为 xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx 的 UUID 字符串
 	/// @warning 使用默认 PRNG（非 CSPRNG），不适用于安全敏感标识符；
 	///          安全场景请改用 ChaCha20 引擎重载或 SecureRandomBytes
-	template <class Engine>
+	template <detail::RandomEngine Engine>
 	[[nodiscard]]
 	inline std::string RandUUID(Engine& engine)
 	{
