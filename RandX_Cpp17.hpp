@@ -2756,7 +2756,13 @@ namespace RandX
 		if (n <= 0 || size <= 0)
 			return {};
 		if (n >= size)
-			return std::vector<T>(first, last);
+		{
+			std::vector<T> all;
+			all.reserve(static_cast<std::size_t>(size));
+			for (Diff i = 0; i < size; ++i)
+				all.push_back(first[i]);
+			return all;
+		}
 
 		auto& rng = DefaultEngine();
 
@@ -2853,7 +2859,13 @@ namespace RandX
 		if (n <= 0 || size <= 0)
 			return {};
 		if (n >= size)
-			return std::vector<T>(first, last);
+		{
+			std::vector<T> all;
+			all.reserve(static_cast<std::size_t>(size));
+			for (Diff i = 0; i < size; ++i)
+				all.push_back(first[i]);
+			return all;
+		}
 
 		const auto sizeU = static_cast<std::uint64_t>(size);
 		const auto nU = static_cast<std::uint64_t>(n);
