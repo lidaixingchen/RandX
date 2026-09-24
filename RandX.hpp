@@ -2647,30 +2647,6 @@ namespace RandX
 	//	扩展便捷 API
 	//
 
-	/// @brief 无放回抽样：从容器中随机抽取 n 个元素（Fisher-Yates 前 n 步）
-	/// @param c 源容器
-	/// @param n 抽取数量（若 n >= 容器大小则返回全部元素的副本）
-	/// @return 含 n 个随机选取元素的 vector
-	template <std::ranges::random_access_range Container>
-	[[nodiscard]]
-	inline auto RandSample(const Container& c, std::size_t n)
-	{
-		using T = std::ranges::range_value_t<Container>;
-		using Size = std::size_t;
-		if (n == 0 || std::empty(c)) return std::vector<T>{};
-		std::vector<T> pool(std::ranges::begin(c), std::ranges::end(c));
-		const Size size = static_cast<Size>(pool.size());
-		if (n >= size) return pool;
-		auto& rng = DefaultEngine();
-		for (Size i = 0; i < n; ++i)
-		{
-			std::uniform_int_distribution<Size> dist(i, size - 1);
-			const Size j = dist(rng);
-			std::ranges::iter_swap(pool.begin() + i, pool.begin() + j);
-		}
-		pool.erase(pool.begin() + n, pool.end());
-		return pool;
-	}
 
 	// ============================================================
 	// RandSample 迭代器版
@@ -2739,6 +2715,43 @@ namespace RandX
 		for (Diff i = 0; i < n; ++i)
 			result.push_back(first[indices[static_cast<std::size_t>(i)]]);
 		return result;
+	}
+
+	/// @brief 无放回抽样：从容器中随机抽取 n 个元素
+	/// @param c 源容器（支持非 common range 等 random_access_range）
+	/// @param n 抽取数量（若 n >= 容器大小则返回全部元素的副本）
+	/// @return 含 n 个随机选取元素的 vector
+	template <std::ranges::random_access_range Container>
+	[[nodiscard]]
+	inline auto RandSample(const Container& c, std::size_t n)
+	{
+		using T = std::ranges::range_value_t<Container>;
+		using Size = std::size_t;
+		if (n == 0) return std::vector<T>{};
+
+		std::vector<T> pool;
+		if constexpr (std::ranges::sized_range<Container>)
+		{
+			const auto sz = std::ranges::size(c);
+			if (sz == 0) return std::vector<T>{};
+			pool.reserve(static_cast<Size>(sz));
+		}
+		for (auto&& elem : c)
+		{
+			pool.push_back(elem);
+		}
+		const Size size = pool.size();
+		if (size == 0 || n >= size) return pool;
+
+		auto& rng = DefaultEngine();
+		for (Size i = 0; i < n; ++i)
+		{
+			std::uniform_int_distribution<Size> dist(i, size - 1);
+			const Size j = dist(rng);
+			std::ranges::iter_swap(pool.begin() + i, pool.begin() + j);
+		}
+		pool.erase(pool.begin() + n, pool.end());
+		return pool;
 	}
 
 	/// @brief 无放回抽样（输入迭代器版，reservoir sampling Algorithm R）
@@ -3115,15 +3128,7 @@ namespace RandX
 	[[nodiscard]]
 	inline T RandGeometric(double p = 0.5)
 	{
-		if (!std::isfinite(p) || p <= 0.0 || p > 1.0)
-			throw std::invalid_argument("RandGeometric: p must be in (0, 1]");
-		if (p == 1.0)
-			return T{0};
-		constexpr double maxT = static_cast<double>((std::numeric_limits<T>::max)());
-		if (p < 1.0 / (maxT + 1.0))
-			throw std::invalid_argument("RandGeometric: p is too small for return type");
-		std::geometric_distribution<T> dist(p);
-		return dist(DefaultEngine());
+		return RandGeometric<Xoshiro256StarStar, T>(DefaultEngine(), p);
 	}
 
 	/// @brief 生成几何分布随机数（指定引擎重载）
@@ -3141,6 +3146,18 @@ namespace RandX
 		constexpr double maxT = static_cast<double>((std::numeric_limits<T>::max)());
 		if (p < 1.0 / (maxT + 1.0))
 			throw std::invalid_argument("RandGeometric: p is too small for return type");
+		if ((1.0 - p) == 1.0 || p < 1e-15)
+		{
+			const double denom = -std::log1p(-p);
+			std::exponential_distribution<double> exp_dist(1.0);
+			const double e = exp_dist(engine);
+			const double val = e / denom;
+			if (!std::isfinite(val) || val >= maxT + 1.0)
+			{
+				throw std::overflow_error("RandGeometric: generated value exceeds return type range");
+			}
+			return static_cast<T>(val);
+		}
 		std::geometric_distribution<T> dist(p);
 		return dist(engine);
 	}
@@ -3320,19 +3337,31 @@ namespace RandX
 		template <class T>
 		using BetaWorkType = std::conditional_t<std::is_same_v<T, float>, double, T>;
 
+		template <class WorkT>
+		struct DecomposedGammaLog
+		{
+			WorkT base_log{0};
+			WorkT exp_val{0};
+			WorkT shape{1};
+			bool has_extra{false};
+		};
+
 		template <class WorkT, class Engine>
-		inline void SampleGammaLogScale(Engine& engine, WorkT shape, WorkT& out_d, WorkT& out_e)
+		inline void SampleGammaLogScale(Engine& engine, WorkT shape, DecomposedGammaLog<WorkT>& out)
 		{
 			WorkT effective_shape = shape;
-			WorkT extra_log = WorkT{0};
+			out.shape = shape;
 			if (shape < WorkT{1})
 			{
 				effective_shape = shape + WorkT{1};
-				const WorkT u_rand = RandCanonical<WorkT>(engine);
-				const WorkT u_clamped = (u_rand <= WorkT{0}) ? std::numeric_limits<WorkT>::min() : u_rand;
-				const WorkT raw_extra = std::log(u_clamped) / shape;
-				constexpr WorkT MinLog = -std::numeric_limits<WorkT>::max() * WorkT{0.5};
-				extra_log = (raw_extra < MinLog) ? MinLog : raw_extra;
+				std::exponential_distribution<WorkT> exp_dist(WorkT{1});
+				out.exp_val = exp_dist(engine);
+				out.has_extra = true;
+			}
+			else
+			{
+				out.exp_val = WorkT{0};
+				out.has_extra = false;
 			}
 
 			const WorkT d = effective_shape - (WorkT{1} / WorkT{3});
@@ -3361,8 +3390,7 @@ namespace RandX
 				const WorkT z4 = z2 * z2;
 				if (u < WorkT{1} - WorkT{0.0331} * z4)
 				{
-					out_d = d;
-					out_e = log_v + extra_log;
+					out.base_log = std::log(d) + log_v;
 					return;
 				}
 
@@ -3387,8 +3415,7 @@ namespace RandX
 
 				if (std::log(u) < diff)
 				{
-					out_d = d;
-					out_e = log_v + extra_log;
+					out.base_log = std::log(d) + log_v;
 					return;
 				}
 			}
@@ -3397,24 +3424,43 @@ namespace RandX
 		}
 
 		template <class WorkT>
-		inline WorkT ComputeBetaSampleFromLogScale(WorkT d_a, WorkT e_a, WorkT d_b, WorkT e_b)
+		inline WorkT ComputeBetaSampleFromLogScale(const DecomposedGammaLog<WorkT>& a_sample, const DecomposedGammaLog<WorkT>& b_sample)
 		{
-			WorkT log_ratio = WorkT{0};
-			const WorkT diff_d = d_b - d_a;
-			if (d_a == d_b)
+			const WorkT base_diff = b_sample.base_log - a_sample.base_log;
+			WorkT delta = WorkT{0};
+
+			if (a_sample.has_extra && b_sample.has_extra)
 			{
-				log_ratio = WorkT{0};
+				const WorkT sa = a_sample.shape;
+				const WorkT sb = b_sample.shape;
+				if (sa == sb)
+				{
+					const WorkT diff = a_sample.exp_val - b_sample.exp_val;
+					delta = diff / sa;
+				}
+				else if (sa < sb)
+				{
+					const WorkT r = sa / sb;
+					const WorkT diff = a_sample.exp_val - r * b_sample.exp_val;
+					delta = diff / sa;
+				}
+				else
+				{
+					const WorkT r = sb / sa;
+					const WorkT diff = r * a_sample.exp_val - b_sample.exp_val;
+					delta = diff / sb;
+				}
 			}
-			else if (std::abs(diff_d) < WorkT{0.5} * d_a)
+			else if (a_sample.has_extra && !b_sample.has_extra)
 			{
-				log_ratio = std::log1p(diff_d / d_a);
+				delta = a_sample.exp_val / a_sample.shape;
 			}
-			else
+			else if (!a_sample.has_extra && b_sample.has_extra)
 			{
-				log_ratio = std::log(d_b) - std::log(d_a);
+				delta = -b_sample.exp_val / b_sample.shape;
 			}
 
-			const WorkT L = log_ratio + (e_b - e_a);
+			const WorkT L = base_diff + delta;
 
 			if (std::isnan(L))
 			{
@@ -3433,7 +3479,17 @@ namespace RandX
 				return exp_neg_L / (WorkT{1} + exp_neg_L);
 			}
 
-			return WorkT{1} / (WorkT{1} + std::exp(L));
+			const WorkT exp_L = std::exp(L);
+			return WorkT{1} / (WorkT{1} + exp_L);
+		}
+
+		template <class WorkT>
+		inline WorkT ComputeBetaSampleFromLogScale(WorkT d_a, WorkT e_a, WorkT d_b, WorkT e_b)
+		{
+			DecomposedGammaLog<WorkT> sample_a, sample_b;
+			sample_a.base_log = std::log(d_a) + e_a;
+			sample_b.base_log = std::log(d_b) + e_b;
+			return ComputeBetaSampleFromLogScale(sample_a, sample_b);
 		}
 	}
 
@@ -3471,10 +3527,10 @@ namespace RandX
 		if (wa >= LargeShapeThreshold || wb >= LargeShapeThreshold ||
 		    wa <= SmallShapeThreshold || wb <= SmallShapeThreshold)
 		{
-			WorkT da{0}, ea{0}, db{0}, eb{0};
-			detail::SampleGammaLogScale(engine, wa, da, ea);
-			detail::SampleGammaLogScale(engine, wb, db, eb);
-			const WorkT res = detail::ComputeBetaSampleFromLogScale(da, ea, db, eb);
+			detail::DecomposedGammaLog<WorkT> sample_a, sample_b;
+			detail::SampleGammaLogScale(engine, wa, sample_a);
+			detail::SampleGammaLogScale(engine, wb, sample_b);
+			const WorkT res = detail::ComputeBetaSampleFromLogScale(sample_a, sample_b);
 			return static_cast<T>(res);
 		}
 		else

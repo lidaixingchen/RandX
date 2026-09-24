@@ -23,6 +23,7 @@ from run_practrand import (
     classify_result,
     compute_exit_code,
     compute_overall_exit_code,
+    format_bytes_for_practrand,
     parse_length_to_bytes,
     parse_practrand_output,
     test_engine,
@@ -39,6 +40,22 @@ class TestPractRandLengthParser(unittest.TestCase):
         self.assertEqual(parse_length_to_bytes("4GB"), 4 * 1024 * 1024 * 1024)
         self.assertEqual(parse_length_to_bytes("1TB"), 1024 * 1024 * 1024 * 1024)
         self.assertEqual(parse_length_to_bytes("1024B"), 1024)
+        self.assertEqual(parse_length_to_bytes("1K"), 1024)
+        self.assertEqual(parse_length_to_bytes("32M"), 32 * 1024 * 1024)
+        self.assertEqual(parse_length_to_bytes("4G"), 4 * 1024 * 1024 * 1024)
+
+    def test_bare_number_rejected(self):
+        with self.assertRaises(ValueError):
+            parse_length_to_bytes("30")
+        with self.assertRaises(ValueError):
+            parse_length_to_bytes("1024")
+
+    def test_format_bytes_for_practrand(self):
+        self.assertEqual(format_bytes_for_practrand(1024), "1K")
+        self.assertEqual(format_bytes_for_practrand(32 * 1024 * 1024), "32M")
+        self.assertEqual(format_bytes_for_practrand(4 * 1024 * 1024 * 1024), "4G")
+        self.assertEqual(format_bytes_for_practrand(1024 * 1024 * 1024 * 1024), "1T")
+        self.assertEqual(format_bytes_for_practrand(30), "30B")
 
 
 class TestPractRandOutputParser(unittest.TestCase):

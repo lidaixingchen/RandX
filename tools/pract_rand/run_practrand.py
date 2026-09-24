@@ -220,20 +220,54 @@ class TestResult:
 # ============================================================================
 
 def parse_length_to_bytes(length_str: str) -> int:
-    """将人类可读长度（如 4GB, 512MB, 1TB）转换为字节数。"""
+    """将人类可读长度（如 4GB, 512MB, 1TB, 1024B）转换为字节数。
+
+    必须显式指定单位（B, KB, MB, GB, TB），禁止裸数字以避免与 PractRand 内部的指数规则发生歧义。
+    """
     s = length_str.strip().upper()
     multipliers = {
-        "KB": 1024,
-        "MB": 1024**2,
-        "GB": 1024**3,
         "TB": 1024**4,
+        "GB": 1024**3,
+        "MB": 1024**2,
+        "KB": 1024,
+        "T": 1024**4,
+        "G": 1024**3,
+        "M": 1024**2,
+        "K": 1024,
+        "B": 1,
     }
     for unit, mult in multipliers.items():
         if s.endswith(unit):
-            return int(float(s[: -len(unit)].strip()) * mult)
-    if s.endswith("B"):
-        return int(float(s[:-1].strip()))
-    return int(float(s))
+            num_part = s[:-len(unit)].strip()
+            if not num_part:
+                raise ValueError(f"无效的长度格式: '{length_str}'（缺少数值部分）")
+            val = float(num_part)
+            if val <= 0:
+                raise ValueError(f"长度必须为正数: '{length_str}'")
+            return int(val * mult)
+
+    raise ValueError(
+        f"长度 '{length_str}' 格式无效或缺少单位。"
+        "为消除字节数与 PractRand 二进制指数的歧义，必须显式指定单位（例如 '32MB', '4GB', '1TB', '1024B'）。"
+    )
+
+
+def format_bytes_for_practrand(target_bytes: int) -> str:
+    """将目标字节数转换为 PractRand -tlmin / -tlmax 接受的无歧义参数。
+
+    优先使用大单位整除形式（如 4G, 512M, 64K），若非 1024 整数倍则以 B 为后缀。
+    """
+    if target_bytes <= 0:
+        raise ValueError(f"目标字节数必须为正数: {target_bytes}")
+    if target_bytes % (1024**4) == 0:
+        return f"{target_bytes // (1024**4)}T"
+    if target_bytes % (1024**3) == 0:
+        return f"{target_bytes // (1024**3)}G"
+    if target_bytes % (1024**2) == 0:
+        return f"{target_bytes // (1024**2)}M"
+    if target_bytes % 1024 == 0:
+        return f"{target_bytes // 1024}K"
+    return f"{target_bytes}B"
 
 
 def get_git_commit(cwd: Path) -> str:
@@ -637,6 +671,7 @@ def test_engine(
     gen_log_path = LOGS_DIR / f"{engine}_{timestamp}_generator.log"
 
     target_bytes = parse_length_to_bytes(length)
+    practrand_len = format_bytes_for_practrand(target_bytes)
     is_64bit = engine in ENGINES_64BIT
     stream_mode = "stdin64" if is_64bit else "stdin32"
 
@@ -648,7 +683,7 @@ def test_engine(
         if engine == CSPRNG_ENGINE
         else [*gen_base, engine, str(seed)]
     )
-    pr_cmd = [*pr_base, stream_mode, "-tlmin", length, "-tlmax", length, "-te", "1"]
+    pr_cmd = [*pr_base, stream_mode, "-tlmin", practrand_len, "-tlmax", practrand_len, "-te", "1"]
 
     result = TestResult(
         engine=engine,

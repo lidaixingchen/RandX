@@ -16,6 +16,7 @@
 #include <list>
 #include <random>
 #include <ranges>
+#include <set>
 #include <sstream>
 #include <string>
 #include <type_traits>
@@ -3752,6 +3753,69 @@ TEST_SUITE("BetaDistributionScale")
         CHECK_THROWS_AS((void)RandX::RandBeta(1.0, -1.0), std::invalid_argument);
         CHECK_THROWS_AS((void)RandX::RandBeta(nan, 1.0), std::invalid_argument);
         CHECK_THROWS_AS((void)RandX::RandBeta(1.0, inf), std::invalid_argument);
+    }
+
+    TEST_CASE("RandBeta 极小参数采样分布验证（消除虚假0.5）")
+    {
+        RandX::Xoshiro256StarStar rng(12345);
+        const double small_params[] = {1e-308, 1e-310, 1e-320};
+
+        for (double p : small_params)
+        {
+            double sum = 0.0;
+            double sq_sum = 0.0;
+            int count_half = 0;
+            constexpr int N = 2000;
+            for (int i = 0; i < N; ++i)
+            {
+                double val = RandX::RandBeta(rng, p, p);
+                CHECK(std::isfinite(val));
+                CHECK(val >= 0.0);
+                CHECK(val <= 1.0);
+                if (val == 0.5)
+                {
+                    ++count_half;
+                }
+                sum += val;
+                sq_sum += val * val;
+            }
+            CHECK(count_half == 0);
+            const double mean = sum / N;
+            const double var = (sq_sum / N) - (mean * mean);
+            CHECK(mean > 0.4);
+            CHECK(mean < 0.6);
+            CHECK(var > 0.2);
+        }
+    }
+
+    TEST_CASE("RandGeometric 小概率参数与大整数类型安全转换")
+    {
+        RandX::Xoshiro256StarStar rng(12345);
+        for (int i = 0; i < 50; ++i)
+        {
+            auto v64 = RandX::RandGeometric<RandX::Xoshiro256StarStar, std::int64_t>(rng, 1e-17);
+            CHECK(v64 >= 0);
+        }
+        auto v_default = RandX::RandGeometric<std::int64_t>(1e-17);
+        CHECK(v_default >= 0);
+    }
+
+    TEST_CASE("RandSample 容器版支持非 common random_access_range")
+    {
+        auto population = std::views::iota(0, 10L);
+        static_assert(std::ranges::random_access_range<decltype(population)>);
+        static_assert(std::ranges::sized_range<decltype(population)>);
+        static_assert(!std::ranges::common_range<decltype(population)>);
+
+        auto sample = RandX::RandSample(population, std::size_t{3});
+        CHECK(sample.size() == 3);
+        for (int val : sample)
+        {
+            CHECK(val >= 0);
+            CHECK(val < 10);
+        }
+        std::set<int> unique_vals(sample.begin(), sample.end());
+        CHECK(unique_vals.size() == 3);
     }
 }
 

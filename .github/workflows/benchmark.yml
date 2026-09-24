@@ -68,19 +68,44 @@ jobs:
 
       - name: Find Baseline Run
         id: baseline-run
-        continue-on-error: true
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          # 查询 master 分支最近一次成功、且非当前 commit 的 Benchmark run，
-          # 其上传的 benchmark-baseline artifact 作为本次对比基线
-          RUN_ID=$(gh api "repos/${{ github.repository }}/actions/workflows/benchmark.yml/runs?branch=master&status=success&per_page=20" \
-            --jq '.workflow_runs[] | select(.head_sha != "${{ github.sha }}") | .id' | head -n 1)
+          # 查询仓库历史上是否存在 benchmark-baseline artifact
+          TOTAL_COUNT=$(gh api "repos/${{ github.repository }}/actions/artifacts?name=benchmark-baseline" \
+            --jq '.total_count // 0')
+          echo "total-count=$TOTAL_COUNT" >> "$GITHUB_OUTPUT"
+
+          # 查询 master 分支最近一次有效（未过期）且非当前 commit 的 baseline artifact 所在 run
+          RUN_ID=$(gh api "repos/${{ github.repository }}/actions/artifacts?name=benchmark-baseline&per_page=30" \
+            --jq '[.artifacts[] | select(.expired == false and .workflow_run.head_branch == "master" and .workflow_run.head_sha != "${{ github.sha }}")] | .[0].workflow_run.id // ""')
           echo "run-id=${RUN_ID:-}" >> "$GITHUB_OUTPUT"
 
+      - name: Check Baseline Availability
+        id: check-baseline
+        run: |
+          IS_FORCE="${{ inputs.force_update_baseline == true || inputs.force_update_baseline == 'true' }}"
+          TOTAL_COUNT="${{ steps.baseline-run.outputs.total-count }}"
+          RUN_ID="${{ steps.baseline-run.outputs.run-id }}"
+
+          if [ "$IS_FORCE" = "true" ]; then
+            echo "显式指定强制更新基线，跳过基线比较"
+            echo "skip-compare=true" >> "$GITHUB_OUTPUT"
+          elif [ -z "$RUN_ID" ]; then
+            if [ "$TOTAL_COUNT" = "0" ]; then
+              echo "仓库首次运行，无历史基线记录，允许首次初始化基线"
+              echo "skip-compare=true" >> "$GITHUB_OUTPUT"
+            else
+              echo "::error::未找到可用的有效基线 artifact（可能已过期或查询失败，但仓库存在历史基线记录）。禁止静默跳过门禁！如需重建基线，请使用 workflow_dispatch 触发并勾选 force_update_baseline。"
+              exit 1
+            fi
+          else
+            echo "找到有效基线 Run ID: $RUN_ID"
+            echo "skip-compare=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Download Baseline
-        if: steps.baseline-run.outputs.run-id != ''
-        continue-on-error: true
+        if: steps.check-baseline.outputs.skip-compare != 'true'
         uses: actions/download-artifact@v4
         with:
           name: benchmark-baseline
@@ -88,10 +113,17 @@ jobs:
           run-id: ${{ steps.baseline-run.outputs.run-id }}
           github-token: ${{ github.token }}
 
+      - name: Verify Baseline File
+        if: steps.check-baseline.outputs.skip-compare != 'true'
+        run: |
+          if [ ! -f "baseline/result.json" ]; then
+            echo "::error::基线文件 baseline/result.json 下载后不存在或损坏！"
+            exit 1
+          fi
+
       - name: Compare with Baseline
         id: compare
-        if: hashFiles('baseline/result.json') != ''
-        continue-on-error: ${{ inputs.force_update_baseline == true || inputs.force_update_baseline == 'true' }}
+        if: steps.check-baseline.outputs.skip-compare != 'true'
         # 门禁：超容差即失败拦截。共享 runner 噪声较大（median 聚合下波动
         # 通常在 10%~20%），容差由记录型时期的 15% 放宽至 25% 以降低误报
         run: python3 tools/compare_benchmark.py result.json baseline/result.json --tolerance 0.25
