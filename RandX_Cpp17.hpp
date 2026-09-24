@@ -87,6 +87,8 @@
 # include <string_view>
 # include <unordered_set>
 # include <vector>
+# include <iterator>
+# include <cstddef>
 # include <stdexcept>
 # include <chrono>    // std::chrono（RandomSeed 时间戳兜底用）
 # include <atomic>    // std::atomic（RandomSeed 兜底计数）
@@ -110,6 +112,12 @@
 #		define NOMINMAX
 #	endif
 #	include <windows.h>
+#	if defined(min)
+#		undef min
+#	endif
+#	if defined(max)
+#		undef max
+#	endif
 #	include <bcrypt.h>
 #	if defined(_MSC_VER)
 #		pragma comment(lib, "bcrypt.lib")  // 仅 MSVC 生效
@@ -1370,7 +1378,7 @@ namespace RandX
 				(E::min() < E::max())> {};
 
 		template <class E>
-		struct is_random_engine : has_min_max<E> {};
+		struct is_random_engine : has_min_max<std::remove_cv_t<std::remove_reference_t<E>>> {};
 
 		template <class E>
 		inline constexpr bool is_random_engine_v = is_random_engine<E>::value;

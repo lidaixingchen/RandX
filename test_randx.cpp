@@ -3817,6 +3817,15 @@ TEST_SUITE("BetaDistributionScale")
         std::set<int> unique_vals(sample.begin(), sample.end());
         CHECK(unique_vals.size() == 3);
     }
+
+    TEST_CASE("RandomEngine 概念与 is_random_engine_v 适配引用类型")
+    {
+        static_assert(RandX::detail::RandomEngine<RandX::Xoshiro256StarStar>);
+        static_assert(RandX::detail::RandomEngine<RandX::Xoshiro256StarStar&>);
+        static_assert(RandX::detail::RandomEngine<const RandX::Xoshiro256StarStar&>);
+        static_assert(RandX::detail::RandomEngine<decltype(RandX::DefaultEngine())>);
+        static_assert(RandX::detail::is_random_engine_v<RandX::Xoshiro256StarStar&>);
+    }
 }
 
 

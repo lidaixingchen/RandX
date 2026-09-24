@@ -3495,6 +3495,14 @@ TEST_SUITE("BetaDistributionScale")
         auto v_default = RandX::RandGeometric<std::int64_t>(1e-17);
         CHECK(v_default >= 0);
     }
+
+    TEST_CASE("is_random_engine_v 适配引用类型")
+    {
+        static_assert(RandX::detail::is_random_engine_v<RandX::Xoshiro256StarStar>);
+        static_assert(RandX::detail::is_random_engine_v<RandX::Xoshiro256StarStar&>);
+        static_assert(RandX::detail::is_random_engine_v<const RandX::Xoshiro256StarStar&>);
+        static_assert(RandX::detail::is_random_engine_v<decltype(RandX::DefaultEngine())>);
+    }
 }
 
 

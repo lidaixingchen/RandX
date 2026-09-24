@@ -102,6 +102,8 @@
 # include <string_view>
 # include <unordered_set>
 # include <vector>
+# include <iterator>
+# include <cstddef>
 # include <stdexcept>
 # include <chrono>    // std::chrono（RandomSeed 时间戳兜底用）
 # include <atomic>    // std::atomic（RandomSeed 兜底计数）
@@ -125,6 +127,12 @@
 #		define NOMINMAX
 #	endif
 #	include <windows.h>
+#	if defined(min)
+#		undef min
+#	endif
+#	if defined(max)
+#		undef max
+#	endif
 #	include <bcrypt.h>
 #	if defined(_MSC_VER)
 #		pragma comment(lib, "bcrypt.lib")  // 仅 MSVC 生效
@@ -1017,10 +1025,10 @@ namespace RandX
 
 		template <class E>
 		concept RandomEngine =
-			std::uniform_random_bit_generator<E> &&
-			requires { typename E::result_type; } &&
-			std::same_as<typename E::result_type, std::invoke_result_t<E&>> &&
-			(!std::same_as<typename E::result_type, bool>);
+			std::uniform_random_bit_generator<std::remove_cvref_t<E>> &&
+			requires { typename std::remove_cvref_t<E>::result_type; } &&
+			std::same_as<typename std::remove_cvref_t<E>::result_type, std::invoke_result_t<std::remove_cvref_t<E>&>> &&
+			(!std::same_as<typename std::remove_cvref_t<E>::result_type, bool>);
 
 		template <class E>
 		inline constexpr bool is_random_engine_v = RandomEngine<E>;
