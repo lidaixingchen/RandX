@@ -335,7 +335,8 @@ class TestPractRandTwoAxisCategorization(unittest.TestCase):
             gen_returncode=-11,
             length="32MB",
         )
-        self.assertEqual(res.status, "environment_error")
+        # 算法质量失败具备最高严重度优先级，即使伴随生成器崩溃也应判定为 statistical_failure
+        self.assertEqual(res.status, "statistical_failure")
         self.assertEqual(res.execution_status, "failed")
         self.assertEqual(res.statistical_status, "failure")
         self.assertIn("GENERATOR_CRASH", res.reason_codes)
@@ -444,6 +445,35 @@ class TestPractRandSubprocessLifecycle(unittest.TestCase):
         )
         self.assertEqual(res.status, "inconclusive")
         self.assertEqual(res.execution_status, "timeout")
+
+    def test_tester_crash_with_active_generator(self):
+        res = test_engine(
+            generator=[sys.executable, str(MOCK_RUNNER)],
+            practrand=[sys.executable, str(MOCK_RUNNER)],
+            engine="sfc64",
+            length="32MB",
+            timeout_seconds=5.0,
+            generator_env=dict(os.environ, MOCK_MODE="generator_infinite"),
+            tester_env=dict(os.environ, MOCK_MODE="crash"),
+        )
+        self.assertEqual(res.status, "environment_error")
+        self.assertEqual(res.execution_status, "failed")
+        self.assertIn("TESTER_NONZERO_EXIT", res.reason_codes)
+        self.assertNotIn("GENERATOR_CRASH", res.reason_codes)
+        self.assertIn(res.generator["termination_cause"], ("cancelled", "natural_exit", "expected_sigpipe"))
+
+    def test_generator_stubborn_cleaned_by_supervisor(self):
+        res = test_engine(
+            generator=[sys.executable, str(MOCK_RUNNER)],
+            practrand=[sys.executable, str(MOCK_RUNNER)],
+            engine="sfc64",
+            length="32MB",
+            timeout_seconds=5.0,
+            generator_env=dict(os.environ, MOCK_MODE="generator_stubborn"),
+            tester_env=dict(os.environ, MOCK_MODE="pass_exit_0"),
+        )
+        self.assertEqual(res.status, "pass")
+        self.assertEqual(res.generator["termination_cause"], "supervisor_cleanup")
 
 
 class TestAtomicJsonWriteAndSchema(unittest.TestCase):

@@ -102,6 +102,10 @@ UNIT_MULTIPLIERS = {
 POLL_INTERVAL_SECONDS = 0.05
 GRACE_PERIOD_SECONDS = 1.0
 SUBPROCESS_CLEANUP_TIMEOUT_SECONDS = 1.0
+EARLY_FAIL_GRACE_PERIOD_SECONDS = 0.5
+POSIX_SIGPIPE = -13
+EXIT_SIGPIPE_SHELL = 141
+DEFAULT_TEST_TIMEOUT_SECONDS = 14400
 
 STATUS_EXIT_CODES = {
     "pass": 0,
@@ -328,7 +332,7 @@ def atomic_write_json(file_path: Path | str, data: list[dict] | dict) -> None:
 
 
 def _terminate_and_kill(proc: subprocess.Popen | None, timeout: float = SUBPROCESS_CLEANUP_TIMEOUT_SECONDS) -> None:
-    """分阶段终止进程：先 terminate 并等待，未退出则 kill 并等待."""
+    """分阶段终止进程：先 terminate 并等待，未退出则尝试平台级进程树清理与 kill 并等待."""
     if proc is None or proc.poll() is not None:
         return
     try:
@@ -336,7 +340,18 @@ def _terminate_and_kill(proc: subprocess.Popen | None, timeout: float = SUBPROCE
         proc.wait(timeout=timeout)
     except (subprocess.TimeoutExpired, OSError):
         pass
+
     if proc.poll() is None:
+        if sys.platform == "win32":
+            try:
+                subprocess.run(
+                    ["taskkill", "/F", "/T", "/PID", str(proc.pid)],
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                    check=False,
+                )
+            except OSError:
+                pass
         try:
             proc.kill()
             proc.wait(timeout=timeout)
@@ -413,7 +428,7 @@ def parse_practrand_output(output: str, target_bytes: int) -> tuple[int, int, bo
 
     best_cp = max(completed_cps, key=lambda c: c.tested_bytes)
     has_failure = has_global_failure or any(cp.has_failure for cp in checkpoints)
-    total_suspicious = sum(cp.suspicious_count for cp in completed_cps)
+    total_suspicious = best_cp.suspicious_count
 
     return best_cp.tested_bytes, best_cp.test_count, has_failure, total_suspicious
 
@@ -432,30 +447,34 @@ def classify_result(
 ) -> ClassificationOutput:
     """根据 PractRand 报告、退出码与进程终止原因进行两轴判定。"""
     reason_codes: list[str] = []
+    execution_status: str = "ok"
 
     # 1. 执行轴评定 (execution_status)
     gen_is_normal = (
-        gen_returncode in (0, -13, 141)
-        or (gen_cleanup_requested and generator_termination_cause == "supervisor_cleanup")
+        gen_returncode in (0, POSIX_SIGPIPE, EXIT_SIGPIPE_SHELL)
+        or (gen_cleanup_requested and generator_termination_cause in ("supervisor_cleanup", "cancelled"))
         or (timed_out and generator_termination_cause == "timed_out")
     )
+
     if gen_returncode is not None and not gen_is_normal:
         execution_status = "failed"
         reason_codes.append("GENERATOR_CRASH" if (gen_returncode < 0 or gen_returncode > 128) else "GENERATOR_NONZERO_EXIT")
-    elif timed_out:
-        execution_status = "timeout"
-        reason_codes.append("TIMEOUT")
+
+    if pr_returncode is not None and pr_returncode != 0:
+        execution_status = "failed"
+        reason_codes.append("TESTER_CRASH" if (pr_returncode < 0 or pr_returncode > 128) else "TESTER_NONZERO_EXIT")
     elif pr_returncode is None:
         execution_status = "unknown"
         reason_codes.append("TESTER_UNKNOWN_EXIT")
-    elif pr_returncode != 0:
-        execution_status = "failed"
-        reason_codes.append("TESTER_CRASH" if (pr_returncode < 0 or pr_returncode > 128) else "TESTER_NONZERO_EXIT")
-    elif gen_returncode is None:
-        execution_status = "unknown"
+
+    if timed_out:
+        execution_status = "timeout"
+        reason_codes.append("TIMEOUT")
+
+    if gen_returncode is None and "GENERATOR_UNKNOWN_EXIT" not in reason_codes:
+        if execution_status != "timeout":
+            execution_status = "unknown"
         reason_codes.append("GENERATOR_UNKNOWN_EXIT")
-    else:
-        execution_status = "ok"
 
     # 2. 统计轴评定 (statistical_status)
     max_tested = 0
@@ -489,7 +508,12 @@ def classify_result(
             statistical_status = "pass"
 
     # 3. 顶层状态与原因决策
-    if execution_status in ("failed", "unknown"):
+    if statistical_status == "failure":
+        status = "statistical_failure"
+        reason = "PractRand 报告包含 FAIL 或严重异常标记"
+        if execution_status in ("failed", "unknown"):
+            reason += f" (伴随执行状态异常: {execution_status})"
+    elif execution_status in ("failed", "unknown"):
         status = "environment_error"
         if "GENERATOR_CRASH" in reason_codes or "GENERATOR_NONZERO_EXIT" in reason_codes:
             reason = f"生成器进程提前异常退出 (退出码 {gen_returncode})"
@@ -706,11 +730,11 @@ def test_engine(
                 pr_term_cause = "natural_exit" if pr_proc.returncode == 0 else "non_zero_exit"
                 break
 
-            if gen_proc.poll() is not None and gen_proc.returncode not in (0, -13, 141):
+            if gen_proc.poll() is not None and gen_proc.returncode not in (0, POSIX_SIGPIPE, EXIT_SIGPIPE_SHELL):
                 if not gen_early_failed:
                     gen_early_failed = True
                     gen_early_fail_time = time.monotonic()
-                elif time.monotonic() - gen_early_fail_time > 0.5:
+                elif time.monotonic() - gen_early_fail_time > EARLY_FAIL_GRACE_PERIOD_SECONDS:
                     pr_term_cause = "cancelled"
                     break
 
@@ -737,20 +761,21 @@ def test_engine(
                 _terminate_and_kill(gen_proc, timeout=SUBPROCESS_CLEANUP_TIMEOUT_SECONDS)
             else:
                 rc = gen_proc.returncode
-                if rc in (0, -13, 141):
+                if rc in (0, POSIX_SIGPIPE, EXIT_SIGPIPE_SHELL):
                     gen_term_cause = "natural_exit" if rc == 0 else "expected_sigpipe"
                 else:
                     gen_term_cause = "unexpected_signal" if rc < 0 else "non_zero_exit"
         else:
+            if gen_proc.poll() is None:
+                gen_cleanup_requested = True
+                gen_term_cause = "cancelled"
             _terminate_and_kill(pr_proc, timeout=SUBPROCESS_CLEANUP_TIMEOUT_SECONDS)
             _terminate_and_kill(gen_proc, timeout=SUBPROCESS_CLEANUP_TIMEOUT_SECONDS)
             if gen_proc.poll() is not None:
                 rc = gen_proc.returncode
-                if rc in (-13, 141):
-                    gen_term_cause = "expected_sigpipe"
-                elif rc == 0:
-                    gen_term_cause = "natural_exit"
-                else:
+                if rc in (0, POSIX_SIGPIPE, EXIT_SIGPIPE_SHELL):
+                    gen_term_cause = "natural_exit" if rc == 0 else "expected_sigpipe"
+                elif not gen_cleanup_requested:
                     gen_term_cause = "unexpected_signal" if rc < 0 else "non_zero_exit"
             if pr_proc.poll() is not None:
                 pr_term_cause = "natural_exit" if pr_proc.returncode == 0 else ("unexpected_signal" if pr_proc.returncode < 0 else "non_zero_exit")
