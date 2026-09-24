@@ -1038,17 +1038,17 @@ namespace RandX
 
 		template <RandomEngine Engine>
 		inline constexpr bool IsFull64BitEngine<Engine> =
-			(sizeof(typename Engine::result_type) >= sizeof(std::uint64_t) &&
-			 static_cast<std::uint64_t>(Engine::min()) == 0ULL &&
-			 static_cast<std::uint64_t>(Engine::max()) == (std::numeric_limits<std::uint64_t>::max)());
+			(sizeof(typename std::remove_cvref_t<Engine>::result_type) >= sizeof(std::uint64_t) &&
+			 static_cast<std::uint64_t>(std::remove_cvref_t<Engine>::min()) == 0ULL &&
+			 static_cast<std::uint64_t>(std::remove_cvref_t<Engine>::max()) == (std::numeric_limits<std::uint64_t>::max)());
 
 		template <class Engine>
 		inline constexpr bool IsFull32BitEngine = false;
 
 		template <RandomEngine Engine>
 		inline constexpr bool IsFull32BitEngine<Engine> =
-			(static_cast<std::uint64_t>(Engine::min()) == 0ULL &&
-			 static_cast<std::uint64_t>(Engine::max()) == 0xFFFFFFFFULL);
+			(static_cast<std::uint64_t>(std::remove_cvref_t<Engine>::min()) == 0ULL &&
+			 static_cast<std::uint64_t>(std::remove_cvref_t<Engine>::max()) == 0xFFFFFFFFULL);
 
 		template <class T>
 		inline T NormalizeBetaSample(T x, T y)
@@ -3229,14 +3229,16 @@ namespace RandX
 			std::exponential_distribution<double> exp_dist(1.0);
 			const double e = exp_dist(engine);
 			const double val = e / denom;
-			if constexpr (sizeof(T) >= 8 && std::is_unsigned_v<T>)
+			constexpr double MaxUint64Float = 18446744073709551616.0;
+			constexpr double MaxInt64Float = 9223372036854775808.0;
+			if constexpr (sizeof(T) == 8 && std::is_unsigned_v<T>)
 			{
-				if (!std::isfinite(val) || val >= 18446744073709551616.0)
+				if (!std::isfinite(val) || val >= MaxUint64Float)
 					throw std::overflow_error("RandGeometric: generated value exceeds return type range");
 			}
-			else if constexpr (sizeof(T) >= 8 && std::is_signed_v<T>)
+			else if constexpr (sizeof(T) == 8 && std::is_signed_v<T>)
 			{
-				if (!std::isfinite(val) || val >= 9223372036854775808.0)
+				if (!std::isfinite(val) || val >= MaxInt64Float)
 					throw std::overflow_error("RandGeometric: generated value exceeds return type range");
 			}
 			else

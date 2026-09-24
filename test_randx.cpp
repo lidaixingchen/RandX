@@ -3805,7 +3805,6 @@ TEST_SUITE("BetaDistributionScale")
     TEST_CASE("RandBeta 敏感区间 (1e-3, 0.05) 连续采样稳定性无崩溃")
     {
         RandX::Xoshiro256StarStar rng(42);
-        // 曾因 SmallShapeThreshold 导致走标准库 Gamma 下溢为 0 抛出 domain_error
         const double test_params[] = { 0.001001, 0.002, 0.005, 0.01, 0.05, 0.5 };
         for (double p : test_params)
         {
@@ -3874,6 +3873,10 @@ TEST_SUITE("BetaDistributionScale")
         static_assert(RandX::detail::RandomEngine<const RandX::Xoshiro256StarStar&>);
         static_assert(RandX::detail::RandomEngine<decltype(RandX::DefaultEngine())>);
         static_assert(RandX::detail::is_random_engine_v<RandX::Xoshiro256StarStar&>);
+        static_assert(RandX::detail::IsFull64BitEngine<RandX::Xoshiro256StarStar>);
+        static_assert(RandX::detail::IsFull64BitEngine<RandX::Xoshiro256StarStar&>);
+        static_assert(RandX::detail::IsFull32BitEngine<RandX::Xoshiro128StarStar>);
+        static_assert(RandX::detail::IsFull32BitEngine<RandX::Xoshiro128StarStar&>);
     }
 }
 

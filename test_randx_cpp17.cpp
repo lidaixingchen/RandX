@@ -3532,6 +3532,10 @@ TEST_SUITE("BetaDistributionScale")
         static_assert(RandX::detail::is_random_engine_v<RandX::Xoshiro256StarStar&>);
         static_assert(RandX::detail::is_random_engine_v<const RandX::Xoshiro256StarStar&>);
         static_assert(RandX::detail::is_random_engine_v<decltype(RandX::DefaultEngine())>);
+        static_assert(RandX::detail::is_full_64bit_engine_v<RandX::Xoshiro256StarStar>);
+        static_assert(RandX::detail::is_full_64bit_engine_v<RandX::Xoshiro256StarStar&>);
+        static_assert(RandX::detail::is_full_32bit_engine_v<RandX::Xoshiro128StarStar>);
+        static_assert(RandX::detail::is_full_32bit_engine_v<RandX::Xoshiro128StarStar&>);
     }
 }
 
