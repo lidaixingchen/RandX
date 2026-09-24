@@ -3371,6 +3371,129 @@ namespace RandX
 		return dist(engine);
 	}
 
+	namespace detail
+	{
+		template <class T>
+		using BetaWorkType = std::conditional_t<std::is_same_v<T, float>, double, T>;
+
+		template <class WorkT, class Engine>
+		inline void SampleGammaLogScale(Engine& engine, WorkT shape, WorkT& out_d, WorkT& out_e)
+		{
+			WorkT effective_shape = shape;
+			WorkT extra_log = WorkT{0};
+			if (shape < WorkT{1})
+			{
+				effective_shape = shape + WorkT{1};
+				const WorkT u_rand = RandCanonical<WorkT>(engine);
+				const WorkT u_clamped = (u_rand <= WorkT{0}) ? std::numeric_limits<WorkT>::min() : u_rand;
+				extra_log = std::log(u_clamped) / shape;
+			}
+
+			const WorkT d = effective_shape - (WorkT{1} / WorkT{3});
+			const WorkT c = (WorkT{1} / WorkT{3}) / std::sqrt(d);
+
+			constexpr std::size_t MaxAttempts = 1000;
+			std::normal_distribution<WorkT> norm_dist(WorkT{0}, WorkT{1});
+
+			for (std::size_t attempt = 0; attempt < MaxAttempts; ++attempt)
+			{
+				const WorkT z = norm_dist(engine);
+				const WorkT cz = c * z;
+				if (cz <= WorkT{-1})
+				{
+					continue;
+				}
+
+				const WorkT log_v = WorkT{3} * std::log1p(cz);
+				const WorkT u = RandCanonical<WorkT>(engine);
+				if (u <= WorkT{0})
+				{
+					continue;
+				}
+
+				const WorkT z2 = z * z;
+				const WorkT z4 = z2 * z2;
+				if (u < WorkT{1} - WorkT{0.0331} * z4)
+				{
+					out_d = d;
+					out_e = log_v + extra_log;
+					return;
+				}
+
+				WorkT diff = WorkT{0};
+				const WorkT abs_cz = std::abs(cz);
+				if (abs_cz < WorkT{1e-2})
+				{
+					const WorkT x = cz;
+					const WorkT x2 = x * x;
+					const WorkT x4 = x2 * x2;
+					const WorkT poly = -WorkT{0.75} + x * (WorkT{0.6} + x * (-WorkT{0.5} + x * (WorkT{3.0/7.0} - WorkT{0.375} * x)));
+					diff = d * x4 * poly;
+				}
+				else
+				{
+					const WorkT x = cz;
+					const WorkT x2 = x * x;
+					const WorkT x3 = x2 * x;
+					const WorkT log1p_minus_x = std::log1p(x) - x;
+					diff = d * (WorkT{1.5} * x2 - x3 + WorkT{3} * log1p_minus_x);
+				}
+
+				if (std::log(u) < diff)
+				{
+					out_d = d;
+					out_e = log_v + extra_log;
+					return;
+				}
+			}
+
+			throw std::runtime_error("RandBeta: Gamma rejection sampling failed to converge");
+		}
+
+		template <class WorkT>
+		inline WorkT ComputeBetaSampleFromLogScale(WorkT d_a, WorkT e_a, WorkT d_b, WorkT e_b)
+		{
+			WorkT log_ratio = WorkT{0};
+			const WorkT diff_d = d_b - d_a;
+			if (d_a == d_b)
+			{
+				log_ratio = WorkT{0};
+			}
+			else if (std::abs(diff_d) < WorkT{0.5} * d_a)
+			{
+				log_ratio = std::log1p(diff_d / d_a);
+			}
+			else
+			{
+				log_ratio = std::log(d_b / d_a);
+			}
+
+			const WorkT L = log_ratio + (e_b - e_a);
+
+			if (std::isnan(L))
+			{
+				throw std::runtime_error("RandBeta: NaN encountered during Beta calculation");
+			}
+
+			if (L > WorkT{700})
+			{
+				return WorkT{0};
+			}
+			if (L < WorkT{-700})
+			{
+				return WorkT{1};
+			}
+
+			if (std::abs(L) < WorkT{0.5})
+			{
+				const WorkT em1 = std::expm1(L);
+				return WorkT{0.5} - em1 / (WorkT{2} * (WorkT{2} + em1));
+			}
+
+			return WorkT{1} / (WorkT{1} + std::exp(L));
+		}
+	}
+
 	/// @brief 生成 Beta 分布随机数
 	/// @param a 形状参数（默认 1）
 	/// @param b 形状参数（默认 1）
@@ -3395,12 +3518,29 @@ namespace RandX
 	{
 		if (!std::isfinite(a) || !std::isfinite(b) || a <= T{0} || b <= T{0})
 			throw std::invalid_argument("RandBeta: invalid a or b");
-		const T epsilon = std::numeric_limits<T>::epsilon();
-		const T resolutionShape = T{1} / (epsilon * epsilon);
-		// Gamma 样本的相对标准差为 1/sqrt(shape)，低于浮点分辨率时取其均值。
-		const T x = a >= resolutionShape ? a : std::gamma_distribution<T>(a, T{1})(engine);
-		const T y = b >= resolutionShape ? b : std::gamma_distribution<T>(b, T{1})(engine);
-		return detail::NormalizeBetaSample(x, y);
+
+		using WorkT = detail::BetaWorkType<T>;
+		const WorkT wa = static_cast<WorkT>(a);
+		const WorkT wb = static_cast<WorkT>(b);
+
+		constexpr WorkT LargeShapeThreshold = WorkT{1000};
+		if (wa >= LargeShapeThreshold || wb >= LargeShapeThreshold)
+		{
+			WorkT da{0}, ea{0}, db{0}, eb{0};
+			detail::SampleGammaLogScale(engine, wa, da, ea);
+			detail::SampleGammaLogScale(engine, wb, db, eb);
+			const WorkT res = detail::ComputeBetaSampleFromLogScale(da, ea, db, eb);
+			return static_cast<T>(res);
+		}
+		else
+		{
+			std::gamma_distribution<WorkT> distA(wa, WorkT{1});
+			std::gamma_distribution<WorkT> distB(wb, WorkT{1});
+			const WorkT x = distA(engine);
+			const WorkT y = distB(engine);
+			const WorkT res = detail::NormalizeBetaSample(x, y);
+			return static_cast<T>(res);
+		}
 	}
 
 	/// @brief 生成 N 位随机整数

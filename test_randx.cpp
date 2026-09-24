@@ -3462,4 +3462,139 @@ TEST_SUITE("StreamFormatGuard")
     }
 }
 
+TEST_SUITE("BetaDistributionScale")
+{
+    TEST_CASE("基本与非对称参数统计特性检验")
+    {
+        RandX::Xoshiro256StarStar rng{ 42 };
+        constexpr int N = 20000;
+
+        auto test_beta_stats = [&](double a, double b) {
+            double sum = 0.0;
+            double sum_sq = 0.0;
+            for (int i = 0; i < N; ++i)
+            {
+                double val = RandX::RandBeta(rng, a, b);
+                CHECK(val >= 0.0);
+                CHECK(val <= 1.0);
+                sum += val;
+                sum_sq += val * val;
+            }
+            double mean = sum / N;
+            double var = (sum_sq / N) - (mean * mean);
+
+            double expected_mean = a / (a + b);
+            double expected_var = (a * b) / ((a + b) * (a + b) * (a + b + 1.0));
+            double se_mean = std::sqrt(expected_var / N);
+
+            // 4 个标准误容差
+            CHECK(std::abs(mean - expected_mean) < 4.0 * se_mean);
+            CHECK(std::abs(var - expected_var) < 0.05);
+        };
+
+        test_beta_stats(2.0, 2.0);
+        test_beta_stats(0.5, 0.5);
+        test_beta_stats(2.0, 5.0);
+        test_beta_stats(5.0, 2.0);
+    }
+
+    TEST_CASE("float 在 2^46 阈值附近保留随机波动非固定均值")
+    {
+        RandX::Xoshiro256StarStar rng{ 12345 };
+        const float a = 7.0368744e13f; // ~2^46
+        const float b = 7.0368744e13f;
+
+        std::set<float> distinct_samples;
+        float sum = 0.0f;
+        for (int i = 0; i < 500; ++i)
+        {
+            float val = RandX::RandBeta(rng, a, b);
+            CHECK(val >= 0.0f);
+            CHECK(val <= 1.0f);
+            distinct_samples.insert(val);
+            sum += val;
+        }
+
+        // 不应全部退化为唯一常数 0.5f
+        CHECK(distinct_samples.size() > 1);
+
+        float mean = sum / 500.0f;
+        CHECK(std::abs(mean - 0.5f) < 1e-3f);
+    }
+
+    TEST_CASE("double 在 2^104 阈值附近及其前后正常采样")
+    {
+        RandX::Xoshiro256StarStar rng{ 777 };
+        const double a = 2.028240960365167e31; // ~2^104
+        const double b = 2.028240960365167e31;
+
+        double sum = 0.0;
+        for (int i = 0; i < 200; ++i)
+        {
+            double val = RandX::RandBeta(rng, a, b);
+            CHECK(val >= 0.0);
+            CHECK(val <= 1.0);
+            sum += val;
+        }
+
+        double mean = sum / 200.0;
+        CHECK(std::abs(mean - 0.5) < 1e-4);
+    }
+
+    TEST_CASE("极大有限量级与混合尺度")
+    {
+        RandX::Xoshiro256StarStar rng{ 999 };
+
+        // 极大对称量级 1e300
+        for (int i = 0; i < 50; ++i)
+        {
+            double val = RandX::RandBeta(rng, 1e300, 1e300);
+            CHECK(std::isfinite(val));
+            CHECK(val >= 0.0);
+            CHECK(val <= 1.0);
+        }
+
+        // 极大非对称量级 1e300 与 2e300，理论均值 1/3
+        double sum_asym = 0.0;
+        for (int i = 0; i < 100; ++i)
+        {
+            double val = RandX::RandBeta(rng, 1e300, 2e300);
+            CHECK(std::isfinite(val));
+            CHECK(val >= 0.0);
+            CHECK(val <= 1.0);
+            sum_asym += val;
+        }
+        CHECK(std::abs((sum_asym / 100.0) - (1.0 / 3.0)) < 1e-4);
+
+        // 混合尺度 (mixed-small-large): 0.5 与 1e50
+        for (int i = 0; i < 50; ++i)
+        {
+            double val = RandX::RandBeta(rng, 0.5, 1e50);
+            CHECK(std::isfinite(val));
+            CHECK(val >= 0.0);
+            CHECK(val < 1e-10);
+        }
+
+        // 混合尺度反向: 1e50 与 0.5
+        for (int i = 0; i < 50; ++i)
+        {
+            double val = RandX::RandBeta(rng, 1e50, 0.5);
+            CHECK(std::isfinite(val));
+            CHECK(val > 1.0 - 1e-10);
+            CHECK(val <= 1.0);
+        }
+    }
+
+    TEST_CASE("非法形状参数抛出 invalid_argument")
+    {
+        const double nan = std::numeric_limits<double>::quiet_NaN();
+        const double inf = std::numeric_limits<double>::infinity();
+
+        CHECK_THROWS_AS((void)RandX::RandBeta(0.0, 1.0), std::invalid_argument);
+        CHECK_THROWS_AS((void)RandX::RandBeta(1.0, -1.0), std::invalid_argument);
+        CHECK_THROWS_AS((void)RandX::RandBeta(nan, 1.0), std::invalid_argument);
+        CHECK_THROWS_AS((void)RandX::RandBeta(1.0, inf), std::invalid_argument);
+    }
+}
+
 
