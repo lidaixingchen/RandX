@@ -3526,6 +3526,7 @@ TEST_SUITE("StreamFormatGuard")
         CHECK(ss.width() == 2);
     }
 
+#if defined(__GLIBCXX__)
     struct ThrowingWidenFacet : public std::ctype<wchar_t>
     {
     protected:
@@ -3541,9 +3542,7 @@ TEST_SUITE("StreamFormatGuard")
         {
             this->init(nullptr);
             this->imbue(loc);
-#if defined(__GLIBCXX__)
             this->_M_fill_init = false;
-#endif
         }
     };
 
@@ -3564,6 +3563,7 @@ TEST_SUITE("StreamFormatGuard")
         }
         CHECK(threw);
     }
+#endif
 }
 
 TEST_SUITE("BetaDistributionScale")
