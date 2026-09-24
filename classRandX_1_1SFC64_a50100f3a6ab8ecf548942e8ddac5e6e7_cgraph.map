@@ -1,0 +1,6 @@
+<map id="RandX::SFC64::SFC64" name="RandX::SFC64::SFC64">
+<area shape="rect" id="Node000001" title="&lt; 状态类型（4×uint64）" alt="" coords="5,29,168,55"/>
+<area shape="rect" id="Node000002" href="$group__engines.html#ga50100f3a6ab8ecf548942e8ddac5e6e7" title="&lt; 状态类型（4×uint64）" alt="" coords="216,29,379,55"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="168,39,202,39,202,45,168,45"/>
+<area shape="poly" id="edge2_Node000002_Node000002" title=" " alt="" coords="263,31,255,21,259,11,274,5,297,3,327,6,338,15,335,20,325,11,297,8,275,10,263,15,261,20,267,28"/>
+</map>

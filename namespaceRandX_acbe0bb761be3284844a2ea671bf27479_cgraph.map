@@ -1,0 +1,16 @@
+<map id="RandX::RandWeighted" name="RandX::RandWeighted">
+<area shape="rect" id="Node000001" title="按权重随机选取索引（指定引擎重载）" alt="" coords="5,43,172,68"/>
+<area shape="rect" id="Node000002" href="$namespaceRandX_1_1detail.html#a3afe9f355fd4babe1707384df27bcc5c" title=" " alt="" coords="220,5,439,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="171,40,233,30,234,35,172,45"/>
+<area shape="rect" id="Node000003" href="$group__distributions.html#gaa6562463e1b0c5e89d988cfb551f6576" title="按权重随机选取索引" alt="" coords="246,79,413,104"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="173,65,233,74,232,79,172,70"/>
+<area shape="poly" id="edge7_Node000003_Node000003" title=" " alt="" coords="291,80,282,70,287,60,303,54,329,52,363,56,375,65,372,70,361,61,329,57,304,59,290,64,288,70,295,77"/>
+<area shape="rect" id="Node000004" href="$group__engines.html#ga7dba92b95d7c5e6eb2d1db3c6a3b2ddf" title="获取当前线程专属的默认伪随机数生成引擎" alt="" coords="487,79,651,104"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="413,89,473,89,473,94,413,94"/>
+<area shape="rect" id="Node000005" href="$group__engines.html#gaa82567759ff174faf923397ea9b0c71f" title="生成非确定性的 64 位种子" alt="" coords="699,79,857,104"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="651,89,685,89,685,94,651,94"/>
+<area shape="rect" id="Node000006" href="$namespaceRandX_1_1detail.html#a02fce2f64f9c2eb6dbe7390a26aab73a" title=" " alt="" coords="917,42,1123,82"/>
+<area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="857,79,903,74,903,79,858,84"/>
+<area shape="rect" id="Node000007" href="$namespaceRandX_1_1detail.html#a23a58952bbe85de475f50a4f1e6acfce" title=" " alt="" coords="905,107,1135,132"/>
+<area shape="poly" id="edge6_Node000005_Node000007" title=" " alt="" coords="858,98,897,102,897,108,857,103"/>
+</map>

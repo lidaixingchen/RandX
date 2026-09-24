@@ -1,0 +1,5 @@
+<map id="类继承关系图" name="类继承关系图">
+<area shape="rect" id="Node000000" href="$structRandX_1_1detail_1_1EngineBase.html" title=" " alt="" coords="5,5,199,60"/>
+<area shape="rect" id="Node000001" href="$classRandX_1_1Xoroshiro64StarStar.html" title="Xoroshiro64** 伪随机数生成器，32 位输出，周期 2^64&#45;1。" alt="" coords="247,20,449,45"/>
+<area shape="poly" id="edge4_Node000000_Node000001" title=" " alt="" coords="212,30,247,30,247,35,212,35"/>
+</map>

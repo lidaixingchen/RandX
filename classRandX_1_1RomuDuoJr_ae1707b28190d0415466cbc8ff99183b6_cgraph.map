@@ -1,0 +1,5 @@
+<map id="RandX::RomuDuoJr::operator()" name="RandX::RomuDuoJr::operator()">
+<area shape="rect" id="Node000001" title="生成下一个 64 位随机数" alt="" coords="5,5,224,31"/>
+<area shape="rect" id="Node000002" href="$group__engines.html#ga3debd9912e4d0138be63c5d502fa5893" title="&lt; 状态类型（2×uint64）" alt="" coords="272,5,499,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="224,15,258,15,258,21,224,21"/>
+</map>

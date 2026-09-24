@@ -1,0 +1,9 @@
+<map id="RandX::Xoroshiro128StarStar::longJump" name="RandX::Xoroshiro128StarStar::longJump">
+<area shape="rect" id="Node000001" title="前进 2^96 步，用于创建更稀疏的并行子序列" alt="" coords="5,49,216,89"/>
+<area shape="rect" id="Node000002" href="$group__engines.html#ga52f877f19ed4720729721218189ebd8a" title=" " alt="" coords="264,5,487,60"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="216,52,250,47,251,52,217,57"/>
+<area shape="rect" id="Node000003" href="$group__engines.html#ga0da191055e5d6e88866a423d392c7e10" title="前进 2^96 步，用于创建更稀疏的并行子序列" alt="" coords="270,85,481,125"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="217,80,257,86,256,91,216,86"/>
+<area shape="rect" id="Node000004" href="$group__engines.html#gabd1ad45551e70b8d6ff8222c2f0ae89c" title=" " alt="" coords="535,77,741,132"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="481,102,521,102,521,107,481,107"/>
+</map>

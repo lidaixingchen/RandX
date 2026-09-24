@@ -1,0 +1,7 @@
+<map id="RandX::detail::is_serializable_engine&lt; E, std::void_t&lt; decltype(std::declval&lt; const E &amp; &gt;().serialize()), decltype(std::declval&lt; E &amp; &gt;().deserialize(std::declval&lt; typename E::state_type &gt;())), typename E::state_type &gt; &gt;" name="RandX::detail::is_serializable_engine&lt; E, std::void_t&lt; decltype(std::declval&lt; const E &amp; &gt;().serialize()), decltype(std::declval&lt; E &amp; &gt;().deserialize(std::declval&lt; typename E::state_type &gt;())), typename E::state_type &gt; &gt;">
+<area shape="rect" id="Node000001" title=" " alt="" coords="272,13,591,111"/>
+<area shape="rect" id="Node000002" title=" " alt="" coords="55,5,174,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="188,25,272,37,271,42,187,31"/>
+<area shape="rect" id="Node000003" title=" " alt="" coords="5,55,224,154"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="237,86,271,81,272,86,238,91"/>
+</map>

@@ -1,0 +1,5 @@
+<map id="类继承关系图" name="类继承关系图">
+<area shape="rect" id="Node000000" href="$structRandX_1_1detail_1_1EngineBase.html" title=" " alt="" coords="5,5,204,45"/>
+<area shape="rect" id="Node000001" href="$classRandX_1_1SFC64.html" title="SFC64（Small Fast Counter）伪随机数生成器，64 位输出，周期 &gt;= 2^64。" alt="" coords="252,13,365,38"/>
+<area shape="poly" id="edge2_Node000000_Node000001" title=" " alt="" coords="218,23,252,23,252,28,218,28"/>
+</map>

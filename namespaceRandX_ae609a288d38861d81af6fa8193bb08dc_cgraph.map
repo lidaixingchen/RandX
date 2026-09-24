@@ -1,0 +1,5 @@
+<map id="RandX::RandNormal" name="RandX::RandNormal">
+<area shape="rect" id="Node000001" title="生成正态分布随机数" alt="" coords="5,5,159,31"/>
+<area shape="rect" id="Node000002" href="$group__distributions.html#gaf8ebb5f0066bebd89b6c16cdfdb7e1b7" title="生成正态分布随机数" alt="" coords="207,5,360,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="159,15,193,15,193,21,159,21"/>
+</map>

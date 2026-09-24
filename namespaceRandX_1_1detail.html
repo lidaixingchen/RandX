@@ -1,0 +1,1275 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "https://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="zh">
+<head>
+<meta http-equiv="Content-Type" content="text/xhtml;charset=UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=11"/>
+<meta name="generator" content="Doxygen 1.17.0"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>RandX: RandX::detail 命名空间参考</title>
+<link href="tabs.css" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src="codefolding.js"></script>
+<script type="text/javascript" src="clipboard.js"></script>
+<link href="navtree.css" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src="navtreedata.js"></script>
+<script type="text/javascript" src="navtree.js"></script>
+<script type="text/javascript" src="cookie.js"></script>
+<link href="search/search.css" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src="search/searchdata.js"></script>
+<script type="text/javascript" src="search/search.js"></script>
+<script type="module">
+import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+const theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'default';
+mermaid.initialize({ startOnLoad: true, theme: theme });
+</script>
+<link href="doxygen.css" rel="stylesheet" type="text/css" />
+</head>
+<body>
+<div id="top"><!-- do not remove this div, it is closed by doxygen! -->
+<div id="titlearea">
+<table cellspacing="0" cellpadding="0">
+ <tbody>
+ <tr id="projectrow">
+  <td id="projectalign">
+   <div id="projectname">RandX<span id="projectnumber">&#160;1.5.0</span>
+   </div>
+   <div id="projectbrief">基于 xoshiro/xoroshiro 算法族的纯头文件伪随机数生成器库</div>
+  </td>
+ </tr>
+ </tbody>
+</table>
+</div>
+<!-- end header part -->
+<!-- 制作者 Doxygen 1.17.0 -->
+<script type="text/javascript">
+let searchBox = new SearchBox("searchBox", "search/",'.html');
+</script>
+<script type="text/javascript">
+document.addEventListener('DOMContentLoaded', codefold.init);
+</script>
+<script type="text/javascript" src="menudata.js"></script>
+<script type="text/javascript" src="menu.js"></script>
+<script type="text/javascript">
+document.addEventListener('DOMContentLoaded', () => {
+  initMenu('',true);
+  init_search();
+});
+</script>
+<div id="main-nav-mobile">
+<div class="sm sm-dox"><input id="main-menu-state" type="checkbox"/>
+<label class="main-menu-btn" for="main-menu-state">
+<span class="main-menu-btn-icon"></span> Toggle main menu visibility</label>
+<span id="searchBoxPos1" style="position:absolute;right:8px;top:8px;height:36px;"></span>
+</div>
+</div><!-- main-nav-mobile -->
+<div id="main-nav">
+  <ul class="sm sm-dox" id="main-menu">
+    <li id="searchBoxPos2" style="float:right">
+        <div id="MSearchBox" class="MSearchBoxInactive">
+        <span class="left">
+          <span id="MSearchSelect" class="search-icon" onmouseover="return searchBox.OnSearchSelectShow()" onmouseout="return searchBox.OnSearchSelectHide()"><span class="search-icon-dropdown"></span></span>
+          <input type="text" id="MSearchField" value="" placeholder="搜索" accesskey="S"
+               onfocus="searchBox.OnSearchFieldFocus(true)" 
+               onblur="searchBox.OnSearchFieldFocus(false)" 
+               onkeyup="searchBox.OnSearchFieldChange(event)"/>
+          </span><span class="right">
+            <a id="MSearchClose" href="javascript:searchBox.CloseResultsWindow()"><div id="MSearchCloseImg" class="close-icon"></div></a>
+          </span>
+        </div>
+    </li>
+  </ul>
+</div><!-- main-nav -->
+</div><!-- top -->
+<div id="side-nav" class="ui-resizable side-nav-resizable">
+  <div id="nav-tree">
+    <div id="nav-tree-contents">
+      <div id="nav-sync" class="sync"></div>
+    </div>
+  </div>
+  <div id="splitbar" style="-moz-user-select:none;" 
+       class="ui-resizable-handle">
+  </div>
+</div>
+<script type="text/javascript">
+document.addEventListener('DOMContentLoaded',() => { initNavTree('namespaceRandX_1_1detail.html','',''); });
+</script>
+<div id="container">
+<div id="doc-content">
+<!-- window showing the filter options -->
+<div id="MSearchSelectWindow"
+     onmouseover="return searchBox.OnSearchSelectShow()"
+     onmouseout="return searchBox.OnSearchSelectHide()"
+     onkeydown="return searchBox.OnSearchSelectKey(event)">
+</div>
+
+<!-- iframe showing the search results (closed by default) -->
+<div id="MSearchResultsWindow">
+<div id="MSearchResults">
+<div class="SRPage">
+<div id="SRIndex">
+<div id="SRResults"></div>
+<div class="SRStatus" id="Loading">载入中...</div>
+<div class="SRStatus" id="Searching">搜索中...</div>
+<div class="SRStatus" id="NoMatches">未找到</div>
+</div>
+</div>
+</div>
+</div>
+
+<div class="header">
+  <div class="headertitle"><div class="title">RandX::detail 命名空间参考<div class="ingroups"><a class="el" href="group__engines.html">引擎</a> &#124; <a class="el" href="group__distributions.html">统计分布</a> &#124; <a class="el" href="group__strings.html">字符串与 ID</a></div></div></div>
+</div><!--header-->
+<div class="contents">
+<table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 id="header-nested-classes" class="groupheader"><a id="nested-classes" name="nested-classes"></a>
+类</h2></td></tr>
+<tr class="memitem:DecomposedGammaLog" id="r_DecomposedGammaLog"><td class="memItemLeft">struct &#160;</td><td class="memItemRight"><a class="el" href="structRandX_1_1detail_1_1DecomposedGammaLog.html">DecomposedGammaLog</a></td></tr>
+<tr class="memitem:EngineBase" id="r_EngineBase"><td class="memItemLeft">struct &#160;</td><td class="memItemRight"><a class="el" href="structRandX_1_1detail_1_1EngineBase.html">EngineBase</a></td></tr>
+<tr class="memitem:EngineStatePolicy" id="r_EngineStatePolicy"><td class="memItemLeft">struct &#160;</td><td class="memItemRight"><a class="el" href="structRandX_1_1detail_1_1EngineStatePolicy.html">EngineStatePolicy</a></td></tr>
+<tr class="memitem:EngineStatePolicy_3C_20RandX_3A_3ASFC64_20_3E" id="r_EngineStatePolicy_3C_20RandX_3A_3ASFC64_20_3E"><td class="memItemLeft">struct &#160;</td><td class="memItemRight"><a class="el" href="structRandX_1_1detail_1_1EngineStatePolicy_3_01RandX_1_1SFC64_01_4.html">EngineStatePolicy&lt; RandX::SFC64 &gt;</a></td></tr>
+<tr class="memitem:has_5Finvocable_5Fengine" id="r_has_5Finvocable_5Fengine"><td class="memItemLeft">struct &#160;</td><td class="memItemRight"><a class="el" href="structRandX_1_1detail_1_1has__invocable__engine.html">has_invocable_engine</a></td></tr>
+<tr class="memitem:has_5Finvocable_5Fengine_3C_20E_2C_20std_3A_3Aenable_5Fif_5Ft_3C_20has_5Fresult_5Ftype_3C_20E_20_3E_3A_3Avalue_2C_20std_3A_3Avoid_5Ft_3C_20decltype_28std_3A_3Adeclval_3C_20E_20_26_20_3E_28_29_28_29_29_3E_20_3E_20_3E" id="r_has_5Finvocable_5Fengine_3C_20E_2C_20std_3A_3Aenable_5Fif_5Ft_3C_20has_5Fresult_5Ftype_3C_20E_20_3E_3A_3Avalue_2C_20std_3A_3Avoid_5Ft_3C_20decltype_28std_3A_3Adeclval_3C_20E_20_26_20_3E_28_29_28_29_29_3E_20_3E_20_3E"><td class="memItemLeft">struct &#160;</td><td class="memItemRight"><a class="el" href="structRandX_1_1detail_1_1has__invocable__engine_3_01E_00_01std_1_1enable__if__t_3_01has__result_03de6a5b82a6d887f79fd988198ec06d.html">has_invocable_engine&lt; E, std::enable_if_t&lt; has_result_type&lt; E &gt;::value, std::void_t&lt; decltype(std::declval&lt; E &amp; &gt;()())&gt; &gt; &gt;</a></td></tr>
+<tr class="memitem:has_5Fmin_5Fmax" id="r_has_5Fmin_5Fmax"><td class="memItemLeft">struct &#160;</td><td class="memItemRight"><a class="el" href="structRandX_1_1detail_1_1has__min__max.html">has_min_max</a></td></tr>
+<tr class="memitem:has_5Fmin_5Fmax_3C_20E_2C_20std_3A_3Aenable_5Fif_5Ft_3C_20has_5Finvocable_5Fengine_3C_20E_20_3E_3A_3Avalue_2C_20std_3A_3Avoid_5Ft_3C_20decltype_28E_3A_3Amin_28_29_29_2C_20decltype_28E_3A_3Amax_28_29_29_2C_20std_3A_3Aintegral_5Fconstant_3C_20bool_2C_28E_3A_3Amin_28_29_3C_20E_3A_3Amax_28_29_29_3E_20_3E_20_3E_20_3E" id="r_has_5Fmin_5Fmax_3C_20E_2C_20std_3A_3Aenable_5Fif_5Ft_3C_20has_5Finvocable_5Fengine_3C_20E_20_3E_3A_3Avalue_2C_20std_3A_3Avoid_5Ft_3C_20decltype_28E_3A_3Amin_28_29_29_2C_20decltype_28E_3A_3Amax_28_29_29_2C_20std_3A_3Aintegral_5Fconstant_3C_20bool_2C_28E_3A_3Amin_28_29_3C_20E_3A_3Amax_28_29_29_3E_20_3E_20_3E_20_3E"><td class="memItemLeft">struct &#160;</td><td class="memItemRight"><a class="el" href="structRandX_1_1detail_1_1has__min__max_3_01E_00_01std_1_1enable__if__t_3_01has__invocable__engine5b1a94a1a5a1f748eb82bd5282be940.html">has_min_max&lt; E, std::enable_if_t&lt; has_invocable_engine&lt; E &gt;::value, std::void_t&lt; decltype(E::min()), decltype(E::max()), std::integral_constant&lt; bool,(E::min()&lt; E::max())&gt; &gt; &gt; &gt;</a></td></tr>
+<tr class="memitem:has_5Fresult_5Ftype" id="r_has_5Fresult_5Ftype"><td class="memItemLeft">struct &#160;</td><td class="memItemRight"><a class="el" href="structRandX_1_1detail_1_1has__result__type.html">has_result_type</a></td></tr>
+<tr class="memitem:has_5Fresult_5Ftype_3C_20E_2C_20std_3A_3Avoid_5Ft_3C_20typename_20E_3A_3Aresult_5Ftype_20_3E_20_3E" id="r_has_5Fresult_5Ftype_3C_20E_2C_20std_3A_3Avoid_5Ft_3C_20typename_20E_3A_3Aresult_5Ftype_20_3E_20_3E"><td class="memItemLeft">struct &#160;</td><td class="memItemRight"><a class="el" href="structRandX_1_1detail_1_1has__result__type_3_01E_00_01std_1_1void__t_3_01typename_01E_1_1result__type_01_4_01_4.html">has_result_type&lt; E, std::void_t&lt; typename E::result_type &gt; &gt;</a></td></tr>
+<tr class="memitem:HasJump" id="r_HasJump"><td class="memItemLeft">struct &#160;</td><td class="memItemRight"><a class="el" href="structRandX_1_1detail_1_1HasJump.html">HasJump</a></td></tr>
+<tr class="memitem:HasJump_3C_20Engine_2C_20std_3A_3Avoid_5Ft_3C_20decltype_28std_3A_3Adeclval_3C_20Engine_20_26_20_3E_28_29_2Ejump_28_29_29_3E_20_3E" id="r_HasJump_3C_20Engine_2C_20std_3A_3Avoid_5Ft_3C_20decltype_28std_3A_3Adeclval_3C_20Engine_20_26_20_3E_28_29_2Ejump_28_29_29_3E_20_3E"><td class="memItemLeft">struct &#160;</td><td class="memItemRight"><a class="el" href="structRandX_1_1detail_1_1HasJump_3_01Engine_00_01std_1_1void__t_3_01decltype_07std_1_1declval_3_54a1b52567defa45999d2be9a476b86a.html">HasJump&lt; Engine, std::void_t&lt; decltype(std::declval&lt; Engine &amp; &gt;().jump())&gt; &gt;</a></td></tr>
+<tr class="memitem:HasLongJump" id="r_HasLongJump"><td class="memItemLeft">struct &#160;</td><td class="memItemRight"><a class="el" href="structRandX_1_1detail_1_1HasLongJump.html">HasLongJump</a></td></tr>
+<tr class="memitem:HasLongJump_3C_20Engine_2C_20std_3A_3Avoid_5Ft_3C_20decltype_28std_3A_3Adeclval_3C_20Engine_20_26_20_3E_28_29_2ElongJump_28_29_29_3E_20_3E" id="r_HasLongJump_3C_20Engine_2C_20std_3A_3Avoid_5Ft_3C_20decltype_28std_3A_3Adeclval_3C_20Engine_20_26_20_3E_28_29_2ElongJump_28_29_29_3E_20_3E"><td class="memItemLeft">struct &#160;</td><td class="memItemRight"><a class="el" href="structRandX_1_1detail_1_1HasLongJump_3_01Engine_00_01std_1_1void__t_3_01decltype_07std_1_1declva399cfb803081c83cb97537fa57c762c1.html">HasLongJump&lt; Engine, std::void_t&lt; decltype(std::declval&lt; Engine &amp; &gt;().longJump())&gt; &gt;</a></td></tr>
+<tr class="memitem:is_5Fcharacter" id="r_is_5Fcharacter"><td class="memItemLeft">struct &#160;</td><td class="memItemRight"><a class="el" href="structRandX_1_1detail_1_1is__character.html">is_character</a></td></tr>
+<tr class="memitem:is_5Ffull_5F32bit_5Fengine" id="r_is_5Ffull_5F32bit_5Fengine"><td class="memItemLeft">struct &#160;</td><td class="memItemRight"><a class="el" href="structRandX_1_1detail_1_1is__full__32bit__engine.html">is_full_32bit_engine</a></td></tr>
+<tr class="memitem:is_5Ffull_5F32bit_5Fengine_3C_20Engine_2C_20std_3A_3Aenable_5Fif_5Ft_3C_20is_5Frandom_5Fengine_5Fv_3C_20Engine_20_3E_20_3E_20_3E" id="r_is_5Ffull_5F32bit_5Fengine_3C_20Engine_2C_20std_3A_3Aenable_5Fif_5Ft_3C_20is_5Frandom_5Fengine_5Fv_3C_20Engine_20_3E_20_3E_20_3E"><td class="memItemLeft">struct &#160;</td><td class="memItemRight"><a class="el" href="structRandX_1_1detail_1_1is__full__32bit__engine_3_01Engine_00_01std_1_1enable__if__t_3_01is__ra3e0fe64cdb385df8e35af6ffb1fb4704.html">is_full_32bit_engine&lt; Engine, std::enable_if_t&lt; is_random_engine_v&lt; Engine &gt; &gt; &gt;</a></td></tr>
+<tr class="memitem:is_5Ffull_5F64bit_5Fengine" id="r_is_5Ffull_5F64bit_5Fengine"><td class="memItemLeft">struct &#160;</td><td class="memItemRight"><a class="el" href="structRandX_1_1detail_1_1is__full__64bit__engine.html">is_full_64bit_engine</a></td></tr>
+<tr class="memitem:is_5Ffull_5F64bit_5Fengine_3C_20Engine_2C_20std_3A_3Aenable_5Fif_5Ft_3C_20is_5Frandom_5Fengine_5Fv_3C_20Engine_20_3E_20_3E_20_3E" id="r_is_5Ffull_5F64bit_5Fengine_3C_20Engine_2C_20std_3A_3Aenable_5Fif_5Ft_3C_20is_5Frandom_5Fengine_5Fv_3C_20Engine_20_3E_20_3E_20_3E"><td class="memItemLeft">struct &#160;</td><td class="memItemRight"><a class="el" href="structRandX_1_1detail_1_1is__full__64bit__engine_3_01Engine_00_01std_1_1enable__if__t_3_01is__rab2a5847a3709cf1e7035ca2508caa90b.html">is_full_64bit_engine&lt; Engine, std::enable_if_t&lt; is_random_engine_v&lt; Engine &gt; &gt; &gt;</a></td></tr>
+<tr class="memitem:is_5Findexable_5Fstate" id="r_is_5Findexable_5Fstate"><td class="memItemLeft">struct &#160;</td><td class="memItemRight"><a class="el" href="structRandX_1_1detail_1_1is__indexable__state.html">is_indexable_state</a></td></tr>
+<tr class="memitem:is_5Findexable_5Fstate_3C_20S_2C_20std_3A_3Avoid_5Ft_3C_20decltype_28std_3A_3Adeclval_3C_20const_20S_20_26_20_3E_28_29_2Esize_28_29_29_2C_20decltype_28std_3A_3Adeclval_3C_20S_20_26_20_3E_28_29_5Bstd_3A_3Asize_5Ft_7B_7D_5D_29_2C_20typename_20S_3A_3Avalue_5Ftype_20_3E_20_3E" id="r_is_5Findexable_5Fstate_3C_20S_2C_20std_3A_3Avoid_5Ft_3C_20decltype_28std_3A_3Adeclval_3C_20const_20S_20_26_20_3E_28_29_2Esize_28_29_29_2C_20decltype_28std_3A_3Adeclval_3C_20S_20_26_20_3E_28_29_5Bstd_3A_3Asize_5Ft_7B_7D_5D_29_2C_20typename_20S_3A_3Avalue_5Ftype_20_3E_20_3E"><td class="memItemLeft">struct &#160;</td><td class="memItemRight"><a class="el" href="structRandX_1_1detail_1_1is__indexable__state_3_01S_00_01std_1_1void__t_3_01decltype_07std_1_1dee83c4b6b998d26456da40247da3b1392.html">is_indexable_state&lt; S, std::void_t&lt; decltype(std::declval&lt; const S &amp; &gt;().size()), decltype(std::declval&lt; S &amp; &gt;()[std::size_t{}]), typename S::value_type &gt; &gt;</a></td></tr>
+<tr class="memitem:is_5Finput_5Fiterator" id="r_is_5Finput_5Fiterator"><td class="memItemLeft">struct &#160;</td><td class="memItemRight"><a class="el" href="structRandX_1_1detail_1_1is__input__iterator.html">is_input_iterator</a></td></tr>
+<tr class="memitem:is_5Finput_5Fiterator_3C_20It_2C_20std_3A_3Avoid_5Ft_3C_20typename_20std_3A_3Aiterator_5Ftraits_3C_20It_20_3E_3A_3Aiterator_5Fcategory_20_3E_20_3E" id="r_is_5Finput_5Fiterator_3C_20It_2C_20std_3A_3Avoid_5Ft_3C_20typename_20std_3A_3Aiterator_5Ftraits_3C_20It_20_3E_3A_3Aiterator_5Fcategory_20_3E_20_3E"><td class="memItemLeft">struct &#160;</td><td class="memItemRight"><a class="el" href="structRandX_1_1detail_1_1is__input__iterator_3_01It_00_01std_1_1void__t_3_01typename_01std_1_1itc9507629b63827a72627b5cfc13a2762.html">is_input_iterator&lt; It, std::void_t&lt; typename std::iterator_traits&lt; It &gt;::iterator_category &gt; &gt;</a></td></tr>
+<tr class="memitem:is_5Frand_5Ffillable" id="r_is_5Frand_5Ffillable"><td class="memItemLeft">struct &#160;</td><td class="memItemRight"><a class="el" href="structRandX_1_1detail_1_1is__rand__fillable.html">is_rand_fillable</a></td></tr>
+<tr class="memitem:is_5Frand_5Ffillable_3C_20It_2C_20T_2C_20std_3A_3Avoid_5Ft_3C_20decltype_28_2Astd_3A_3Adeclval_3C_20It_20_26_20_3E_28_29_3Dstd_3A_3Adeclval_3C_20T_20_3E_28_29_29_20_3E_20_3E" id="r_is_5Frand_5Ffillable_3C_20It_2C_20T_2C_20std_3A_3Avoid_5Ft_3C_20decltype_28_2Astd_3A_3Adeclval_3C_20It_20_26_20_3E_28_29_3Dstd_3A_3Adeclval_3C_20T_20_3E_28_29_29_20_3E_20_3E"><td class="memItemLeft">struct &#160;</td><td class="memItemRight"><a class="el" href="structRandX_1_1detail_1_1is__rand__fillable_3_01It_00_01T_00_01std_1_1void__t_3_01decltype_07_5s0388c6a0c5970e1d1a8b3fc926f79b5e.html">is_rand_fillable&lt; It, T, std::void_t&lt; decltype(*std::declval&lt; It &amp; &gt;()=std::declval&lt; T &gt;()) &gt; &gt;</a></td></tr>
+<tr class="memitem:is_5Frandom_5Faccess_5Fcontainer" id="r_is_5Frandom_5Faccess_5Fcontainer"><td class="memItemLeft">struct &#160;</td><td class="memItemRight"><a class="el" href="structRandX_1_1detail_1_1is__random__access__container.html">is_random_access_container</a></td></tr>
+<tr class="memitem:is_5Frandom_5Faccess_5Fcontainer_3C_20C_2C_20std_3A_3Avoid_5Ft_3C_20decltype_28std_3A_3Abegin_28std_3A_3Adeclval_3C_20C_20_26_20_3E_28_29_29_29_2C_20decltype_28std_3A_3Aend_28std_3A_3Adeclval_3C_20C_20_26_20_3E_28_29_29_29_2C_20decltype_28std_3A_3Asize_28std_3A_3Adeclval_3C_20C_20_26_20_3E_28_29_29_29_3E_20_3E" id="r_is_5Frandom_5Faccess_5Fcontainer_3C_20C_2C_20std_3A_3Avoid_5Ft_3C_20decltype_28std_3A_3Abegin_28std_3A_3Adeclval_3C_20C_20_26_20_3E_28_29_29_29_2C_20decltype_28std_3A_3Aend_28std_3A_3Adeclval_3C_20C_20_26_20_3E_28_29_29_29_2C_20decltype_28std_3A_3Asize_28std_3A_3Adeclval_3C_20C_20_26_20_3E_28_29_29_29_3E_20_3E"><td class="memItemLeft">struct &#160;</td><td class="memItemRight"><a class="el" href="structRandX_1_1detail_1_1is__random__access__container_3_01C_00_01std_1_1void__t_3_01decltype_0730445ba85b1cba4caf94f7004a184a57.html">is_random_access_container&lt; C, std::void_t&lt; decltype(std::begin(std::declval&lt; C &amp; &gt;())), decltype(std::end(std::declval&lt; C &amp; &gt;())), decltype(std::size(std::declval&lt; C &amp; &gt;()))&gt; &gt;</a></td></tr>
+<tr class="memitem:is_5Frandom_5Faccess_5Fiterator" id="r_is_5Frandom_5Faccess_5Fiterator"><td class="memItemLeft">struct &#160;</td><td class="memItemRight"><a class="el" href="structRandX_1_1detail_1_1is__random__access__iterator.html">is_random_access_iterator</a></td></tr>
+<tr class="memitem:is_5Frandom_5Faccess_5Fiterator_3C_20It_2C_20std_3A_3Avoid_5Ft_3C_20typename_20std_3A_3Aiterator_5Ftraits_3C_20It_20_3E_3A_3Aiterator_5Fcategory_20_3E_20_3E" id="r_is_5Frandom_5Faccess_5Fiterator_3C_20It_2C_20std_3A_3Avoid_5Ft_3C_20typename_20std_3A_3Aiterator_5Ftraits_3C_20It_20_3E_3A_3Aiterator_5Fcategory_20_3E_20_3E"><td class="memItemLeft">struct &#160;</td><td class="memItemRight"><a class="el" href="structRandX_1_1detail_1_1is__random__access__iterator_3_01It_00_01std_1_1void__t_3_01typename_01906678429c844b6cd0d6d7a800b7ca40.html">is_random_access_iterator&lt; It, std::void_t&lt; typename std::iterator_traits&lt; It &gt;::iterator_category &gt; &gt;</a></td></tr>
+<tr class="memitem:is_5Frandom_5Fengine" id="r_is_5Frandom_5Fengine"><td class="memItemLeft">struct &#160;</td><td class="memItemRight"><a class="el" href="structRandX_1_1detail_1_1is__random__engine.html">is_random_engine</a></td></tr>
+<tr class="memitem:is_5Fseed_5Fsequence" id="r_is_5Fseed_5Fsequence"><td class="memItemLeft">struct &#160;</td><td class="memItemRight"><a class="el" href="structRandX_1_1detail_1_1is__seed__sequence.html">is_seed_sequence</a></td></tr>
+<tr class="memitem:is_5Fseed_5Fsequence_5Fhelper" id="r_is_5Fseed_5Fsequence_5Fhelper"><td class="memItemLeft">struct &#160;</td><td class="memItemRight"><a class="el" href="structRandX_1_1detail_1_1is__seed__sequence__helper.html">is_seed_sequence_helper</a></td></tr>
+<tr class="memitem:is_5Fseed_5Fsequence_5Fhelper_3C_20S_2C_20std_3A_3Avoid_5Ft_3C_20decltype_28std_3A_3Adeclval_3C_20S_20_26_20_3E_28_29_2Egenerate_28std_3A_3Adeclval_3C_20std_3A_3Auint32_5Ft_20_2A_20_3E_28_29_2C_20std_3A_3Adeclval_3C_20std_3A_3Auint32_5Ft_20_2A_20_3E_28_29_29_29_20_3E_20_3E" id="r_is_5Fseed_5Fsequence_5Fhelper_3C_20S_2C_20std_3A_3Avoid_5Ft_3C_20decltype_28std_3A_3Adeclval_3C_20S_20_26_20_3E_28_29_2Egenerate_28std_3A_3Adeclval_3C_20std_3A_3Auint32_5Ft_20_2A_20_3E_28_29_2C_20std_3A_3Adeclval_3C_20std_3A_3Auint32_5Ft_20_2A_20_3E_28_29_29_29_20_3E_20_3E"><td class="memItemLeft">struct &#160;</td><td class="memItemRight"><a class="el" href="structRandX_1_1detail_1_1is__seed__sequence__helper_3_01S_00_01std_1_1void__t_3_01decltype_07stdebc0e815b75e5f80c042552eb35c88f6.html">is_seed_sequence_helper&lt; S, std::void_t&lt; decltype(std::declval&lt; S &amp; &gt;().generate(std::declval&lt; std::uint32_t * &gt;(), std::declval&lt; std::uint32_t * &gt;())) &gt; &gt;</a></td></tr>
+<tr class="memitem:is_5Fserializable_5Fengine" id="r_is_5Fserializable_5Fengine"><td class="memItemLeft">struct &#160;</td><td class="memItemRight"><a class="el" href="structRandX_1_1detail_1_1is__serializable__engine.html">is_serializable_engine</a></td></tr>
+<tr class="memitem:is_5Fserializable_5Fengine_3C_20E_2C_20std_3A_3Avoid_5Ft_3C_20decltype_28std_3A_3Adeclval_3C_20const_20E_20_26_20_3E_28_29_2Eserialize_28_29_29_2C_20decltype_28std_3A_3Adeclval_3C_20E_20_26_20_3E_28_29_2Edeserialize_28std_3A_3Adeclval_3C_20typename_20E_3A_3Astate_5Ftype_20_3E_28_29_29_29_2C_20typename_20E_3A_3Astate_5Ftype_20_3E_20_3E" id="r_is_5Fserializable_5Fengine_3C_20E_2C_20std_3A_3Avoid_5Ft_3C_20decltype_28std_3A_3Adeclval_3C_20const_20E_20_26_20_3E_28_29_2Eserialize_28_29_29_2C_20decltype_28std_3A_3Adeclval_3C_20E_20_26_20_3E_28_29_2Edeserialize_28std_3A_3Adeclval_3C_20typename_20E_3A_3Astate_5Ftype_20_3E_28_29_29_29_2C_20typename_20E_3A_3Astate_5Ftype_20_3E_20_3E"><td class="memItemLeft">struct &#160;</td><td class="memItemRight"><a class="el" href="structRandX_1_1detail_1_1is__serializable__engine_3_01E_00_01std_1_1void__t_3_01decltype_07std_16005f2a699fa7de44dcacc230bed4880.html">is_serializable_engine&lt; E, std::void_t&lt; decltype(std::declval&lt; const E &amp; &gt;().serialize()), decltype(std::declval&lt; E &amp; &gt;().deserialize(std::declval&lt; typename E::state_type &gt;())), typename E::state_type &gt; &gt;</a></td></tr>
+<tr class="memitem:PreparedWeights" id="r_PreparedWeights"><td class="memItemLeft">struct &#160;</td><td class="memItemRight"><a class="el" href="structRandX_1_1detail_1_1PreparedWeights.html">PreparedWeights</a></td></tr>
+<tr class="memitem:RealIntervalKernel" id="r_RealIntervalKernel"><td class="memItemLeft">class &#160;</td><td class="memItemRight"><a class="el" href="classRandX_1_1detail_1_1RealIntervalKernel.html">RealIntervalKernel</a></td></tr>
+<tr class="memitem:ScopedWiper" id="r_ScopedWiper"><td class="memItemLeft">struct &#160;</td><td class="memItemRight"><a class="el" href="structRandX_1_1detail_1_1ScopedWiper.html">ScopedWiper</a></td></tr>
+<tr class="memitem:StreamFormatGuard" id="r_StreamFormatGuard"><td class="memItemLeft">class &#160;</td><td class="memItemRight"><a class="el" href="classRandX_1_1detail_1_1StreamFormatGuard.html">StreamFormatGuard</a></td></tr>
+</table><table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 id="header-concepts" class="groupheader"><a id="concepts" name="concepts"></a>
+概念</h2></td></tr>
+<tr class="memitem:SeedSequence" id="r_SeedSequence"><td class="memItemLeft">concept &#160;</td><td class="memItemRight"><a class="el" href="conceptRandX_1_1detail_1_1SeedSequence.html">SeedSequence</a></td></tr>
+<tr class="memitem:RandomEngine" id="r_RandomEngine"><td class="memItemLeft">concept &#160;</td><td class="memItemRight"><a class="el" href="conceptRandX_1_1detail_1_1RandomEngine.html">RandomEngine</a></td></tr>
+<tr class="memitem:Character" id="r_Character"><td class="memItemLeft">concept &#160;</td><td class="memItemRight"><a class="el" href="conceptRandX_1_1detail_1_1Character.html">Character</a></td></tr>
+<tr class="memitem:IndexableState" id="r_IndexableState"><td class="memItemLeft">concept &#160;</td><td class="memItemRight"><a class="el" href="conceptRandX_1_1detail_1_1IndexableState.html">IndexableState</a></td></tr>
+<tr class="memitem:SerializableEngine" id="r_SerializableEngine"><td class="memItemLeft">concept &#160;</td><td class="memItemRight"><a class="el" href="conceptRandX_1_1detail_1_1SerializableEngine.html">SerializableEngine</a></td></tr>
+<tr class="memitem:JumpableEngine" id="r_JumpableEngine"><td class="memItemLeft">concept &#160;</td><td class="memItemRight"><a class="el" href="conceptRandX_1_1detail_1_1JumpableEngine.html">JumpableEngine</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">可跳跃引擎概念：支持 jump() 前进 2^N 步 <br /></td></tr>
+<tr class="memitem:StreamEngine" id="r_StreamEngine"><td class="memItemLeft">concept &#160;</td><td class="memItemRight"><a class="el" href="conceptRandX_1_1detail_1_1StreamEngine.html">StreamEngine</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">流式引擎概念：可通过 MakeStreamEngine 创建互不重叠的子序列流 <br /></td></tr>
+<tr class="memitem:RandFillable" id="r_RandFillable"><td class="memItemLeft">concept &#160;</td><td class="memItemRight"><a class="el" href="conceptRandX_1_1detail_1_1RandFillable.html">RandFillable</a></td></tr>
+</table><table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 id="header-typedef-members" class="groupheader"><a id="typedef-members" name="typedef-members"></a>
+类型定义</h2></td></tr>
+<tr class="memitem:adf33e4ca6387ea6107f6050a56388bce" id="r_adf33e4ca6387ea6107f6050a56388bce"><td class="memTemplParams" colspan="2">template&lt;class T&gt; </td></tr>
+<tr class="memitem:adf33e4ca6387ea6107f6050a56388bce template"><td class="memItemLeft">using&#160;</td><td class="memItemRight"><a class="el" href="#adf33e4ca6387ea6107f6050a56388bce">BetaWorkType</a> = std::conditional_t&lt;std::is_same_v&lt;T, float&gt;, double, T&gt;</td></tr>
+</table><table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 id="header-func-members" class="groupheader"><a id="func-members" name="func-members"></a>
+函数</h2></td></tr>
+<tr class="memitem:ga9ff9f37cb91755aeca8c059a5b75207c" id="r_ga9ff9f37cb91755aeca8c059a5b75207c"><td class="memItemLeft">constexpr std::uint64_t&#160;</td><td class="memItemRight"><a class="el" href="group__engines.html#ga9ff9f37cb91755aeca8c059a5b75207c">RotL</a> (const std::uint64_t x, const int s) noexcept</td></tr>
+<tr class="memitem:ga397bb159bd3de2e94fa7cf303214679d" id="r_ga397bb159bd3de2e94fa7cf303214679d"><td class="memItemLeft">constexpr std::uint32_t&#160;</td><td class="memItemRight"><a class="el" href="group__engines.html#ga397bb159bd3de2e94fa7cf303214679d">RotL</a> (const std::uint32_t x, const int s) noexcept</td></tr>
+<tr class="memitem:ga13d22746812b03016bbb2ff7b5c0d49d" id="r_ga13d22746812b03016bbb2ff7b5c0d49d"><td class="memTemplParams" colspan="2">template&lt;std::size_t N&gt; </td></tr>
+<tr class="memitem:ga13d22746812b03016bbb2ff7b5c0d49d template"><td class="memItemLeft">constexpr bool&#160;</td><td class="memItemRight"><a class="el" href="group__engines.html#ga13d22746812b03016bbb2ff7b5c0d49d">IsAllZero</a> (const std::array&lt; std::uint64_t, N &gt; &amp;state) noexcept</td></tr>
+<tr class="memitem:ga908fb5d9c9a0e53e24e487d45ed8963f" id="r_ga908fb5d9c9a0e53e24e487d45ed8963f"><td class="memTemplParams" colspan="2">template&lt;std::size_t N&gt; </td></tr>
+<tr class="memitem:ga908fb5d9c9a0e53e24e487d45ed8963f template"><td class="memItemLeft">constexpr bool&#160;</td><td class="memItemRight"><a class="el" href="group__engines.html#ga908fb5d9c9a0e53e24e487d45ed8963f">IsAllZero</a> (const std::array&lt; std::uint32_t, N &gt; &amp;state) noexcept</td></tr>
+<tr class="memitem:ga5da95d4782cee71328b54d5d6b0a01e8" id="r_ga5da95d4782cee71328b54d5d6b0a01e8"><td class="memTemplParams" colspan="2">template&lt;typename State&gt; </td></tr>
+<tr class="memitem:ga5da95d4782cee71328b54d5d6b0a01e8 template"><td class="memItemLeft">constexpr bool&#160;</td><td class="memItemRight"><a class="el" href="group__engines.html#ga5da95d4782cee71328b54d5d6b0a01e8">IsValidState</a> (const State &amp;state) noexcept</td></tr>
+<tr class="memitem:ga1161a031a0eb77e3d4c61ca01430ff3a" id="r_ga1161a031a0eb77e3d4c61ca01430ff3a"><td class="memTemplParams" colspan="2">template&lt;class Engine, class State&gt; </td></tr>
+<tr class="memitem:ga1161a031a0eb77e3d4c61ca01430ff3a template"><td class="memItemLeft">constexpr bool&#160;</td><td class="memItemRight"><a class="el" href="group__engines.html#ga1161a031a0eb77e3d4c61ca01430ff3a">IsValidSnapshot</a> (const State &amp;state) noexcept</td></tr>
+<tr class="memitem:aea45979fec3d8bd006581404baf9c7a9" id="r_aea45979fec3d8bd006581404baf9c7a9"><td class="memItemLeft">static void&#160;</td><td class="memItemRight"><a class="el" href="#aea45979fec3d8bd006581404baf9c7a9">SecureWipe</a> (void *ptr, std::size_t len) noexcept</td></tr>
+<tr class="memitem:a23a58952bbe85de475f50a4f1e6acfce" id="r_a23a58952bbe85de475f50a4f1e6acfce"><td class="memItemLeft">bool&#160;</td><td class="memItemRight"><a class="el" href="#a23a58952bbe85de475f50a4f1e6acfce">HardwareRand64</a> (std::uint64_t &amp;out) noexcept</td></tr>
+<tr class="memitem:a02fce2f64f9c2eb6dbe7390a26aab73a" id="r_a02fce2f64f9c2eb6dbe7390a26aab73a"><td class="memItemLeft">bool&#160;</td><td class="memItemRight"><a class="el" href="#a02fce2f64f9c2eb6dbe7390a26aab73a">GetOsEntropyBytes</a> (void *buf, std::size_t n) noexcept</td></tr>
+<tr class="memitem:ab11ce126c8ec7b2400ba4b430cd479de" id="r_ab11ce126c8ec7b2400ba4b430cd479de"><td class="memItemLeft">constexpr bool&#160;</td><td class="memItemRight"><a class="el" href="#ab11ce126c8ec7b2400ba4b430cd479de">HasCryptoGradeOsEntropy</a> () noexcept</td></tr>
+<tr class="memitem:a2b6b48b8600a944999b297c8c07a51f7" id="r_a2b6b48b8600a944999b297c8c07a51f7"><td class="memItemLeft">static void&#160;</td><td class="memItemRight"><a class="el" href="#a2b6b48b8600a944999b297c8c07a51f7">ChaCha20QuarterRound</a> (std::uint32_t &amp;a, std::uint32_t &amp;b, std::uint32_t &amp;c, std::uint32_t &amp;d) noexcept</td></tr>
+<tr class="memitem:a08b75ec6803c9d02a8bb11bf3ae00a94" id="r_a08b75ec6803c9d02a8bb11bf3ae00a94"><td class="memTemplParams" colspan="2">template&lt;class T&gt; </td></tr>
+<tr class="memitem:a08b75ec6803c9d02a8bb11bf3ae00a94 template"><td class="memItemLeft">T&#160;</td><td class="memItemRight"><a class="el" href="#a08b75ec6803c9d02a8bb11bf3ae00a94">NormalizeBetaSample</a> (T x, T y)</td></tr>
+<tr class="memitem:aa4095ad503d2edf6fc1e43ffbcb46aca" id="r_aa4095ad503d2edf6fc1e43ffbcb46aca"><td class="memTemplParams" colspan="2">template&lt;<a class="el" href="namespaceRandX.html#a0592c80fc859e68c1df0ba8dba83f090">RandomEngine</a> Engine&gt; </td></tr>
+<tr class="memitem:aa4095ad503d2edf6fc1e43ffbcb46aca template"><td class="memItemLeft">std::uint64_t&#160;</td><td class="memItemRight"><a class="el" href="#aa4095ad503d2edf6fc1e43ffbcb46aca">Generate64Bits</a> (Engine &amp;engine)</td></tr>
+<tr class="memitem:a3afe9f355fd4babe1707384df27bcc5c" id="r_a3afe9f355fd4babe1707384df27bcc5c"><td class="memTemplParams" colspan="2">template&lt;class WeightContainer&gt; </td></tr>
+<tr class="memitem:a3afe9f355fd4babe1707384df27bcc5c template"><td class="memItemLeft"><a class="el" href="structRandX_1_1detail_1_1PreparedWeights.html">PreparedWeights</a>&lt; WeightContainer &gt;&#160;</td><td class="memItemRight"><a class="el" href="#a3afe9f355fd4babe1707384df27bcc5c">PrepareWeights</a> (const WeightContainer &amp;weights)</td></tr>
+<tr class="memitem:a8f6e6769a7bdbc3689a1ce3e47d9f767" id="r_a8f6e6769a7bdbc3689a1ce3e47d9f767"><td class="memItemLeft">constexpr std::uint64_t&#160;</td><td class="memItemRight"><a class="el" href="#a8f6e6769a7bdbc3689a1ce3e47d9f767">BoundedRand</a> (<a class="el" href="classRandX_1_1Xoshiro256StarStar.html">Xoshiro256StarStar</a> &amp;rng, std::uint64_t range) noexcept</td></tr>
+<tr class="memitem:a776ed00e598ef1b90a5e29060c7cebc6" id="r_a776ed00e598ef1b90a5e29060c7cebc6"><td class="memItemLeft">std::string_view&#160;</td><td class="memItemRight"><a class="el" href="#a776ed00e598ef1b90a5e29060c7cebc6">CharSetString</a> (<a class="el" href="group__distributions.html#gab0df6de2fb7ce10af8e7175c54a186a6">CharSet</a> cs) noexcept</td></tr>
+<tr class="memitem:a75f79d2555db7978a94103369104355d" id="r_a75f79d2555db7978a94103369104355d"><td class="memTemplParams" colspan="2">template&lt;class WorkT, class Engine&gt; </td></tr>
+<tr class="memitem:a75f79d2555db7978a94103369104355d template"><td class="memItemLeft">void&#160;</td><td class="memItemRight"><a class="el" href="#a75f79d2555db7978a94103369104355d">SampleGammaLogScale</a> (Engine &amp;engine, WorkT shape, <a class="el" href="structRandX_1_1detail_1_1DecomposedGammaLog.html">DecomposedGammaLog</a>&lt; WorkT &gt; &amp;out)</td></tr>
+<tr class="memitem:a222702106fa2b8d843d7bb7d2187bc71" id="r_a222702106fa2b8d843d7bb7d2187bc71"><td class="memTemplParams" colspan="2">template&lt;class WorkT&gt; </td></tr>
+<tr class="memitem:a222702106fa2b8d843d7bb7d2187bc71 template"><td class="memItemLeft">WorkT&#160;</td><td class="memItemRight"><a class="el" href="#a222702106fa2b8d843d7bb7d2187bc71">ComputeBetaSampleFromLogScale</a> (const <a class="el" href="structRandX_1_1detail_1_1DecomposedGammaLog.html">DecomposedGammaLog</a>&lt; WorkT &gt; &amp;a_sample, const <a class="el" href="structRandX_1_1detail_1_1DecomposedGammaLog.html">DecomposedGammaLog</a>&lt; WorkT &gt; &amp;b_sample)</td></tr>
+<tr class="memitem:abaa0f473ad210dbd21252da4b1e066d3" id="r_abaa0f473ad210dbd21252da4b1e066d3"><td class="memTemplParams" colspan="2">template&lt;class WorkT&gt; </td></tr>
+<tr class="memitem:abaa0f473ad210dbd21252da4b1e066d3 template"><td class="memItemLeft">WorkT&#160;</td><td class="memItemRight"><a class="el" href="#abaa0f473ad210dbd21252da4b1e066d3">ComputeBetaSampleFromLogScale</a> (WorkT d_a, WorkT e_a, WorkT d_b, WorkT e_b)</td></tr>
+<tr class="memitem:aea45979fec3d8bd006581404baf9c7a9" id="r_aea45979fec3d8bd006581404baf9c7a9"><td class="memItemLeft">static void&#160;</td><td class="memItemRight"><a class="el" href="#aea45979fec3d8bd006581404baf9c7a9">SecureWipe</a> (void *ptr, std::size_t len) noexcept</td></tr>
+<tr class="memitem:a2b6b48b8600a944999b297c8c07a51f7" id="r_a2b6b48b8600a944999b297c8c07a51f7"><td class="memItemLeft">static void&#160;</td><td class="memItemRight"><a class="el" href="#a2b6b48b8600a944999b297c8c07a51f7">ChaCha20QuarterRound</a> (std::uint32_t &amp;a, std::uint32_t &amp;b, std::uint32_t &amp;c, std::uint32_t &amp;d) noexcept</td></tr>
+<tr class="memitem:a3e43c32364b8559b595d72bc19d653fc" id="r_a3e43c32364b8559b595d72bc19d653fc"><td class="memTemplParams" colspan="2">template&lt;class Engine, std::enable_if_t&lt; <a class="el" href="#ac37102c4cac569b3ef70487441cfcda0">is_random_engine_v</a>&lt; Engine &gt; &gt; * = nullptr&gt; </td></tr>
+<tr class="memitem:a3e43c32364b8559b595d72bc19d653fc template"><td class="memItemLeft">std::uint64_t&#160;</td><td class="memItemRight"><a class="el" href="#a3e43c32364b8559b595d72bc19d653fc">Generate64Bits</a> (Engine &amp;engine)</td></tr>
+</table><table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 id="header-var-members" class="groupheader"><a id="var-members" name="var-members"></a>
+变量</h2></td></tr>
+<tr class="memitem:a065c63284990fd5bc61ba1b0f0901f72" id="r_a065c63284990fd5bc61ba1b0f0901f72"><td class="memItemLeft">constexpr std::uint32_t&#160;</td><td class="memItemRight"><a class="el" href="#a065c63284990fd5bc61ba1b0f0901f72">ChaCha20Constants</a> [4]</td></tr>
+<tr class="memitem:a28e213ceb49fbad030a97e366bd114db" id="r_a28e213ceb49fbad030a97e366bd114db"><td class="memItemLeft">constexpr std::uint64_t&#160;</td><td class="memItemRight"><a class="el" href="#a28e213ceb49fbad030a97e366bd114db">ChaCha20ReseedThreshold</a> = 1ULL &lt;&lt; 20</td></tr>
+<tr class="memitem:ac37102c4cac569b3ef70487441cfcda0" id="r_ac37102c4cac569b3ef70487441cfcda0"><td class="memTemplParams" colspan="2">template&lt;class E&gt; </td></tr>
+<tr class="memitem:ac37102c4cac569b3ef70487441cfcda0 template"><td class="memItemLeft">constexpr bool&#160;</td><td class="memItemRight"><a class="el" href="#ac37102c4cac569b3ef70487441cfcda0">is_random_engine_v</a> = <a class="el" href="namespaceRandX.html#a0592c80fc859e68c1df0ba8dba83f090">RandomEngine</a>&lt;E&gt;</td></tr>
+<tr class="memitem:a273ce8358035218693262cef83e6ed5d" id="r_a273ce8358035218693262cef83e6ed5d"><td class="memTemplParams" colspan="2">template&lt;class Engine&gt; </td></tr>
+<tr class="memitem:a273ce8358035218693262cef83e6ed5d template"><td class="memItemLeft">constexpr bool&#160;</td><td class="memItemRight"><a class="el" href="#a273ce8358035218693262cef83e6ed5d">IsFull64BitEngine</a> = false</td></tr>
+<tr class="memitem:a4cd86769c86fff32a29338080fd6832a" id="r_a4cd86769c86fff32a29338080fd6832a"><td class="memTemplParams" colspan="2">template&lt;<a class="el" href="namespaceRandX.html#a0592c80fc859e68c1df0ba8dba83f090">RandomEngine</a> Engine&gt; </td></tr>
+<tr class="memitem:a4cd86769c86fff32a29338080fd6832a template"><td class="memItemLeft">constexpr bool&#160;</td><td class="memItemRight"><a class="el" href="#a4cd86769c86fff32a29338080fd6832a">IsFull64BitEngine&lt; Engine &gt;</a></td></tr>
+<tr class="memitem:a50b2fdcddcb84178a1fa7a2b2dc737cb" id="r_a50b2fdcddcb84178a1fa7a2b2dc737cb"><td class="memTemplParams" colspan="2">template&lt;class Engine&gt; </td></tr>
+<tr class="memitem:a50b2fdcddcb84178a1fa7a2b2dc737cb template"><td class="memItemLeft">constexpr bool&#160;</td><td class="memItemRight"><a class="el" href="#a50b2fdcddcb84178a1fa7a2b2dc737cb">IsFull32BitEngine</a> = false</td></tr>
+<tr class="memitem:a9038a2c04a5730d1bb13b95de9d078f1" id="r_a9038a2c04a5730d1bb13b95de9d078f1"><td class="memTemplParams" colspan="2">template&lt;<a class="el" href="namespaceRandX.html#a0592c80fc859e68c1df0ba8dba83f090">RandomEngine</a> Engine&gt; </td></tr>
+<tr class="memitem:a9038a2c04a5730d1bb13b95de9d078f1 template"><td class="memItemLeft">constexpr bool&#160;</td><td class="memItemRight"><a class="el" href="#a9038a2c04a5730d1bb13b95de9d078f1">IsFull32BitEngine&lt; Engine &gt;</a></td></tr>
+<tr class="memitem:af8645d137f092519f5b25886cdbc8af6" id="r_af8645d137f092519f5b25886cdbc8af6"><td class="memItemLeft">constexpr std::uint64_t&#160;</td><td class="memItemRight"><a class="el" href="#af8645d137f092519f5b25886cdbc8af6">HashSetThresholdK</a> = 64</td></tr>
+<tr class="memitem:aa54a24e3b3785b6acfc0f048d6118490" id="r_aa54a24e3b3785b6acfc0f048d6118490"><td class="memTemplParams" colspan="2">template&lt;class S&gt; </td></tr>
+<tr class="memitem:aa54a24e3b3785b6acfc0f048d6118490 template"><td class="memItemLeft">constexpr bool&#160;</td><td class="memItemRight"><a class="el" href="#aa54a24e3b3785b6acfc0f048d6118490">is_seed_sequence_v</a> = <a class="el" href="structRandX_1_1detail_1_1is__seed__sequence.html">is_seed_sequence</a>&lt;S&gt;::value</td></tr>
+<tr class="memitem:aa123f35d781e532fbf169cdeab075d72" id="r_aa123f35d781e532fbf169cdeab075d72"><td class="memTemplParams" colspan="2">template&lt;class T&gt; </td></tr>
+<tr class="memitem:aa123f35d781e532fbf169cdeab075d72 template"><td class="memItemLeft">constexpr bool&#160;</td><td class="memItemRight"><a class="el" href="#aa123f35d781e532fbf169cdeab075d72">is_character_v</a> = <a class="el" href="structRandX_1_1detail_1_1is__character.html">is_character</a>&lt;T&gt;::value</td></tr>
+<tr class="memitem:a456a315cdea07bef6ae3a63e574f08f7" id="r_a456a315cdea07bef6ae3a63e574f08f7"><td class="memTemplParams" colspan="2">template&lt;class It&gt; </td></tr>
+<tr class="memitem:a456a315cdea07bef6ae3a63e574f08f7 template"><td class="memItemLeft">constexpr bool&#160;</td><td class="memItemRight"><a class="el" href="#a456a315cdea07bef6ae3a63e574f08f7">is_random_access_iterator_v</a></td></tr>
+<tr class="memitem:a8f5d9a50d33c854ef3ffd9dd658f0623" id="r_a8f5d9a50d33c854ef3ffd9dd658f0623"><td class="memTemplParams" colspan="2">template&lt;class It&gt; </td></tr>
+<tr class="memitem:a8f5d9a50d33c854ef3ffd9dd658f0623 template"><td class="memItemLeft">constexpr bool&#160;</td><td class="memItemRight"><a class="el" href="#a8f5d9a50d33c854ef3ffd9dd658f0623">is_input_iterator_v</a></td></tr>
+<tr class="memitem:ae9970537ef3ffa0be29a673d36132ea8" id="r_ae9970537ef3ffa0be29a673d36132ea8"><td class="memTemplParams" colspan="2">template&lt;class C&gt; </td></tr>
+<tr class="memitem:ae9970537ef3ffa0be29a673d36132ea8 template"><td class="memItemLeft">constexpr bool&#160;</td><td class="memItemRight"><a class="el" href="#ae9970537ef3ffa0be29a673d36132ea8">is_random_access_container_v</a></td></tr>
+<tr class="memitem:a96d61ab80e11a084ab777f8d7ebab82c" id="r_a96d61ab80e11a084ab777f8d7ebab82c"><td class="memTemplParams" colspan="2">template&lt;class Engine&gt; </td></tr>
+<tr class="memitem:a96d61ab80e11a084ab777f8d7ebab82c template"><td class="memItemLeft">constexpr bool&#160;</td><td class="memItemRight"><a class="el" href="#a96d61ab80e11a084ab777f8d7ebab82c">is_full_64bit_engine_v</a> = <a class="el" href="structRandX_1_1detail_1_1is__full__64bit__engine.html">is_full_64bit_engine</a>&lt;Engine&gt;::value</td></tr>
+<tr class="memitem:ae3b5289f5acf28728b4e7911648b0bc0" id="r_ae3b5289f5acf28728b4e7911648b0bc0"><td class="memTemplParams" colspan="2">template&lt;class Engine&gt; </td></tr>
+<tr class="memitem:ae3b5289f5acf28728b4e7911648b0bc0 template"><td class="memItemLeft">constexpr bool&#160;</td><td class="memItemRight"><a class="el" href="#ae3b5289f5acf28728b4e7911648b0bc0">is_full_32bit_engine_v</a> = <a class="el" href="structRandX_1_1detail_1_1is__full__32bit__engine.html">is_full_32bit_engine</a>&lt;Engine&gt;::value</td></tr>
+<tr class="memitem:a1653298d08f8de872878a0387ed35b8f" id="r_a1653298d08f8de872878a0387ed35b8f"><td class="memTemplParams" colspan="2">template&lt;class It, class T&gt; </td></tr>
+<tr class="memitem:a1653298d08f8de872878a0387ed35b8f template"><td class="memItemLeft">constexpr bool&#160;</td><td class="memItemRight"><a class="el" href="#a1653298d08f8de872878a0387ed35b8f">is_rand_fillable_v</a> = <a class="el" href="structRandX_1_1detail_1_1is__rand__fillable.html">is_rand_fillable</a>&lt;It, T&gt;::value</td></tr>
+<tr class="memitem:aff9a334cf181f6f0ffa80493c1e2a649" id="r_aff9a334cf181f6f0ffa80493c1e2a649"><td class="memTemplParams" colspan="2">template&lt;class S&gt; </td></tr>
+<tr class="memitem:aff9a334cf181f6f0ffa80493c1e2a649 template"><td class="memItemLeft">constexpr bool&#160;</td><td class="memItemRight"><a class="el" href="#aff9a334cf181f6f0ffa80493c1e2a649">is_indexable_state_v</a> = <a class="el" href="structRandX_1_1detail_1_1is__indexable__state.html">is_indexable_state</a>&lt;S&gt;::value</td></tr>
+<tr class="memitem:a243d0c46ae3eb8771d192115657b043e" id="r_a243d0c46ae3eb8771d192115657b043e"><td class="memTemplParams" colspan="2">template&lt;class E&gt; </td></tr>
+<tr class="memitem:a243d0c46ae3eb8771d192115657b043e template"><td class="memItemLeft">constexpr bool&#160;</td><td class="memItemRight"><a class="el" href="#a243d0c46ae3eb8771d192115657b043e">is_serializable_engine_v</a> = <a class="el" href="structRandX_1_1detail_1_1is__serializable__engine.html">is_serializable_engine</a>&lt;E&gt;::value</td></tr>
+</table>
+<a name="doc-typedef-members" id="doc-typedef-members"></a><h2 id="header-doc-typedef-members" class="groupheader">类型定义说明</h2>
+<a id="adf33e4ca6387ea6107f6050a56388bce" name="adf33e4ca6387ea6107f6050a56388bce"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#adf33e4ca6387ea6107f6050a56388bce">&#9670;&#160;</a></span>BetaWorkType</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;class T&gt; </div>
+      <table class="memname">
+        <tr>
+          <td class="memname">using <a class="el" href="#adf33e4ca6387ea6107f6050a56388bce">RandX::detail::BetaWorkType</a> = std::conditional_t&lt;std::is_same_v&lt;T, float&gt;, double, T&gt;</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a name="doc-func-members" id="doc-func-members"></a><h2 id="header-doc-func-members" class="groupheader">函数说明</h2>
+<a id="a8f6e6769a7bdbc3689a1ce3e47d9f767" name="a8f6e6769a7bdbc3689a1ce3e47d9f767"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a8f6e6769a7bdbc3689a1ce3e47d9f767">&#9670;&#160;</a></span>BoundedRand()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">std::uint64_t RandX::detail::BoundedRand </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="classRandX_1_1Xoshiro256StarStar.html">Xoshiro256StarStar</a> &amp;</td>          <td class="paramname"><span class="paramname"><em>rng</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">std::uint64_t</td>          <td class="paramname"><span class="paramname"><em>range</em></span>&#160;)</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel nodiscard">nodiscard</span><span class="mlabel constexpr">constexpr</span><span class="mlabel noexcept">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="a2b6b48b8600a944999b297c8c07a51f7" name="a2b6b48b8600a944999b297c8c07a51f7"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a2b6b48b8600a944999b297c8c07a51f7">&#9670;&#160;</a></span>ChaCha20QuarterRound() <span class="overload">[1/2]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">void RandX::detail::ChaCha20QuarterRound </td>
+          <td>(</td>
+          <td class="paramtype">std::uint32_t &amp;</td>          <td class="paramname"><span class="paramname"><em>a</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">std::uint32_t &amp;</td>          <td class="paramname"><span class="paramname"><em>b</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">std::uint32_t &amp;</td>          <td class="paramname"><span class="paramname"><em>c</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">std::uint32_t &amp;</td>          <td class="paramname"><span class="paramname"><em>d</em></span>&#160;)</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel static">static</span><span class="mlabel noexcept">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<div class="dynheader">
+函数调用图:</div>
+<div class="dyncontent">
+<div class="center"><img src="namespaceRandX_1_1detail_a2b6b48b8600a944999b297c8c07a51f7_cgraph.png" border="0" usemap="#anamespaceRandX_1_1detail_a2b6b48b8600a944999b297c8c07a51f7_cgraph" loading="lazy" alt=""/></div>
+<map name="anamespaceRandX_1_1detail_a2b6b48b8600a944999b297c8c07a51f7_cgraph" id="anamespaceRandX_1_1detail_a2b6b48b8600a944999b297c8c07a51f7_cgraph">
+<area shape="rect" title=" " alt="" coords="5,5,237,45"/>
+<area shape="rect" href="group__engines.html#ga9ff9f37cb91755aeca8c059a5b75207c" title=" " alt="" coords="285,13,432,38"/>
+<area shape="poly" title=" " alt="" coords="238,23,272,23,272,28,238,28"/>
+</map>
+</div>
+
+</div>
+</div>
+<a id="a2b6b48b8600a944999b297c8c07a51f7" name="a2b6b48b8600a944999b297c8c07a51f7"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a2b6b48b8600a944999b297c8c07a51f7">&#9670;&#160;</a></span>ChaCha20QuarterRound() <span class="overload">[2/2]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">void RandX::detail::ChaCha20QuarterRound </td>
+          <td>(</td>
+          <td class="paramtype">std::uint32_t &amp;</td>          <td class="paramname"><span class="paramname"><em>a</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">std::uint32_t &amp;</td>          <td class="paramname"><span class="paramname"><em>b</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">std::uint32_t &amp;</td>          <td class="paramname"><span class="paramname"><em>c</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">std::uint32_t &amp;</td>          <td class="paramname"><span class="paramname"><em>d</em></span>&#160;)</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel static">static</span><span class="mlabel noexcept">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<div class="dynheader">
+函数调用图:</div>
+<div class="dyncontent">
+<div class="center"><img src="namespaceRandX_1_1detail_a2b6b48b8600a944999b297c8c07a51f7_cgraph.png" border="0" usemap="#anamespaceRandX_1_1detail_a2b6b48b8600a944999b297c8c07a51f7_cgraph" loading="lazy" alt=""/></div>
+<map name="anamespaceRandX_1_1detail_a2b6b48b8600a944999b297c8c07a51f7_cgraph" id="anamespaceRandX_1_1detail_a2b6b48b8600a944999b297c8c07a51f7_cgraph">
+<area shape="rect" title=" " alt="" coords="5,5,237,45"/>
+<area shape="rect" href="group__engines.html#ga9ff9f37cb91755aeca8c059a5b75207c" title=" " alt="" coords="285,13,432,38"/>
+<area shape="poly" title=" " alt="" coords="238,23,272,23,272,28,238,28"/>
+</map>
+</div>
+
+</div>
+</div>
+<a id="a776ed00e598ef1b90a5e29060c7cebc6" name="a776ed00e598ef1b90a5e29060c7cebc6"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a776ed00e598ef1b90a5e29060c7cebc6">&#9670;&#160;</a></span>CharSetString()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">std::string_view RandX::detail::CharSetString </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="group__distributions.html#gab0df6de2fb7ce10af8e7175c54a186a6">CharSet</a></td>          <td class="paramname"><span class="paramname"><em>cs</em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel nodiscard">nodiscard</span><span class="mlabel noexcept">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="a222702106fa2b8d843d7bb7d2187bc71" name="a222702106fa2b8d843d7bb7d2187bc71"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a222702106fa2b8d843d7bb7d2187bc71">&#9670;&#160;</a></span>ComputeBetaSampleFromLogScale() <span class="overload">[1/2]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;class WorkT&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">WorkT RandX::detail::ComputeBetaSampleFromLogScale </td>
+          <td>(</td>
+          <td class="paramtype">const <a class="el" href="structRandX_1_1detail_1_1DecomposedGammaLog.html">DecomposedGammaLog</a>&lt; WorkT &gt; &amp;</td>          <td class="paramname"><span class="paramname"><em>a_sample</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const <a class="el" href="structRandX_1_1detail_1_1DecomposedGammaLog.html">DecomposedGammaLog</a>&lt; WorkT &gt; &amp;</td>          <td class="paramname"><span class="paramname"><em>b_sample</em></span>&#160;)</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="abaa0f473ad210dbd21252da4b1e066d3" name="abaa0f473ad210dbd21252da4b1e066d3"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#abaa0f473ad210dbd21252da4b1e066d3">&#9670;&#160;</a></span>ComputeBetaSampleFromLogScale() <span class="overload">[2/2]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;class WorkT&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">WorkT RandX::detail::ComputeBetaSampleFromLogScale </td>
+          <td>(</td>
+          <td class="paramtype">WorkT</td>          <td class="paramname"><span class="paramname"><em>d_a</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">WorkT</td>          <td class="paramname"><span class="paramname"><em>e_a</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">WorkT</td>          <td class="paramname"><span class="paramname"><em>d_b</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">WorkT</td>          <td class="paramname"><span class="paramname"><em>e_b</em></span>&#160;)</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<div class="dynheader">
+函数调用图:</div>
+<div class="dyncontent">
+<div class="center"><img src="namespaceRandX_1_1detail_abaa0f473ad210dbd21252da4b1e066d3_cgraph.png" border="0" usemap="#anamespaceRandX_1_1detail_abaa0f473ad210dbd21252da4b1e066d3_cgraph" loading="lazy" alt=""/></div>
+<map name="anamespaceRandX_1_1detail_abaa0f473ad210dbd21252da4b1e066d3_cgraph" id="anamespaceRandX_1_1detail_abaa0f473ad210dbd21252da4b1e066d3_cgraph">
+<area shape="rect" title=" " alt="" coords="5,5,212,45"/>
+<area shape="rect" href="namespaceRandX_1_1detail.html#a222702106fa2b8d843d7bb7d2187bc71" title=" " alt="" coords="260,5,467,45"/>
+<area shape="poly" title=" " alt="" coords="212,23,246,23,246,28,212,28"/>
+</map>
+</div>
+
+</div>
+</div>
+<a id="aa4095ad503d2edf6fc1e43ffbcb46aca" name="aa4095ad503d2edf6fc1e43ffbcb46aca"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aa4095ad503d2edf6fc1e43ffbcb46aca">&#9670;&#160;</a></span>Generate64Bits() <span class="overload">[1/2]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;<a class="el" href="namespaceRandX.html#a0592c80fc859e68c1df0ba8dba83f090">RandomEngine</a> Engine&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">std::uint64_t RandX::detail::Generate64Bits </td>
+          <td>(</td>
+          <td class="paramtype">Engine &amp;</td>          <td class="paramname"><span class="paramname"><em>engine</em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel nodiscard">nodiscard</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="a3e43c32364b8559b595d72bc19d653fc" name="a3e43c32364b8559b595d72bc19d653fc"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a3e43c32364b8559b595d72bc19d653fc">&#9670;&#160;</a></span>Generate64Bits() <span class="overload">[2/2]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;class Engine, std::enable_if_t&lt; <a class="el" href="#ac37102c4cac569b3ef70487441cfcda0">is_random_engine_v</a>&lt; Engine &gt; &gt; * = nullptr&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">std::uint64_t RandX::detail::Generate64Bits </td>
+          <td>(</td>
+          <td class="paramtype">Engine &amp;</td>          <td class="paramname"><span class="paramname"><em>engine</em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel nodiscard">nodiscard</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="a02fce2f64f9c2eb6dbe7390a26aab73a" name="a02fce2f64f9c2eb6dbe7390a26aab73a"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a02fce2f64f9c2eb6dbe7390a26aab73a">&#9670;&#160;</a></span>GetOsEntropyBytes()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">bool RandX::detail::GetOsEntropyBytes </td>
+          <td>(</td>
+          <td class="paramtype">void *</td>          <td class="paramname"><span class="paramname"><em>buf</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">std::size_t</td>          <td class="paramname"><span class="paramname"><em>n</em></span>&#160;)</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel nodiscard">nodiscard</span><span class="mlabel noexcept">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="a23a58952bbe85de475f50a4f1e6acfce" name="a23a58952bbe85de475f50a4f1e6acfce"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a23a58952bbe85de475f50a4f1e6acfce">&#9670;&#160;</a></span>HardwareRand64()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">bool RandX::detail::HardwareRand64 </td>
+          <td>(</td>
+          <td class="paramtype">std::uint64_t &amp;</td>          <td class="paramname"><span class="paramname"><em>out</em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel nodiscard">nodiscard</span><span class="mlabel noexcept">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="ab11ce126c8ec7b2400ba4b430cd479de" name="ab11ce126c8ec7b2400ba4b430cd479de"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ab11ce126c8ec7b2400ba4b430cd479de">&#9670;&#160;</a></span>HasCryptoGradeOsEntropy()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">bool RandX::detail::HasCryptoGradeOsEntropy </td>
+          <td>(</td>
+          <td class="paramname"><span class="paramname"><em></em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel nodiscard">nodiscard</span><span class="mlabel constexpr">constexpr</span><span class="mlabel noexcept">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="a08b75ec6803c9d02a8bb11bf3ae00a94" name="a08b75ec6803c9d02a8bb11bf3ae00a94"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a08b75ec6803c9d02a8bb11bf3ae00a94">&#9670;&#160;</a></span>NormalizeBetaSample()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;class T&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">T RandX::detail::NormalizeBetaSample </td>
+          <td>(</td>
+          <td class="paramtype">T</td>          <td class="paramname"><span class="paramname"><em>x</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">T</td>          <td class="paramname"><span class="paramname"><em>y</em></span>&#160;)</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="a3afe9f355fd4babe1707384df27bcc5c" name="a3afe9f355fd4babe1707384df27bcc5c"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a3afe9f355fd4babe1707384df27bcc5c">&#9670;&#160;</a></span>PrepareWeights()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;class WeightContainer&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="structRandX_1_1detail_1_1PreparedWeights.html">PreparedWeights</a>&lt; WeightContainer &gt; RandX::detail::PrepareWeights </td>
+          <td>(</td>
+          <td class="paramtype">const WeightContainer &amp;</td>          <td class="paramname"><span class="paramname"><em>weights</em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel nodiscard">nodiscard</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="a75f79d2555db7978a94103369104355d" name="a75f79d2555db7978a94103369104355d"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a75f79d2555db7978a94103369104355d">&#9670;&#160;</a></span>SampleGammaLogScale()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;class WorkT, class Engine&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">void RandX::detail::SampleGammaLogScale </td>
+          <td>(</td>
+          <td class="paramtype">Engine &amp;</td>          <td class="paramname"><span class="paramname"><em>engine</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">WorkT</td>          <td class="paramname"><span class="paramname"><em>shape</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="structRandX_1_1detail_1_1DecomposedGammaLog.html">DecomposedGammaLog</a>&lt; WorkT &gt; &amp;</td>          <td class="paramname"><span class="paramname"><em>out</em></span>&#160;)</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<div class="dynheader">
+函数调用图:</div>
+<div class="dyncontent">
+<div class="center"><img src="namespaceRandX_1_1detail_a75f79d2555db7978a94103369104355d_cgraph.png" border="0" usemap="#anamespaceRandX_1_1detail_a75f79d2555db7978a94103369104355d_cgraph" loading="lazy" alt=""/></div>
+<map name="anamespaceRandX_1_1detail_a75f79d2555db7978a94103369104355d_cgraph" id="anamespaceRandX_1_1detail_a75f79d2555db7978a94103369104355d_cgraph">
+<area shape="rect" title=" " alt="" coords="5,35,224,75"/>
+<area shape="rect" href="group__basic.html#ga5fed635ad7f03be9ff674a62a134e4d7" title="采用无偏 Bit&#45;Extraction 直通算法生成 [0, 1) 半开区间的随机浮点数（默认线程引擎）" alt="" coords="272,42,441,67"/>
+<area shape="poly" title=" " alt="" coords="224,52,258,52,258,57,224,57"/>
+<area shape="poly" title=" " alt="" coords="322,44,314,34,318,24,333,18,357,15,386,19,398,28,395,32,384,24,357,21,334,23,322,28,319,33,326,40"/>
+<area shape="rect" href="group__engines.html#ga7dba92b95d7c5e6eb2d1db3c6a3b2ddf" title="获取当前线程专属的默认伪随机数生成引擎" alt="" coords="489,42,653,67"/>
+<area shape="poly" title=" " alt="" coords="442,52,476,52,476,57,442,57"/>
+<area shape="rect" href="group__engines.html#gaa82567759ff174faf923397ea9b0c71f" title="生成非确定性的 64 位种子" alt="" coords="701,42,860,67"/>
+<area shape="poly" title=" " alt="" coords="654,52,688,52,688,57,654,57"/>
+<area shape="rect" href="namespaceRandX_1_1detail.html#a02fce2f64f9c2eb6dbe7390a26aab73a" title=" " alt="" coords="919,5,1126,45"/>
+<area shape="poly" title=" " alt="" coords="860,42,905,37,906,42,861,48"/>
+<area shape="rect" href="namespaceRandX_1_1detail.html#a23a58952bbe85de475f50a4f1e6acfce" title=" " alt="" coords="908,70,1137,95"/>
+<area shape="poly" title=" " alt="" coords="861,61,900,66,899,71,860,66"/>
+</map>
+</div>
+
+</div>
+</div>
+<a id="aea45979fec3d8bd006581404baf9c7a9" name="aea45979fec3d8bd006581404baf9c7a9"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aea45979fec3d8bd006581404baf9c7a9">&#9670;&#160;</a></span>SecureWipe() <span class="overload">[1/2]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">void RandX::detail::SecureWipe </td>
+          <td>(</td>
+          <td class="paramtype">void *</td>          <td class="paramname"><span class="paramname"><em>ptr</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">std::size_t</td>          <td class="paramname"><span class="paramname"><em>len</em></span>&#160;)</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel static">static</span><span class="mlabel noexcept">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="aea45979fec3d8bd006581404baf9c7a9" name="aea45979fec3d8bd006581404baf9c7a9"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aea45979fec3d8bd006581404baf9c7a9">&#9670;&#160;</a></span>SecureWipe() <span class="overload">[2/2]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">void RandX::detail::SecureWipe </td>
+          <td>(</td>
+          <td class="paramtype">void *</td>          <td class="paramname"><span class="paramname"><em>ptr</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">std::size_t</td>          <td class="paramname"><span class="paramname"><em>len</em></span>&#160;)</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel static">static</span><span class="mlabel noexcept">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a name="doc-var-members" id="doc-var-members"></a><h2 id="header-doc-var-members" class="groupheader">变量说明</h2>
+<a id="a065c63284990fd5bc61ba1b0f0901f72" name="a065c63284990fd5bc61ba1b0f0901f72"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a065c63284990fd5bc61ba1b0f0901f72">&#9670;&#160;</a></span>ChaCha20Constants</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">std::uint32_t RandX::detail::ChaCha20Constants</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel constexpr">constexpr</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<b>初始值:</b><div class="fragment"><div class="line">                                             = {</div>
+<div class="line">    0x61707865u, 0x3320646eu, 0x79622d32u, 0x6b206574u</div>
+<div class="line">}</div>
+</div><!-- fragment -->
+</div>
+</div>
+<a id="a28e213ceb49fbad030a97e366bd114db" name="a28e213ceb49fbad030a97e366bd114db"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a28e213ceb49fbad030a97e366bd114db">&#9670;&#160;</a></span>ChaCha20ReseedThreshold</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">std::uint64_t RandX::detail::ChaCha20ReseedThreshold = 1ULL &lt;&lt; 20</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel constexpr">constexpr</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="af8645d137f092519f5b25886cdbc8af6" name="af8645d137f092519f5b25886cdbc8af6"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#af8645d137f092519f5b25886cdbc8af6">&#9670;&#160;</a></span>HashSetThresholdK</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">std::uint64_t RandX::detail::HashSetThresholdK = 64</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel constexpr">constexpr</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="aa123f35d781e532fbf169cdeab075d72" name="aa123f35d781e532fbf169cdeab075d72"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aa123f35d781e532fbf169cdeab075d72">&#9670;&#160;</a></span>is_character_v</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;class T&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">bool RandX::detail::is_character_v = <a class="el" href="structRandX_1_1detail_1_1is__character.html">is_character</a>&lt;T&gt;::value</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel constexpr">constexpr</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="ae3b5289f5acf28728b4e7911648b0bc0" name="ae3b5289f5acf28728b4e7911648b0bc0"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ae3b5289f5acf28728b4e7911648b0bc0">&#9670;&#160;</a></span>is_full_32bit_engine_v</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;class Engine&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">bool RandX::detail::is_full_32bit_engine_v = <a class="el" href="structRandX_1_1detail_1_1is__full__32bit__engine.html">is_full_32bit_engine</a>&lt;Engine&gt;::value</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel constexpr">constexpr</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="a96d61ab80e11a084ab777f8d7ebab82c" name="a96d61ab80e11a084ab777f8d7ebab82c"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a96d61ab80e11a084ab777f8d7ebab82c">&#9670;&#160;</a></span>is_full_64bit_engine_v</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;class Engine&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">bool RandX::detail::is_full_64bit_engine_v = <a class="el" href="structRandX_1_1detail_1_1is__full__64bit__engine.html">is_full_64bit_engine</a>&lt;Engine&gt;::value</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel constexpr">constexpr</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="aff9a334cf181f6f0ffa80493c1e2a649" name="aff9a334cf181f6f0ffa80493c1e2a649"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aff9a334cf181f6f0ffa80493c1e2a649">&#9670;&#160;</a></span>is_indexable_state_v</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;class S&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">bool RandX::detail::is_indexable_state_v = <a class="el" href="structRandX_1_1detail_1_1is__indexable__state.html">is_indexable_state</a>&lt;S&gt;::value</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel constexpr">constexpr</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="a8f5d9a50d33c854ef3ffd9dd658f0623" name="a8f5d9a50d33c854ef3ffd9dd658f0623"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a8f5d9a50d33c854ef3ffd9dd658f0623">&#9670;&#160;</a></span>is_input_iterator_v</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;class It&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">bool RandX::detail::is_input_iterator_v</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel constexpr">constexpr</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<b>初始值:</b><div class="fragment"><div class="line">                              =</div>
+<div class="line"><a class="code hl_struct" href="structRandX_1_1detail_1_1is__input__iterator.html">is_input_iterator&lt;It&gt;::value</a></div>
+<div class="ttc" id="astructRandX_1_1detail_1_1is__input__iterator_html"><div class="ttname"><a href="structRandX_1_1detail_1_1is__input__iterator.html">RandX::detail::is_input_iterator</a></div><div class="ttdef"><b>定义</b> RandX_Cpp17.hpp:1318</div></div>
+</div><!-- fragment -->
+</div>
+</div>
+<a id="a1653298d08f8de872878a0387ed35b8f" name="a1653298d08f8de872878a0387ed35b8f"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a1653298d08f8de872878a0387ed35b8f">&#9670;&#160;</a></span>is_rand_fillable_v</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;class It, class T&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">bool RandX::detail::is_rand_fillable_v = <a class="el" href="structRandX_1_1detail_1_1is__rand__fillable.html">is_rand_fillable</a>&lt;It, T&gt;::value</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel constexpr">constexpr</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="ae9970537ef3ffa0be29a673d36132ea8" name="ae9970537ef3ffa0be29a673d36132ea8"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ae9970537ef3ffa0be29a673d36132ea8">&#9670;&#160;</a></span>is_random_access_container_v</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;class C&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">bool RandX::detail::is_random_access_container_v</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel constexpr">constexpr</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<b>初始值:</b><div class="fragment"><div class="line">                                       =</div>
+<div class="line"><a class="code hl_struct" href="structRandX_1_1detail_1_1is__random__access__container.html">is_random_access_container&lt;C&gt;::value</a></div>
+<div class="ttc" id="astructRandX_1_1detail_1_1is__random__access__container_html"><div class="ttname"><a href="structRandX_1_1detail_1_1is__random__access__container.html">RandX::detail::is_random_access_container</a></div><div class="ttdef"><b>定义</b> RandX_Cpp17.hpp:1336</div></div>
+</div><!-- fragment -->
+</div>
+</div>
+<a id="a456a315cdea07bef6ae3a63e574f08f7" name="a456a315cdea07bef6ae3a63e574f08f7"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a456a315cdea07bef6ae3a63e574f08f7">&#9670;&#160;</a></span>is_random_access_iterator_v</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;class It&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">bool RandX::detail::is_random_access_iterator_v</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel constexpr">constexpr</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<b>初始值:</b><div class="fragment"><div class="line">                                      =</div>
+<div class="line"><a class="code hl_struct" href="structRandX_1_1detail_1_1is__random__access__iterator.html">is_random_access_iterator&lt;It&gt;::value</a></div>
+<div class="ttc" id="astructRandX_1_1detail_1_1is__random__access__iterator_html"><div class="ttname"><a href="structRandX_1_1detail_1_1is__random__access__iterator.html">RandX::detail::is_random_access_iterator</a></div><div class="ttdef"><b>定义</b> RandX_Cpp17.hpp:1308</div></div>
+</div><!-- fragment -->
+</div>
+</div>
+<a id="ac37102c4cac569b3ef70487441cfcda0" name="ac37102c4cac569b3ef70487441cfcda0"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ac37102c4cac569b3ef70487441cfcda0">&#9670;&#160;</a></span>is_random_engine_v</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;class E&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">bool RandX::detail::is_random_engine_v = <a class="el" href="namespaceRandX.html#a0592c80fc859e68c1df0ba8dba83f090">RandomEngine</a>&lt;E&gt;</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel constexpr">constexpr</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="aa54a24e3b3785b6acfc0f048d6118490" name="aa54a24e3b3785b6acfc0f048d6118490"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aa54a24e3b3785b6acfc0f048d6118490">&#9670;&#160;</a></span>is_seed_sequence_v</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;class S&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">bool RandX::detail::is_seed_sequence_v = <a class="el" href="structRandX_1_1detail_1_1is__seed__sequence.html">is_seed_sequence</a>&lt;S&gt;::value</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel constexpr">constexpr</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="a243d0c46ae3eb8771d192115657b043e" name="a243d0c46ae3eb8771d192115657b043e"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a243d0c46ae3eb8771d192115657b043e">&#9670;&#160;</a></span>is_serializable_engine_v</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;class E&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">bool RandX::detail::is_serializable_engine_v = <a class="el" href="structRandX_1_1detail_1_1is__serializable__engine.html">is_serializable_engine</a>&lt;E&gt;::value</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel constexpr">constexpr</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="a50b2fdcddcb84178a1fa7a2b2dc737cb" name="a50b2fdcddcb84178a1fa7a2b2dc737cb"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a50b2fdcddcb84178a1fa7a2b2dc737cb">&#9670;&#160;</a></span>IsFull32BitEngine</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;class Engine&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">bool RandX::detail::IsFull32BitEngine = false</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel constexpr">constexpr</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="a9038a2c04a5730d1bb13b95de9d078f1" name="a9038a2c04a5730d1bb13b95de9d078f1"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a9038a2c04a5730d1bb13b95de9d078f1">&#9670;&#160;</a></span>IsFull32BitEngine&lt; Engine &gt;</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;<a class="el" href="namespaceRandX.html#a0592c80fc859e68c1df0ba8dba83f090">RandomEngine</a> Engine&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">bool <a class="el" href="#a50b2fdcddcb84178a1fa7a2b2dc737cb">RandX::detail::IsFull32BitEngine</a>&lt; Engine &gt;</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel constexpr">constexpr</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<b>初始值:</b><div class="fragment"><div class="line">                            =</div>
+<div class="line">(<span class="keyword">static_cast&lt;</span>std::uint64_t<span class="keyword">&gt;</span>(std::remove_cvref_t&lt;Engine&gt;::min()) == 0ULL &amp;&amp;</div>
+<div class="line"> <span class="keyword">static_cast&lt;</span>std::uint64_t<span class="keyword">&gt;</span>(std::remove_cvref_t&lt;Engine&gt;::max()) == 0xFFFFFFFFULL)</div>
+</div><!-- fragment -->
+</div>
+</div>
+<a id="a273ce8358035218693262cef83e6ed5d" name="a273ce8358035218693262cef83e6ed5d"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a273ce8358035218693262cef83e6ed5d">&#9670;&#160;</a></span>IsFull64BitEngine</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;class Engine&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">bool RandX::detail::IsFull64BitEngine = false</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel constexpr">constexpr</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="a4cd86769c86fff32a29338080fd6832a" name="a4cd86769c86fff32a29338080fd6832a"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a4cd86769c86fff32a29338080fd6832a">&#9670;&#160;</a></span>IsFull64BitEngine&lt; Engine &gt;</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;<a class="el" href="namespaceRandX.html#a0592c80fc859e68c1df0ba8dba83f090">RandomEngine</a> Engine&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">bool <a class="el" href="#a273ce8358035218693262cef83e6ed5d">RandX::detail::IsFull64BitEngine</a>&lt; Engine &gt;</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel constexpr">constexpr</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<b>初始值:</b><div class="fragment"><div class="line">                            =</div>
+<div class="line">(<span class="keyword">sizeof</span>(<span class="keyword">typename</span> std::remove_cvref_t&lt;Engine&gt;::result_type) &gt;= <span class="keyword">sizeof</span>(std::uint64_t) &amp;&amp;</div>
+<div class="line"> <span class="keyword">static_cast&lt;</span>std::uint64_t<span class="keyword">&gt;</span>(std::remove_cvref_t&lt;Engine&gt;::min()) == 0ULL &amp;&amp;</div>
+<div class="line"> <span class="keyword">static_cast&lt;</span>std::uint64_t<span class="keyword">&gt;</span>(std::remove_cvref_t&lt;Engine&gt;::max()) == (std::numeric_limits&lt;std::uint64_t&gt;::max)())</div>
+</div><!-- fragment -->
+</div>
+</div>
+</div><!-- contents -->
+</div><!-- doc-content -->
+<div id="page-nav" class="page-nav-panel">
+<div id="page-nav-resize-handle"></div>
+<div id="page-nav-tree">
+<div id="page-nav-contents">
+</div><!-- page-nav-contents -->
+</div><!-- page-nav-tree -->
+</div><!-- page-nav -->
+</div><!-- container -->
+<!-- start footer part -->
+<div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
+  <ul>
+    <li class="navelem"><a href="namespaceRandX.html">RandX</a></li><li class="navelem"><a href="namespaceRandX_1_1detail.html">detail</a></li>
+    <li class="footer">制作者 <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.17.0 </li>
+  </ul>
+</div>
+</body>
+</html>
