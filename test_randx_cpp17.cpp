@@ -2812,4 +2812,172 @@ TEST_SUITE("WeightedScale")
     }
 }
 
+TEST_SUITE("RealInterval")
+{
+    struct IntervalCountingEngine
+    {
+        using result_type = std::uint64_t;
+        static constexpr result_type min() { return 0; }
+        static constexpr result_type max() { return UINT64_MAX; }
+
+        std::size_t call_count{ 0 };
+        result_type operator()() noexcept
+        {
+            ++call_count;
+            return 1234567890ULL;
+        }
+    };
+
+    template <typename T, typename Engine>
+    void RunAdjacentIntervalTests(Engine& rng)
+    {
+        // 正区间 [1, nextafter(1, 2))
+        const T min_pos = T{ 1 };
+        const T max_pos = std::nextafter(min_pos, T{ 2 });
+        for (int i = 0; i < 100; ++i)
+        {
+            CHECK(RandX::RandReal(rng, min_pos, max_pos) == min_pos);
+        }
+
+        // 负区间 [-2, nextafter(-2, -1))
+        const T min_neg = T{ -2 };
+        const T max_neg = std::nextafter(min_neg, T{ -1 });
+        for (int i = 0; i < 100; ++i)
+        {
+            CHECK(RandX::RandReal(rng, min_neg, max_neg) == min_neg);
+        }
+
+        // 跨零区间 [0, nextafter(0, 1))
+        const T min_zero = T{ 0 };
+        const T max_zero = std::nextafter(min_zero, T{ 1 });
+        for (int i = 0; i < 100; ++i)
+        {
+            CHECK(RandX::RandReal(rng, min_zero, max_zero) == min_zero);
+        }
+
+        // subnormal 附近区间
+        const T min_sub = std::numeric_limits<T>::denorm_min();
+        if (min_sub > T{ 0 })
+        {
+            const T max_sub = std::nextafter(min_sub, T{ 1 });
+            for (int i = 0; i < 100; ++i)
+            {
+                CHECK(RandX::RandReal(rng, min_sub, max_sub) == min_sub);
+            }
+        }
+
+        // RandFill 入口
+        std::vector<T> buf(50);
+        RandX::RandFill(rng, buf.begin(), buf.end(), min_pos, max_pos);
+        for (auto val : buf)
+        {
+            CHECK(val == min_pos);
+        }
+
+        // RandVector 入口
+        auto vec = RandX::RandVector(rng, min_pos, max_pos, 50);
+        for (auto val : vec)
+        {
+            CHECK(val == min_pos);
+        }
+    }
+
+    TEST_CASE("邻接浮点区间全部结果严格等于下界")
+    {
+        RandX::Xoshiro256StarStar rng{ 42 };
+        RunAdjacentIntervalTests<float>(rng);
+        RunAdjacentIntervalTests<double>(rng);
+        RunAdjacentIntervalTests<long double>(rng);
+    }
+
+    TEST_CASE("退化区间返回端点且不消费引擎")
+    {
+        IntervalCountingEngine ce;
+        // 单值
+        double r1 = RandX::RandReal(ce, 3.14, 3.14);
+        CHECK(r1 == 3.14);
+        CHECK(ce.call_count == 0);
+
+        // RandFill
+        std::vector<double> buf(10, 0.0);
+        RandX::RandFill(ce, buf.begin(), buf.end(), 2.718, 2.718);
+        CHECK(ce.call_count == 0);
+        for (double v : buf)
+        {
+            CHECK(v == 2.718);
+        }
+
+        // RandVector
+        auto vec = RandX::RandVector(ce, 1.414, 1.414, 10);
+        CHECK(ce.call_count == 0);
+        CHECK(vec.size() == 10);
+        for (double v : vec)
+        {
+            CHECK(v == 1.414);
+        }
+    }
+
+    TEST_CASE("空范围与零大小不消费引擎但仍校验参数")
+    {
+        IntervalCountingEngine ce;
+        std::vector<double> empty_buf;
+
+        // 合法区间，空范围
+        RandX::RandFill(ce, empty_buf.begin(), empty_buf.end(), 1.0, 2.0);
+        CHECK(ce.call_count == 0);
+
+        auto empty_vec = RandX::RandVector(ce, 1.0, 2.0, 0);
+        CHECK(ce.call_count == 0);
+        CHECK(empty_vec.empty());
+
+        // 非法参数，即使是空范围也必须抛出 invalid_argument 且不消费引擎
+        CHECK_THROWS_AS(RandX::RandFill(ce, empty_buf.begin(), empty_buf.end(), 2.0, 1.0), std::invalid_argument);
+        CHECK(ce.call_count == 0);
+
+        CHECK_THROWS_AS((void)RandX::RandVector(ce, 2.0, 1.0, 0), std::invalid_argument);
+        CHECK(ce.call_count == 0);
+    }
+
+    TEST_CASE("非法输入与超宽区间拒绝")
+    {
+        IntervalCountingEngine ce;
+        const double inf = std::numeric_limits<double>::infinity();
+        const double nan = std::numeric_limits<double>::quiet_NaN();
+        const double dmax = std::numeric_limits<double>::max();
+
+        // NaN / Inf / min > max
+        CHECK_THROWS_AS((void)RandX::RandReal(ce, nan, 1.0), std::invalid_argument);
+        CHECK_THROWS_AS((void)RandX::RandReal(ce, 0.0, inf), std::invalid_argument);
+        CHECK_THROWS_AS((void)RandX::RandReal(ce, 5.0, 1.0), std::invalid_argument);
+        CHECK(ce.call_count == 0);
+
+        // 超宽区间：[-max, max] 宽度溢出
+        CHECK_THROWS_AS((void)RandX::RandReal(ce, -dmax, dmax), std::invalid_argument);
+        CHECK(ce.call_count == 0);
+
+        std::vector<double> buf(5);
+        CHECK_THROWS_AS(RandX::RandFill(ce, buf.begin(), buf.end(), -dmax, dmax), std::invalid_argument);
+        CHECK(ce.call_count == 0);
+
+        CHECK_THROWS_AS((void)RandX::RandVector(ce, -dmax, dmax, 5), std::invalid_argument);
+        CHECK(ce.call_count == 0);
+
+        // float 超宽区间
+        const float fmax = std::numeric_limits<float>::max();
+        CHECK_THROWS_AS((void)RandX::RandReal<float>(ce, -fmax, fmax), std::invalid_argument);
+        CHECK(ce.call_count == 0);
+    }
+
+    TEST_CASE("正常区间严格保证半开区间界限")
+    {
+        RandX::Xoshiro256StarStar rng{ 999 };
+        for (int i = 0; i < 5000; ++i)
+        {
+            double v = RandX::RandReal(rng, 10.0, 20.0);
+            CHECK(v >= 10.0);
+            CHECK(v < 20.0);
+        }
+    }
+}
+
 

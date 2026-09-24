@@ -2070,6 +2070,71 @@ namespace RandX
 			*first = static_cast<T>(dist(DefaultEngine()));
 	}
 
+	namespace detail
+	{
+		template <class T>
+		class RealIntervalKernel
+		{
+		public:
+			RealIntervalKernel(T min, T max, const char* funcName = "RandReal")
+				: m_min(min), m_max(max), m_isDegenerate(min == max)
+			{
+				if (!std::isfinite(min) || !std::isfinite(max) || min > max)
+				{
+					throw std::invalid_argument(std::string(funcName) + ": invalid min or max");
+				}
+				if (m_isDegenerate)
+				{
+					return;
+				}
+				if (min < 0 && max > 0 && (max > std::numeric_limits<T>::max() + min))
+				{
+					throw std::invalid_argument(std::string(funcName) + ": range width overflow");
+				}
+				const T width = max - min;
+				if (!std::isfinite(width))
+				{
+					throw std::invalid_argument(std::string(funcName) + ": range width overflow");
+				}
+				m_upperCorrected = std::nextafter(max, min);
+				m_dist.param(typename std::uniform_real_distribution<T>::param_type(min, max));
+			}
+
+			[[nodiscard]]
+			bool IsDegenerate() const noexcept { return m_isDegenerate; }
+
+			[[nodiscard]]
+			T DegenerateValue() const noexcept { return m_min; }
+
+			template <class Engine>
+			[[nodiscard]]
+			T Generate(Engine& engine)
+			{
+				if (m_isDegenerate)
+				{
+					return m_min;
+				}
+				T val = m_dist(engine);
+				if (!std::isfinite(val) || val < m_min || val > m_max)
+				{
+					throw std::runtime_error("RealIntervalKernel: numerical failure in distribution generation");
+				}
+				if (val >= m_max)
+				{
+					val = m_upperCorrected;
+				}
+				return val;
+			}
+
+		private:
+			T m_min;
+			T m_max;
+			T m_upperCorrected{0};
+			bool m_isDegenerate;
+			std::uniform_real_distribution<T> m_dist;
+		};
+	}
+
 	/// @brief 用 [min, max) 范围的随机浮点数填充迭代器区间
 	/// @param first 起始迭代器
 	/// @param last 结束迭代器/哨兵
@@ -2079,11 +2144,7 @@ namespace RandX
 		requires std::output_iterator<It, T> && std::sentinel_for<Sentinel, It>
 	inline void RandFill(It first, Sentinel last, T min, T max)
 	{
-		if (!std::isfinite(min) || !std::isfinite(max) || min > max)
-			throw std::invalid_argument("RandFill: invalid min or max");
-		std::uniform_real_distribution<T> dist(min, max);
-		for (; first != last; ++first)
-			*first = dist(DefaultEngine());
+		RandFill(DefaultEngine(), first, last, min, max);
 	}
 
 	/// @brief 用 [min, max] 范围的随机整数填充迭代器区间（指定引擎重载）
@@ -2115,11 +2176,16 @@ namespace RandX
 		requires std::output_iterator<It, T> && std::sentinel_for<Sentinel, It>
 	inline void RandFill(Engine& engine, It first, Sentinel last, T min, T max)
 	{
-		if (!std::isfinite(min) || !std::isfinite(max) || min > max)
-			throw std::invalid_argument("RandFill: invalid min or max");
-		std::uniform_real_distribution<T> dist(min, max);
+		detail::RealIntervalKernel<T> kernel(min, max, "RandFill");
+		if (kernel.IsDegenerate())
+		{
+			const T val = kernel.DegenerateValue();
+			for (; first != last; ++first)
+				*first = val;
+			return;
+		}
 		for (; first != last; ++first)
-			*first = dist(engine);
+			*first = kernel.Generate(engine);
 	}
 
 	/// @brief 生成含 n 个随机整数的 vector
@@ -2180,13 +2246,16 @@ namespace RandX
 	[[nodiscard]]
 	inline std::vector<T> RandVector(Engine& engine, T min, T max, std::size_t n)
 	{
-		if (!std::isfinite(min) || !std::isfinite(max) || min > max)
-			throw std::invalid_argument("RandVector: invalid min or max");
+		detail::RealIntervalKernel<T> kernel(min, max, "RandVector");
 		std::vector<T> v;
 		v.reserve(n);
-		std::uniform_real_distribution<T> dist(min, max);
+		if (kernel.IsDegenerate())
+		{
+			v.assign(n, kernel.DegenerateValue());
+			return v;
+		}
 		for (std::size_t i = 0; i < n; ++i)
-			v.push_back(dist(engine));
+			v.push_back(kernel.Generate(engine));
 		return v;
 	}
 
@@ -2394,18 +2463,16 @@ namespace RandX
 	[[nodiscard]]
 	inline T RandReal(Engine& engine, T min = T{0}, T max = T{1})
 	{
-		if (!std::isfinite(min) || !std::isfinite(max) || min > max)
-			throw std::invalid_argument("RandReal: invalid min or max");
-		if (min == max)
-			return min;
+		detail::RealIntervalKernel<T> kernel(min, max, "RandReal");
+		if (kernel.IsDegenerate())
+		{
+			return kernel.DegenerateValue();
+		}
 		if (min == T{0} && max == T{1})
 		{
 			return RandCanonical<T>(engine);
 		}
-		std::uniform_real_distribution<T> dist(min, max);
-		T val = dist(engine);
-		if (val >= max) val = std::nextafter(max, min);
-		return val;
+		return kernel.Generate(engine);
 	}
 
 
