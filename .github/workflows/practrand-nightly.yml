@@ -104,7 +104,7 @@ jobs:
                 '',
                 '可能原因：',
                 '1. 引擎实现回归（统计质量退化）',
-                '2. PractRand 版本变更（见 `tools/pract_rand/download_practrand.sh` 中的 `PRACTRAND_TAG`）',
+                '2. PractRand 版本变更（见 `tools/pract_rand/practrand.lock` 与 `download_practrand.sh`）',
                 '3. 编译器优化引入的未定义行为',
                 '',
                 '排查建议：',

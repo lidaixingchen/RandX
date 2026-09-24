@@ -1,6 +1,6 @@
 {
   "repository": "https://github.com/csc-lab/PractRand.git",
-  "commit": "949dc49b7875b47a988d8bcf5c34dbf758f1a4e1",
+  "commit": "82f4facf15fba871c3820d3c3b394804b7c4c870",
   "tool_source": "tools/RNG_test.cpp",
   "binary_name": "RNG_test",
   "version": "0.95"

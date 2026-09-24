@@ -19,7 +19,7 @@ done
 
 # PractRand 上游（镜像仓库）与锁定 commit
 PRACTRAND_REPO="https://github.com/csc-lab/PractRand.git"
-PRACTRAND_COMMIT="949dc49b7875b47a988d8bcf5c34dbf758f1a4e1"
+PRACTRAND_COMMIT="82f4facf15fba871c3820d3c3b394804b7c4c870"
 
 echo "[1/4] 清理旧构建 ..."
 case "${BUILD_DIR}" in
