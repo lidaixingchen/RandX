@@ -6,6 +6,7 @@
 
 #include <array>
 #include <algorithm>
+#include <cfloat>
 #include <cinttypes>
 #include <cmath>
 #include <cstdint>
@@ -3731,16 +3732,15 @@ TEST_SUITE("BetaDistributionScale")
             CHECK(val_small2 <= 1.0);
         }
 
+#if defined(LDBL_MAX_10_EXP) && (LDBL_MAX_10_EXP > 308)
         // 若平台支持扩展精度 long double，验证更大指数范围
-        if constexpr (std::numeric_limits<long double>::max_exponent10 > 308)
+        for (int i = 0; i < 20; ++i)
         {
-            for (int i = 0; i < 20; ++i)
-            {
-                long double val400 = RandX::RandBeta(rng, 1.0L, 1e400L);
-                CHECK(std::isfinite(val400));
-                CHECK(val400 > 0.0L);
-            }
+            long double val400 = RandX::RandBeta(rng, 1.0L, 1e400L);
+            CHECK(std::isfinite(val400));
+            CHECK(val400 > 0.0L);
         }
+#endif
     }
 
     TEST_CASE("非法形状参数抛出 invalid_argument")

@@ -569,7 +569,7 @@ class TestAtomicJsonWriteAndSchema(unittest.TestCase):
             self.assertEqual(loaded, data)
 
     def test_atomic_write_json_failure_propagates(self):
-        target = Path(r"Z:\nonexistent_drive_12345\results.json")
+        target = Path(r"Z:\nonexistent_drive_12345\results.json") if os.name == "nt" else Path("/dev/null/forbidden/results.json")
         with self.assertRaises(OSError):
             atomic_write_json(target, [{"a": 1}])
 
