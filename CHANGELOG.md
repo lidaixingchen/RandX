@@ -4,9 +4,25 @@
 
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/)。
 
-## 未发布
+## v1.5.0 - 2026-09-24
 
-- **CI**：benchmark.yml 基线对比升级为门禁——实际移除 continue-on-error（v1.4.3 记录的移除未落地），容差 15%→25% 以适配共享 runner 噪声，失败自动创建 issue，并增加与 ci.yml 一致的 paths 过滤。
+- **新增特性 (Features)**：
+  - **无偏直通浮点生成 `RandCanonical`**：新增兼顾 32 位与 64 位引擎的无偏浮点生成 API（`RandCanonical<FloatType>` 与 `RandCanonical<FloatType>(engine)`），在保证完整精度的同时消除传统除法取模偏差。
+  - **全 PRNG 引擎平凡析构编译期保证**：为所有 PRNG 引擎添加 `std::is_trivially_destructible_v` 编译期静态断言，确保线程局部存储（TLS）无运行时析构开销。
+  - **跨标准序列一致性门禁**：新增 CI 跨标准 parity 作业，严格验证 GCC/Clang/MSVC 下 C++17 与 C++23 双版本输出序列逐比特一致。
+- **算法加固与数值稳定性 (Fixes & Hardening)**：
+  - **`EngineBase` CRTP 重构与全零修复**：统一 7 款 PRNG 引擎基类，消除冗余状态管理；并在 Release 模式下对非 SplitMix64 引擎的全零吸收态实施自动静默修复（`s_[0]=1`）。
+  - **`SFC64` 状态策略规范**：精确区分 SFC64 的合法全零状态与吸收态策略，修正全零边界判定。
+  - **`RandBeta` 分布数值优化**：优化极大形状参数下的相对尺度采样与对数空间扰动保留，彻底消除极大参数下的采样停滞与下溢。
+  - **浮点区间契约统一**：修正 `RandReal` 浮点区间上界裁剪与契约保证，严格满足左闭右开 `[min, max)`。
+  - **稳定权重采样**：`RandWeighted` 规范零权重剔除逻辑，防止浮点精度累积导致负权重或全零断言失效。
+  - **序列化 Guard 与异常安全**：`serialize`/`deserialize` 引入流式格式 Guard 与宽度保护，反序列化前清除掩码并在解析失败时提供强异常安全保障。
+  - **容器与迭代器安全**：修复 `RandElement` input iterator 分派与非 sized 哨兵解引用隐患；修复 `RandString` 引擎重载缺失。
+  - **`ChaCha20` 确定性种子修复**：修正确定性种子场景下 reseed 状态失真，增强前向安全性。
+- **构建、测试与工具链 (Tooling & CI)**：
+  - **PractRand 驱动重构与构建锁定**：统一测试器构建为 `RNG_test`，引入显式双进程管道管理消除死锁与泄漏；引入执行轴与统计轴分离的四态判定模型，并锁定上游镜像提交 SHA。
+  - **Benchmark 性能回归门禁**：基准测试升级为回归拦截门禁（超 25% 容差失败拦截），增加 paths 过滤并提供基线自动更新机制。
+  - **CMake 下游验证**：规范目标导出命名（`RandX::Cpp17`、`RandX::Cpp23`、`RandX::RandX`），新增下游消费者独立验证工程。
 
 ## v1.4.3 - 2026-07-26
 

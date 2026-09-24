@@ -151,7 +151,7 @@ RandX 致力于在保持 **Header-only（纯头文件）**、**Zero-dependency�
 
 ## 四、 版本演进阶段划分 (Milestones)
 
-当前版本：**v1.4.3**（v1.5 引擎去重已在主干落地，待发布）。
+当前版本：**v1.5.0**。
 
 ```
       [v1.6 近期计划] ──► SecureWipe OS API 强化 / RandUniform53·24 便捷层 / Zipf·Triangular 分布

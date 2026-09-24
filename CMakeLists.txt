@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(RandX VERSION 1.4.3 LANGUAGES CXX)
+project(RandX VERSION 1.5.0 LANGUAGES CXX)
 
 include(GNUInstallDirs)
 
