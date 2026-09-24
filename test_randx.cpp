@@ -3190,4 +3190,97 @@ TEST_SUITE("RealInterval")
     }
 }
 
+TEST_SUITE("RangesDispatch")
+{
+    TEST_CASE("vector 与 list 基本 range 选取")
+    {
+        std::vector<int> v = { 10, 20, 30, 40, 50 };
+        int val_v = RandX::ranges::RandElement(v);
+        CHECK((val_v >= 10 && val_v <= 50));
+
+        std::list<int> l = { 100, 200, 300 };
+        int val_l = RandX::ranges::RandElement(l);
+        CHECK((val_l >= 100 && val_l <= 300));
+
+        RandX::Xoshiro256StarStar rng{ 42 };
+        int val_eng = RandX::ranges::RandElement(rng, v);
+        CHECK((val_eng >= 10 && val_eng <= 50));
+    }
+
+    TEST_CASE("counted_iterator 与 default_sentinel 正常分派")
+    {
+        std::vector<int> v = { 1, 2, 3, 4, 5 };
+        auto r = std::ranges::subrange(
+            std::counted_iterator(v.begin(), 3),
+            std::default_sentinel
+        );
+        int elem = RandX::ranges::RandElement(r);
+        CHECK((elem >= 1 && elem <= 3));
+    }
+
+    TEST_CASE("views::take_while 非 sized 哨兵正常分派")
+    {
+        std::vector<int> v = { 1, 2, 3, 4, 10, 5 };
+        auto tw = v | std::views::take_while([](int x) { return x < 5; });
+        int elem = RandX::ranges::RandElement(tw);
+        CHECK((elem >= 1 && elem <= 4));
+
+        RandX::Xoshiro256StarStar rng{ 777 };
+        int elem_eng = RandX::ranges::RandElement(rng, tw);
+        CHECK((elem_eng >= 1 && elem_eng <= 4));
+    }
+
+    struct NonSizedSentinel
+    {
+        const int* end_ptr{ nullptr };
+        bool operator==(const int* p) const noexcept { return p == end_ptr; }
+    };
+
+    TEST_CASE("自定义随机访问迭代器搭配非 sized 哨兵")
+    {
+        int arr[5] = { 11, 22, 33, 44, 55 };
+        auto r = std::ranges::subrange(static_cast<const int*>(arr), NonSizedSentinel{ arr + 5 });
+        static_assert(std::random_access_iterator<const int*>);
+        static_assert(!std::sized_sentinel_for<NonSizedSentinel, const int*>);
+
+        int elem = RandX::ranges::RandElement(r);
+        CHECK((elem == 11 || elem == 22 || elem == 33 || elem == 44 || elem == 55));
+    }
+
+    TEST_CASE("空范围抛出 invalid_argument")
+    {
+        std::vector<int> empty_vec;
+        CHECK_THROWS_AS((void)RandX::ranges::RandElement(empty_vec), std::invalid_argument);
+
+        RandX::Xoshiro256StarStar rng{ 42 };
+        CHECK_THROWS_AS((void)RandX::ranges::RandElement(rng, empty_vec), std::invalid_argument);
+    }
+
+    struct NonCopyableType
+    {
+        int val;
+        explicit NonCopyableType(int v) : val(v) {}
+        NonCopyableType(const NonCopyableType&) = delete;
+        NonCopyableType& operator=(const NonCopyableType&) = delete;
+        NonCopyableType(NonCopyableType&&) = default;
+        NonCopyableType& operator=(NonCopyableType&&) = default;
+    };
+
+    template <class Range>
+    concept CanRandElement = requires(Range&& r) {
+        RandX::ranges::RandElement(std::forward<Range>(r));
+    };
+
+    TEST_CASE("类型约束排斥不可拷贝与纯单遍输入范围")
+    {
+        // 不可拷贝类型被约束排除
+        static_assert(!CanRandElement<std::vector<NonCopyableType>&>);
+        CHECK(!CanRandElement<std::vector<NonCopyableType>&>);
+
+        // 纯单遍 input_range（istream_view）被约束排除
+        static_assert(!CanRandElement<std::ranges::istream_view<int>&>);
+        CHECK(!CanRandElement<std::ranges::istream_view<int>&>);
+    }
+}
+
 

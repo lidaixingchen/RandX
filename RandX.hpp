@@ -3541,11 +3541,31 @@ namespace RandX
 		inline std::ranges::range_value_t<R>
 		RandElement(R&& r)
 		{
-			using It = decltype(std::ranges::begin(r));
-			if constexpr (std::random_access_iterator<It>)
+			using I = std::ranges::iterator_t<R>;
+			using S = std::ranges::sentinel_t<R>;
+			if constexpr (std::random_access_iterator<I> && std::sized_sentinel_for<S, I>)
 				return *RandX::RandElement(std::ranges::begin(r), std::ranges::end(r));
 			else
 				return RandX::RandElement(std::ranges::begin(r), std::ranges::end(r));
+		}
+
+		/// @brief 随机选取一个元素（指定引擎重载）
+		/// @param engine 自定义随机数引擎
+		/// @param r 源 range（需满足 sized_range 或 forward_range）
+		/// @return 随机选取的元素值拷贝
+		template <detail::RandomEngine Engine, std::ranges::input_range R>
+			requires (std::ranges::sized_range<R> || std::ranges::forward_range<R>)
+				&& std::copy_constructible<std::ranges::range_value_t<R>>
+		[[nodiscard]]
+		inline std::ranges::range_value_t<R>
+		RandElement(Engine& engine, R&& r)
+		{
+			using I = std::ranges::iterator_t<R>;
+			using S = std::ranges::sentinel_t<R>;
+			if constexpr (std::random_access_iterator<I> && std::sized_sentinel_for<S, I>)
+				return *RandX::RandElement(engine, std::ranges::begin(r), std::ranges::end(r));
+			else
+				return RandX::RandElement(engine, std::ranges::begin(r), std::ranges::end(r));
 		}
 
 		/// @brief 无放回抽样（复用迭代器版实现，自动选择 random_access / input 路径）
