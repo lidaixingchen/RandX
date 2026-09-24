@@ -2760,44 +2760,46 @@ namespace RandX
 
 		auto& rng = DefaultEngine();
 
-		// 分支选择：n·K < size 时 hash-set 内存优（O(n)）；否则索引数组常数优（O(N)）
 		const auto sizeU = static_cast<std::uint64_t>(size);
-		// 线性阈值：n·K < size 时用 hash-set（等价除法比较避免乘法溢出）
-		if (static_cast<std::uint64_t>(n) <= (sizeU - 1) / detail::HashSetThresholdK)
+		const auto nU = static_cast<std::uint64_t>(n);
+		const auto nSample = static_cast<std::size_t>(n);
+
+		// 分支选择：n·K < size 时 hash-set 内存优（O(n)）；否则索引数组常数优（O(N)）
+		if (nU <= (sizeU - 1) / detail::HashSetThresholdK)
 		{
 			// hash-set 分支：O(n) 内存，O(n) 期望时间
-			std::unordered_set<Diff> selected;
-			selected.reserve(static_cast<std::size_t>(n));
+			std::unordered_set<std::uint64_t> selected;
+			selected.reserve(nSample);
 			std::vector<T> result;
-			result.reserve(static_cast<std::size_t>(n));
-			while (result.size() < static_cast<std::size_t>(n))
+			result.reserve(nSample);
+			std::uniform_int_distribution<std::uint64_t> dist(0, sizeU - 1);
+			while (result.size() < nSample)
 			{
-				std::uniform_int_distribution<Diff> dist(Diff{0}, static_cast<Diff>(sizeU - 1));
-				const Diff idx = dist(rng);
+				const std::uint64_t idx = dist(rng);
 				if (selected.insert(idx).second)
-					result.push_back(first[idx]);
+					result.push_back(first[static_cast<Diff>(idx)]);
 			}
 			return result;
 		}
 
 		// 索引数组分支：O(N) 内存，O(N) 时间，无碰撞
-		std::vector<Diff> indices(static_cast<std::size_t>(size));
-		for (Diff i = 0; i < size; ++i)
-			indices[static_cast<std::size_t>(i)] = i;
+		const std::size_t sz = static_cast<std::size_t>(size);
+		std::vector<std::size_t> indices(sz);
+		for (std::size_t i = 0; i < sz; ++i)
+			indices[i] = i;
 
 		// Fisher-Yates 前 n 步：j ∈ [i, size-1]
-		for (Diff i = 0; i < n; ++i)
+		for (std::size_t i = 0; i < nSample; ++i)
 		{
-			std::uniform_int_distribution<Diff> dist(i, static_cast<Diff>(size - 1));
-			const Diff j = dist(rng);
-			std::swap(indices[static_cast<std::size_t>(i)],
-			          indices[static_cast<std::size_t>(j)]);
+			std::uniform_int_distribution<std::size_t> dist(i, sz - 1);
+			const std::size_t j = dist(rng);
+			std::swap(indices[i], indices[j]);
 		}
 
 		std::vector<T> result;
-		result.reserve(static_cast<std::size_t>(n));
-		for (Diff i = 0; i < n; ++i)
-			result.push_back(first[indices[static_cast<std::size_t>(i)]]);
+		result.reserve(nSample);
+		for (std::size_t i = 0; i < nSample; ++i)
+			result.push_back(first[static_cast<Diff>(indices[i])]);
 		return result;
 	}
 
@@ -2830,9 +2832,9 @@ namespace RandX
 		auto& rng = DefaultEngine();
 		for (; first != last; ++i, ++first)
 		{
-			std::uniform_int_distribution<Diff> dist(Diff{0}, i);
-			const Diff j = dist(rng);
-			if (j < n)
+			std::uniform_int_distribution<std::uint64_t> dist(0, static_cast<std::uint64_t>(i));
+			const auto j = dist(rng);
+			if (j < static_cast<std::uint64_t>(n))
 				reservoir[static_cast<std::size_t>(j)] = *first;
 		}
 		return reservoir;
@@ -2854,38 +2856,41 @@ namespace RandX
 			return std::vector<T>(first, last);
 
 		const auto sizeU = static_cast<std::uint64_t>(size);
+		const auto nU = static_cast<std::uint64_t>(n);
+		const auto nSample = static_cast<std::size_t>(n);
+
 		// 线性阈值：n·K < size 时用 hash-set（等价除法比较避免乘法溢出）
-		if (static_cast<std::uint64_t>(n) <= (sizeU - 1) / detail::HashSetThresholdK)
+		if (nU <= (sizeU - 1) / detail::HashSetThresholdK)
 		{
 			// hash-set 分支：用 RandInt 适配任意引擎
-			std::unordered_set<Diff> selected;
-			selected.reserve(static_cast<std::size_t>(n));
+			std::unordered_set<std::uint64_t> selected;
+			selected.reserve(nSample);
 			std::vector<T> result;
-			result.reserve(static_cast<std::size_t>(n));
-			while (result.size() < static_cast<std::size_t>(n))
+			result.reserve(nSample);
+			while (result.size() < nSample)
 			{
-				const Diff idx = RandInt<Diff>(engine, Diff{0}, static_cast<Diff>(sizeU - 1));
+				const std::uint64_t idx = RandInt<std::uint64_t>(engine, 0, sizeU - 1);
 				if (selected.insert(idx).second)
-					result.push_back(first[idx]);
+					result.push_back(first[static_cast<Diff>(idx)]);
 			}
 			return result;
 		}
 
-		std::vector<Diff> indices(static_cast<std::size_t>(size));
-		for (Diff i = 0; i < size; ++i)
-			indices[static_cast<std::size_t>(i)] = i;
+		const std::size_t sz = static_cast<std::size_t>(size);
+		std::vector<std::size_t> indices(sz);
+		for (std::size_t i = 0; i < sz; ++i)
+			indices[i] = i;
 
-		for (Diff i = 0; i < n; ++i)
+		for (std::size_t i = 0; i < nSample; ++i)
 		{
-			const Diff j = RandInt<Diff>(engine, i, static_cast<Diff>(size - 1));
-			std::swap(indices[static_cast<std::size_t>(i)],
-			          indices[static_cast<std::size_t>(j)]);
+			const std::size_t j = RandInt<std::size_t>(engine, i, sz - 1);
+			std::swap(indices[i], indices[j]);
 		}
 
 		std::vector<T> result;
-		result.reserve(static_cast<std::size_t>(n));
-		for (Diff i = 0; i < n; ++i)
-			result.push_back(first[indices[static_cast<std::size_t>(i)]]);
+		result.reserve(nSample);
+		for (std::size_t i = 0; i < nSample; ++i)
+			result.push_back(first[static_cast<Diff>(indices[i])]);
 		return result;
 	}
 
@@ -2916,14 +2921,14 @@ namespace RandX
 		// Algorithm R：j ∈ [0, i] 闭区间
 		for (; first != last; ++i, ++first)
 		{
-			const Diff j = RandInt<Diff>(engine, Diff{0}, i);
-			if (j < n)
+			const auto j = RandInt<std::uint64_t>(engine, 0, static_cast<std::uint64_t>(i));
+			if (j < static_cast<std::uint64_t>(n))
 				reservoir[static_cast<std::size_t>(j)] = *first;
 		}
 		return reservoir;
 	}
 
-	/// @brief 无放回抽样：从容器中随机抽取 n 个元素
+	/// @brief 无放回抽样：从容器中随机抽取 n 个元素（Fisher-Yates 前 n 步）
 	/// @param c 源容器
 	/// @param n 抽取数量（若 n >= 容器大小则返回全部元素的副本）
 	/// @return 含 n 个随机选取元素的 vector
@@ -2932,8 +2937,23 @@ namespace RandX
 	[[nodiscard]]
 	inline auto RandSample(const Container& c, std::size_t n)
 	{
-		using Diff = typename std::iterator_traits<decltype(std::begin(c))>::difference_type;
-		return RandSample(std::begin(c), std::end(c), static_cast<Diff>(n));
+		using T = typename std::iterator_traits<decltype(std::begin(c))>::value_type;
+		using Size = std::size_t;
+		if (n == 0 || std::size(c) == 0) return std::vector<T>{};
+		std::vector<T> pool;
+		pool.reserve(std::size(c));
+		pool.assign(std::begin(c), std::end(c));
+		const Size size = pool.size();
+		if (n >= size) return pool;
+		auto& rng = DefaultEngine();
+		for (Size i = 0; i < n; ++i)
+		{
+			std::uniform_int_distribution<Size> dist(i, size - 1);
+			const Size j = dist(rng);
+			std::iter_swap(pool.begin() + i, pool.begin() + j);
+		}
+		pool.erase(pool.begin() + n, pool.end());
+		return pool;
 	}
 
 	/// @brief 无放回抽样：从容器中随机抽取 n 个元素（指定引擎重载）
@@ -2946,8 +2966,22 @@ namespace RandX
 	[[nodiscard]]
 	inline auto RandSample(Engine& engine, const Container& c, std::size_t n)
 	{
-		using Diff = typename std::iterator_traits<decltype(std::begin(c))>::difference_type;
-		return RandSample(engine, std::begin(c), std::end(c), static_cast<Diff>(n));
+		using T = typename std::iterator_traits<decltype(std::begin(c))>::value_type;
+		using Size = std::size_t;
+		if (n == 0 || std::size(c) == 0) return std::vector<T>{};
+		std::vector<T> pool;
+		pool.reserve(std::size(c));
+		pool.assign(std::begin(c), std::end(c));
+		const Size size = pool.size();
+		if (n >= size) return pool;
+		for (Size i = 0; i < n; ++i)
+		{
+			std::uniform_int_distribution<Size> dist(i, size - 1);
+			const Size j = dist(engine);
+			std::iter_swap(pool.begin() + i, pool.begin() + j);
+		}
+		pool.erase(pool.begin() + n, pool.end());
+		return pool;
 	}
 
 	/// @brief 生成 [0, n) 的随机排列

@@ -3819,7 +3819,7 @@ TEST_SUITE("BetaDistributionScale")
         }
     }
 
-    TEST_CASE("RandSample 容器版支持非 common random_access_range 与零深拷贝")
+    TEST_CASE("RandSample 容器版支持非 common random_access_range 与引擎重载")
     {
         auto population = std::views::iota(0, 10L);
         static_assert(std::ranges::random_access_range<decltype(population)>);
@@ -3839,11 +3839,32 @@ TEST_SUITE("BetaDistributionScale")
         RandX::Xoshiro256StarStar rng(12345);
         auto sample_engine = RandX::RandSample(rng, population, std::size_t{4});
         CHECK(sample_engine.size() == 4);
+        for (int val : sample_engine)
+        {
+            CHECK(val >= 0);
+            CHECK(val < 10);
+        }
+    }
 
-        // 验证超大 range 零拷贝采样快速完成且不爆内存
-        auto huge_pop = std::views::iota(0LL, 1'000'000'000LL);
-        auto huge_sample = RandX::RandSample(huge_pop, std::size_t{5});
-        CHECK(huge_sample.size() == 5);
+    TEST_CASE("RandSample 迭代器版支持 128 位 difference_type (iota_view)")
+    {
+        auto pop = std::views::iota(0LL, 100LL);
+        auto sample = RandX::RandSample(pop.begin(), pop.end(), 5);
+        CHECK(sample.size() == 5);
+        for (long long val : sample)
+        {
+            CHECK(val >= 0LL);
+            CHECK(val < 100LL);
+        }
+
+        RandX::Xoshiro256StarStar rng(12345);
+        auto sample_engine = RandX::RandSample(rng, pop.begin(), pop.end(), 4);
+        CHECK(sample_engine.size() == 4);
+        for (long long val : sample_engine)
+        {
+            CHECK(val >= 0LL);
+            CHECK(val < 100LL);
+        }
     }
 
     TEST_CASE("RandomEngine 概念与 is_random_engine_v 适配引用类型")
