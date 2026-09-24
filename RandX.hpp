@@ -1155,7 +1155,7 @@ namespace RandX
 		public:
 			using StreamType = std::basic_ios<CharT, Traits>;
 
-			explicit StreamFormatGuard(StreamType& stream) noexcept
+			explicit StreamFormatGuard(StreamType& stream)
 				: m_stream(stream),
 				  m_flags(stream.flags()),
 				  m_fill(stream.fill()),
@@ -2668,7 +2668,7 @@ namespace RandX
 			const Size j = dist(rng);
 			std::ranges::iter_swap(pool.begin() + i, pool.begin() + j);
 		}
-		pool.resize(n);
+		pool.erase(pool.begin() + n, pool.end());
 		return pool;
 	}
 
@@ -3113,6 +3113,8 @@ namespace RandX
 	{
 		if (!std::isfinite(p) || p <= 0.0 || p > 1.0)
 			throw std::invalid_argument("RandGeometric: p must be in (0, 1]");
+		if (p == 1.0)
+			return T{0};
 		std::geometric_distribution<T> dist(p);
 		return dist(DefaultEngine());
 	}
@@ -3127,6 +3129,8 @@ namespace RandX
 	{
 		if (!std::isfinite(p) || p <= 0.0 || p > 1.0)
 			throw std::invalid_argument("RandGeometric: p must be in (0, 1]");
+		if (p == 1.0)
+			return T{0};
 		std::geometric_distribution<T> dist(p);
 		return dist(engine);
 	}
@@ -3395,7 +3399,7 @@ namespace RandX
 			}
 			else
 			{
-				log_ratio = std::log(d_b / d_a);
+				log_ratio = std::log(d_b) - std::log(d_a);
 			}
 
 			const WorkT L = log_ratio + (e_b - e_a);
@@ -3405,19 +3409,16 @@ namespace RandX
 				throw std::runtime_error("RandBeta: NaN encountered during Beta calculation");
 			}
 
-			if (L > WorkT{700})
-			{
-				return WorkT{0};
-			}
-			if (L < WorkT{-700})
-			{
-				return WorkT{1};
-			}
-
 			if (std::abs(L) < WorkT{0.5})
 			{
 				const WorkT em1 = std::expm1(L);
 				return WorkT{0.5} - em1 / (WorkT{2} * (WorkT{2} + em1));
+			}
+
+			if (L >= WorkT{0.5})
+			{
+				const WorkT exp_neg_L = std::exp(-L);
+				return exp_neg_L / (WorkT{1} + exp_neg_L);
 			}
 
 			return WorkT{1} / (WorkT{1} + std::exp(L));

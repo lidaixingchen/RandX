@@ -82,8 +82,9 @@ CHECKPOINT_COMPLETE_PATTERNS = (
 )
 
 POWER_OF_TWO_BYTES_PATTERN = re.compile(r"\(2\^(\d+)\s*bytes\)", re.IGNORECASE)
+CHECKPOINT_LINE_PATTERN = re.compile(r"\blength=\s*", re.IGNORECASE)
 LENGTH_BYTES_PATTERN = re.compile(
-    r"length=\s*([\d.]+)\s*(kilobytes|megabytes|gigabytes|terabytes|bytes)",
+    r"\blength=\s*([\d.]+)\s*(kilobytes?|megabytes?|gigabytes?|terabytes?|bytes?)",
     re.IGNORECASE,
 )
 EXPLICIT_TEST_EVAL_PATTERN = re.compile(
@@ -92,10 +93,15 @@ EXPLICIT_TEST_EVAL_PATTERN = re.compile(
 )
 
 UNIT_MULTIPLIERS = {
+    "byte": 1,
     "bytes": 1,
+    "kilobyte": 1024,
     "kilobytes": 1024,
+    "megabyte": 1024**2,
     "megabytes": 1024**2,
+    "gigabyte": 1024**3,
     "gigabytes": 1024**3,
+    "terabyte": 1024**4,
     "terabytes": 1024**4,
 }
 
@@ -103,6 +109,8 @@ POLL_INTERVAL_SECONDS = 0.05
 GRACE_PERIOD_SECONDS = 1.0
 SUBPROCESS_CLEANUP_TIMEOUT_SECONDS = 1.0
 EARLY_FAIL_GRACE_PERIOD_SECONDS = 0.5
+POSIX_SIGTERM = -15
+POSIX_SIGKILL = -9
 POSIX_SIGPIPE = -13
 EXIT_SIGPIPE_SHELL = 141
 DEFAULT_TEST_TIMEOUT_SECONDS = 14400
@@ -370,16 +378,17 @@ def parse_checkpoints(output: str) -> list[Checkpoint]:
 
     for line in output.splitlines(keepends=True):
         m_len = LENGTH_BYTES_PATTERN.search(line)
-        if m_len:
+        m_pow2 = POWER_OF_TWO_BYTES_PATTERN.search(line)
+        is_checkpoint_start = bool(m_len or (CHECKPOINT_LINE_PATTERN.search(line) and m_pow2))
+        if is_checkpoint_start:
             if current_cp is not None:
                 checkpoints.append(current_cp)
             current_cp = Checkpoint()
             current_cp.lines.append(line)
 
-            m_pow2 = POWER_OF_TWO_BYTES_PATTERN.search(line)
             if m_pow2:
                 current_cp.tested_bytes = 1 << int(m_pow2.group(1))
-            else:
+            elif m_len:
                 val = float(m_len.group(1))
                 unit = m_len.group(2).lower()
                 current_cp.tested_bytes = int(val * UNIT_MULTIPLIERS.get(unit, 1))
@@ -450,10 +459,22 @@ def classify_result(
     execution_status: str = "ok"
 
     # 1. 执行轴评定 (execution_status)
+    supervisor_valid_codes = {0, POSIX_SIGPIPE, EXIT_SIGPIPE_SHELL, POSIX_SIGTERM, POSIX_SIGKILL}
+    if os.name == "nt":
+        supervisor_valid_codes.add(1)
+
     gen_is_normal = (
         gen_returncode in (0, POSIX_SIGPIPE, EXIT_SIGPIPE_SHELL)
-        or (gen_cleanup_requested and generator_termination_cause in ("supervisor_cleanup", "cancelled"))
-        or (timed_out and generator_termination_cause == "timed_out")
+        or (
+            gen_cleanup_requested
+            and generator_termination_cause in ("supervisor_cleanup", "cancelled")
+            and gen_returncode in supervisor_valid_codes
+        )
+        or (
+            timed_out
+            and generator_termination_cause == "timed_out"
+            and gen_returncode in supervisor_valid_codes
+        )
     )
 
     if gen_returncode is not None and not gen_is_normal:
@@ -759,6 +780,13 @@ def test_engine(
                 gen_cleanup_requested = True
                 gen_term_cause = "supervisor_cleanup"
                 _terminate_and_kill(gen_proc, timeout=SUBPROCESS_CLEANUP_TIMEOUT_SECONDS)
+                if gen_proc.poll() is not None:
+                    rc = gen_proc.returncode
+                    supervisor_codes = {0, POSIX_SIGPIPE, EXIT_SIGPIPE_SHELL, POSIX_SIGTERM, POSIX_SIGKILL}
+                    if os.name == "nt":
+                        supervisor_codes.add(1)
+                    if rc not in supervisor_codes:
+                        gen_term_cause = "unexpected_signal" if (rc < 0 or rc > 128) else "non_zero_exit"
             else:
                 rc = gen_proc.returncode
                 if rc in (0, POSIX_SIGPIPE, EXIT_SIGPIPE_SHELL):
@@ -775,7 +803,13 @@ def test_engine(
                 rc = gen_proc.returncode
                 if rc in (0, POSIX_SIGPIPE, EXIT_SIGPIPE_SHELL):
                     gen_term_cause = "natural_exit" if rc == 0 else "expected_sigpipe"
-                elif not gen_cleanup_requested:
+                elif gen_cleanup_requested:
+                    supervisor_codes = {0, POSIX_SIGPIPE, EXIT_SIGPIPE_SHELL, POSIX_SIGTERM, POSIX_SIGKILL}
+                    if os.name == "nt":
+                        supervisor_codes.add(1)
+                    if rc not in supervisor_codes:
+                        gen_term_cause = "unexpected_signal" if (rc < 0 or rc > 128) else "non_zero_exit"
+                else:
                     gen_term_cause = "unexpected_signal" if rc < 0 else "non_zero_exit"
             if pr_proc.poll() is not None:
                 pr_term_cause = "natural_exit" if pr_proc.returncode == 0 else ("unexpected_signal" if pr_proc.returncode < 0 else "non_zero_exit")

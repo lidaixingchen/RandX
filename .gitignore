@@ -35,5 +35,6 @@ __pycache__/
 .vscode/
 .trae/
 .qoder/
+.codegraph/
 AGENTS.md
 *.user

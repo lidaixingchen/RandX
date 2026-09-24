@@ -466,6 +466,32 @@ TEST_SUITE("便捷 API")
         CHECK((uuid[19] == '8' || uuid[19] == '9' || uuid[19] == 'a' || uuid[19] == 'b'));
     }
 
+    TEST_CASE("RandSample 容器版支持不可默认构造类型")
+    {
+        struct NonDefaultConstructibleItem
+        {
+            int id;
+            NonDefaultConstructibleItem() = delete;
+            explicit NonDefaultConstructibleItem(int v) : id(v) {}
+            NonDefaultConstructibleItem(const NonDefaultConstructibleItem&) = default;
+            NonDefaultConstructibleItem(NonDefaultConstructibleItem&&) = default;
+            NonDefaultConstructibleItem& operator=(const NonDefaultConstructibleItem&) = default;
+            NonDefaultConstructibleItem& operator=(NonDefaultConstructibleItem&&) = default;
+        };
+
+        std::vector<NonDefaultConstructibleItem> items;
+        items.emplace_back(10);
+        items.emplace_back(20);
+        items.emplace_back(30);
+        items.emplace_back(40);
+
+        auto sample = RandX::RandSample(items, std::size_t{2});
+        CHECK(sample.size() == 2);
+        CHECK(sample[0].id != sample[1].id);
+        CHECK((sample[0].id == 10 || sample[0].id == 20 || sample[0].id == 30 || sample[0].id == 40));
+        CHECK((sample[1].id == 10 || sample[1].id == 20 || sample[1].id == 30 || sample[1].id == 40));
+    }
+
     // ============================================================
     // 新增分布（v1.2）：Bernoulli/Binomial/LogNormal/Geometric/
     // Cauchy/Weibull/ExtremeValue/ChiSquared/StudentT/FisherF/Beta
@@ -503,6 +529,16 @@ TEST_SUITE("便捷 API")
     {
         for (int i = 0; i < MC_TRIALS_100; ++i)
             CHECK(RandX::RandGeometric(0.3) >= 0);
+    }
+
+    TEST_CASE("RandGeometric 边界参数 p=1 稳定返回零且不触发断言")
+    {
+        RandX::Xoshiro256StarStar rng{ 42 };
+        CHECK(RandX::RandGeometric(1.0) == 0);
+        CHECK(RandX::RandGeometric(rng, 1.0) == 0);
+        CHECK(RandX::RandGeometric<std::uint32_t>(1.0) == 0U);
+        CHECK_THROWS_AS((void)RandX::RandGeometric(0.0), std::invalid_argument);
+        CHECK_THROWS_AS((void)RandX::RandGeometric(1.5), std::invalid_argument);
     }
 
     TEST_CASE("RandCauchy 有限值占绝大多数")
@@ -3475,6 +3511,45 @@ TEST_SUITE("StreamFormatGuard")
         CHECK(orig == restored);
         CHECK(ss.width() == 2);
     }
+
+    struct ThrowingWidenFacet : public std::ctype<wchar_t>
+    {
+    protected:
+        wchar_t do_widen(char) const override
+        {
+            throw std::runtime_error("ctype widen failure");
+        }
+    };
+
+    struct ThrowingFillStream : public std::basic_ios<wchar_t>
+    {
+        explicit ThrowingFillStream(const std::locale& loc)
+        {
+            this->init(nullptr);
+            this->imbue(loc);
+#if defined(__GLIBCXX__)
+            this->_M_fill_init = false;
+#endif
+        }
+    };
+
+    TEST_CASE("构造期间获取 fill 抛出异常时可被捕获且不导致进程终止")
+    {
+        std::locale loc(std::locale::classic(), new ThrowingWidenFacet);
+        ThrowingFillStream os(loc);
+
+        bool threw = false;
+        try
+        {
+            RandX::detail::StreamFormatGuard<wchar_t, std::char_traits<wchar_t>> guard(os);
+        }
+        catch (const std::runtime_error& e)
+        {
+            threw = true;
+            CHECK(std::string(e.what()) == "ctype widen failure");
+        }
+        CHECK(threw);
+    }
 }
 
 TEST_SUITE("BetaDistributionScale")
@@ -3597,6 +3672,47 @@ TEST_SUITE("BetaDistributionScale")
             CHECK(std::isfinite(val));
             CHECK(val > 1.0 - 1e-10);
             CHECK(val <= 1.0);
+        }
+    }
+
+    TEST_CASE("RandBeta 极不对称参数与浮点下溢边界测试")
+    {
+        RandX::Xoshiro256StarStar rng{ 12345 };
+
+        // 验证 1.0 与 1e303, 1e306, 1e308 的输出为可表示的非零正数
+        for (int i = 0; i < 50; ++i)
+        {
+            double val303 = RandX::RandBeta(rng, 1.0, 1e303);
+            CHECK(std::isfinite(val303));
+            CHECK(val303 > 0.0);
+            CHECK(val303 < 1e-300);
+
+            double val306 = RandX::RandBeta(rng, 1.0, 1e306);
+            CHECK(std::isfinite(val306));
+            CHECK(val306 > 0.0);
+            CHECK(val306 < 1e-300);
+
+            double val308 = RandX::RandBeta(rng, 1.0, 1e308);
+            CHECK(std::isfinite(val308));
+            CHECK(val308 > 0.0);
+            CHECK(val308 < 1e-300);
+        }
+
+        // 验证对数域 helper 避免除法直接溢出 (d_a = 2/3, d_b = DBL_MAX)
+        double helper_val = RandX::detail::ComputeBetaSampleFromLogScale(
+            2.0 / 3.0, 0.0, std::numeric_limits<double>::max(), 0.0);
+        CHECK(std::isfinite(helper_val));
+        CHECK(helper_val > 0.0);
+
+        // 若平台支持扩展精度 long double，验证更大指数范围
+        if constexpr (std::numeric_limits<long double>::max_exponent10 > 308)
+        {
+            for (int i = 0; i < 20; ++i)
+            {
+                long double val400 = RandX::RandBeta(rng, 1.0L, 1e400L);
+                CHECK(std::isfinite(val400));
+                CHECK(val400 > 0.0L);
+            }
         }
     }
 

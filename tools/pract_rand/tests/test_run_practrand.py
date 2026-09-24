@@ -109,6 +109,40 @@ class TestPractRandOutputParser(unittest.TestCase):
         self.assertFalse(has_failure)
         self.assertGreater(suspicious_count, 0)
 
+    def test_singular_unit_checkpoints(self):
+        text_1mb = (
+            "RNG_test using PractRand version 0.95\n"
+            "rng=RNG_stdin64, seed=0x1234\n"
+            "length= 1 megabyte (2^20 bytes), time= 0.05 seconds\n"
+            "  no anomalies in 126 test result(s)\n"
+        )
+        max_tested, test_count, has_failure, _ = parse_practrand_output(text_1mb, 1024 * 1024)
+        self.assertEqual(max_tested, 1024 * 1024)
+        self.assertEqual(test_count, 126)
+        self.assertFalse(has_failure)
+
+        text_1gb = (
+            "RNG_test using PractRand version 0.95\n"
+            "rng=RNG_stdin64, seed=0x1234\n"
+            "length= 1 gigabyte (2^30 bytes), time= 5.0 seconds\n"
+            "  no anomalies in 126 test result(s)\n"
+        )
+        max_tested, test_count, has_failure, _ = parse_practrand_output(text_1gb, 1024**3)
+        self.assertEqual(max_tested, 1024**3)
+        self.assertEqual(test_count, 126)
+        self.assertFalse(has_failure)
+
+        text_1tb = (
+            "RNG_test using PractRand version 0.95\n"
+            "rng=RNG_stdin64, seed=0x1234\n"
+            "length= 1 terabyte (2^40 bytes), time= 500.0 seconds\n"
+            "  no anomalies in 126 test result(s)\n"
+        )
+        max_tested, test_count, has_failure, _ = parse_practrand_output(text_1tb, 1024**4)
+        self.assertEqual(max_tested, 1024**4)
+        self.assertEqual(test_count, 126)
+        self.assertFalse(has_failure)
+
 
 class TestPractRandStatusCategorization(unittest.TestCase):
     """测试状态分类规则（覆盖方案 3.5 要求的 12 种场景）."""
@@ -272,6 +306,51 @@ class TestPractRandTwoAxisCategorization(unittest.TestCase):
             target_bytes=32 * 1024 * 1024,
             pr_returncode=0,
             gen_returncode=-15,
+            gen_cleanup_requested=True,
+            generator_termination_cause="supervisor_cleanup",
+            length="32MB",
+        )
+        self.assertEqual(res.status, "pass")
+        self.assertEqual(res.execution_status, "ok")
+        self.assertEqual(res.statistical_status, "pass")
+
+    def test_cleanup_requested_does_not_mask_sigsegv(self):
+        content = (FIXTURES_DIR / "normal_complete_pass.txt").read_text(encoding="utf-8")
+        res = classify_result(
+            full_output=content,
+            target_bytes=32 * 1024 * 1024,
+            pr_returncode=0,
+            gen_returncode=-11,
+            gen_cleanup_requested=True,
+            generator_termination_cause="supervisor_cleanup",
+            length="32MB",
+        )
+        self.assertEqual(res.status, "environment_error")
+        self.assertEqual(res.execution_status, "failed")
+        self.assertIn("GENERATOR_CRASH", res.reason_codes)
+
+    def test_cleanup_requested_does_not_mask_exit_2(self):
+        content = (FIXTURES_DIR / "normal_complete_pass.txt").read_text(encoding="utf-8")
+        res = classify_result(
+            full_output=content,
+            target_bytes=32 * 1024 * 1024,
+            pr_returncode=0,
+            gen_returncode=2,
+            gen_cleanup_requested=True,
+            generator_termination_cause="supervisor_cleanup",
+            length="32MB",
+        )
+        self.assertEqual(res.status, "environment_error")
+        self.assertEqual(res.execution_status, "failed")
+        self.assertIn("GENERATOR_NONZERO_EXIT", res.reason_codes)
+
+    def test_cleanup_requested_allows_sigkill(self):
+        content = (FIXTURES_DIR / "normal_complete_pass.txt").read_text(encoding="utf-8")
+        res = classify_result(
+            full_output=content,
+            target_bytes=32 * 1024 * 1024,
+            pr_returncode=0,
+            gen_returncode=-9,
             gen_cleanup_requested=True,
             generator_termination_cause="supervisor_cleanup",
             length="32MB",
