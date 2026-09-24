@@ -3208,15 +3208,26 @@ namespace RandX
 		constexpr double maxT = static_cast<double>((std::numeric_limits<T>::max)());
 		if (p < 1.0 / (maxT + 1.0))
 			throw std::invalid_argument("RandGeometric: p is too small for return type");
-		if ((1.0 - p) == 1.0 || p < 1e-15)
+		if ((1.0 - p) == 1.0 || p < 1e-7)
 		{
 			const double denom = -std::log1p(-p);
 			std::exponential_distribution<double> exp_dist(1.0);
 			const double e = exp_dist(engine);
 			const double val = e / denom;
-			if (!std::isfinite(val) || val >= maxT + 1.0)
+			if constexpr (sizeof(T) >= 8 && std::is_unsigned_v<T>)
 			{
-				throw std::overflow_error("RandGeometric: generated value exceeds return type range");
+				if (!std::isfinite(val) || val >= 18446744073709551616.0)
+					throw std::overflow_error("RandGeometric: generated value exceeds return type range");
+			}
+			else if constexpr (sizeof(T) >= 8 && std::is_signed_v<T>)
+			{
+				if (!std::isfinite(val) || val >= 9223372036854775808.0)
+					throw std::overflow_error("RandGeometric: generated value exceeds return type range");
+			}
+			else
+			{
+				if (!std::isfinite(val) || val >= maxT + 1.0)
+					throw std::overflow_error("RandGeometric: generated value exceeds return type range");
 			}
 			return static_cast<T>(val);
 		}
@@ -3591,9 +3602,9 @@ namespace RandX
 		const WorkT wb = static_cast<WorkT>(b);
 
 		constexpr WorkT LargeShapeThreshold = WorkT{1000};
-		constexpr WorkT SmallShapeThreshold = WorkT{1e-3};
+		constexpr WorkT SmallShapeThreshold = WorkT{1};
 		if (wa >= LargeShapeThreshold || wb >= LargeShapeThreshold ||
-		    wa <= SmallShapeThreshold || wb <= SmallShapeThreshold)
+		    wa < SmallShapeThreshold || wb < SmallShapeThreshold)
 		{
 			detail::DecomposedGammaLog<WorkT> sample_a, sample_b;
 			detail::SampleGammaLogScale(engine, wa, sample_a);

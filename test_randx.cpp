@@ -3795,9 +3795,28 @@ TEST_SUITE("BetaDistributionScale")
         {
             auto v64 = RandX::RandGeometric<RandX::Xoshiro256StarStar, std::int64_t>(rng, 1e-17);
             CHECK(v64 >= 0);
+            auto u64 = RandX::RandGeometric<RandX::Xoshiro256StarStar, std::uint64_t>(rng, 1e-8);
+            CHECK(u64 >= 0);
         }
         auto v_default = RandX::RandGeometric<std::int64_t>(1e-17);
         CHECK(v_default >= 0);
+    }
+
+    TEST_CASE("RandBeta 敏感区间 (1e-3, 0.05) 连续采样稳定性无崩溃")
+    {
+        RandX::Xoshiro256StarStar rng(42);
+        // 曾因 SmallShapeThreshold 导致走标准库 Gamma 下溢为 0 抛出 domain_error
+        const double test_params[] = { 0.001001, 0.002, 0.005, 0.01, 0.05, 0.5 };
+        for (double p : test_params)
+        {
+            for (int i = 0; i < 1000; ++i)
+            {
+                double val = RandX::RandBeta(rng, p, p);
+                CHECK(std::isfinite(val));
+                CHECK(val >= 0.0);
+                CHECK(val <= 1.0);
+            }
+        }
     }
 
     TEST_CASE("RandSample 容器版支持非 common random_access_range")
