@@ -197,9 +197,9 @@ TEST_SUITE("引擎基础设施")
         }
         {
             RandX::SFC64 rng{ std::array<std::uint64_t, 4>{} };
+            CHECK(rng() == 0ULL);
             CHECK(rng() == 1ULL);
-            CHECK(rng() == 1ULL);
-            CHECK(rng() == 11ULL);
+            CHECK(rng() == 2ULL);
         }
         {
             RandX::RomuDuoJr rng{ std::array<std::uint64_t, 2>{} };
@@ -2977,6 +2977,80 @@ TEST_SUITE("RealInterval")
             CHECK(v >= 10.0);
             CHECK(v < 20.0);
         }
+    }
+}
+
+TEST_SUITE("EngineStatePolicy")
+{
+    TEST_CASE("SFC64 经确定性状态转移演化为全零快照后可精确恢复")
+    {
+        RandX::SFC64 rng(RandX::SFC64::state_type{ 1, 0, 0, UINT64_MAX });
+        (void)rng();
+        auto snapshot = rng.serialize();
+
+        // 验证演化后的快照确实全为 0
+        CHECK(snapshot[0] == 0);
+        CHECK(snapshot[1] == 0);
+        CHECK(snapshot[2] == 0);
+        CHECK(snapshot[3] == 0);
+
+        // 状态构造精确恢复全零，不发生静默改写
+        RandX::SFC64 restored(snapshot);
+        CHECK(restored.serialize() == snapshot);
+        CHECK(restored == rng);
+
+        // deserialize 精确恢复全零
+        RandX::SFC64 deser_rng(12345);
+        deser_rng.deserialize(snapshot);
+        CHECK(deser_rng.serialize() == snapshot);
+        CHECK(deser_rng == rng);
+
+        // 后续生成序列一致
+        for (int i = 0; i < 10; ++i)
+        {
+            auto v1 = rng();
+            auto v2 = restored();
+            auto v3 = deser_rng();
+            CHECK(v1 == v2);
+            CHECK(v2 == v3);
+        }
+    }
+
+    TEST_CASE("SFC64 文本反序列化成功接受全零状态")
+    {
+        std::istringstream iss("0 0 0 0");
+        RandX::SFC64 rng(999);
+        iss >> rng;
+        CHECK(!iss.fail());
+        CHECK(rng.serialize() == (RandX::SFC64::state_type{ 0, 0, 0, 0 }));
+    }
+
+    TEST_CASE("吸收态引擎文本反序列化拒绝全零且旧状态不变")
+    {
+        // Xoshiro256StarStar
+        std::istringstream iss_x256("0 0 0 0");
+        RandX::Xoshiro256StarStar xrng(12345);
+        auto old_x256 = xrng.serialize();
+        iss_x256 >> xrng;
+        CHECK(iss_x256.fail());
+        CHECK(xrng.serialize() == old_x256);
+
+        // RomuDuoJr
+        std::istringstream iss_romu("0 0");
+        RandX::RomuDuoJr rrng(12345);
+        auto old_romu = rrng.serialize();
+        iss_romu >> rrng;
+        CHECK(iss_romu.fail());
+        CHECK(rrng.serialize() == old_romu);
+    }
+
+    TEST_CASE("吸收态引擎裸状态入口保留全零修正语义")
+    {
+        RandX::Xoshiro256StarStar zero_rng(RandX::Xoshiro256StarStar::state_type{ 0, 0, 0, 0 });
+        CHECK(zero_rng.serialize()[0] == 1);
+
+        RandX::RomuDuoJr zero_romu(RandX::RomuDuoJr::state_type{ 0, 0 });
+        CHECK(zero_romu.serialize()[0] == 1);
     }
 }
 

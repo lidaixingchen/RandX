@@ -163,6 +163,8 @@ namespace RandX
 	[[nodiscard]]
 	inline constexpr double DoubleFromBits(Uint64 i) noexcept;
 
+	class SFC64;
+
 	// ── 引擎基础设施（提前定义，供 EngineBase CRTP 基类使用） ──
 	namespace detail
 	{
@@ -200,6 +202,32 @@ namespace RandX
 		inline constexpr bool IsValidState(const State& state) noexcept
 		{
 			return !IsAllZero(state);
+		}
+
+		template <class Engine>
+		struct EngineStatePolicy
+		{
+			static constexpr bool AllowsZeroState = false;
+		};
+
+		template <>
+		struct EngineStatePolicy<RandX::SFC64>
+		{
+			static constexpr bool AllowsZeroState = true;
+		};
+
+		template <class Engine, class State>
+		[[nodiscard]]
+		inline constexpr bool IsValidSnapshot(const State& state) noexcept
+		{
+			if constexpr (EngineStatePolicy<Engine>::AllowsZeroState)
+			{
+				return true;
+			}
+			else
+			{
+				return !IsAllZero(state);
+			}
 		}
 
 		template <class S>
@@ -331,11 +359,14 @@ namespace RandX
 			constexpr void deserialize(const state_type& s) noexcept
 			{
 				s_ = s;
-				if (IsAllZero(s_))
+				if constexpr (!EngineStatePolicy<Derived>::AllowsZeroState)
 				{
-					s_[0] = static_cast<ResultType>(1);
+					if (IsAllZero(s_))
+					{
+						s_[0] = static_cast<ResultType>(1);
+					}
+					assert(!IsAllZero(s_) && "absorbing all-zero state");
 				}
-				assert(!IsAllZero(s_) && "absorbing all-zero state");
 			}
 
 			// C++23: defaulted 三路比较（保留 ==, !=, <, >, <=, >= 全套）
@@ -351,11 +382,14 @@ namespace RandX
 			explicit constexpr EngineBase(const state_type& state) noexcept
 				: s_(state)
 			{
-				if (IsAllZero(s_))
+				if constexpr (!EngineStatePolicy<Derived>::AllowsZeroState)
 				{
-					s_[0] = static_cast<ResultType>(1);
+					if (IsAllZero(s_))
+					{
+						s_[0] = static_cast<ResultType>(1);
+					}
+					assert(!IsAllZero(s_) && "absorbing all-zero state");
 				}
-				assert(!IsAllZero(s_) && "absorbing all-zero state");
 			}
 
 			// SeedSeq 构造（零状态修正，Release 安全）
@@ -1168,7 +1202,7 @@ namespace RandX
 		for (; i < state.size() && is; ++i)
 			is >> state[i];
 
-		if (i == state.size() && is && detail::IsValidState(state))
+		if (i == state.size() && is && detail::IsValidSnapshot<Engine>(state))
 		{
 			engine.deserialize(state);
 		}
