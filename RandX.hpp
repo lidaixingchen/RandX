@@ -2668,14 +2668,14 @@ namespace RandX
 	/// @param n 抽取数量
 	/// @return 含 n 个随机选取元素的 vector
 	// 路径 1：随机访问迭代器（hash-set / 索引数组双分支）
-	template <std::random_access_iterator It, std::sized_sentinel_for<It> Sentinel>
+	template <std::random_access_iterator It, std::sentinel_for<It> Sentinel>
 	[[nodiscard]]
 	inline std::vector<std::iter_value_t<It>>
 	RandSample(It first, Sentinel last, std::iter_difference_t<It> n)
 	{
 		using Diff = std::iter_difference_t<It>;
 		using T = std::iter_value_t<It>;
-		const Diff size = static_cast<Diff>(last - first);
+		const Diff size = static_cast<Diff>(std::ranges::distance(first, last));
 		if (n <= 0 || size <= 0)
 			return {};
 		if (n >= size)
@@ -2726,40 +2726,16 @@ namespace RandX
 	}
 
 	/// @brief 无放回抽样：从容器中随机抽取 n 个元素
-	/// @param c 源容器（支持非 common range 等 random_access_range）
+	/// @param c 源容器（支持所有 random_access_range，如 vector、array、iota view 等）
 	/// @param n 抽取数量（若 n >= 容器大小则返回全部元素的副本）
 	/// @return 含 n 个随机选取元素的 vector
 	template <std::ranges::random_access_range Container>
+		requires std::copy_constructible<std::ranges::range_value_t<Container>>
 	[[nodiscard]]
 	inline auto RandSample(const Container& c, std::size_t n)
 	{
-		using T = std::ranges::range_value_t<Container>;
-		using Size = std::size_t;
-		if (n == 0) return std::vector<T>{};
-
-		std::vector<T> pool;
-		if constexpr (std::ranges::sized_range<Container>)
-		{
-			const auto sz = std::ranges::size(c);
-			if (sz == 0) return std::vector<T>{};
-			pool.reserve(static_cast<Size>(sz));
-		}
-		for (auto&& elem : c)
-		{
-			pool.push_back(elem);
-		}
-		const Size size = pool.size();
-		if (size == 0 || n >= size) return pool;
-
-		auto& rng = DefaultEngine();
-		for (Size i = 0; i < n; ++i)
-		{
-			std::uniform_int_distribution<Size> dist(i, size - 1);
-			const Size j = dist(rng);
-			std::ranges::iter_swap(pool.begin() + i, pool.begin() + j);
-		}
-		pool.erase(pool.begin() + n, pool.end());
-		return pool;
+		using Diff = std::iter_difference_t<decltype(std::ranges::begin(c))>;
+		return RandSample(std::ranges::begin(c), std::ranges::end(c), static_cast<Diff>(n));
 	}
 
 	/// @brief 无放回抽样（输入迭代器版，reservoir sampling Algorithm R）
@@ -2769,7 +2745,7 @@ namespace RandX
 	/// @return 含 n 个随机选取元素的 vector
 	// 路径 2：输入迭代器（reservoir sampling, Algorithm R）
 	template <std::input_iterator It, std::sentinel_for<It> Sentinel>
-		requires (!std::random_access_iterator<It> || !std::sized_sentinel_for<Sentinel, It>)
+		requires (!std::random_access_iterator<It>)
 	[[nodiscard]]
 	inline std::vector<std::iter_value_t<It>>
 	RandSample(It first, Sentinel last, std::iter_difference_t<It> n)
@@ -2810,14 +2786,14 @@ namespace RandX
 	/// @param n 抽取数量
 	/// @return 含 n 个随机选取元素的 vector
 	// 引擎重载 —— 随机访问迭代器
-	template <std::random_access_iterator It, std::sized_sentinel_for<It> Sentinel, detail::RandomEngine Engine>
+	template <std::random_access_iterator It, std::sentinel_for<It> Sentinel, detail::RandomEngine Engine>
 	[[nodiscard]]
 	inline std::vector<std::iter_value_t<It>>
 	RandSample(Engine& engine, It first, Sentinel last, std::iter_difference_t<It> n)
 	{
 		using Diff = std::iter_difference_t<It>;
 		using T = std::iter_value_t<It>;
-		const Diff size = static_cast<Diff>(last - first);
+		const Diff size = static_cast<Diff>(std::ranges::distance(first, last));
 		if (n <= 0 || size <= 0)
 			return {};
 		if (n >= size)
@@ -2868,7 +2844,7 @@ namespace RandX
 	/// @return 含 n 个随机选取元素的 vector
 	// 引擎重载 —— 输入迭代器（reservoir）
 	template <std::input_iterator It, std::sentinel_for<It> Sentinel, detail::RandomEngine Engine>
-		requires (!std::random_access_iterator<It> || !std::sized_sentinel_for<Sentinel, It>)
+		requires (!std::random_access_iterator<It>)
 	[[nodiscard]]
 	inline std::vector<std::iter_value_t<It>>
 	RandSample(Engine& engine, It first, Sentinel last, std::iter_difference_t<It> n)
@@ -2896,6 +2872,20 @@ namespace RandX
 				reservoir[static_cast<std::size_t>(j)] = *first;
 		}
 		return reservoir;
+	}
+
+	/// @brief 无放回抽样：从容器中随机抽取 n 个元素（指定引擎重载）
+	/// @param engine 自定义随机数引擎
+	/// @param c 源容器（支持所有 random_access_range，如 vector、array、iota view 等）
+	/// @param n 抽取数量
+	/// @return 含 n 个随机选取元素的 vector
+	template <detail::RandomEngine Engine, std::ranges::random_access_range Container>
+		requires std::copy_constructible<std::ranges::range_value_t<Container>>
+	[[nodiscard]]
+	inline auto RandSample(Engine& engine, const Container& c, std::size_t n)
+	{
+		using Diff = std::iter_difference_t<decltype(std::ranges::begin(c))>;
+		return RandSample(engine, std::ranges::begin(c), std::ranges::end(c), static_cast<Diff>(n));
 	}
 
 	/// @brief 生成 [0, n) 的随机排列

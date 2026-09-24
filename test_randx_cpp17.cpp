@@ -3514,6 +3514,18 @@ TEST_SUITE("BetaDistributionScale")
         }
     }
 
+    TEST_CASE("RandSample 容器版支持带引擎重载")
+    {
+        std::vector<int> pool = { 1, 2, 3, 4, 5, 6, 7, 8 };
+        RandX::Xoshiro256StarStar rng(12345);
+        auto sample = RandX::RandSample(rng, pool, 3);
+        CHECK(sample.size() == 3);
+        for (int v : sample)
+        {
+            CHECK((v >= 1 && v <= 8));
+        }
+    }
+
     TEST_CASE("is_random_engine_v 适配引用类型")
     {
         static_assert(RandX::detail::is_random_engine_v<RandX::Xoshiro256StarStar>);

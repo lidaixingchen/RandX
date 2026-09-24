@@ -3819,7 +3819,7 @@ TEST_SUITE("BetaDistributionScale")
         }
     }
 
-    TEST_CASE("RandSample 容器版支持非 common random_access_range")
+    TEST_CASE("RandSample 容器版支持非 common random_access_range 与零深拷贝")
     {
         auto population = std::views::iota(0, 10L);
         static_assert(std::ranges::random_access_range<decltype(population)>);
@@ -3835,6 +3835,15 @@ TEST_SUITE("BetaDistributionScale")
         }
         std::set<int> unique_vals(sample.begin(), sample.end());
         CHECK(unique_vals.size() == 3);
+
+        RandX::Xoshiro256StarStar rng(12345);
+        auto sample_engine = RandX::RandSample(rng, population, std::size_t{4});
+        CHECK(sample_engine.size() == 4);
+
+        // 验证超大 range 零拷贝采样快速完成且不爆内存
+        auto huge_pop = std::views::iota(0LL, 1'000'000'000LL);
+        auto huge_sample = RandX::RandSample(huge_pop, std::size_t{5});
+        CHECK(huge_sample.size() == 5);
     }
 
     TEST_CASE("RandomEngine 概念与 is_random_engine_v 适配引用类型")

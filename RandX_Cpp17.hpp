@@ -2735,31 +2735,7 @@ namespace RandX
 	//
 	//
 
-	/// @brief 无放回抽样：从容器中随机抽取 n 个元素（Fisher-Yates 前 n 步）
-	/// @param c 源容器
-	/// @param n 抽取数量（若 n >= 容器大小则返回全部元素的副本）
-	/// @return 含 n 个随机选取元素的 vector
-	template <class Container,
-		std::enable_if_t<detail::is_random_access_container_v<Container>>* = nullptr>
-	[[nodiscard]]
-	inline auto RandSample(const Container& c, std::size_t n)
-	{
-		using T = typename std::iterator_traits<decltype(std::begin(c))>::value_type;
-		using Size = std::size_t;
-		if (n == 0 || std::size(c) == 0) return std::vector<T>{};
-		std::vector<T> pool(std::begin(c), std::end(c));
-		const Size size = pool.size();
-		if (n >= size) return pool;
-		auto& rng = DefaultEngine();
-		for (Size i = 0; i < n; ++i)
-		{
-			std::uniform_int_distribution<Size> dist(i, size - 1);
-			const Size j = dist(rng);
-			std::iter_swap(pool.begin() + i, pool.begin() + j);
-		}
-		pool.erase(pool.begin() + n, pool.end());
-		return pool;
-	}
+
 
 	// ============================================================
 	// RandSample 迭代器版
@@ -2945,6 +2921,33 @@ namespace RandX
 				reservoir[static_cast<std::size_t>(j)] = *first;
 		}
 		return reservoir;
+	}
+
+	/// @brief 无放回抽样：从容器中随机抽取 n 个元素
+	/// @param c 源容器
+	/// @param n 抽取数量（若 n >= 容器大小则返回全部元素的副本）
+	/// @return 含 n 个随机选取元素的 vector
+	template <class Container,
+		std::enable_if_t<detail::is_random_access_container_v<Container>>* = nullptr>
+	[[nodiscard]]
+	inline auto RandSample(const Container& c, std::size_t n)
+	{
+		using Diff = typename std::iterator_traits<decltype(std::begin(c))>::difference_type;
+		return RandSample(std::begin(c), std::end(c), static_cast<Diff>(n));
+	}
+
+	/// @brief 无放回抽样：从容器中随机抽取 n 个元素（指定引擎重载）
+	/// @param engine 自定义随机数引擎
+	/// @param c 源容器
+	/// @param n 抽取数量
+	/// @return 含 n 个随机选取元素的 vector
+	template <class Engine, class Container,
+		std::enable_if_t<detail::is_random_engine_v<Engine> && detail::is_random_access_container_v<Container>>* = nullptr>
+	[[nodiscard]]
+	inline auto RandSample(Engine& engine, const Container& c, std::size_t n)
+	{
+		using Diff = typename std::iterator_traits<decltype(std::begin(c))>::difference_type;
+		return RandSample(engine, std::begin(c), std::end(c), static_cast<Diff>(n));
 	}
 
 	/// @brief 生成 [0, n) 的随机排列
