@@ -76,10 +76,13 @@ jobs:
             --jq '.total_count // 0')
           echo "total-count=$TOTAL_COUNT" >> "$GITHUB_OUTPUT"
 
-          # 查询 master 分支最近一次有效（未过期）且非当前 run 的 baseline artifact 所在 run
-          RUN_ID=$(gh api "repos/${{ github.repository }}/actions/artifacts?name=benchmark-baseline&per_page=30" \
-            --jq '[.artifacts[] | select(.expired == false and .workflow_run.head_branch == "master" and ((.workflow_run.id | tostring) != "${{ github.run_id }}"))] | .[0].workflow_run.id // ""')
+          # 查询 master 分支最近一次有效（未过期）且非当前 run 的 baseline artifact 所在 run 和提交
+          BASELINE_JSON=$(gh api "repos/${{ github.repository }}/actions/artifacts?name=benchmark-baseline&per_page=30" \
+            --jq '[.artifacts[] | select(.expired == false and .workflow_run.head_branch == "master" and ((.workflow_run.id | tostring) != "${{ github.run_id }}"))] | sort_by(.created_at) | reverse | .[0] // {}')
+          RUN_ID=$(jq -r '.workflow_run.id // empty' <<< "$BASELINE_JSON")
+          BASELINE_SHA=$(jq -r '.workflow_run.head_sha // empty' <<< "$BASELINE_JSON")
           echo "run-id=${RUN_ID:-}" >> "$GITHUB_OUTPUT"
+          echo "baseline-sha=${BASELINE_SHA:-}" >> "$GITHUB_OUTPUT"
 
       - name: Check Baseline Availability
         id: check-baseline
@@ -87,11 +90,12 @@ jobs:
           IS_FORCE="${{ inputs.force_update_baseline == true || inputs.force_update_baseline == 'true' }}"
           TOTAL_COUNT="${{ steps.baseline-run.outputs.total-count }}"
           RUN_ID="${{ steps.baseline-run.outputs.run-id }}"
+          BASELINE_SHA="${{ steps.baseline-run.outputs.baseline-sha }}"
 
           if [ "$IS_FORCE" = "true" ]; then
             echo "显式指定强制更新基线，跳过基线比较"
             echo "skip-compare=true" >> "$GITHUB_OUTPUT"
-          elif [ -z "$RUN_ID" ]; then
+          elif [ -z "$RUN_ID" ] || [ -z "$BASELINE_SHA" ]; then
             if [ "$TOTAL_COUNT" = "0" ]; then
               echo "仓库首次运行，无历史基线记录，允许首次初始化基线"
               echo "skip-compare=true" >> "$GITHUB_OUTPUT"
@@ -109,24 +113,47 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: benchmark-baseline
-          path: baseline
+          path: baseline-artifact
           run-id: ${{ steps.baseline-run.outputs.run-id }}
           github-token: ${{ github.token }}
 
       - name: Verify Baseline File
         if: steps.check-baseline.outputs.skip-compare != 'true'
         run: |
-          if [ ! -f "baseline/result.json" ]; then
-            echo "::error::基线文件 baseline/result.json 下载后不存在或损坏！"
+          if [ ! -f "baseline-artifact/result.json" ]; then
+            echo "::error::基线文件 baseline-artifact/result.json 下载后不存在或损坏！"
             exit 1
           fi
+
+      - name: Checkout Baseline Commit
+        if: steps.check-baseline.outputs.skip-compare != 'true'
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.baseline-run.outputs.baseline-sha }}
+          path: baseline-src
+
+      - name: Configure & Build Baseline
+        if: steps.check-baseline.outputs.skip-compare != 'true'
+        run: |
+          cmake -S baseline-src -B baseline-src/build -DRANDX_BUILD_BENCHMARK=ON \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_CXX_COMPILER=g++-14 -DCMAKE_CXX_STANDARD=23
+          cmake --build baseline-src/build --target benchmark_gbench -j$(nproc)
+
+      - name: Run Baseline Benchmark
+        if: steps.check-baseline.outputs.skip-compare != 'true'
+        run: |
+          ./baseline-src/build/benchmark_gbench \
+            --benchmark_format=json \
+            --benchmark_out=same-machine-baseline.json \
+            --benchmark_repetitions=5 \
+            --benchmark_report_aggregates_only=true
 
       - name: Compare with Baseline
         id: compare
         if: steps.check-baseline.outputs.skip-compare != 'true'
-        # 门禁：超容差即失败拦截。共享 runner 噪声较大（median 聚合下波动
-        # 通常在 10%~20%），容差由记录型时期的 15% 放宽至 25% 以降低误报
-        run: python3 tools/compare_benchmark.py result.json baseline/result.json --tolerance 0.25
+        # 同一 runner 上测量两个提交的 median 聚合值，超出 25% 容差即失败。
+        run: python3 tools/compare_benchmark.py result.json same-machine-baseline.json --tolerance 0.25
 
       - name: Create issue on regression
         # 仅在基线对比这一步失败时建 issue（构建/环境失败不建）；
@@ -175,6 +202,16 @@ jobs:
               ].join('\n'),
               labels: ['performance', 'benchmark']
             });
+
+      - name: Upload Benchmark Results
+        if: always() && !cancelled()
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-results-${{ github.run_id }}
+          path: |
+            result.json
+            same-machine-baseline.json
+          if-no-files-found: warn
 
       - name: Upload Current Result as Baseline
         if: (success() && github.ref == 'refs/heads/master' && github.event_name == 'push') || (hashFiles('result.json') != '' && !cancelled() && (inputs.force_update_baseline == true || inputs.force_update_baseline == 'true'))
