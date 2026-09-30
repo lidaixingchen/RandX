@@ -270,7 +270,8 @@ namespace
 			constexpr std::size_t PopulationSize = 256;
 			constexpr std::size_t SparseSampleSize = 3;
 			const std::size_t sampleSizes[] = {
-				SparseSampleSize, PopulationSize / 2, (std::numeric_limits<std::size_t>::max)()
+				SparseSampleSize, PopulationSize / 2, PopulationSize / 2 + 1,
+				(std::numeric_limits<std::size_t>::max)()
 			};
 			Xoshiro256StarStar eng{ kSeed };
 			std::vector<int> population(PopulationSize);

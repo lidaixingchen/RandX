@@ -3283,7 +3283,12 @@ TEST_SUITE("RangesDispatch")
     struct NonSizedSentinel
     {
         const int* end_ptr{ nullptr };
-        bool operator==(const int* p) const noexcept { return p == end_ptr; }
+        std::size_t* comparisons{ nullptr };
+        bool operator==(const int* p) const noexcept
+        {
+            if (comparisons) ++*comparisons;
+            return p == end_ptr;
+        }
     };
 
     TEST_CASE("自定义随机访问迭代器搭配非 sized 哨兵")
@@ -3295,6 +3300,15 @@ TEST_SUITE("RangesDispatch")
 
         int elem = RandX::ranges::RandElement(r);
         CHECK((elem == 11 || elem == 22 || elem == 33 || elem == 44 || elem == 55));
+
+        const std::size_t populationSize = std::size(arr);
+        std::size_t comparisons = 0;
+        auto counted = std::ranges::subrange(static_cast<const int*>(arr),
+            NonSizedSentinel{ arr + populationSize, &comparisons });
+        RandX::Xoshiro256StarStar engine{ 42 };
+        const auto sample = RandX::RandSample(engine, counted, populationSize);
+        CHECK(sample == std::vector<int>(std::begin(arr), std::end(arr)));
+        CHECK(comparisons == populationSize + 1);
     }
 
     TEST_CASE("空范围抛出 invalid_argument")
@@ -3966,6 +3980,68 @@ TEST_SUITE("BetaDistributionScale")
         CHECK(RandX::DefaultEngine() == original);
     }
 #endif
+
+    TEST_CASE("RandSample 容器策略边界与引擎重载一致")
+    {
+        constexpr std::size_t PopulationSize = RandX::detail::SampleBitmapThresholdK * 2;
+        constexpr std::size_t SparseLimit = (PopulationSize - 1) / RandX::detail::SampleBitmapThresholdK;
+        const std::size_t sampleSizes[] = {
+            SparseLimit, SparseLimit + 1, PopulationSize / 2, PopulationSize / 2 + 1,
+            PopulationSize, (std::numeric_limits<std::size_t>::max)()
+        };
+        std::vector<std::size_t> population(PopulationSize);
+        for (std::size_t i = 0; i < PopulationSize; ++i) population[i] = i;
+        const auto checkEngine = [&](auto engine)
+        {
+            for (const std::size_t n : sampleSizes)
+            {
+                const auto sample = RandX::RandSample(engine, population, n);
+                const std::size_t expected = (std::min)(n, PopulationSize);
+                REQUIRE(sample.size() == expected);
+                const std::set<std::size_t> selected(sample.begin(), sample.end());
+                REQUIRE(selected.size() == expected);
+                CHECK(*selected.rbegin() < PopulationSize);
+            }
+        };
+        checkEngine(RandX::Xoshiro256StarStar{RandX::DefaultSeed});
+        checkEngine(RandX::Xoshiro128StarStar{RandX::DefaultSeed});
+        for (const std::size_t n : sampleSizes)
+        {
+            RandX::Xoshiro256StarStar engine(RandX::DefaultSeed);
+            RandX::Reseed(RandX::DefaultSeed);
+            CHECK(RandX::RandSample(population, n) == RandX::RandSample(engine, population, n));
+            CHECK(RandX::DefaultEngine() == engine);
+        }
+    }
+
+    TEST_CASE("RandSample 位图边界与各元素入选概率")
+    {
+        constexpr std::size_t PopulationSize = RandX::detail::SampleBitmapWordBits + 1;
+        constexpr std::size_t SampleSize = PopulationSize / 2;
+        constexpr int Trials = 4000;
+        constexpr double SigmaLimit = 6.0;
+        std::vector<std::size_t> population(PopulationSize);
+        std::array<int, PopulationSize> counts{};
+        for (std::size_t i = 0; i < PopulationSize; ++i) population[i] = i;
+        RandX::Xoshiro256StarStar engine(RandX::DefaultSeed);
+        for (int trial = 0; trial < Trials; ++trial)
+        {
+            const auto sample = RandX::RandSample(engine, population, SampleSize);
+            REQUIRE(sample.size() == SampleSize);
+            const std::set<std::size_t> selected(sample.begin(), sample.end());
+            REQUIRE(selected.size() == SampleSize);
+            for (const std::size_t index : selected)
+            {
+                REQUIRE(index < PopulationSize);
+                ++counts[index];
+            }
+        }
+        const double inclusionProbability = static_cast<double>(SampleSize) / PopulationSize;
+        const double expected = Trials * inclusionProbability;
+        const double countError = std::sqrt(Trials * inclusionProbability * (1.0 - inclusionProbability));
+        for (const int count : counts)
+            CHECK(std::abs(count - expected) < SigmaLimit * countError);
+    }
 
     TEST_CASE("RandSample 按索引抽取可复制构造元素")
     {
