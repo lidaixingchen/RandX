@@ -3485,6 +3485,165 @@ TEST_SUITE("BetaDistributionScale")
         }
     }
 
+    TEST_CASE("RandGeometric 整数边界采样保持引擎状态与溢出语义")
+    {
+        const auto checkType = [](auto valueType)
+        {
+            using T = decltype(valueType);
+            constexpr int SampleCount = 1000;
+            constexpr auto Maximum = (std::numeric_limits<T>::max)();
+            const double probability = 1.0 / (static_cast<double>(Maximum) + 1.0);
+            RandX::Xoshiro256StarStar wideEngine(RandX::DefaultSeed);
+            RandX::Xoshiro256StarStar narrowEngine(RandX::DefaultSeed);
+            int overflowCount = 0;
+            int successCount = 0;
+            for (int i = 0; i < SampleCount; ++i)
+            {
+                const auto expected = RandX::RandGeometric<RandX::Xoshiro256StarStar, std::uint64_t>(
+                    wideEngine, probability);
+                if (expected > static_cast<std::uint64_t>(Maximum))
+                {
+                    CHECK_THROWS_AS(
+                        (void)(RandX::RandGeometric<RandX::Xoshiro256StarStar, T>(narrowEngine, probability)),
+                        std::overflow_error);
+                    ++overflowCount;
+                }
+                else
+                {
+                    CHECK((RandX::RandGeometric<RandX::Xoshiro256StarStar, T>(narrowEngine, probability))
+                        == static_cast<T>(expected));
+                    ++successCount;
+                }
+                REQUIRE(narrowEngine == wideEngine);
+            }
+            CHECK(overflowCount > 0);
+            CHECK(successCount > 0);
+        };
+        checkType(std::int16_t{});
+        checkType(std::uint16_t{});
+        checkType(std::int8_t{});
+        checkType(std::uint8_t{});
+        checkType(std::int32_t{});
+        checkType(std::uint32_t{});
+    }
+
+    TEST_CASE("RandGeometric 理论均值与概率频率")
+    {
+        constexpr int SampleCount = 100'000;
+        constexpr std::size_t ExactBins = 4;
+        constexpr double SigmaLimit = 6.0;
+        constexpr double CountRoundingAllowance = 1.0;
+        const double probabilities[] = {0.8, 0.5, 0.25, 0.01, 1e-8};
+        for (const double p : probabilities)
+        {
+            RandX::Xoshiro256StarStar engine(RandX::DefaultSeed);
+            std::array<int, ExactBins + 1> counts{};
+            double sum = 0.0;
+            for (int i = 0; i < SampleCount; ++i)
+            {
+                const auto value = RandX::RandGeometric<RandX::Xoshiro256StarStar, std::uint64_t>(engine, p);
+                sum += static_cast<double>(value);
+                ++counts[value < ExactBins ? static_cast<std::size_t>(value) : ExactBins];
+            }
+            const double expectedMean = (1.0 - p) / p;
+            const double meanError = std::sqrt(1.0 - p) / (p * std::sqrt(static_cast<double>(SampleCount)));
+            INFO(p);
+            CHECK(std::abs(sum / SampleCount - expectedMean) < SigmaLimit * meanError);
+            for (std::size_t bin = 0; bin <= ExactBins; ++bin)
+            {
+                const double mass = std::pow(1.0 - p, static_cast<double>(bin))
+                    * (bin == ExactBins ? 1.0 : p);
+                const double expected = SampleCount * mass;
+                const double countError = std::sqrt(SampleCount * mass * (1.0 - mass));
+                CHECK(std::abs(counts[bin] - expected) <= SigmaLimit * countError + CountRoundingAllowance);
+            }
+        }
+    }
+
+    TEST_CASE("RandGeometric 大整数区间与低位分布")
+    {
+        const auto checkEngine = [](auto engine)
+        {
+            using Engine = decltype(engine);
+            constexpr int SampleCount = 100'000;
+            constexpr int IntegerSpacingBits = 4;
+            constexpr std::size_t ResidueCount = std::size_t{1} << IntegerSpacingBits;
+            constexpr int LowerBits = std::numeric_limits<double>::digits + IntegerSpacingBits - 1;
+            constexpr auto Lower = std::uint64_t{1} << LowerBits;
+            constexpr auto Upper = Lower << 1;
+            constexpr double Probability = 1e-17;
+            constexpr double SigmaLimit = 6.0;
+            // 自由度 15、alpha=0.001 的卡方临界值。
+            constexpr double ChiSquareCritical = 37.697;
+            std::array<int, ResidueCount> counts{};
+            int intervalCount = 0;
+            for (int i = 0; i < SampleCount; ++i)
+            {
+                const auto value = RandX::RandGeometric<Engine, std::uint64_t>(engine, Probability);
+                if (value >= Lower && value < Upper)
+                {
+                    ++intervalCount;
+                    ++counts[value % ResidueCount];
+                }
+            }
+            const double logFailure = std::log1p(-Probability);
+            const double intervalMass = std::exp(logFailure * static_cast<double>(Lower))
+                - std::exp(logFailure * static_cast<double>(Upper));
+            const double expectedCount = SampleCount * intervalMass;
+            const double countError = std::sqrt(SampleCount * intervalMass * (1.0 - intervalMass));
+            CHECK(std::abs(intervalCount - expectedCount) < SigmaLimit * countError);
+            REQUIRE(intervalCount > 0);
+            const double expectedResidue = static_cast<double>(intervalCount) / ResidueCount;
+            double chiSquare = 0.0;
+            for (const int count : counts)
+            {
+                const double difference = count - expectedResidue;
+                chiSquare += difference * difference / expectedResidue;
+            }
+            CHECK(chiSquare < ChiSquareCritical);
+        };
+        checkEngine(RandX::Xoshiro256StarStar{RandX::DefaultSeed});
+        checkEngine(RandX::Xoshiro128StarStar{RandX::DefaultSeed});
+    }
+
+    TEST_CASE("RandGeometric 64 位类型边界溢出概率")
+    {
+        const auto checkType = [](auto type)
+        {
+            using T = decltype(type);
+            constexpr int SampleCount = 1000;
+            constexpr double SigmaLimit = 6.0;
+            const double upperExclusive = std::ldexp(1.0, std::numeric_limits<T>::digits);
+            const double probability = 1.0 / upperExclusive;
+            RandX::Xoshiro256StarStar engine(RandX::DefaultSeed);
+            const auto original = engine;
+            CHECK_THROWS_AS(
+                (void)(RandX::RandGeometric<RandX::Xoshiro256StarStar, T>(
+                    engine, std::nextafter(probability, 0.0))), std::invalid_argument);
+            CHECK(engine == original);
+            CHECK((RandX::RandGeometric<RandX::Xoshiro256StarStar, T>(engine, 1.0)) == T{0});
+            CHECK(engine == original);
+            int overflowCount = 0;
+            for (int i = 0; i < SampleCount; ++i)
+            {
+                try
+                {
+                    const T value = RandX::RandGeometric<RandX::Xoshiro256StarStar, T>(engine, probability);
+                    CHECK(value >= T{0});
+                }
+                catch (const std::overflow_error&)
+                {
+                    ++overflowCount;
+                }
+            }
+            const double overflowMass = std::exp(std::log1p(-probability) * upperExclusive);
+            const double countError = std::sqrt(SampleCount * overflowMass * (1.0 - overflowMass));
+            CHECK(std::abs(overflowCount - SampleCount * overflowMass) < SigmaLimit * countError);
+        };
+        checkType(std::int64_t{});
+        checkType(std::uint64_t{});
+    }
+
 #if defined(__SIZEOF_INT128__)
     TEST_CASE("RandSample 超宽随机访问范围长度边界")
     {

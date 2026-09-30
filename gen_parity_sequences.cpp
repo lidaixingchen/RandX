@@ -203,6 +203,44 @@ namespace
 			for (int i = 0; i < 16; ++i)
 				std::printf("  %d\n", RandX::RandGeometric(eng, 0.25));
 		}
+		{
+			const auto dumpGeometricBoundary = [](auto type)
+			{
+				using T = decltype(type);
+				constexpr int SampleCount = 32;
+				const double probability = 1.0 / (static_cast<double>((std::numeric_limits<T>::max)()) + 1.0);
+				Xoshiro256StarStar eng{ kSeed };
+				std::printf("[api] RandGeometric integer boundary digits=%d\n", std::numeric_limits<T>::digits);
+				for (int i = 0; i < SampleCount; ++i)
+				{
+					try
+					{
+						const auto value = RandX::RandGeometric<Xoshiro256StarStar, T>(eng, probability);
+						std::printf("  %llu\n", static_cast<unsigned long long>(value));
+					}
+					catch (const std::overflow_error&)
+					{
+						std::printf("  overflow\n");
+					}
+				}
+				std::printf("  next=%llu\n", static_cast<unsigned long long>(eng()));
+			};
+			dumpGeometricBoundary(std::int16_t{});
+			dumpGeometricBoundary(std::uint16_t{});
+			dumpGeometricBoundary(std::int64_t{});
+			dumpGeometricBoundary(std::uint64_t{});
+			constexpr double SmallProbability = 1e-17;
+			constexpr int SampleCount = 32;
+			Xoshiro256StarStar eng64{ kSeed };
+			RandX::Xoshiro128StarStar eng32{ kSeed };
+			std::printf("[api] RandGeometric large integer low bits\n");
+			for (int i = 0; i < SampleCount; ++i)
+			{
+				std::printf("  64=%llu 32=%llu\n",
+					static_cast<unsigned long long>(RandX::RandGeometric<Xoshiro256StarStar, std::uint64_t>(eng64, SmallProbability)),
+					static_cast<unsigned long long>(RandX::RandGeometric<RandX::Xoshiro128StarStar, std::uint64_t>(eng32, SmallProbability)));
+			}
+		}
 		std::printf("[api] RandCauchy(engine, 0.0, 1.0)\n");
 		{
 			Xoshiro256StarStar eng{ kSeed };

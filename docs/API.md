@@ -114,6 +114,8 @@ template <int N, std::integral T = std::uint64_t>
 
 指定引擎重载模式：`T RandNormal(Engine& engine, T mean = T{0}, T stddev = T{1})`。
 
+`RandGeometric` 生成首次成功前的失败次数，将结果分为块编号与块内整数余数：块编号采用稳定的逆变换，块内余数采用整数拒绝采样，以保留大整数的低位随机性。`p=1` 返回零且不消耗引擎输出；参数无效或过小时抛出 `std::invalid_argument`，抽样值超出返回类型范围时抛出 `std::overflow_error`。抽样超限时，引擎已消耗本次抽样所需的输出。
+
 `RandBeta` 无 STL 对应，自实现 Gamma(a)/(Gamma(a)+Gamma(b))，含除零保护。
 
 ---

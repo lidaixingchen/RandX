@@ -3237,6 +3237,7 @@ namespace RandX
 	/// @brief 生成几何分布随机数（首次成功前的失败次数）
 	/// @param p 每次成功概率（默认 0.5）
 	/// @return 服从 Geometric(p) 的随机整数
+	/// @throw std::overflow_error 抽样值超出返回类型范围时抛出
 	template <class T = int, std::enable_if_t<std::is_integral_v<T>>* = nullptr>
 	[[nodiscard]]
 	inline T RandGeometric(double p = 0.5)
@@ -3248,6 +3249,7 @@ namespace RandX
 	/// @param engine 自定义随机数引擎
 	/// @param p 每次成功概率（默认 0.5）
 	/// @return 服从 Geometric(p) 的随机整数
+	/// @throw std::overflow_error 抽样值超出返回类型范围时抛出
 	template <class Engine, class T = int,
 		std::enable_if_t<detail::is_random_engine_v<Engine> && std::is_integral_v<T>>* = nullptr>
 	[[nodiscard]]
@@ -3260,33 +3262,29 @@ namespace RandX
 		constexpr double maxT = static_cast<double>((std::numeric_limits<T>::max)());
 		if (p < 1.0 / (maxT + 1.0))
 			throw std::invalid_argument("RandGeometric: p is too small for return type");
-		if ((1.0 - p) == 1.0 || p < 1e-7)
+		const double denom = -std::log1p(-p);
+		int exponent = 0;
+		(void)std::frexp(denom, &exponent);
+		constexpr int MaxBlockBits = std::numeric_limits<std::uint64_t>::digits - 1;
+		const int blockBits = (std::min)(MaxBlockBits, (std::max)(0, -exponent));
+		const std::uint64_t blockSize = std::uint64_t{1} << blockBits;
+		// q=1-p，X=B*G+R：P(G=g)=(1-q^B)q^(Bg)，P(R=r)=p*q^r/(1-q^B)。
+		// B 取二次幂，使块内拒绝采样的接受概率有界，整数余数保留全部低位。
+		std::exponential_distribution<double> exp_dist(1.0);
+		const double blocks = exp_dist(engine) / (denom * static_cast<double>(blockSize));
+		std::uint64_t remainder = 0;
+		if (blockSize > 1)
 		{
-			const double denom = -std::log1p(-p);
-			std::exponential_distribution<double> exp_dist(1.0);
-			const double e = exp_dist(engine);
-			const double val = e / denom;
-			constexpr double MaxUint64Float = 18446744073709551616.0;
-			constexpr double MaxInt64Float = 9223372036854775808.0;
-			if constexpr (sizeof(T) == 8 && std::is_unsigned_v<T>)
+			std::uniform_int_distribution<std::uint64_t> offsets(0, blockSize - 1);
+			do
 			{
-				if (!std::isfinite(val) || val >= MaxUint64Float)
-					throw std::overflow_error("RandGeometric: generated value exceeds return type range");
-			}
-			else if constexpr (sizeof(T) == 8 && std::is_signed_v<T>)
-			{
-				if (!std::isfinite(val) || val >= MaxInt64Float)
-					throw std::overflow_error("RandGeometric: generated value exceeds return type range");
-			}
-			else
-			{
-				if (!std::isfinite(val) || val >= maxT + 1.0)
-					throw std::overflow_error("RandGeometric: generated value exceeds return type range");
-			}
-			return static_cast<T>(val);
+				remainder = offsets(engine);
+			} while (exp_dist(engine) < denom * static_cast<double>(remainder));
 		}
-		std::geometric_distribution<T> dist(p);
-		return dist(engine);
+		const double upperBlocks = std::ldexp(1.0, std::numeric_limits<T>::digits - blockBits);
+		if (!std::isfinite(blocks) || blocks >= upperBlocks)
+			throw std::overflow_error("RandGeometric: generated value exceeds return type range");
+		return static_cast<T>((static_cast<std::uint64_t>(blocks) << blockBits) | remainder);
 	}
 
 	/// @brief 生成柯西分布随机数
