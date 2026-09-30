@@ -17,6 +17,7 @@
 #include <cstdint>
 #include <cstdio>
 #include <list>
+#include <limits>
 #include <string>
 #include <vector>
 
@@ -226,6 +227,25 @@ namespace
 			const auto sample = RandX::RandSample(eng, v.begin(), v.end(), 10);
 			for (const int x : sample)
 				std::printf("  %d\n", x);
+		}
+		{
+			constexpr std::size_t PopulationSize = 256;
+			constexpr std::size_t SparseSampleSize = 3;
+			const std::size_t sampleSizes[] = {
+				SparseSampleSize, PopulationSize / 2, (std::numeric_limits<std::size_t>::max)()
+			};
+			Xoshiro256StarStar eng{ kSeed };
+			std::vector<int> population(PopulationSize);
+			for (std::size_t i = 0; i < PopulationSize; ++i)
+				population[i] = static_cast<int>(i);
+			std::printf("[api] RandSample(engine, container)\n");
+			for (const auto sampleSize : sampleSizes)
+			{
+				const auto sample = RandX::RandSample(eng, population, sampleSize);
+				std::printf("  size=%zu\n", sample.size());
+				for (const int value : sample)
+					std::printf("  %d\n", value);
+			}
 		}
 		std::printf("[api] RandSample hash-set branch (engine, first, last, 10 of 10000)\n");
 		{

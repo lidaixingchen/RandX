@@ -2662,6 +2662,22 @@ namespace RandX
 	// 路径 2：输入迭代器 —— reservoir sampling (Algorithm R)
 	// ============================================================
 
+	namespace detail
+	{
+		template <class Diff>
+		inline void ValidateSampleSize(Diff size)
+		{
+			using IndexLimit = std::conditional_t<
+				(std::numeric_limits<std::size_t>::digits < std::numeric_limits<std::uint64_t>::digits),
+				std::size_t, std::uint64_t>;
+			if constexpr (std::numeric_limits<Diff>::digits > std::numeric_limits<IndexLimit>::digits)
+			{
+				if (size > static_cast<Diff>((std::numeric_limits<IndexLimit>::max)()))
+					throw std::length_error("RandSample: range exceeds supported index size");
+			}
+		}
+	}
+
 	/// @brief 无放回抽样（随机访问迭代器版，hash-set / 索引数组双分支）
 	/// @param first 范围起始迭代器
 	/// @param last 范围结束迭代器/哨兵
@@ -2678,6 +2694,7 @@ namespace RandX
 		const Diff size = static_cast<Diff>(std::ranges::distance(first, last));
 		if (n <= 0 || size <= 0)
 			return {};
+		detail::ValidateSampleSize(size);
 		if (n >= size)
 		{
 			std::vector<T> all;
@@ -2732,7 +2749,7 @@ namespace RandX
 		return result;
 	}
 
-	/// @brief 无放回抽样：从容器中随机抽取 n 个元素（Fisher-Yates 前 n 步）
+	/// @brief 无放回抽样：按索引从容器中随机抽取 n 个元素
 	/// @param c 源容器（支持所有 random_access_range）
 	/// @param n 抽取数量（若 n >= 容器大小则返回全部元素的副本）
 	/// @return 含 n 个随机选取元素的 vector
@@ -2741,40 +2758,8 @@ namespace RandX
 	[[nodiscard]]
 	inline auto RandSample(const Container& c, std::size_t n)
 	{
-		using T = std::ranges::range_value_t<Container>;
-		using Size = std::size_t;
-		if (n == 0) return std::vector<T>{};
-
-		std::vector<T> pool;
-		if constexpr (std::ranges::sized_range<Container>)
-		{
-			const auto sz = std::ranges::size(c);
-			if (sz == 0) return std::vector<T>{};
-			pool.reserve(static_cast<Size>(sz));
-		}
-		if constexpr (std::ranges::common_range<Container>)
-		{
-			pool.assign(std::ranges::begin(c), std::ranges::end(c));
-		}
-		else
-		{
-			for (auto&& elem : c)
-			{
-				pool.push_back(elem);
-			}
-		}
-		const Size size = pool.size();
-		if (size == 0 || n >= size) return pool;
-
-		auto& rng = DefaultEngine();
-		for (Size i = 0; i < n; ++i)
-		{
-			std::uniform_int_distribution<Size> dist(i, size - 1);
-			const Size j = dist(rng);
-			std::ranges::iter_swap(pool.begin() + i, pool.begin() + j);
-		}
-		pool.erase(pool.begin() + n, pool.end());
-		return pool;
+		if (n == 0) return std::vector<std::ranges::range_value_t<Container>>{};
+		return RandSample(DefaultEngine(), c, n);
 	}
 
 	/// @brief 无放回抽样（输入迭代器版，reservoir sampling Algorithm R）
@@ -2835,6 +2820,7 @@ namespace RandX
 		const Diff size = static_cast<Diff>(std::ranges::distance(first, last));
 		if (n <= 0 || size <= 0)
 			return {};
+		detail::ValidateSampleSize(size);
 		if (n >= size)
 		{
 			std::vector<T> all;
@@ -2932,39 +2918,19 @@ namespace RandX
 	[[nodiscard]]
 	inline auto RandSample(Engine& engine, const Container& c, std::size_t n)
 	{
-		using T = std::ranges::range_value_t<Container>;
-		using Size = std::size_t;
-		if (n == 0) return std::vector<T>{};
-
-		std::vector<T> pool;
-		if constexpr (std::ranges::sized_range<Container>)
+		if (n == 0) return std::vector<std::ranges::range_value_t<Container>>{};
+		using Diff = std::ranges::range_difference_t<const Container>;
+		Diff count;
+		if constexpr (std::numeric_limits<Diff>::digits < std::numeric_limits<std::size_t>::digits)
 		{
-			const auto sz = std::ranges::size(c);
-			if (sz == 0) return std::vector<T>{};
-			pool.reserve(static_cast<Size>(sz));
-		}
-		if constexpr (std::ranges::common_range<Container>)
-		{
-			pool.assign(std::ranges::begin(c), std::ranges::end(c));
+			constexpr auto maxCount = static_cast<std::size_t>((std::numeric_limits<Diff>::max)());
+			count = static_cast<Diff>((std::min)(n, maxCount));
 		}
 		else
 		{
-			for (auto&& elem : c)
-			{
-				pool.push_back(elem);
-			}
+			count = static_cast<Diff>(n);
 		}
-		const Size size = pool.size();
-		if (size == 0 || n >= size) return pool;
-
-		for (Size i = 0; i < n; ++i)
-		{
-			std::uniform_int_distribution<Size> dist(i, size - 1);
-			const Size j = dist(engine);
-			std::ranges::iter_swap(pool.begin() + i, pool.begin() + j);
-		}
-		pool.erase(pool.begin() + n, pool.end());
-		return pool;
+		return RandSample(engine, std::ranges::begin(c), std::ranges::end(c), count);
 	}
 
 	/// @brief 生成 [0, n) 的随机排列

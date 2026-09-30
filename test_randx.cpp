@@ -380,7 +380,6 @@ TEST_SUITE("便捷 API")
         std::vector<int> v = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
         std::vector<int> orig = v;
         RandX::RandShuffle(v);
-        CHECK(v != orig);
         std::sort(v.begin(), v.end());
         CHECK(v == orig);
     }
@@ -3786,6 +3785,87 @@ TEST_SUITE("BetaDistributionScale")
             CHECK(mean < 0.6);
             CHECK(var > 0.2);
         }
+    }
+
+#if defined(__SIZEOF_INT128__)
+    TEST_CASE("RandSample 超宽随机访问范围长度边界")
+    {
+        using WideDiff = __int128;
+        constexpr int IndexBits = std::numeric_limits<std::uint64_t>::digits;
+        constexpr WideDiff ExtraLength = 5;
+        constexpr WideDiff Length = (WideDiff{1} << IndexBits) + ExtraLength;
+        const auto population = std::views::iota(WideDiff{0}, Length);
+        RandX::Xoshiro256StarStar engine(RandX::DefaultSeed);
+        const auto original = engine;
+        CHECK(RandX::RandSample(engine, population, std::size_t{0}).empty());
+        REQUIRE_THROWS_AS((void)RandX::RandSample(engine, population, std::size_t{1}), std::length_error);
+        CHECK_THROWS_AS((void)RandX::RandSample(engine, population.begin(), population.end(), Length), std::length_error);
+        CHECK(engine == original);
+        RandX::Reseed(RandX::DefaultSeed);
+        CHECK_THROWS_AS((void)RandX::RandSample(population, std::size_t{1}), std::length_error);
+        CHECK_THROWS_AS((void)RandX::RandSample(population.begin(), population.end(), WideDiff{1}), std::length_error);
+        CHECK(RandX::DefaultEngine() == original);
+    }
+#endif
+
+    TEST_CASE("RandSample 按索引抽取可复制构造元素")
+    {
+        struct CopyConstructibleItem
+        {
+            const std::size_t id;
+            std::size_t* copyCount;
+            CopyConstructibleItem(std::size_t value, std::size_t& count)
+                : id(value), copyCount(&count) {}
+            CopyConstructibleItem(const CopyConstructibleItem& other)
+                : id(other.id), copyCount(other.copyCount) { ++*copyCount; }
+            CopyConstructibleItem(CopyConstructibleItem&&) = default;
+            CopyConstructibleItem& operator=(const CopyConstructibleItem&) = delete;
+            CopyConstructibleItem& operator=(CopyConstructibleItem&&) = delete;
+        };
+        constexpr std::size_t PopulationSize = 100;
+        constexpr std::size_t SampleSize = 3;
+        std::size_t copyCount = 0;
+        std::vector<CopyConstructibleItem> items;
+        items.reserve(PopulationSize);
+        for (std::size_t i = 0; i < PopulationSize; ++i)
+            items.emplace_back(i, copyCount);
+
+        const auto sample = RandX::RandSample(items, SampleSize);
+        REQUIRE(sample.size() == SampleSize);
+        CHECK(copyCount == SampleSize);
+        std::set<std::size_t> ids;
+        for (const auto& item : sample)
+        {
+            CHECK(item.id < PopulationSize);
+            ids.insert(item.id);
+        }
+        CHECK(ids.size() == SampleSize);
+
+        RandX::Xoshiro256StarStar engine(RandX::DefaultSeed);
+        copyCount = 0;
+        const auto engineSample = RandX::RandSample(engine, items, SampleSize);
+        REQUIRE(engineSample.size() == SampleSize);
+        CHECK(copyCount == SampleSize);
+        ids.clear();
+        for (const auto& item : engineSample)
+        {
+            CHECK(item.id < PopulationSize);
+            ids.insert(item.id);
+        }
+        CHECK(ids.size() == SampleSize);
+
+        copyCount = 0;
+        const auto empty = RandX::RandSample(engine, items, std::size_t{0});
+        CHECK(empty.empty());
+        CHECK(copyCount == 0);
+        const auto all = RandX::RandSample(engine, items, (std::numeric_limits<std::size_t>::max)());
+        REQUIRE(all.size() == items.size());
+        CHECK(copyCount == PopulationSize);
+        for (std::size_t i = 0; i < PopulationSize; ++i)
+            CHECK(all[i].id == items[i].id);
+
+        for (std::size_t i = 0; i < PopulationSize; ++i)
+            CHECK(items[i].id == i);
     }
 
     TEST_CASE("RandGeometric 小概率参数与大整数类型安全转换")

@@ -147,7 +147,7 @@ template <std::random_access_iterator It, class Engine>
 ```cpp
 // 容器版
 template <class Container>
-[[nodiscard]] inline auto RandSample(const Container& c, typename Container::size_type n);
+[[nodiscard]] inline auto RandSample(const Container& c, std::size_t n);
 // n >= size 时返回全部副本
 
 // 随机访问迭代器版（hash-set / 索引数组双分支）
@@ -168,6 +168,10 @@ RandSample(Engine& engine, It first, It last, std::iter_difference_t<It> n);
 ```
 
 随机访问版策略：`n * 64 < size` 时用 hash-set（O(n) 内存），否则用索引数组（O(N)）。
+
+容器版复用随机访问迭代器版的索引抽样，只复制选中的元素，支持带只读成员的可复制构造类型。`n=0` 返回空结果；`n` 不小于容器大小时，按原顺序返回全部元素的副本。
+
+随机访问范围的长度须同时能用 `std::uint64_t` 和 `std::size_t` 表示；正数量抽样超出该长度限制时抛出 `std::length_error`，不消耗引擎输出。
 
 ### RandShuffle
 

@@ -2744,6 +2744,22 @@ namespace RandX
 	// 路径 2：输入迭代器 —— reservoir sampling (Algorithm R)
 	// ============================================================
 
+	namespace detail
+	{
+		template <class Diff>
+		inline void ValidateSampleSize(Diff size)
+		{
+			using IndexLimit = std::conditional_t<
+				(std::numeric_limits<std::size_t>::digits < std::numeric_limits<std::uint64_t>::digits),
+				std::size_t, std::uint64_t>;
+			if constexpr (std::numeric_limits<Diff>::digits > std::numeric_limits<IndexLimit>::digits)
+			{
+				if (size > static_cast<Diff>((std::numeric_limits<IndexLimit>::max)()))
+					throw std::length_error("RandSample: range exceeds supported index size");
+			}
+		}
+	}
+
 	// 路径 1：随机访问迭代器（hash-set / 索引数组双分支）
 	template <class It,
 		std::enable_if_t<detail::is_random_access_iterator_v<It>>* = nullptr>
@@ -2756,6 +2772,7 @@ namespace RandX
 		const Diff size = std::distance(first, last);
 		if (n <= 0 || size <= 0)
 			return {};
+		detail::ValidateSampleSize(size);
 		if (n >= size)
 		{
 			std::vector<T> all;
@@ -2859,6 +2876,7 @@ namespace RandX
 		const Diff size = std::distance(first, last);
 		if (n <= 0 || size <= 0)
 			return {};
+		detail::ValidateSampleSize(size);
 		if (n >= size)
 		{
 			std::vector<T> all;
@@ -2941,7 +2959,7 @@ namespace RandX
 		return reservoir;
 	}
 
-	/// @brief 无放回抽样：从容器中随机抽取 n 个元素（Fisher-Yates 前 n 步）
+	/// @brief 无放回抽样：按索引从容器中随机抽取 n 个元素
 	/// @param c 源容器
 	/// @param n 抽取数量（若 n >= 容器大小则返回全部元素的副本）
 	/// @return 含 n 个随机选取元素的 vector
@@ -2951,22 +2969,8 @@ namespace RandX
 	inline auto RandSample(const Container& c, std::size_t n)
 	{
 		using T = typename std::iterator_traits<decltype(std::begin(c))>::value_type;
-		using Size = std::size_t;
-		if (n == 0 || std::size(c) == 0) return std::vector<T>{};
-		std::vector<T> pool;
-		pool.reserve(std::size(c));
-		pool.assign(std::begin(c), std::end(c));
-		const Size size = pool.size();
-		if (n >= size) return pool;
-		auto& rng = DefaultEngine();
-		for (Size i = 0; i < n; ++i)
-		{
-			std::uniform_int_distribution<Size> dist(i, size - 1);
-			const Size j = dist(rng);
-			std::iter_swap(pool.begin() + i, pool.begin() + j);
-		}
-		pool.erase(pool.begin() + n, pool.end());
-		return pool;
+		if (n == 0) return std::vector<T>{};
+		return RandSample(DefaultEngine(), c, n);
 	}
 
 	/// @brief 无放回抽样：从容器中随机抽取 n 个元素（指定引擎重载）
@@ -2980,21 +2984,19 @@ namespace RandX
 	inline auto RandSample(Engine& engine, const Container& c, std::size_t n)
 	{
 		using T = typename std::iterator_traits<decltype(std::begin(c))>::value_type;
-		using Size = std::size_t;
-		if (n == 0 || std::size(c) == 0) return std::vector<T>{};
-		std::vector<T> pool;
-		pool.reserve(std::size(c));
-		pool.assign(std::begin(c), std::end(c));
-		const Size size = pool.size();
-		if (n >= size) return pool;
-		for (Size i = 0; i < n; ++i)
+		if (n == 0) return std::vector<T>{};
+		using Diff = typename std::iterator_traits<decltype(std::begin(c))>::difference_type;
+		Diff count;
+		if constexpr (std::numeric_limits<Diff>::digits < std::numeric_limits<std::size_t>::digits)
 		{
-			std::uniform_int_distribution<Size> dist(i, size - 1);
-			const Size j = dist(engine);
-			std::iter_swap(pool.begin() + i, pool.begin() + j);
+			constexpr auto maxCount = static_cast<std::size_t>((std::numeric_limits<Diff>::max)());
+			count = static_cast<Diff>((std::min)(n, maxCount));
 		}
-		pool.erase(pool.begin() + n, pool.end());
-		return pool;
+		else
+		{
+			count = static_cast<Diff>(n);
+		}
+		return RandSample(engine, std::begin(c), std::end(c), count);
 	}
 
 	/// @brief 生成 [0, n) 的随机排列
