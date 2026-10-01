@@ -351,6 +351,472 @@ TEST_SUITE("公共/基础/抽样")
         }
 
     }
+    TEST_CASE("RandSample 非默认构造只读复制元素覆盖全部路径")
+    {
+        using Item = RandXTest::SamplingContractFixtures::NonDefaultReadOnlyCopyItem;
+        static_assert(!std::is_default_constructible<Item>::value, "sample item must not need a default constructor");
+        static_assert(std::is_copy_constructible<Item>::value, "sample item must be copy constructible");
+        static_assert(!std::is_copy_assignable<Item>::value, "sample item must not need copy assignment");
+
+        const auto makePopulation = [](std::size_t size, std::size_t& copyCount) {
+            std::vector<Item> population;
+            population.reserve(size);
+            for (std::size_t position = 0; position < size; ++position)
+                population.emplace_back(position, static_cast<int>(position % 2), copyCount);
+            return population;
+        };
+        const auto verifyPositions = [](const std::vector<Item>& sample, std::size_t expectedSize, std::size_t populationSize) {
+            REQUIRE(sample.size() == expectedSize);
+            std::set<std::size_t> positions;
+            for (const Item& item : sample)
+            {
+                CHECK(item.position < populationSize);
+                positions.insert(item.position);
+            }
+            CHECK(positions.size() == expectedSize);
+        };
+
+        const std::size_t hashThreshold = RandX::detail::HashSetThresholdK;
+        std::size_t copyCount = 0;
+        auto hashPopulation = makePopulation(hashThreshold + 1, copyCount);
+        const std::ptrdiff_t hashSampleCount = 1;
+        CHECK(static_cast<std::uint64_t>(hashSampleCount)
+            <= (static_cast<std::uint64_t>(hashPopulation.size()) - 1) / RandX::detail::HashSetThresholdK);
+        RandX::Reseed(RandXTest::TestConstants::kDefaultEngineTestSeed);
+        const auto hashSample = RandX::RandSample(hashPopulation.begin(), hashPopulation.end(), hashSampleCount);
+        verifyPositions(hashSample, static_cast<std::size_t>(hashSampleCount), hashPopulation.size());
+        CHECK(copyCount == static_cast<std::size_t>(hashSampleCount));
+
+        const std::size_t indexPopulationSize = hashThreshold * 2;
+        auto indexPopulation = makePopulation(indexPopulationSize, copyCount);
+        const std::ptrdiff_t indexSampleCount = 2;
+        CHECK(static_cast<std::uint64_t>(indexSampleCount)
+            > (static_cast<std::uint64_t>(indexPopulation.size()) - 1) / RandX::detail::HashSetThresholdK);
+        RandX::Xoshiro256StarStar indexEngine(RandXTest::TestConstants::kDefaultEngineTestSeed);
+        copyCount = 0;
+        const auto indexSample = RandX::RandSample(
+            indexEngine, indexPopulation.begin(), indexPopulation.end(), indexSampleCount);
+        verifyPositions(indexSample, static_cast<std::size_t>(indexSampleCount), indexPopulation.size());
+        CHECK(copyCount == static_cast<std::size_t>(indexSampleCount));
+
+        const std::size_t bitmapThreshold = static_cast<std::size_t>(RandX::detail::SampleBitmapThresholdK);
+        const std::size_t bitmapDensityDivisor = static_cast<std::size_t>(RandX::detail::SampleBitmapDensityDivisor);
+        auto bitmapPopulation = makePopulation(bitmapThreshold, copyCount);
+        const std::size_t bitmapSampleCount = 1;
+        CHECK(bitmapSampleCount > (bitmapPopulation.size() - 1) / bitmapThreshold);
+        CHECK(bitmapSampleCount <= bitmapPopulation.size() / bitmapDensityDivisor);
+        RandX::Xoshiro256StarStar bitmapEngine(RandXTest::TestConstants::kDefaultEngineTestSeed);
+        copyCount = 0;
+        const auto bitmapSample = RandX::RandSample(bitmapEngine, bitmapPopulation, bitmapSampleCount);
+        verifyPositions(bitmapSample, bitmapSampleCount, bitmapPopulation.size());
+        CHECK(copyCount == bitmapSampleCount);
+
+        auto fullPopulation = makePopulation(4, copyCount);
+        RandX::Xoshiro256StarStar fullEngine(RandXTest::TestConstants::kDefaultEngineTestSeed);
+        const auto fullEngineState = fullEngine;
+        copyCount = 0;
+        const auto fullSample = RandX::RandSample(
+            fullEngine, fullPopulation, (std::numeric_limits<std::size_t>::max)());
+        verifyPositions(fullSample, fullPopulation.size(), fullPopulation.size());
+        CHECK(copyCount == fullPopulation.size());
+        CHECK(fullEngine == fullEngineState);
+        for (std::size_t position = 0; position < fullSample.size(); ++position)
+        {
+            CHECK(fullSample[position].position == position);
+            CHECK(fullSample[position].value == static_cast<int>(position % 2));
+        }
+
+    }
+    TEST_CASE("RandSample 位图跨字边界保留成员范围")
+    {
+        const std::size_t wordBits = static_cast<std::size_t>(RandX::detail::SampleBitmapWordBits);
+        const std::size_t bitmapThreshold = static_cast<std::size_t>(RandX::detail::SampleBitmapThresholdK);
+        const std::size_t densityDivisor = static_cast<std::size_t>(RandX::detail::SampleBitmapDensityDivisor);
+        const std::size_t populationSizes[] = {wordBits - 1, wordBits, wordBits + 1};
+        const std::size_t sampleCount = 1;
+        std::size_t bitmapCases = 0;
+
+        for (const std::size_t populationSize : populationSizes)
+        {
+            if (populationSize == 0 || populationSize > bitmapThreshold)
+                continue;
+            if (sampleCount <= (populationSize - 1) / bitmapThreshold
+                || sampleCount > populationSize / densityDivisor)
+                continue;
+
+            std::vector<int> population(populationSize);
+            for (std::size_t position = 0; position < population.size(); ++position)
+                population[position] = static_cast<int>(position);
+            RandX::Xoshiro256StarStar engine(RandXTest::TestConstants::kDefaultEngineTestSeed);
+            const auto sample = RandX::RandSample(engine, population, sampleCount);
+            REQUIRE(sample.size() == sampleCount);
+            CHECK(std::find(population.begin(), population.end(), sample.front()) != population.end());
+            ++bitmapCases;
+        }
+        CHECK(bitmapCases > 0);
+
+    }
+    TEST_CASE("RandSample 重复值按不同源位置独立入选")
+    {
+        using Item = RandXTest::SamplingContractFixtures::NonDefaultReadOnlyCopyItem;
+        const std::size_t hashThreshold = RandX::detail::HashSetThresholdK;
+        const std::size_t populationSize = hashThreshold * 2 + 1;
+        const std::ptrdiff_t sampleCount = 2;
+        constexpr int repeatedValue = 73;
+        std::size_t copyCount = 0;
+        std::vector<Item> population;
+        population.reserve(populationSize);
+        for (std::size_t position = 0; position < populationSize; ++position)
+            population.emplace_back(position, repeatedValue, copyCount);
+
+        RandX::Xoshiro256StarStar engine(RandXTest::TestConstants::kDefaultEngineTestSeed);
+        const auto sample = RandX::RandSample(engine, population.begin(), population.end(), sampleCount);
+        REQUIRE(sample.size() == static_cast<std::size_t>(sampleCount));
+        CHECK(sample[0].value == repeatedValue);
+        CHECK(sample[1].value == repeatedValue);
+        CHECK(sample[0].position != sample[1].position);
+        CHECK(copyCount == static_cast<std::size_t>(sampleCount));
+
+    }
+    TEST_CASE("RandSample 数量边界保留早返回状态")
+    {
+        const std::vector<int> population{11, 17, 23, 29};
+        const std::ptrdiff_t populationSize = static_cast<std::ptrdiff_t>(population.size());
+
+        RandX::Reseed(RandXTest::TestConstants::kDefaultEngineTestSeed);
+        const auto defaultInitialState = RandX::DefaultEngine();
+        const auto negativeDefault = RandX::RandSample(population.begin(), population.end(), std::ptrdiff_t{-1});
+        CHECK(negativeDefault.empty());
+        CHECK(RandX::DefaultEngine() == defaultInitialState);
+        const auto zeroDefault = RandX::RandSample(population.begin(), population.end(), std::ptrdiff_t{0});
+        CHECK(zeroDefault.empty());
+        CHECK(RandX::DefaultEngine() == defaultInitialState);
+
+        RandXTest::SamplingContractFixtures::CountingEngine explicitEngine;
+        const auto negativeExplicit = RandX::RandSample(
+            explicitEngine, population.begin(), population.end(), std::ptrdiff_t{-1});
+        CHECK(negativeExplicit.empty());
+        const auto zeroExplicit = RandX::RandSample(
+            explicitEngine, population.begin(), population.end(), std::ptrdiff_t{0});
+        CHECK(zeroExplicit.empty());
+        CHECK(explicitEngine.callCount == 0);
+
+        const std::vector<int> emptyPopulation;
+        const auto emptyExplicit = RandX::RandSample(
+            explicitEngine, emptyPopulation.begin(), emptyPopulation.end(), std::ptrdiff_t{1});
+        CHECK(emptyExplicit.empty());
+        CHECK(explicitEngine.callCount == 0);
+
+        const auto fullExplicit = RandX::RandSample(
+            explicitEngine, population.begin(), population.end(), populationSize);
+        REQUIRE(fullExplicit == population);
+        CHECK(explicitEngine.callCount == 0);
+        const auto oversizedExplicit = RandX::RandSample(
+            explicitEngine, population.begin(), population.end(), populationSize + 1);
+        CHECK(oversizedExplicit == population);
+        CHECK(explicitEngine.callCount == 0);
+        const auto maximumContainerRequest = RandX::RandSample(
+            explicitEngine, population, (std::numeric_limits<std::size_t>::max)());
+        CHECK(maximumContainerRequest == population);
+        CHECK(explicitEngine.callCount == 0);
+
+        RandX::Reseed(RandXTest::TestConstants::kDefaultEngineTestSeed);
+        const auto containerInitialState = RandX::DefaultEngine();
+        CHECK(RandX::RandSample(population, std::size_t{0}).empty());
+        CHECK(RandX::DefaultEngine() == containerInitialState);
+
+        const std::vector<int> singlePopulation{43};
+        RandXTest::SamplingContractFixtures::CountingEngine singleEngine;
+        const auto singleElement = RandX::RandSample(
+            singleEngine, singlePopulation.begin(), singlePopulation.end(), std::ptrdiff_t{1});
+        CHECK((singleElement == std::vector<int>{43}));
+        CHECK(singleEngine.callCount == 0);
+
+        const std::vector<int> inputPopulation{47, 53, 59};
+        using InputIterator = RandXTest::SamplingContractFixtures::InputIterator<int>;
+        RandXTest::SamplingContractFixtures::OperationTrace inputTrace;
+        const InputIterator inputFirst{inputPopulation.data(), &inputTrace};
+        const InputIterator inputLast{inputPopulation.data() + inputPopulation.size(), &inputTrace};
+        RandXTest::SamplingContractFixtures::CountingEngine inputEngine;
+        CHECK(RandX::RandSample(inputEngine, inputFirst, inputLast, std::ptrdiff_t{-1}).empty());
+        CHECK(RandX::RandSample(inputEngine, inputFirst, inputLast, std::ptrdiff_t{0}).empty());
+        CHECK(inputTrace.dereferences == 0);
+        CHECK(inputTrace.increments == 0);
+        CHECK(inputEngine.callCount == 0);
+
+        const std::vector<int> emptyInputPopulation;
+        const InputIterator emptyInputFirst{emptyInputPopulation.data(), &inputTrace};
+        const InputIterator emptyInputLast{emptyInputPopulation.data(), &inputTrace};
+        CHECK(RandX::RandSample(inputEngine, emptyInputFirst, emptyInputLast, std::ptrdiff_t{3}).empty());
+        CHECK(inputTrace.dereferences == 0);
+        CHECK(inputTrace.increments == 0);
+        CHECK(inputEngine.callCount == 0);
+
+        std::list<int> shortInput{31, 37};
+        RandXTest::SamplingContractFixtures::CountingEngine reservoirEngine;
+        const auto exhausted = RandX::RandSample(
+            reservoirEngine, shortInput.begin(), shortInput.end(), std::ptrdiff_t{5});
+        CHECK((exhausted == std::vector<int>{31, 37}));
+        CHECK(reservoirEngine.callCount == 0);
+
+    }
+    TEST_CASE("RandSample istream_iterator 初填耗尽不消耗随机数")
+    {
+        constexpr int firstValue = 59;
+        constexpr int secondValue = 61;
+        std::istringstream input("59 61");
+        std::istream_iterator<int> first(input);
+        const std::istream_iterator<int> last;
+        RandXTest::SamplingContractFixtures::CountingEngine engine;
+        const auto sample = RandX::RandSample(engine, first, last, std::ptrdiff_t{5});
+        CHECK((sample == std::vector<int>{firstValue, secondValue}));
+        CHECK(engine.callCount == 0);
+
+    }
+    TEST_CASE("RandSample 默认与显式引擎连续状态独立")
+    {
+        const std::size_t populationSize = RandX::detail::HashSetThresholdK * 2;
+        const std::ptrdiff_t sampleCount = 2;
+        std::vector<std::size_t> population(populationSize);
+        for (std::size_t position = 0; position < population.size(); ++position)
+            population[position] = position;
+
+        RandX::Reseed(RandXTest::TestConstants::kDefaultEngineTestSeed);
+        RandX::Xoshiro256StarStar explicitEngine(RandXTest::TestConstants::kDefaultEngineTestSeed);
+        for (std::size_t callIndex = 0; callIndex < 2; ++callIndex)
+        {
+            const auto defaultSample = RandX::RandSample(population.begin(), population.end(), sampleCount);
+            const auto explicitSample = RandX::RandSample(
+                explicitEngine, population.begin(), population.end(), sampleCount);
+            CHECK(defaultSample == explicitSample);
+            CHECK(RandX::DefaultEngine() == explicitEngine);
+        }
+
+        RandX::Xoshiro256StarStar firstEngine(RandXTest::TestConstants::kDefaultEngineTestSeed);
+        RandX::Xoshiro256StarStar independentEngine(RandXTest::TestConstants::kDefaultEngineTestSeed);
+        const auto independentInitialState = independentEngine;
+        const auto firstSample = RandX::RandSample(
+            firstEngine, population.begin(), population.end(), sampleCount);
+        CHECK(firstEngine != independentInitialState);
+        CHECK(independentEngine == independentInitialState);
+        const auto independentSample = RandX::RandSample(
+            independentEngine, population.begin(), population.end(), sampleCount);
+        CHECK(firstSample == independentSample);
+        CHECK(firstEngine == independentEngine);
+        const auto firstStateAfterOneCall = firstEngine;
+        (void)RandX::RandSample(firstEngine, population.begin(), population.end(), sampleCount);
+        CHECK(firstEngine != firstStateAfterOneCall);
+        (void)RandX::RandSample(independentEngine, population.begin(), population.end(), sampleCount);
+        CHECK(firstEngine == independentEngine);
+
+    }
+    TEST_CASE("RandSample 显式引擎支持位宽、非零最小值与不可复制引擎")
+    {
+        const std::size_t hashPopulationSize = RandX::detail::HashSetThresholdK + 1;
+        const std::ptrdiff_t hashSampleCount = 1;
+        std::vector<int> hashPopulation(hashPopulationSize);
+        for (std::size_t position = 0; position < hashPopulation.size(); ++position)
+            hashPopulation[position] = static_cast<int>(position);
+
+        RandXTest::ExtendedFixtures::Synthetic32BitWideType engine32;
+        const auto sample32 = RandX::RandSample(
+            engine32, hashPopulation.begin(), hashPopulation.end(), hashSampleCount);
+        REQUIRE(sample32.size() == static_cast<std::size_t>(hashSampleCount));
+        CHECK(sample32.front() >= 0);
+        CHECK(static_cast<std::size_t>(sample32.front()) < hashPopulation.size());
+
+        RandX::Xoshiro256StarStar engine64(RandXTest::TestConstants::kDefaultEngineTestSeed);
+        const auto sample64 = RandX::RandSample(
+            engine64, hashPopulation.begin(), hashPopulation.end(), hashSampleCount);
+        REQUIRE(sample64.size() == static_cast<std::size_t>(hashSampleCount));
+
+        const std::size_t indexPopulationSize = RandX::detail::HashSetThresholdK * 2;
+        const std::ptrdiff_t indexSampleCount = 2;
+        std::vector<int> indexPopulation(indexPopulationSize);
+        for (std::size_t position = 0; position < indexPopulation.size(); ++position)
+            indexPopulation[position] = static_cast<int>(position);
+        RandXTest::OverloadFixtures::MoveOnlyEngine moveOnlyEngine;
+        static_assert(!std::is_copy_constructible<RandXTest::OverloadFixtures::MoveOnlyEngine>::value,
+            "the sample engine fixture must remain non-copyable");
+        const auto moveOnlySample = RandX::RandSample(
+            moveOnlyEngine, indexPopulation.begin(), indexPopulation.end(), indexSampleCount);
+        REQUIRE(moveOnlySample.size() == static_cast<std::size_t>(indexSampleCount));
+
+        const std::vector<int> inputValues{41, 43, 47, 53};
+        RandXTest::ExtendedFixtures::SyntheticNonZeroMinEngine nonZeroMinEngine;
+        static_assert(RandXTest::ExtendedFixtures::SyntheticNonZeroMinEngine::min() != 0,
+            "fixture must exercise a non-zero engine minimum");
+        const auto nonZeroMinSample = RandX::RandSample(
+            nonZeroMinEngine, inputValues.begin(), inputValues.end(), std::ptrdiff_t{2});
+        REQUIRE(nonZeroMinSample.size() == 2);
+        for (const int value : nonZeroMinSample)
+            CHECK(std::find(inputValues.begin(), inputValues.end(), value) != inputValues.end());
+
+    }
+    TEST_CASE("RandSample 随机访问复制异常保留引擎与源进度")
+    {
+        using Item = RandXTest::SamplingContractFixtures::ThrowingCopyItem;
+        using Trace = RandXTest::SamplingContractFixtures::OperationTrace;
+        using Iterator = RandXTest::SamplingContractFixtures::RandomAccessIterator<Item>;
+        const auto makePopulation = [](std::size_t size, Trace& trace) {
+            std::vector<Item> population;
+            population.reserve(size);
+            for (std::size_t position = 0; position < size; ++position)
+                population.emplace_back(static_cast<int>(position), trace);
+            return population;
+        };
+
+        const std::size_t hashThreshold = RandX::detail::HashSetThresholdK;
+        Trace hashCopyTrace;
+        hashCopyTrace.throwOnCopyAttempt = 1;
+        Trace hashSourceTrace;
+        auto hashPopulation = makePopulation(hashThreshold + 1, hashCopyTrace);
+        const Iterator hashFirst{hashPopulation.data(), &hashSourceTrace};
+        const Iterator hashLast{hashPopulation.data() + hashPopulation.size(), &hashSourceTrace};
+        RandX::Reseed(RandXTest::TestConstants::kDefaultEngineTestSeed);
+        const auto hashInitialState = RandX::DefaultEngine();
+        CHECK_THROWS_AS((void)RandX::RandSample(hashFirst, hashLast, std::ptrdiff_t{1}), std::runtime_error);
+        CHECK(RandX::DefaultEngine() != hashInitialState);
+        CHECK(hashCopyTrace.copyAttempts == 1);
+        CHECK(hashSourceTrace.dereferences == 1);
+        CHECK(hashSourceTrace.increments == 0);
+
+        const std::size_t indexPopulationSize = hashThreshold * 2;
+        Trace indexCopyTrace;
+        indexCopyTrace.throwOnCopyAttempt = 1;
+        Trace indexSourceTrace;
+        auto indexPopulation = makePopulation(indexPopulationSize, indexCopyTrace);
+        const Iterator indexFirst{indexPopulation.data(), &indexSourceTrace};
+        const Iterator indexLast{indexPopulation.data() + indexPopulation.size(), &indexSourceTrace};
+        RandXTest::SamplingContractFixtures::CountingEngine indexEngine;
+        indexCopyTrace.engineCallCount = &indexEngine.callCount;
+        CHECK_THROWS_AS((void)RandX::RandSample(indexEngine, indexFirst, indexLast, std::ptrdiff_t{2}),
+            std::runtime_error);
+        CHECK(indexEngine.callCount >= 2);
+        CHECK(indexCopyTrace.engineCallsAtThrow == indexEngine.callCount);
+        CHECK(indexCopyTrace.copyAttempts == 1);
+        CHECK(indexSourceTrace.dereferences == 1);
+        CHECK(indexSourceTrace.increments == 0);
+
+        const std::size_t bitmapThreshold = static_cast<std::size_t>(RandX::detail::SampleBitmapThresholdK);
+        Trace bitmapCopyTrace;
+        bitmapCopyTrace.throwOnCopyAttempt = 1;
+        Trace bitmapSourceTrace;
+        auto bitmapPopulation = makePopulation(bitmapThreshold, bitmapCopyTrace);
+        const RandXTest::SamplingContractFixtures::RandomAccessContainer<Item> bitmapRange{
+            bitmapPopulation.data(), bitmapPopulation.size(), &bitmapSourceTrace};
+        RandXTest::SamplingContractFixtures::CountingEngine bitmapEngine;
+        bitmapCopyTrace.engineCallCount = &bitmapEngine.callCount;
+        CHECK_THROWS_AS((void)RandX::RandSample(bitmapEngine, bitmapRange, std::size_t{1}),
+            std::runtime_error);
+        CHECK(bitmapEngine.callCount > 0);
+        CHECK(bitmapCopyTrace.engineCallsAtThrow == bitmapEngine.callCount);
+        CHECK(bitmapCopyTrace.copyAttempts == 1);
+        CHECK(bitmapSourceTrace.dereferences == 1);
+        CHECK(bitmapSourceTrace.increments == 0);
+
+        Trace fullCopyTrace;
+        fullCopyTrace.throwOnCopyAttempt = 1;
+        Trace fullSourceTrace;
+        auto fullPopulation = makePopulation(4, fullCopyTrace);
+        const RandXTest::SamplingContractFixtures::RandomAccessContainer<Item> fullRange{
+            fullPopulation.data(), fullPopulation.size(), &fullSourceTrace};
+        RandXTest::SamplingContractFixtures::CountingEngine fullEngine;
+        fullCopyTrace.engineCallCount = &fullEngine.callCount;
+        CHECK_THROWS_AS((void)RandX::RandSample(
+            fullEngine, fullRange, (std::numeric_limits<std::size_t>::max)()), std::runtime_error);
+        CHECK(fullEngine.callCount == 0);
+        CHECK(fullCopyTrace.engineCallsAtThrow == 0);
+        CHECK(fullCopyTrace.copyAttempts == 1);
+        CHECK(fullSourceTrace.dereferences == 1);
+        CHECK(fullSourceTrace.increments == 0);
+
+    }
+    TEST_CASE("RandSample 随机访问引擎异常不提前访问源元素")
+    {
+        using Item = RandXTest::SamplingContractFixtures::ThrowingCopyItem;
+        using Trace = RandXTest::SamplingContractFixtures::OperationTrace;
+        using Iterator = RandXTest::SamplingContractFixtures::RandomAccessIterator<Item>;
+        const std::size_t populationSize = RandX::detail::HashSetThresholdK + 1;
+        Trace itemTrace;
+        Trace sourceTrace;
+        std::vector<Item> population;
+        population.reserve(populationSize);
+        for (std::size_t position = 0; position < populationSize; ++position)
+            population.emplace_back(static_cast<int>(position), itemTrace);
+        const Iterator first{population.data(), &sourceTrace};
+        const Iterator last{population.data() + population.size(), &sourceTrace};
+        RandXTest::SamplingContractFixtures::ThrowingEngine engine;
+
+        CHECK_THROWS_AS((void)RandX::RandSample(engine, first, last, std::ptrdiff_t{1}), std::runtime_error);
+        CHECK(engine.callCount == 1);
+        CHECK(itemTrace.copyAttempts == 0);
+        CHECK(sourceTrace.dereferences == 0);
+        CHECK(sourceTrace.increments == 0);
+
+    }
+    TEST_CASE("RandSample 蓄水池复制赋值与引擎异常保留单遍进度")
+    {
+        using Item = RandXTest::SamplingContractFixtures::ThrowingCopyItem;
+        using Trace = RandXTest::SamplingContractFixtures::OperationTrace;
+        using Iterator = RandXTest::SamplingContractFixtures::InputIterator<Item>;
+        const auto makePopulation = [](std::size_t size, Trace& trace) {
+            std::vector<Item> population;
+            population.reserve(size);
+            for (std::size_t position = 0; position < size; ++position)
+                population.emplace_back(static_cast<int>(position), trace);
+            return population;
+        };
+
+        Trace fillCopyTrace;
+        fillCopyTrace.throwOnCopyAttempt = 2;
+        Trace fillSourceTrace;
+        auto fillPopulation = makePopulation(4, fillCopyTrace);
+        const Iterator fillFirst{fillPopulation.data(), &fillSourceTrace};
+        const Iterator fillLast{fillPopulation.data() + fillPopulation.size(), &fillSourceTrace};
+        RandXTest::SamplingContractFixtures::CountingEngine fillEngine;
+        fillCopyTrace.engineCallCount = &fillEngine.callCount;
+        CHECK_THROWS_AS((void)RandX::RandSample(fillEngine, fillFirst, fillLast, std::ptrdiff_t{3}),
+            std::runtime_error);
+        CHECK(fillCopyTrace.copyAttempts == 2);
+        CHECK(fillEngine.callCount == 0);
+        CHECK(fillSourceTrace.dereferences == 2);
+        CHECK(fillSourceTrace.increments == 1);
+
+        Trace replacementTrace;
+        replacementTrace.throwOnAssignmentAttempt = 1;
+        Trace replacementSourceTrace;
+        auto replacementPopulation = makePopulation(4, replacementTrace);
+        const Iterator replacementFirst{replacementPopulation.data(), &replacementSourceTrace};
+        const Iterator replacementLast{replacementPopulation.data() + replacementPopulation.size(),
+            &replacementSourceTrace};
+        RandXTest::SamplingContractFixtures::CountingEngine replacementEngine;
+        replacementTrace.engineCallCount = &replacementEngine.callCount;
+        CHECK_THROWS_AS((void)RandX::RandSample(
+            replacementEngine, replacementFirst, replacementLast, std::ptrdiff_t{2}), std::runtime_error);
+        CHECK(replacementEngine.callCount > 0);
+        CHECK(replacementTrace.engineCallsAtThrow == replacementEngine.callCount);
+        CHECK(replacementTrace.copyAttempts == 2);
+        CHECK(replacementTrace.assignmentAttempts == 1);
+        CHECK(replacementSourceTrace.dereferences == 3);
+        CHECK(replacementSourceTrace.increments == 2);
+
+        Trace engineFailureTrace;
+        Trace engineFailureSourceTrace;
+        auto engineFailurePopulation = makePopulation(4, engineFailureTrace);
+        const Iterator engineFailureFirst{engineFailurePopulation.data(), &engineFailureSourceTrace};
+        const Iterator engineFailureLast{engineFailurePopulation.data() + engineFailurePopulation.size(),
+            &engineFailureSourceTrace};
+        RandXTest::SamplingContractFixtures::ThrowingEngine throwingEngine;
+        engineFailureTrace.engineCallCount = &throwingEngine.callCount;
+        CHECK_THROWS_AS((void)RandX::RandSample(
+            throwingEngine, engineFailureFirst, engineFailureLast, std::ptrdiff_t{2}), std::runtime_error);
+        CHECK(throwingEngine.callCount == 1);
+        CHECK(engineFailureTrace.copyAttempts == 2);
+        CHECK(engineFailureSourceTrace.dereferences == 2);
+        CHECK(engineFailureSourceTrace.increments == 2);
+
+    }
 }
 
 #if defined(__SIZEOF_INT128__)

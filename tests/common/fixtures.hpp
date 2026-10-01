@@ -3,6 +3,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstddef>
 #include <cstdint>
 #include <iterator>
 #include <limits>
@@ -182,6 +183,262 @@ void VerifyEngineSeedSeqContracts()
     Engine customSequenceEngine(customSeedSequence);
     CHECK(customSequenceEngine() != typename Engine::result_type{0});
 }
+}
+
+namespace SamplingContractFixtures
+{
+struct OperationTrace
+{
+    std::size_t dereferences{0};
+    std::size_t increments{0};
+    std::size_t copyAttempts{0};
+    std::size_t assignmentAttempts{0};
+    std::size_t throwOnCopyAttempt{(std::numeric_limits<std::size_t>::max)()};
+    std::size_t throwOnAssignmentAttempt{(std::numeric_limits<std::size_t>::max)()};
+    std::size_t* engineCallCount{nullptr};
+    std::size_t engineCallsAtThrow{0};
+};
+
+struct NonDefaultReadOnlyCopyItem
+{
+    const std::size_t position;
+    const int value;
+    std::size_t* copyCount;
+
+    NonDefaultReadOnlyCopyItem() = delete;
+    NonDefaultReadOnlyCopyItem(std::size_t sourcePosition, int sourceValue, std::size_t& copies)
+        : position(sourcePosition), value(sourceValue), copyCount(&copies) {}
+    NonDefaultReadOnlyCopyItem(const NonDefaultReadOnlyCopyItem& other)
+        : position(other.position), value(other.value), copyCount(other.copyCount)
+    {
+        ++*copyCount;
+    }
+    NonDefaultReadOnlyCopyItem& operator=(const NonDefaultReadOnlyCopyItem&) = delete;
+};
+
+struct ThrowingCopyItem
+{
+    int value;
+    OperationTrace* trace;
+
+    ThrowingCopyItem(int sourceValue, OperationTrace& operations)
+        : value(sourceValue), trace(&operations) {}
+    ThrowingCopyItem(const ThrowingCopyItem& other)
+        : value(other.value), trace(other.trace)
+    {
+        if (trace == nullptr) return;
+        const std::size_t attempt = ++trace->copyAttempts;
+        if (attempt == trace->throwOnCopyAttempt)
+        {
+            if (trace->engineCallCount != nullptr)
+                trace->engineCallsAtThrow = *trace->engineCallCount;
+            throw std::runtime_error("sample copy construction failure");
+        }
+    }
+    ThrowingCopyItem& operator=(const ThrowingCopyItem& other)
+    {
+        OperationTrace* operations = trace != nullptr ? trace : other.trace;
+        if (operations != nullptr)
+        {
+            const std::size_t attempt = ++operations->assignmentAttempts;
+            if (attempt == operations->throwOnAssignmentAttempt)
+            {
+                if (operations->engineCallCount != nullptr)
+                    operations->engineCallsAtThrow = *operations->engineCallCount;
+                throw std::runtime_error("sample copy assignment failure");
+            }
+        }
+        value = other.value;
+        trace = other.trace;
+        return *this;
+    }
+};
+
+struct CountingEngine
+{
+    using result_type = std::uint64_t;
+    static constexpr result_type min() noexcept { return 0; }
+    static constexpr result_type max() noexcept { return (std::numeric_limits<result_type>::max)(); }
+
+    std::size_t callCount{0};
+    result_type value{(std::numeric_limits<result_type>::max)() / 2 + 1};
+
+    result_type operator()() noexcept
+    {
+        ++callCount;
+        return value;
+    }
+};
+
+struct ThrowingEngine
+{
+    using result_type = std::uint64_t;
+    static constexpr result_type min() noexcept { return 0; }
+    static constexpr result_type max() noexcept { return (std::numeric_limits<result_type>::max)(); }
+
+    std::size_t callCount{0};
+
+    result_type operator()()
+    {
+        ++callCount;
+        throw std::runtime_error("sample engine failure");
+    }
+};
+
+template <class T>
+struct RandomAccessIterator
+{
+    using iterator_category = std::random_access_iterator_tag;
+    using iterator_concept = std::random_access_iterator_tag;
+    using value_type = T;
+    using difference_type = std::ptrdiff_t;
+    using pointer = T*;
+    using reference = T&;
+
+    pointer current{nullptr};
+    OperationTrace* trace{nullptr};
+
+    reference operator*() const
+    {
+        if (trace != nullptr) ++trace->dereferences;
+        return *current;
+    }
+    reference operator[](difference_type offset) const
+    {
+        if (trace != nullptr) ++trace->dereferences;
+        return current[offset];
+    }
+    RandomAccessIterator& operator++()
+    {
+        if (trace != nullptr) ++trace->increments;
+        ++current;
+        return *this;
+    }
+    RandomAccessIterator operator++(int)
+    {
+        RandomAccessIterator previous = *this;
+        ++*this;
+        return previous;
+    }
+    RandomAccessIterator& operator--()
+    {
+        if (trace != nullptr) ++trace->increments;
+        --current;
+        return *this;
+    }
+    RandomAccessIterator operator--(int)
+    {
+        RandomAccessIterator previous = *this;
+        --*this;
+        return previous;
+    }
+    RandomAccessIterator& operator+=(difference_type offset)
+    {
+        current += offset;
+        return *this;
+    }
+    RandomAccessIterator& operator-=(difference_type offset)
+    {
+        current -= offset;
+        return *this;
+    }
+
+    friend RandomAccessIterator operator+(RandomAccessIterator iterator, difference_type offset)
+    {
+        iterator += offset;
+        return iterator;
+    }
+    friend RandomAccessIterator operator+(difference_type offset, RandomAccessIterator iterator)
+    {
+        iterator += offset;
+        return iterator;
+    }
+    friend RandomAccessIterator operator-(RandomAccessIterator iterator, difference_type offset)
+    {
+        iterator -= offset;
+        return iterator;
+    }
+    friend difference_type operator-(RandomAccessIterator first, RandomAccessIterator last)
+    {
+        return first.current - last.current;
+    }
+    friend bool operator==(RandomAccessIterator first, RandomAccessIterator last)
+    {
+        return first.current == last.current;
+    }
+    friend bool operator!=(RandomAccessIterator first, RandomAccessIterator last)
+    {
+        return !(first == last);
+    }
+    friend bool operator<(RandomAccessIterator first, RandomAccessIterator last)
+    {
+        return first.current < last.current;
+    }
+    friend bool operator>(RandomAccessIterator first, RandomAccessIterator last)
+    {
+        return last < first;
+    }
+    friend bool operator<=(RandomAccessIterator first, RandomAccessIterator last)
+    {
+        return !(last < first);
+    }
+    friend bool operator>=(RandomAccessIterator first, RandomAccessIterator last)
+    {
+        return !(first < last);
+    }
+};
+
+template <class T>
+struct RandomAccessContainer
+{
+    T* values{nullptr};
+    std::size_t count{0};
+    OperationTrace* trace{nullptr};
+
+    RandomAccessIterator<T> begin() const { return RandomAccessIterator<T>{values, trace}; }
+    RandomAccessIterator<T> end() const { return RandomAccessIterator<T>{values + count, trace}; }
+    std::size_t size() const { return count; }
+};
+
+template <class T>
+struct InputIterator
+{
+    using iterator_category = std::input_iterator_tag;
+    using iterator_concept = std::input_iterator_tag;
+    using value_type = T;
+    using difference_type = std::ptrdiff_t;
+    using pointer = const T*;
+    using reference = const T&;
+
+    pointer current{nullptr};
+    OperationTrace* trace{nullptr};
+
+    reference operator*() const
+    {
+        if (trace != nullptr) ++trace->dereferences;
+        return *current;
+    }
+    InputIterator& operator++()
+    {
+        if (trace != nullptr) ++trace->increments;
+        ++current;
+        return *this;
+    }
+    InputIterator operator++(int)
+    {
+        InputIterator previous = *this;
+        ++*this;
+        return previous;
+    }
+    friend bool operator==(InputIterator first, InputIterator last)
+    {
+        return first.current == last.current;
+    }
+    friend bool operator!=(InputIterator first, InputIterator last)
+    {
+        return !(first == last);
+    }
+};
 }
 
 namespace ExtendedFixtures

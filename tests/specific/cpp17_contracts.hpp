@@ -37,6 +37,16 @@ struct can_rand_bits : std::false_type {};
 
 template <int N, class T>
 struct can_rand_bits<N, T, std::void_t<decltype(RandX::RandBits<N, T>())>> : std::true_type {};
+
+template <class Engine, class Iterator, class = void>
+struct can_sample_with_engine : std::false_type {};
+
+template <class Engine, class Iterator>
+struct can_sample_with_engine<Engine, Iterator, std::void_t<decltype(RandX::RandSample(
+    std::declval<Engine&>(),
+    std::declval<Iterator>(),
+    std::declval<Iterator>(),
+    std::declval<typename std::iterator_traits<Iterator>::difference_type>()))>> : std::true_type {};
 }
 }
 
@@ -50,6 +60,24 @@ TEST_SUITE("专属/C++17/SFINAE约束")
         static_assert(!can_rand_bits<32, std::int32_t>::value, "RandBits must reject signed int32_t for 32 bits");
         static_assert(!can_rand_bits<64, std::int64_t>::value, "RandBits must reject signed int64_t for 64 bits");
         static_assert(!can_rand_bits<1, bool>::value, "RandBits must reject bool");
+
+    }
+    TEST_CASE("RandSample 类型签名支持只读复制元素与不可复制引擎")
+    {
+        using Item = RandXTest::SamplingContractFixtures::NonDefaultReadOnlyCopyItem;
+        using Container = std::vector<Item>;
+        using Engine = RandXTest::OverloadFixtures::MoveOnlyEngine;
+        using Iterator = std::vector<int>::iterator;
+        static_assert(!std::is_default_constructible<Item>::value, "sample item must not need a default constructor");
+        static_assert(std::is_copy_constructible<Item>::value, "sample item must be copy constructible");
+        static_assert(!std::is_copy_assignable<Item>::value, "sample item must not need copy assignment");
+        static_assert(std::is_same<
+            decltype(RandX::RandSample(std::declval<const Container&>(), std::size_t{})),
+            std::vector<Item>>::value,
+            "container overload must return the sampled value type");
+        static_assert(!std::is_copy_constructible<Engine>::value, "sample engine must remain non-copyable");
+        static_assert(can_sample_with_engine<Engine, Iterator>::value,
+            "explicit iterator overload must accept an engine by lvalue reference");
 
     }
 }

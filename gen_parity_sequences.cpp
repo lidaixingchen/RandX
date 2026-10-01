@@ -11,11 +11,13 @@
 #else
 #include "RandX.hpp"
 #endif
+#include "tests/common/sampling_observations.hpp"
 
 #include <cinttypes>
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
+#include <cstring>
 #include <list>
 #include <limits>
 #include <string>
@@ -404,8 +406,19 @@ namespace
 	}
 }
 
-int main()
+int main(int argc, char** argv)
 {
+	if (argc == 2 && std::strcmp(argv[1], "--sampling-only") == 0)
+	{
+		SamplingObservations::RunSamplingOnly();
+		return 0;
+	}
+	if (argc != 1)
+	{
+		std::fprintf(stderr, "usage: gen_parity_sequences [--sampling-only]\n");
+		return 2;
+	}
+
 	// 8 引擎原始序列（ChaCha20 使用显式种子构造，确定性）
 	DumpEngine<RandX::Xoshiro256StarStar>("Xoshiro256StarStar");
 	DumpEngine<RandX::Xoroshiro128StarStar>("Xoroshiro128StarStar");
@@ -432,5 +445,6 @@ int main()
 	// 便捷 API（显式引擎 + 默认引擎两条路径）
 	DumpConvenienceApis();
 	DumpDefaultEngineApis();
+	SamplingObservations::RunDefaultCases();
 	return 0;
 }

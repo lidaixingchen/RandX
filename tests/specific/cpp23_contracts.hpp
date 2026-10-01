@@ -64,6 +64,78 @@ struct NonCopyableType
     NonCopyableType& operator=(NonCopyableType&&) = default;
 };
 
+struct ModernRandomAccessIterator
+{
+    using value_type = int;
+    using difference_type = std::ptrdiff_t;
+    using iterator_concept = std::random_access_iterator_tag;
+
+    int* current{nullptr};
+
+    int& operator*() const { return *current; }
+    int& operator[](difference_type offset) const { return current[offset]; }
+    ModernRandomAccessIterator& operator++() { ++current; return *this; }
+    ModernRandomAccessIterator operator++(int)
+    {
+        ModernRandomAccessIterator previous = *this;
+        ++*this;
+        return previous;
+    }
+    ModernRandomAccessIterator& operator--() { --current; return *this; }
+    ModernRandomAccessIterator operator--(int)
+    {
+        ModernRandomAccessIterator previous = *this;
+        --*this;
+        return previous;
+    }
+    ModernRandomAccessIterator& operator+=(difference_type offset) { current += offset; return *this; }
+    ModernRandomAccessIterator& operator-=(difference_type offset) { current -= offset; return *this; }
+
+    friend ModernRandomAccessIterator operator+(ModernRandomAccessIterator iterator, difference_type offset)
+    {
+        iterator += offset;
+        return iterator;
+    }
+    friend ModernRandomAccessIterator operator+(difference_type offset, ModernRandomAccessIterator iterator)
+    {
+        iterator += offset;
+        return iterator;
+    }
+    friend ModernRandomAccessIterator operator-(ModernRandomAccessIterator iterator, difference_type offset)
+    {
+        iterator -= offset;
+        return iterator;
+    }
+    friend difference_type operator-(ModernRandomAccessIterator first, ModernRandomAccessIterator last)
+    {
+        return first.current - last.current;
+    }
+    friend bool operator==(ModernRandomAccessIterator first, ModernRandomAccessIterator last)
+    {
+        return first.current == last.current;
+    }
+    friend bool operator!=(ModernRandomAccessIterator first, ModernRandomAccessIterator last)
+    {
+        return !(first == last);
+    }
+    friend bool operator<(ModernRandomAccessIterator first, ModernRandomAccessIterator last)
+    {
+        return first.current < last.current;
+    }
+    friend bool operator>(ModernRandomAccessIterator first, ModernRandomAccessIterator last)
+    {
+        return last < first;
+    }
+    friend bool operator<=(ModernRandomAccessIterator first, ModernRandomAccessIterator last)
+    {
+        return !(last < first);
+    }
+    friend bool operator>=(ModernRandomAccessIterator first, ModernRandomAccessIterator last)
+    {
+        return !(first < last);
+    }
+};
+
 template <class Range>
 concept CanRandElement = requires(Range&& range) {
     RandX::ranges::RandElement(std::forward<Range>(range));
@@ -409,6 +481,135 @@ TEST_SUITE("专属/C++23/范围")
         const auto sample = RandX::RandSample(engine, counted, populationSize);
         CHECK(sample == std::vector<int>(std::begin(arr), std::end(arr)));
         CHECK(comparisons == populationSize + 1);
+
+    }
+}
+
+TEST_SUITE("专属/C++23/抽样")
+{
+    TEST_CASE("RandSample 实际实例化现代随机访问迭代器")
+    {
+        using Iterator = RandXTest::Cpp23Fixtures::ModernRandomAccessIterator;
+        static_assert(std::random_access_iterator<Iterator>);
+
+        constexpr std::size_t populationSize = 8;
+        constexpr std::ptrdiff_t sampleCount = 4;
+        std::array<int, populationSize> population{};
+        for (std::size_t position = 0; position < population.size(); ++position)
+            population[position] = static_cast<int>(position + 100);
+        const Iterator first{population.data()};
+        const Iterator last{population.data() + population.size()};
+
+        const auto defaultSample = RandX::RandSample(first, last, sampleCount);
+        REQUIRE(defaultSample.size() == static_cast<std::size_t>(sampleCount));
+        std::set<int> selected(defaultSample.begin(), defaultSample.end());
+        CHECK(selected.size() == defaultSample.size());
+        for (const int value : defaultSample)
+            CHECK(std::find(population.begin(), population.end(), value) != population.end());
+
+        RandX::Xoshiro256StarStar engine(RandXTest::TestConstants::kDefaultEngineTestSeed);
+        const auto explicitSample = RandX::RandSample(engine, first, last, sampleCount);
+        REQUIRE(explicitSample.size() == static_cast<std::size_t>(sampleCount));
+        for (const int value : explicitSample)
+            CHECK(std::find(population.begin(), population.end(), value) != population.end());
+
+        auto range = std::ranges::subrange(first, last);
+        const auto rangeSample = RandX::ranges::RandSample(range, sampleCount);
+        REQUIRE(rangeSample.size() == static_cast<std::size_t>(sampleCount));
+        std::set<int> rangeSelected(rangeSample.begin(), rangeSample.end());
+        CHECK(rangeSelected.size() == rangeSample.size());
+        for (const int value : rangeSample)
+            CHECK(std::find(population.begin(), population.end(), value) != population.end());
+
+    }
+    TEST_CASE("RandSample 实际实例化独立哨兵默认与显式入口")
+    {
+        constexpr std::size_t populationSize = RandX::detail::HashSetThresholdK * 2;
+        constexpr std::ptrdiff_t sampleCount = 2;
+        std::array<int, populationSize> population{};
+        for (std::size_t position = 0; position < population.size(); ++position)
+            population[position] = static_cast<int>(position);
+        const int* first = population.data();
+        std::size_t defaultComparisons = 0;
+        const RandXTest::Cpp23Fixtures::NonSizedSentinel defaultLast{
+            population.data() + population.size(), &defaultComparisons};
+        static_assert(std::sentinel_for<RandXTest::Cpp23Fixtures::NonSizedSentinel, const int*>);
+        static_assert(!std::sized_sentinel_for<RandXTest::Cpp23Fixtures::NonSizedSentinel, const int*>);
+
+        const auto defaultSample = RandX::RandSample(first, defaultLast, sampleCount);
+        REQUIRE(defaultSample.size() == static_cast<std::size_t>(sampleCount));
+        CHECK(defaultComparisons == population.size() + 1);
+        for (const int value : defaultSample)
+            CHECK(std::find(population.begin(), population.end(), value) != population.end());
+
+        std::size_t explicitComparisons = 0;
+        const RandXTest::Cpp23Fixtures::NonSizedSentinel explicitLast{
+            population.data() + population.size(), &explicitComparisons};
+        RandX::Xoshiro256StarStar engine(RandXTest::TestConstants::kDefaultEngineTestSeed);
+        const auto explicitSample = RandX::RandSample(engine, first, explicitLast, sampleCount);
+        REQUIRE(explicitSample.size() == static_cast<std::size_t>(sampleCount));
+        CHECK(explicitComparisons == population.size() + 1);
+        for (const int value : explicitSample)
+            CHECK(std::find(population.begin(), population.end(), value) != population.end());
+
+    }
+    TEST_CASE("RandSample 实际实例化只移动 istream_view 三种入口")
+    {
+        using View = std::ranges::istream_view<int>;
+        using Iterator = std::ranges::iterator_t<View>;
+        static_assert(std::input_iterator<Iterator>);
+        static_assert(!std::copy_constructible<Iterator>);
+        static_assert(std::move_constructible<Iterator>);
+
+        constexpr std::ptrdiff_t sampleCount = 2;
+        const auto checkMembership = [sampleCount](const std::vector<int>& sample, const std::array<int, 4>& source) {
+            REQUIRE(sample.size() == static_cast<std::size_t>(sampleCount));
+            for (const int value : sample)
+                CHECK(std::find(source.begin(), source.end(), value) != source.end());
+        };
+        const std::array<int, 4> source{13, 19, 29, 31};
+
+        std::istringstream defaultInput("13 19 29 31");
+        auto defaultView = std::views::istream<int>(defaultInput);
+        auto defaultFirst = defaultView.begin();
+        const auto defaultSample = RandX::RandSample(
+            std::move(defaultFirst), std::default_sentinel, sampleCount);
+        checkMembership(defaultSample, source);
+        CHECK(defaultInput.eof());
+
+        std::istringstream explicitInput("13 19 29 31");
+        auto explicitView = std::views::istream<int>(explicitInput);
+        auto explicitFirst = explicitView.begin();
+        RandX::Xoshiro256StarStar engine(RandXTest::TestConstants::kDefaultEngineTestSeed);
+        const auto explicitSample = RandX::RandSample(
+            engine, std::move(explicitFirst), std::default_sentinel, sampleCount);
+        checkMembership(explicitSample, source);
+        CHECK(explicitInput.eof());
+
+        std::istringstream rangesInput("13 19 29 31");
+        auto rangesView = std::views::istream<int>(rangesInput);
+        const auto rangesSample = RandX::ranges::RandSample(rangesView, sampleCount);
+        checkMembership(rangesSample, source);
+        CHECK(rangesInput.eof());
+
+    }
+    TEST_CASE("RandSample istream_view 零量与输入耗尽保持进度契约")
+    {
+        std::istringstream zeroInput("41 43");
+        auto zeroView = std::views::istream<int>(zeroInput);
+        const auto zeroSample = RandX::ranges::RandSample(zeroView, std::ptrdiff_t{0});
+        CHECK(zeroSample.empty());
+        int nextValue = 0;
+        zeroInput >> nextValue;
+        CHECK(nextValue == 43);
+
+        std::istringstream shortInput("47 53");
+        auto shortView = std::views::istream<int>(shortInput);
+        RandX::Reseed(RandXTest::TestConstants::kDefaultEngineTestSeed);
+        const auto initialDefaultState = RandX::DefaultEngine();
+        const auto exhaustedSample = RandX::ranges::RandSample(shortView, std::ptrdiff_t{5});
+        CHECK((exhaustedSample == std::vector<int>{47, 53}));
+        CHECK(RandX::DefaultEngine() == initialDefaultState);
 
     }
 }
