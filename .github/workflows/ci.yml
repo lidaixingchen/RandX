@@ -393,13 +393,22 @@ jobs:
   coverage:
     runs-on: ubuntu-24.04
     timeout-minutes: 60
+    env:
+      RANDX_LCOV_VERSION: '2.5'
     steps:
       - uses: actions/checkout@v4
       - name: Install lcov
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           g++-14 --version
           sudo apt-get update
-          sudo apt-get install -y lcov
+          sudo apt-get install -y lcov libdatetime-perl libdevel-stacktrace-perl libperlio-gzip-perl
+          gh release download "v${RANDX_LCOV_VERSION}" --repo linux-test-project/lcov \
+            --pattern "lcov-${RANDX_LCOV_VERSION}.tar.gz" --dir "$RUNNER_TEMP"
+          tar -xzf "$RUNNER_TEMP/lcov-${RANDX_LCOV_VERSION}.tar.gz" -C "$RUNNER_TEMP"
+          echo "$RUNNER_TEMP/lcov-${RANDX_LCOV_VERSION}/bin" >> "$GITHUB_PATH"
+          "$RUNNER_TEMP/lcov-${RANDX_LCOV_VERSION}/bin/lcov" --version
       - name: Build with coverage
         run: |
           g++-14 -std=c++23 -O0 -g --coverage -I third_party \
