@@ -16,6 +16,7 @@ on:
       - 'benchmark_gbench.cpp'
       - 'CMakeLists.txt'
       - 'cmake/**'
+      - 'tests/**'
       - 'tools/**'
       - 'third_party/**'
       - '.github/workflows/ci.yml'
@@ -34,12 +35,17 @@ on:
       - 'benchmark_gbench.cpp'
       - 'CMakeLists.txt'
       - 'cmake/**'
+      - 'tests/**'
       - 'tools/**'
       - 'third_party/**'
       - '.github/workflows/ci.yml'
 
 permissions:
   contents: read
+
+# 固定 doctest 用例排序种子，只控制执行顺序，不参与 RandX 引擎播种。
+env:
+  RANDX_DOCTEST_ORDER_SEED: '20261001'
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -60,6 +66,8 @@ jobs:
           python3 -m unittest discover \
             -s tools/pract_rand/tests \
             -p 'test_*.py' -v
+      - name: Run contract registry checker unit tests
+        run: python3 -m unittest discover -s tools -p 'test_check_test_contracts.py' -v
 
   gcc:
     runs-on: ubuntu-24.04
@@ -108,6 +116,44 @@ jobs:
           g++-14 -std=c++20 -O2 -DNDEBUG -Wall -Wextra -I third_party \
             -o test_randx_cpp17_release test_randx_cpp17.cpp
           ./test_randx_cpp17_release
+      - name: Run tests with fixed randomized order
+        run: |
+          if [[ "${{ matrix.std }}" == "c++23" ]]; then
+            ./test_randx --order-by=rand --rand-seed="${RANDX_DOCTEST_ORDER_SEED}"
+            ./test_randx_release --order-by=rand --rand-seed="${RANDX_DOCTEST_ORDER_SEED}"
+          else
+            ./test_randx_cpp17 --order-by=rand --rand-seed="${RANDX_DOCTEST_ORDER_SEED}"
+            ./test_randx_cpp17_release --order-by=rand --rand-seed="${RANDX_DOCTEST_ORDER_SEED}"
+          fi
+      - name: Collect registry manifests
+        run: |
+          mkdir -p contracts
+          if [[ "${{ matrix.std }}" == "c++23" ]]; then
+            target="test_randx"
+            variant="cpp23"
+          else
+            target="test_randx_cpp17"
+            variant="cpp17"
+          fi
+          python3 tools/check_test_contracts.py collect \
+            --binary "./${target}" --compiler gcc-14 --platform ubuntu-24.04 \
+            --standard "${{ matrix.std }}" --build-mode debug --variant "${variant}" \
+            --output "contracts/gcc-${{ matrix.std }}-debug-${variant}.json"
+          if [[ "${{ matrix.std }}" == "c++23" ]]; then
+            target="test_randx_release"
+            variant="cpp23"
+          else
+            target="test_randx_cpp17_release"
+            variant="cpp17"
+          fi
+          python3 tools/check_test_contracts.py collect \
+            --binary "./${target}" --compiler gcc-14 --platform ubuntu-24.04 \
+            --standard "${{ matrix.std }}" --build-mode release --variant "${variant}" \
+            --output "contracts/gcc-${{ matrix.std }}-release-${variant}.json"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: test-contracts-gcc-${{ matrix.std }}
+          path: contracts/*.json
 
   clang:
     runs-on: ubuntu-24.04
@@ -155,6 +201,44 @@ jobs:
           clang++-18 -std=c++20 -O2 -DNDEBUG -Wall -Wextra -I third_party \
             -o test_randx_cpp17_release test_randx_cpp17.cpp
           ./test_randx_cpp17_release
+      - name: Run tests with fixed randomized order
+        run: |
+          if [[ "${{ matrix.std }}" == "c++23" ]]; then
+            ./test_randx --order-by=rand --rand-seed="${RANDX_DOCTEST_ORDER_SEED}"
+            ./test_randx_release --order-by=rand --rand-seed="${RANDX_DOCTEST_ORDER_SEED}"
+          else
+            ./test_randx_cpp17 --order-by=rand --rand-seed="${RANDX_DOCTEST_ORDER_SEED}"
+            ./test_randx_cpp17_release --order-by=rand --rand-seed="${RANDX_DOCTEST_ORDER_SEED}"
+          fi
+      - name: Collect registry manifests
+        run: |
+          mkdir -p contracts
+          if [[ "${{ matrix.std }}" == "c++23" ]]; then
+            target="test_randx"
+            variant="cpp23"
+          else
+            target="test_randx_cpp17"
+            variant="cpp17"
+          fi
+          python3 tools/check_test_contracts.py collect \
+            --binary "./${target}" --compiler clang-18 --platform ubuntu-24.04 \
+            --standard "${{ matrix.std }}" --build-mode debug --variant "${variant}" \
+            --output "contracts/clang-${{ matrix.std }}-debug-${variant}.json"
+          if [[ "${{ matrix.std }}" == "c++23" ]]; then
+            target="test_randx_release"
+            variant="cpp23"
+          else
+            target="test_randx_cpp17_release"
+            variant="cpp17"
+          fi
+          python3 tools/check_test_contracts.py collect \
+            --binary "./${target}" --compiler clang-18 --platform ubuntu-24.04 \
+            --standard "${{ matrix.std }}" --build-mode release --variant "${variant}" \
+            --output "contracts/clang-${{ matrix.std }}-release-${variant}.json"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: test-contracts-clang-${{ matrix.std }}
+          path: contracts/*.json
 
   msvc:
     runs-on: windows-2025
@@ -164,11 +248,14 @@ jobs:
         std: [c++17, c++20, c++23]
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
       - uses: ilammy/msvc-dev-cmd@0b201ec74fa43914dc39ae48a89fd1d8cb592756  # v1
       - name: Build (C++23 with doctest)
         if: matrix.std == 'c++23'
         shell: cmd
-        run: cl /std:c++latest /W4 /EHsc /Od /I third_party /Fe:test_randx.exe test_randx.cpp
+        run: cl /std:c++23preview /utf-8 /W4 /EHsc /Od /I third_party /Fe:test_randx.exe test_randx.cpp
       - name: Test (C++23 with doctest)
         if: matrix.std == 'c++23'
         timeout-minutes: 3
@@ -179,16 +266,16 @@ jobs:
         timeout-minutes: 5
         shell: cmd
         run: |
-          cl /std:c++latest /W4 /EHsc /O2 /DNDEBUG /I third_party /Fe:test_randx_release.exe test_randx.cpp
+          cl /std:c++23preview /utf-8 /W4 /EHsc /O2 /DNDEBUG /I third_party /Fe:test_randx_release.exe test_randx.cpp
           test_randx_release.exe
       - name: Build quick benchmark
         if: matrix.std == 'c++23'
         shell: cmd
-        run: cl /std:c++latest /W4 /EHsc /O2 /Fe:benchmark.exe benchmark.cpp
+        run: cl /std:c++23preview /utf-8 /W4 /EHsc /O2 /Fe:benchmark.exe benchmark.cpp
       - name: Build (C++17 with doctest)
         if: matrix.std == 'c++17'
         shell: cmd
-        run: cl /std:c++17 /W4 /EHsc /Od /I third_party /Fe:test_randx_cpp17.exe test_randx_cpp17.cpp
+        run: cl /std:c++17 /utf-8 /W4 /EHsc /Od /I third_party /Fe:test_randx_cpp17.exe test_randx_cpp17.cpp
       - name: Test (C++17 with doctest)
         if: matrix.std == 'c++17'
         timeout-minutes: 3
@@ -199,17 +286,62 @@ jobs:
         timeout-minutes: 5
         shell: cmd
         run: |
-          cl /std:c++17 /W4 /EHsc /O2 /DNDEBUG /I third_party /Fe:test_randx_cpp17_release.exe test_randx_cpp17.cpp
+          cl /std:c++17 /utf-8 /W4 /EHsc /O2 /DNDEBUG /I third_party /Fe:test_randx_cpp17_release.exe test_randx_cpp17.cpp
           test_randx_cpp17_release.exe
       - name: Build (C++20 char8_t coverage)
         if: matrix.std == 'c++20'
         shell: cmd
-        run: cl /std:c++20 /W4 /EHsc /Od /I third_party /Fe:test_randx_cpp17.exe test_randx_cpp17.cpp
+        run: cl /std:c++20 /utf-8 /W4 /EHsc /Od /I third_party /Fe:test_randx_cpp17.exe test_randx_cpp17.cpp
       - name: Test (C++20 char8_t coverage)
         if: matrix.std == 'c++20'
         timeout-minutes: 3
         shell: cmd
         run: test_randx_cpp17.exe
+      - name: Run tests with fixed randomized order (C++17)
+        if: matrix.std == 'c++17'
+        shell: cmd
+        run: |
+          test_randx_cpp17.exe --order-by=rand --rand-seed=%RANDX_DOCTEST_ORDER_SEED% || exit /b
+          test_randx_cpp17_release.exe --order-by=rand --rand-seed=%RANDX_DOCTEST_ORDER_SEED% || exit /b
+      - name: Run tests with fixed randomized order (C++20)
+        if: matrix.std == 'c++20'
+        shell: cmd
+        run: test_randx_cpp17.exe --order-by=rand --rand-seed=%RANDX_DOCTEST_ORDER_SEED%
+      - name: Run tests with fixed randomized order (C++23)
+        if: matrix.std == 'c++23'
+        shell: cmd
+        run: |
+          test_randx.exe --order-by=rand --rand-seed=%RANDX_DOCTEST_ORDER_SEED% || exit /b
+          test_randx_release.exe --order-by=rand --rand-seed=%RANDX_DOCTEST_ORDER_SEED% || exit /b
+      - name: Collect registry manifests
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path contracts | Out-Null
+          $standard = '${{ matrix.std }}'
+          if ($standard -eq 'c++23') {
+            $target = 'test_randx.exe'
+            $variant = 'cpp23'
+          } else {
+            $target = 'test_randx_cpp17.exe'
+            $variant = 'cpp17'
+          }
+          python tools/check_test_contracts.py collect --binary $target --compiler msvc --platform windows-2025 --standard $standard --build-mode debug --variant $variant --output "contracts/msvc-$standard-debug-$variant.json"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          if ($standard -ne 'c++20') {
+            if ($standard -eq 'c++23') {
+              $target = 'test_randx_release.exe'
+              $variant = 'cpp23'
+            } else {
+              $target = 'test_randx_cpp17_release.exe'
+              $variant = 'cpp17'
+            }
+            python tools/check_test_contracts.py collect --binary $target --compiler msvc --platform windows-2025 --standard $standard --build-mode release --variant $variant --output "contracts/msvc-$standard-release-$variant.json"
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: test-contracts-msvc-${{ matrix.std }}
+          path: contracts/*.json
 
   # 跨标准序列一致性检查：同一生成器分别以 C++23（RandX.hpp）与
   # C++17（RandX_Cpp17.hpp）编译，固定种子输出各引擎与便捷 API 序列后逐字节比对，
@@ -281,12 +413,13 @@ jobs:
       - name: Generate coverage report
         run: |
           # 使用 gcov-14 以匹配 g++-14 生成的 .gcda 格式（B43*），避免与系统 gcov-13（B33*）冲突
-          lcov --capture --directory . --output-file coverage.info --gcov-tool gcov-14
-          lcov --remove coverage.info '/usr/*' 'third_party/*' --output-file coverage.info --gcov-tool gcov-14
-          lcov --list coverage.info
+          lcov --capture --directory . --output-file coverage.info --gcov-tool gcov-14 --branch-coverage
+          lcov --remove coverage.info '/usr/*' '*/third_party/*' '*/test_randx.cpp' '*/test_randx_cpp17.cpp' '*/tests/*' --output-file coverage.info --gcov-tool gcov-14 --branch-coverage
+          lcov --list coverage.info --branch-coverage
+          lcov --summary coverage.info --branch-coverage
       - name: Check coverage threshold
         run: |
-          COVERAGE=$(lcov --summary coverage.info | grep -oP 'lines\.*:\s*\K[0-9.]+')
+          COVERAGE=$(lcov --summary coverage.info --branch-coverage | grep -oP 'lines\.*:\s*\K[0-9.]+')
           echo "Line coverage: ${COVERAGE}%"
           awk "BEGIN { exit !(${COVERAGE} >= 80) }" || (echo "Coverage ${COVERAGE}% < 80%" && exit 1)
       - name: Upload coverage
@@ -299,3 +432,26 @@ jobs:
         with:
           files: ./coverage.info
           fail_ci_if_error: false
+
+  test-contracts:
+    needs: [gcc, clang, msvc]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test registration manifest checker
+        run: python3 -m unittest discover -s tools -p test_check_test_contracts.py
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: test-contracts-*
+          path: contracts
+          merge-multiple: true
+      - name: Compare matrix registration manifests
+        run: |
+          python3 tools/check_test_contracts.py compare --manifest-dir contracts \
+            --expected-group gcc-14 ubuntu-24.04 debug \
+            --expected-group gcc-14 ubuntu-24.04 release \
+            --expected-group clang-18 ubuntu-24.04 debug \
+            --expected-group clang-18 ubuntu-24.04 release \
+            --expected-group msvc windows-2025 debug \
+            --expected-group msvc windows-2025 release

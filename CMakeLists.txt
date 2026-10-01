@@ -87,11 +87,18 @@ option(RANDX_ENABLE_COVERAGE "Enable code coverage (GCC/Clang)" OFF)
 if(RANDX_BUILD_TESTS)
     enable_testing()
 
+    # MSVC 的 C++23 测试限定到该标准的预览模式。
+    if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+        set(CMAKE_CXX23_STANDARD_COMPILE_OPTION "/std:c++23preview")
+        set(CMAKE_CXX23_EXTENSION_COMPILE_OPTION "/std:c++23preview")
+    endif()
+
     # 共用 doctest 头文件
     set(DOCTEST_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/third_party)
 
     # C++23 测试（RandX.hpp）
     add_executable(test_randx test_randx.cpp)
+    set_target_properties(test_randx PROPERTIES CXX_STANDARD 23 CXX_STANDARD_REQUIRED ON CXX_EXTENSIONS OFF)
     target_compile_features(test_randx PRIVATE cxx_std_23)
     target_include_directories(test_randx PRIVATE ${DOCTEST_INCLUDE_DIR})
     target_link_libraries(test_randx PRIVATE RandX_Cpp23)
@@ -99,10 +106,41 @@ if(RANDX_BUILD_TESTS)
 
     # C++17 测试（RandX_Cpp17.hpp）
     add_executable(test_randx_cpp17 test_randx_cpp17.cpp)
+    set_target_properties(test_randx_cpp17 PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED ON CXX_EXTENSIONS OFF)
     target_compile_features(test_randx_cpp17 PRIVATE cxx_std_17)
     target_include_directories(test_randx_cpp17 PRIVATE ${DOCTEST_INCLUDE_DIR})
     target_link_libraries(test_randx_cpp17 PRIVATE RandX_Cpp17)
     add_test(NAME test_randx_cpp17 COMMAND test_randx_cpp17)
+
+    # 套件名采用 UTF-8，供注册清单工具跨平台读取。
+    if(MSVC)
+        target_compile_options(test_randx PRIVATE /utf-8)
+        target_compile_options(test_randx_cpp17 PRIVATE /utf-8)
+    endif()
+
+    # 固定 doctest 用例排序种子，仅用于重排测试，不用于 RandX 引擎播种。
+    set(RANDX_DOCTEST_ORDER_SEED "20261001")
+    add_test(
+        NAME test_randx_randomized_order
+        COMMAND test_randx --order-by=rand --rand-seed=${RANDX_DOCTEST_ORDER_SEED}
+    )
+    add_test(
+        NAME test_randx_cpp17_randomized_order
+        COMMAND test_randx_cpp17 --order-by=rand --rand-seed=${RANDX_DOCTEST_ORDER_SEED}
+    )
+
+    # Python 标准库工具直接检查现有两个目标，不额外构建注册清单程序。
+    find_package(Python3 3.10 COMPONENTS Interpreter QUIET)
+    if(Python3_Interpreter_FOUND)
+        add_test(
+            NAME test_contract_registry
+            COMMAND "${Python3_EXECUTABLE}"
+                    "${CMAKE_CURRENT_SOURCE_DIR}/tools/check_test_contracts.py"
+                    compare-binaries
+                    --cpp17-binary "$<TARGET_FILE:test_randx_cpp17>"
+                    --cpp23-binary "$<TARGET_FILE:test_randx>"
+        )
+    endif()
 
     if(RANDX_ENABLE_COVERAGE AND (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang"))
         target_compile_options(test_randx PRIVATE --coverage -O0 -g)
