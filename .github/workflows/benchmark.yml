@@ -14,6 +14,8 @@ on:
       - 'benchmark_gbench.cpp'
       - 'CMakeLists.txt'
       - 'tools/compare_benchmark.py'
+      - 'tools/merge_benchmark_repetitions.py'
+      - 'tools/test_merge_benchmark_repetitions.py'
       - '.github/workflows/benchmark.yml'
   pull_request:
     branches: [master]
@@ -23,6 +25,8 @@ on:
       - 'benchmark_gbench.cpp'
       - 'CMakeLists.txt'
       - 'tools/compare_benchmark.py'
+      - 'tools/merge_benchmark_repetitions.py'
+      - 'tools/test_merge_benchmark_repetitions.py'
       - '.github/workflows/benchmark.yml'
   workflow_dispatch:
     inputs:
@@ -40,6 +44,11 @@ permissions:
 concurrency:
   group: benchmark-${{ github.ref }}
   cancel-in-progress: true
+
+env:
+  RANDX_SAMPLING_INITIAL_BASELINE: 'e0ce50a6c0dd5e3b5158efb1cbe17a68bd93edec'
+  RANDX_SAMPLING_REPETITIONS: '5'
+  RANDX_SAMPLING_MIN_TIME: '0.1s'
 
 jobs:
   benchmark:
@@ -141,6 +150,7 @@ jobs:
           cmake --build baseline-src/build --target benchmark_gbench -j$(nproc)
 
       - name: Run Baseline Benchmark
+        id: baseline-benchmark
         if: steps.check-baseline.outputs.skip-compare != 'true'
         run: |
           ./baseline-src/build/benchmark_gbench \
@@ -149,9 +159,156 @@ jobs:
             --benchmark_repetitions=5 \
             --benchmark_report_aggregates_only=true
 
+      - name: Checkout Sampling Baseline Headers
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.baseline-run.outputs.baseline-sha || env.RANDX_SAMPLING_INITIAL_BASELINE }}
+          path: sampling-baseline-src
+
+      - name: Configure & Build Same-Source Sampling Benchmarks
+        run: |
+          cmake -S . -B build_sampling_baseline \
+            -DRANDX_BUILD_BENCHMARK=ON \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_CXX_COMPILER=g++-14 -DCMAKE_CXX_STANDARD=23 \
+            -DFETCHCONTENT_BASE_DIR="${GITHUB_WORKSPACE}/build/_deps" \
+            -DRANDX_SAMPLING_HEADER_DIR="${GITHUB_WORKSPACE}/sampling-baseline-src"
+          cmake --build build_sampling_baseline \
+            --target benchmark_gbench_sampling_cpp17 benchmark_gbench_sampling_cpp23 -j$(nproc)
+
+          cmake -S . -B build_sampling_candidate \
+            -DRANDX_BUILD_BENCHMARK=ON \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_CXX_COMPILER=g++-14 -DCMAKE_CXX_STANDARD=23 \
+            -DFETCHCONTENT_BASE_DIR="${GITHUB_WORKSPACE}/build/_deps" \
+            -DRANDX_SAMPLING_HEADER_DIR="${GITHUB_WORKSPACE}"
+          cmake --build build_sampling_candidate \
+            --target benchmark_gbench_sampling_cpp17 benchmark_gbench_sampling_cpp23 -j$(nproc)
+
+      - name: Run Same-Source Sampling Benchmarks
+        id: sampling-runs
+        run: |
+          SAMPLING_CPU=$(python3 -c "import os; print(min(os.sched_getaffinity(0)))")
+          echo "cpu=$SAMPLING_CPU" >> "$GITHUB_OUTPUT"
+          mkdir -p sampling-rounds
+          for standard in cpp17 cpp23; do
+            for round in $(seq 1 "$RANDX_SAMPLING_REPETITIONS"); do
+              if (( round % 2 == 0 )); then
+                variants="candidate baseline"
+              else
+                variants="baseline candidate"
+              fi
+              for variant in $variants; do
+                taskset -c "$SAMPLING_CPU" "./build_sampling_${variant}/benchmark_gbench_sampling_${standard}" \
+                  --benchmark_format=json \
+                  --benchmark_out="sampling-rounds/${variant}-${standard}-${round}.json" \
+                  --benchmark_repetitions=1 \
+                  --benchmark_min_time="$RANDX_SAMPLING_MIN_TIME"
+              done
+            done
+            for variant in baseline candidate; do
+              python3 tools/merge_benchmark_repetitions.py \
+                sampling-rounds/"${variant}-${standard}-"*.json \
+                --output "sampling-${variant}-${standard}.json"
+            done
+          done
+
+      - name: Record Sampling Benchmark Environment
+        if: always() && !cancelled()
+        run: |
+          {
+            printf 'baseline_ref=%s\n' "${{ steps.baseline-run.outputs.baseline-sha || env.RANDX_SAMPLING_INITIAL_BASELINE }}"
+            if [ -d sampling-baseline-src/.git ]; then
+              printf 'baseline_commit=%s\n' "$(git -C sampling-baseline-src rev-parse HEAD)"
+            fi
+            printf 'candidate_commit=%s\n' "$(git rev-parse HEAD)"
+            printf 'candidate_source=%s\n' "${GITHUB_WORKSPACE}/benchmark_gbench.cpp"
+            printf 'compiler=g++-14\n'
+            g++-14 --version | head -n 1
+            cmake --version | head -n 1
+            printf 'generator=%s\n' "$(sed -n 's/^CMAKE_GENERATOR:INTERNAL=//p' build_sampling_candidate/CMakeCache.txt 2>/dev/null || true)"
+            printf 'google_benchmark_fetchcontent_tag=v1.8.5\n'
+            printf 'standards=cpp17,cpp23\n'
+            printf 'repetitions=%s\n' "$RANDX_SAMPLING_REPETITIONS"
+            printf 'min_time=%s\n' "$RANDX_SAMPLING_MIN_TIME"
+            printf 'order=alternating pairs, reversed on even rounds\n'
+            printf 'cpu_affinity=%s\n' "${{ steps.sampling-runs.outputs.cpu }}"
+            printf 'aggregate=median\n'
+            printf 'baseline_configure=cmake -S . -B build_sampling_baseline -DRANDX_BUILD_BENCHMARK=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=g++-14 -DCMAKE_CXX_STANDARD=23 -DFETCHCONTENT_BASE_DIR=%s/build/_deps -DRANDX_SAMPLING_HEADER_DIR=sampling-baseline-src\n' "${GITHUB_WORKSPACE}"
+            printf 'candidate_configure=cmake -S . -B build_sampling_candidate -DRANDX_BUILD_BENCHMARK=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=g++-14 -DCMAKE_CXX_STANDARD=23 -DFETCHCONTENT_BASE_DIR=%s/build/_deps -DRANDX_SAMPLING_HEADER_DIR=.\n' "${GITHUB_WORKSPACE}"
+            printf 'build_targets=benchmark_gbench_sampling_cpp17 benchmark_gbench_sampling_cpp23\n'
+            printf 'run_options=--benchmark_format=json --benchmark_repetitions=1 --benchmark_min_time=%s\n' "$RANDX_SAMPLING_MIN_TIME"
+            printf 'aggregation=tools/merge_benchmark_repetitions.py\n'
+            printf 'comparison=tools/compare_benchmark.py with --tolerance 0.25 after median-name-set equality\n'
+          } > sampling-benchmark-metadata.txt
+
+      - name: Compare Same-Source Sampling C++17 Results
+        id: compare-sampling-cpp17
+        if: >-
+          !cancelled() && steps.sampling-runs.outcome == 'success' &&
+          inputs.force_update_baseline != true && inputs.force_update_baseline != 'true'
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          def median_names(path):
+              with Path(path).open(encoding="utf-8") as result_file:
+                  result = json.load(result_file)
+              return sorted(
+                  item["name"]
+                  for item in result["benchmarks"]
+                  if item.get("aggregate_name") == "median"
+              )
+
+          baseline_names = median_names("sampling-baseline-cpp17.json")
+          candidate_names = median_names("sampling-candidate-cpp17.json")
+          if not baseline_names or baseline_names != candidate_names:
+              print("抽样基准项集合不一致。")
+              print("仅基点：", sorted(set(baseline_names) - set(candidate_names)))
+              print("仅候选：", sorted(set(candidate_names) - set(baseline_names)))
+              raise SystemExit(1)
+          print(f"C++17 抽样基准项集合一致：{len(baseline_names)} 项。")
+          PY
+          python3 tools/compare_benchmark.py \
+            sampling-candidate-cpp17.json sampling-baseline-cpp17.json --tolerance 0.25
+
+      - name: Compare Same-Source Sampling C++23 Results
+        id: compare-sampling-cpp23
+        if: >-
+          !cancelled() && steps.sampling-runs.outcome == 'success' &&
+          inputs.force_update_baseline != true && inputs.force_update_baseline != 'true'
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          def median_names(path):
+              with Path(path).open(encoding="utf-8") as result_file:
+                  result = json.load(result_file)
+              return sorted(
+                  item["name"]
+                  for item in result["benchmarks"]
+                  if item.get("aggregate_name") == "median"
+              )
+
+          baseline_names = median_names("sampling-baseline-cpp23.json")
+          candidate_names = median_names("sampling-candidate-cpp23.json")
+          if not baseline_names or baseline_names != candidate_names:
+              print("抽样基准项集合不一致。")
+              print("仅基点：", sorted(set(baseline_names) - set(candidate_names)))
+              print("仅候选：", sorted(set(candidate_names) - set(baseline_names)))
+              raise SystemExit(1)
+          print(f"C++23 抽样基准项集合一致：{len(baseline_names)} 项。")
+          PY
+          python3 tools/compare_benchmark.py \
+            sampling-candidate-cpp23.json sampling-baseline-cpp23.json --tolerance 0.25
+
       - name: Compare with Baseline
         id: compare
-        if: steps.check-baseline.outputs.skip-compare != 'true'
+        if: >-
+          !cancelled() && steps.baseline-benchmark.outcome == 'success' &&
+          steps.check-baseline.outputs.skip-compare != 'true'
         # 同一 runner 上测量两个提交的 median 聚合值，超出 25% 容差即失败。
         run: python3 tools/compare_benchmark.py result.json same-machine-baseline.json --tolerance 0.25
 
@@ -159,7 +316,11 @@ jobs:
         # 仅在基线对比这一步失败时建 issue（构建/环境失败不建）；
         # fork PR 的 token 只读，跳过以免二次报错
         if: >-
-          failure() && steps.compare.outcome == 'failure' &&
+          failure() && (
+            steps.compare.outcome == 'failure' ||
+            steps.compare-sampling-cpp17.outcome == 'failure' ||
+            steps.compare-sampling-cpp23.outcome == 'failure'
+          ) &&
           (github.event_name != 'pull_request' || !github.event.pull_request.head.repo.fork)
         uses: actions/github-script@v7
         with:
@@ -188,7 +349,7 @@ jobs:
               repo: context.repo.repo,
               title: `${titlePrefix} ${date} 基线对比超容差`,
               body: [
-                `Benchmark 基线对比失败（容差 25%），来源：${source}，详见 [workflow run](${runUrl})。`,
+                `Benchmark 基线对比失败（项目现有 25% 容差），来源：${source}，详见 [workflow run](${runUrl})。`,
                 '',
                 '可能原因：',
                 '1. 引擎或便捷 API 实现引入性能回归',
@@ -211,6 +372,20 @@ jobs:
           path: |
             result.json
             same-machine-baseline.json
+          if-no-files-found: warn
+
+      - name: Upload Same-Source Sampling Results
+        if: always() && !cancelled()
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-sampling-results-${{ github.run_id }}
+          path: |
+            sampling-baseline-cpp17.json
+            sampling-candidate-cpp17.json
+            sampling-baseline-cpp23.json
+            sampling-candidate-cpp23.json
+            sampling-benchmark-metadata.txt
+            sampling-rounds/*.json
           if-no-files-found: warn
 
       - name: Upload Current Result as Baseline

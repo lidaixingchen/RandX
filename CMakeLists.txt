@@ -83,6 +83,7 @@ option(RANDX_BUILD_TESTS "Build tests" OFF)
 option(RANDX_BUILD_BENCHMARK "Build benchmark" OFF)
 option(RANDX_BUILD_EXAMPLES "Build examples" OFF)
 option(RANDX_ENABLE_COVERAGE "Enable code coverage (GCC/Clang)" OFF)
+set(RANDX_SAMPLING_HEADER_DIR "" CACHE PATH "Optional header directory used by benchmark targets")
 
 if(RANDX_BUILD_TESTS)
     enable_testing()
@@ -170,6 +171,31 @@ if(RANDX_BUILD_BENCHMARK)
     add_executable(benchmark_gbench benchmark_gbench.cpp)
     target_link_libraries(benchmark_gbench PRIVATE benchmark::benchmark RandX)
     target_compile_features(benchmark_gbench PRIVATE cxx_std_23)
+
+    function(randx_set_benchmark_header_override target_name)
+        if(RANDX_SAMPLING_HEADER_DIR)
+            target_include_directories(${target_name} BEFORE PRIVATE "${RANDX_SAMPLING_HEADER_DIR}")
+        endif()
+    endfunction()
+    randx_set_benchmark_header_override(benchmark_gbench)
+
+    function(randx_add_sampling_benchmark target_name standard library_target)
+        add_executable(${target_name} benchmark_gbench.cpp)
+        target_link_libraries(${target_name} PRIVATE benchmark::benchmark ${library_target})
+        target_compile_features(${target_name} PRIVATE cxx_std_${standard})
+        target_compile_definitions(${target_name} PRIVATE RANDX_BENCHMARK_SAMPLING_ONLY)
+        set_target_properties(${target_name} PROPERTIES
+            CXX_STANDARD ${standard}
+            CXX_STANDARD_REQUIRED ON
+            CXX_EXTENSIONS OFF
+        )
+        randx_set_benchmark_header_override(${target_name})
+    endfunction()
+
+    # 两个目标使用相同基准源分别编译公共头文件。
+    randx_add_sampling_benchmark(benchmark_gbench_sampling_cpp17 17 RandX_Cpp17)
+    target_compile_definitions(benchmark_gbench_sampling_cpp17 PRIVATE RANDX_BENCHMARK_CPP17)
+    randx_add_sampling_benchmark(benchmark_gbench_sampling_cpp23 23 RandX_Cpp23)
 endif()
 
 if(RANDX_BUILD_EXAMPLES)

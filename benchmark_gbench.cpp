@@ -14,11 +14,319 @@
 //----------------------------------------------------------------------------------------
 
 #include <benchmark/benchmark.h>
-#include "RandX.hpp"
 
+#if defined(RANDX_BENCHMARK_CPP17)
+#include <RandX_Cpp17.hpp>
+#else
+#include <RandX.hpp>
+#endif
+
+#include <cstddef>
 #include <cstdint>
 #include <list>
+#include <set>
+#include <utility>
 #include <vector>
+
+#if defined(RANDX_BENCHMARK_SAMPLING_ONLY)
+
+static constexpr std::uint64_t kSamplingSeed = 0x5A17C0DEULL;
+static constexpr std::size_t kSamplingSmallRangeMultiplier = 4;
+static constexpr std::size_t kSamplingSmallRangeSize =
+    static_cast<std::size_t>(RandX::detail::HashSetThresholdK * kSamplingSmallRangeMultiplier);
+static constexpr std::size_t kSamplingBitmapWordBoundaryRangeMultiplier =
+    kSamplingSmallRangeMultiplier;
+static constexpr std::size_t kSamplingBitmapWordBoundaryNeighbor = 1;
+static constexpr std::size_t kSamplingBitmapWordBoundaryAlignedRangeSize =
+    static_cast<std::size_t>(RandX::detail::SampleBitmapWordBits
+                             * kSamplingBitmapWordBoundaryRangeMultiplier);
+static constexpr std::size_t kSamplingBitmapWordBoundaryLowerRangeSize =
+    kSamplingBitmapWordBoundaryAlignedRangeSize - kSamplingBitmapWordBoundaryNeighbor;
+static constexpr std::size_t kSamplingBitmapWordBoundaryUpperRangeSize =
+    kSamplingBitmapWordBoundaryAlignedRangeSize + kSamplingBitmapWordBoundaryNeighbor;
+static constexpr std::size_t kSamplingLargeRangeSize = 1'000'000;
+static constexpr std::size_t kSamplingMediumDensityDivisor =
+    static_cast<std::size_t>(RandX::detail::SampleBitmapDensityDivisor * 2);
+static constexpr std::size_t kSamplingHighDensityDivisor = 4;
+
+using SamplingCase = std::pair<std::size_t, std::size_t>;
+
+static std::set<std::size_t> MakeSamplingRequests(std::size_t rangeSize)
+{
+    const std::size_t hashSetBoundary = static_cast<std::size_t>(
+        (rangeSize - 1) / RandX::detail::HashSetThresholdK);
+    const std::size_t bitmapBoundary = static_cast<std::size_t>(
+        (rangeSize - 1) / RandX::detail::SampleBitmapThresholdK);
+    const std::size_t halfDensityBoundary = static_cast<std::size_t>(
+        rangeSize / RandX::detail::SampleBitmapDensityDivisor);
+
+    std::set<std::size_t> requests{
+        0,
+        1,
+        hashSetBoundary,
+        hashSetBoundary + 1,
+        bitmapBoundary,
+        bitmapBoundary + 1,
+        rangeSize / kSamplingMediumDensityDivisor,
+        halfDensityBoundary,
+        halfDensityBoundary + 1,
+        rangeSize - rangeSize / kSamplingHighDensityDivisor,
+        rangeSize,
+        rangeSize + 1
+    };
+    if (hashSetBoundary > 0)
+        requests.insert(hashSetBoundary - 1);
+    if (bitmapBoundary > 0)
+        requests.insert(bitmapBoundary - 1);
+    return requests;
+}
+
+static std::set<SamplingCase> MakeRandomAccessSamplingCases()
+{
+    std::set<SamplingCase> cases;
+    for (const std::size_t rangeSize : {kSamplingSmallRangeSize, kSamplingLargeRangeSize})
+    {
+        for (const std::size_t request : MakeSamplingRequests(rangeSize))
+            cases.emplace(rangeSize, request);
+    }
+    cases.emplace(0, 1);
+    cases.emplace(1, 1);
+    cases.emplace(1, 2);
+    return cases;
+}
+
+static std::set<SamplingCase> MakeBitmapWordBoundarySamplingCases()
+{
+    const std::set<std::size_t> rangeSizes{
+        kSamplingBitmapWordBoundaryLowerRangeSize,
+        kSamplingBitmapWordBoundaryAlignedRangeSize,
+        kSamplingBitmapWordBoundaryUpperRangeSize
+    };
+    std::set<SamplingCase> cases;
+    for (const std::size_t rangeSize : rangeSizes)
+    {
+        const std::size_t request = static_cast<std::size_t>(
+            rangeSize / RandX::detail::SampleBitmapDensityDivisor);
+        cases.emplace(rangeSize, request);
+    }
+    return cases;
+}
+
+static std::set<SamplingCase> MakeContainerSamplingCases()
+{
+    std::set<SamplingCase> cases = MakeRandomAccessSamplingCases();
+    const std::set<SamplingCase> bitmapWordBoundaryCases = MakeBitmapWordBoundarySamplingCases();
+    cases.insert(bitmapWordBoundaryCases.begin(), bitmapWordBoundaryCases.end());
+    return cases;
+}
+
+static std::set<SamplingCase> MakeReservoirSamplingCases()
+{
+    std::set<SamplingCase> cases;
+    for (const std::size_t request : MakeSamplingRequests(kSamplingSmallRangeSize))
+        cases.emplace(kSamplingSmallRangeSize, request);
+
+    const std::size_t largeRangeHashSetBoundary = static_cast<std::size_t>(
+        (kSamplingLargeRangeSize - 1) / RandX::detail::HashSetThresholdK);
+    const std::set<std::size_t> largeRangeRequests{
+        0,
+        1,
+        largeRangeHashSetBoundary,
+        largeRangeHashSetBoundary + 1,
+        kSamplingLargeRangeSize / kSamplingMediumDensityDivisor,
+        kSamplingLargeRangeSize / RandX::detail::SampleBitmapDensityDivisor,
+        kSamplingLargeRangeSize - kSamplingLargeRangeSize / kSamplingHighDensityDivisor,
+        kSamplingLargeRangeSize,
+        kSamplingLargeRangeSize + 1
+    };
+    for (const std::size_t request : largeRangeRequests)
+        cases.emplace(kSamplingLargeRangeSize, request);
+
+    cases.emplace(0, 1);
+    cases.emplace(1, 1);
+    cases.emplace(1, 2);
+    return cases;
+}
+
+static void ApplySamplingCases(benchmark::internal::Benchmark* benchmarkCase,
+                               const std::set<SamplingCase>& cases)
+{
+    for (const auto& [rangeSize, request] : cases)
+    {
+        benchmarkCase->Args({static_cast<std::int64_t>(rangeSize),
+                             static_cast<std::int64_t>(request)});
+    }
+}
+
+static void AddRandomAccessSamplingCases(benchmark::internal::Benchmark* benchmarkCase)
+{
+    ApplySamplingCases(benchmarkCase, MakeRandomAccessSamplingCases());
+}
+
+static void AddContainerSamplingCases(benchmark::internal::Benchmark* benchmarkCase)
+{
+    ApplySamplingCases(benchmarkCase, MakeContainerSamplingCases());
+}
+
+static void AddReservoirSamplingCases(benchmark::internal::Benchmark* benchmarkCase)
+{
+    ApplySamplingCases(benchmarkCase, MakeReservoirSamplingCases());
+}
+
+static std::vector<int> MakeSamplingVector(std::size_t rangeSize)
+{
+    std::vector<int> values(rangeSize);
+    for (std::size_t index = 0; index < rangeSize; ++index)
+        values[index] = static_cast<int>(index);
+    return values;
+}
+
+static std::list<int> MakeSamplingList(std::size_t rangeSize)
+{
+    std::list<int> values;
+    for (std::size_t index = 0; index < rangeSize; ++index)
+        values.push_back(static_cast<int>(index));
+    return values;
+}
+
+static void PrepareDefaultSamplingEngine()
+{
+    RandX::Reseed(kSamplingSeed);
+    benchmark::DoNotOptimize(RandX::RandInt(0, 1));
+    RandX::Reseed(kSamplingSeed);
+}
+
+static void BM_RandSampleIteratorDefault(benchmark::State& state)
+{
+    const auto rangeSize = static_cast<std::size_t>(state.range(0));
+    auto request = static_cast<std::ptrdiff_t>(state.range(1));
+    auto values = MakeSamplingVector(rangeSize);
+    PrepareDefaultSamplingEngine();
+
+    for (auto _ : state)
+    {
+        benchmark::DoNotOptimize(request);
+        auto result = RandX::RandSample(values.cbegin(), values.cend(), request);
+        benchmark::DoNotOptimize(result.data());
+        if (!result.empty()) benchmark::ClobberMemory();
+    }
+}
+BENCHMARK(BM_RandSampleIteratorDefault)
+    ->Apply(AddRandomAccessSamplingCases)
+    ->ArgNames({"range_size", "request"});
+
+template <class Engine>
+static void BM_RandSampleIteratorExplicit(benchmark::State& state)
+{
+    const auto rangeSize = static_cast<std::size_t>(state.range(0));
+    auto request = static_cast<std::ptrdiff_t>(state.range(1));
+    auto values = MakeSamplingVector(rangeSize);
+    Engine engine{kSamplingSeed};
+
+    for (auto _ : state)
+    {
+        benchmark::DoNotOptimize(request);
+        auto result = RandX::RandSample(engine, values.cbegin(), values.cend(), request);
+        benchmark::DoNotOptimize(result.data());
+        if (!result.empty()) benchmark::ClobberMemory();
+    }
+}
+BENCHMARK_TEMPLATE(BM_RandSampleIteratorExplicit, RandX::Xoshiro256StarStar)
+    ->Apply(AddRandomAccessSamplingCases)
+    ->ArgNames({"range_size", "request"});
+BENCHMARK_TEMPLATE(BM_RandSampleIteratorExplicit, RandX::Xoshiro128StarStar)
+    ->Apply(AddRandomAccessSamplingCases)
+    ->ArgNames({"range_size", "request"});
+
+static void BM_RandSampleContainerDefault(benchmark::State& state)
+{
+    const auto rangeSize = static_cast<std::size_t>(state.range(0));
+    auto request = static_cast<std::size_t>(state.range(1));
+    auto values = MakeSamplingVector(rangeSize);
+    PrepareDefaultSamplingEngine();
+
+    for (auto _ : state)
+    {
+        benchmark::DoNotOptimize(request);
+        auto result = RandX::RandSample(values, request);
+        benchmark::DoNotOptimize(result.data());
+        if (!result.empty()) benchmark::ClobberMemory();
+    }
+}
+BENCHMARK(BM_RandSampleContainerDefault)
+    ->Apply(AddContainerSamplingCases)
+    ->ArgNames({"range_size", "request"});
+
+template <class Engine>
+static void BM_RandSampleContainerExplicit(benchmark::State& state)
+{
+    const auto rangeSize = static_cast<std::size_t>(state.range(0));
+    auto request = static_cast<std::size_t>(state.range(1));
+    auto values = MakeSamplingVector(rangeSize);
+    Engine engine{kSamplingSeed};
+
+    for (auto _ : state)
+    {
+        benchmark::DoNotOptimize(request);
+        auto result = RandX::RandSample(engine, values, request);
+        benchmark::DoNotOptimize(result.data());
+        if (!result.empty()) benchmark::ClobberMemory();
+    }
+}
+BENCHMARK_TEMPLATE(BM_RandSampleContainerExplicit, RandX::Xoshiro256StarStar)
+    ->Apply(AddContainerSamplingCases)
+    ->ArgNames({"range_size", "request"});
+BENCHMARK_TEMPLATE(BM_RandSampleContainerExplicit, RandX::Xoshiro128StarStar)
+    ->Apply(AddContainerSamplingCases)
+    ->ArgNames({"range_size", "request"});
+
+static void BM_RandSampleReservoirDefault(benchmark::State& state)
+{
+    const auto rangeSize = static_cast<std::size_t>(state.range(0));
+    auto request = static_cast<std::ptrdiff_t>(state.range(1));
+    auto values = MakeSamplingList(rangeSize);
+    PrepareDefaultSamplingEngine();
+
+    for (auto _ : state)
+    {
+        benchmark::DoNotOptimize(request);
+        auto first = values.cbegin();
+        auto last = values.cend();
+        auto result = RandX::RandSample(first, last, request);
+        benchmark::DoNotOptimize(result.data());
+        if (!result.empty()) benchmark::ClobberMemory();
+    }
+}
+BENCHMARK(BM_RandSampleReservoirDefault)
+    ->Apply(AddReservoirSamplingCases)
+    ->ArgNames({"range_size", "request"});
+
+template <class Engine>
+static void BM_RandSampleReservoirExplicit(benchmark::State& state)
+{
+    const auto rangeSize = static_cast<std::size_t>(state.range(0));
+    auto request = static_cast<std::ptrdiff_t>(state.range(1));
+    auto values = MakeSamplingList(rangeSize);
+    Engine engine{kSamplingSeed};
+
+    for (auto _ : state)
+    {
+        benchmark::DoNotOptimize(request);
+        auto first = values.cbegin();
+        auto last = values.cend();
+        auto result = RandX::RandSample(engine, first, last, request);
+        benchmark::DoNotOptimize(result.data());
+        if (!result.empty()) benchmark::ClobberMemory();
+    }
+}
+BENCHMARK_TEMPLATE(BM_RandSampleReservoirExplicit, RandX::Xoshiro256StarStar)
+    ->Apply(AddReservoirSamplingCases)
+    ->ArgNames({"range_size", "request"});
+BENCHMARK_TEMPLATE(BM_RandSampleReservoirExplicit, RandX::Xoshiro128StarStar)
+    ->Apply(AddReservoirSamplingCases)
+    ->ArgNames({"range_size", "request"});
+
+#else
 
 // ============================================================================
 //	具名常量（消除魔法数字）
@@ -286,7 +594,7 @@ static void BM_RandSampleReservoir(benchmark::State& state)
         benchmark::ClobberMemory();
     }
 }
-// reservoir 仅扫小 n：大 n 极慢（O(N·log n) 哈希查找）
+// Algorithm R 遍历输入一次，时间复杂度 O(N)，保留结果需要 O(n) 空间。
 BENCHMARK(BM_RandSampleReservoir)
     ->Arg(50)->Arg(100)->Arg(200)->Arg(400)->Arg(800);
 
@@ -324,5 +632,6 @@ static void BM_SecureRandomBytes(benchmark::State& state)
 BENCHMARK(BM_SecureRandomBytes);
 
 // ============================================================================
+#endif
 
 BENCHMARK_MAIN();
