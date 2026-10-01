@@ -16,6 +16,8 @@ on:
       - 'tools/compare_benchmark.py'
       - 'tools/merge_benchmark_repetitions.py'
       - 'tools/test_merge_benchmark_repetitions.py'
+      - 'tools/confirm_sampling_benchmark.py'
+      - 'tools/test_confirm_sampling_benchmark.py'
       - '.github/workflows/benchmark.yml'
   pull_request:
     branches: [master]
@@ -27,6 +29,8 @@ on:
       - 'tools/compare_benchmark.py'
       - 'tools/merge_benchmark_repetitions.py'
       - 'tools/test_merge_benchmark_repetitions.py'
+      - 'tools/confirm_sampling_benchmark.py'
+      - 'tools/test_confirm_sampling_benchmark.py'
       - '.github/workflows/benchmark.yml'
   workflow_dispatch:
     inputs:
@@ -49,6 +53,9 @@ env:
   RANDX_SAMPLING_INITIAL_BASELINE: 'e0ce50a6c0dd5e3b5158efb1cbe17a68bd93edec'
   RANDX_SAMPLING_REPETITIONS: '5'
   RANDX_SAMPLING_MIN_TIME: '0.1s'
+  RANDX_SAMPLING_CONFIRMATION_REPETITIONS: '6'
+  RANDX_SAMPLING_CONFIRMATION_MIN_TIME: '1s'
+  RANDX_SAMPLING_TOLERANCE: '0.25'
 
 jobs:
   benchmark:
@@ -211,6 +218,15 @@ jobs:
                 sampling-rounds/"${variant}-${standard}-"*.json \
                 --output "sampling-${variant}-${standard}.json"
             done
+            python3 tools/confirm_sampling_benchmark.py \
+              --baseline "sampling-baseline-${standard}.json" \
+              --candidate "sampling-candidate-${standard}.json" \
+              --baseline-binary "build_sampling_baseline/benchmark_gbench_sampling_${standard}" \
+              --candidate-binary "build_sampling_candidate/benchmark_gbench_sampling_${standard}" \
+              --output-dir "sampling-confirmation-${standard}" \
+              --repetitions "$RANDX_SAMPLING_CONFIRMATION_REPETITIONS" \
+              --min-time "$RANDX_SAMPLING_CONFIRMATION_MIN_TIME" \
+              --tolerance "$RANDX_SAMPLING_TOLERANCE" --cpu "$SAMPLING_CPU"
           done
 
       - name: Record Sampling Benchmark Environment
@@ -231,6 +247,9 @@ jobs:
             printf 'standards=cpp17,cpp23\n'
             printf 'repetitions=%s\n' "$RANDX_SAMPLING_REPETITIONS"
             printf 'min_time=%s\n' "$RANDX_SAMPLING_MIN_TIME"
+            printf 'confirmation_repetitions=%s\n' "$RANDX_SAMPLING_CONFIRMATION_REPETITIONS"
+            printf 'confirmation_min_time=%s\n' "$RANDX_SAMPLING_CONFIRMATION_MIN_TIME"
+            printf 'confirmation=one fixed balanced sequence for regressions and neighboring cases\n'
             printf 'order=alternating pairs, reversed on even rounds\n'
             printf 'cpu_affinity=%s\n' "${{ steps.sampling-runs.outputs.cpu }}"
             printf 'aggregate=median\n'
@@ -261,8 +280,8 @@ jobs:
                   if item.get("aggregate_name") == "median"
               )
 
-          baseline_names = median_names("sampling-baseline-cpp17.json")
-          candidate_names = median_names("sampling-candidate-cpp17.json")
+          baseline_names = median_names("sampling-confirmation-cpp17/baseline.json")
+          candidate_names = median_names("sampling-confirmation-cpp17/candidate.json")
           if not baseline_names or baseline_names != candidate_names:
               print("抽样基准项集合不一致。")
               print("仅基点：", sorted(set(baseline_names) - set(candidate_names)))
@@ -271,7 +290,7 @@ jobs:
           print(f"C++17 抽样基准项集合一致：{len(baseline_names)} 项。")
           PY
           python3 tools/compare_benchmark.py \
-            sampling-candidate-cpp17.json sampling-baseline-cpp17.json --tolerance 0.25
+            sampling-confirmation-cpp17/candidate.json sampling-confirmation-cpp17/baseline.json --tolerance "$RANDX_SAMPLING_TOLERANCE"
 
       - name: Compare Same-Source Sampling C++23 Results
         id: compare-sampling-cpp23
@@ -292,8 +311,8 @@ jobs:
                   if item.get("aggregate_name") == "median"
               )
 
-          baseline_names = median_names("sampling-baseline-cpp23.json")
-          candidate_names = median_names("sampling-candidate-cpp23.json")
+          baseline_names = median_names("sampling-confirmation-cpp23/baseline.json")
+          candidate_names = median_names("sampling-confirmation-cpp23/candidate.json")
           if not baseline_names or baseline_names != candidate_names:
               print("抽样基准项集合不一致。")
               print("仅基点：", sorted(set(baseline_names) - set(candidate_names)))
@@ -302,7 +321,7 @@ jobs:
           print(f"C++23 抽样基准项集合一致：{len(baseline_names)} 项。")
           PY
           python3 tools/compare_benchmark.py \
-            sampling-candidate-cpp23.json sampling-baseline-cpp23.json --tolerance 0.25
+            sampling-confirmation-cpp23/candidate.json sampling-confirmation-cpp23/baseline.json --tolerance "$RANDX_SAMPLING_TOLERANCE"
 
       - name: Compare with Baseline
         id: compare
@@ -359,7 +378,7 @@ jobs:
                 '排查建议：',
                 '- 查看 run 日志中 compare_benchmark.py 输出的回归项表格',
                 '- 本地复现：构建 `benchmark_gbench` 后运行 `tools/compare_benchmark.py`',
-                '- 确认为噪声误报后可重跑；连续误报则考虑调整 `--tolerance`',
+                '- 核对固定延长测量、运行顺序及优化代码，定位超过 25% 门槛的稳定回归',
               ].join('\n'),
               labels: ['performance', 'benchmark']
             });
@@ -386,6 +405,8 @@ jobs:
             sampling-candidate-cpp23.json
             sampling-benchmark-metadata.txt
             sampling-rounds/*.json
+            sampling-confirmation-cpp17/
+            sampling-confirmation-cpp23/
           if-no-files-found: warn
 
       - name: Upload Current Result as Baseline

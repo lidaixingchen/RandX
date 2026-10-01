@@ -73,6 +73,8 @@ jobs:
         run: python3 -m unittest discover -s tools -p 'test_compare_sampling.py' -v
       - name: Run benchmark aggregation unit tests
         run: python3 -m unittest discover -s tools -p 'test_merge_benchmark_repetitions.py' -v
+      - name: Run sampling benchmark confirmation unit tests
+        run: python3 -m unittest discover -s tools -p 'test_confirm_sampling_benchmark.py' -v
 
   gcc:
     runs-on: ubuntu-24.04
