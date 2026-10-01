@@ -22,8 +22,10 @@
 #endif
 
 #include <cstddef>
+#include <algorithm>
 #include <cstdint>
 #include <list>
+#include <memory_resource>
 #include <set>
 #include <utility>
 #include <vector>
@@ -181,12 +183,79 @@ static std::vector<int> MakeSamplingVector(std::size_t rangeSize)
     return values;
 }
 
-static std::list<int> MakeSamplingList(std::size_t rangeSize)
+class SamplingAllocationProbe final : public std::pmr::memory_resource
 {
-    std::list<int> values;
-    for (std::size_t index = 0; index < rangeSize; ++index)
-        values.push_back(static_cast<int>(index));
-    return values;
+public:
+    std::size_t bytes() const noexcept { return bytes_; }
+    std::size_t alignment() const noexcept { return alignment_; }
+
+private:
+    void* do_allocate(std::size_t bytes, std::size_t alignment) override
+    {
+        void* allocation = std::pmr::new_delete_resource()->allocate(bytes, alignment);
+        bytes_ += (bytes + alignment - 1) / alignment * alignment;
+        alignment_ = (std::max)(alignment_, alignment);
+        return allocation;
+    }
+    void do_deallocate(void* allocation, std::size_t bytes, std::size_t alignment) override
+    {
+        std::pmr::new_delete_resource()->deallocate(allocation, bytes, alignment);
+    }
+    bool do_is_equal(const std::pmr::memory_resource& other) const noexcept override
+    {
+        return this == &other;
+    }
+    std::size_t bytes_ = 0;
+    std::size_t alignment_ = alignof(std::max_align_t);
+};
+
+struct SamplingListLayout
+{
+    std::size_t emptyBytes;
+    std::size_t elementBytes;
+    std::size_t alignment;
+};
+
+static SamplingListLayout ProbeSamplingListLayout()
+{
+    // 空链表哨兵和元素节点的容量来自实际标准库分配请求。
+    SamplingAllocationProbe resource;
+    std::pmr::list<int> probe(&resource);
+    const std::size_t emptyBytes = resource.bytes();
+    probe.push_back(0);
+    return {emptyBytes, resource.bytes() - emptyBytes, resource.alignment()};
+}
+
+static std::size_t SamplingListStorageSize(std::size_t rangeSize)
+{
+    static const SamplingListLayout layout = ProbeSamplingListLayout();
+    return layout.emptyBytes + rangeSize * layout.elementBytes + layout.alignment - 1;
+}
+
+class SamplingList
+{
+public:
+    explicit SamplingList(std::size_t rangeSize)
+        : storage_(SamplingListStorageSize(rangeSize)),
+          resource_(storage_.data(), storage_.size(), std::pmr::null_memory_resource()),
+          values_(&resource_)
+    {
+        for (std::size_t index = 0; index < rangeSize; ++index)
+            values_.push_back(static_cast<int>(index));
+    }
+    auto cbegin() const noexcept { return values_.cbegin(); }
+    auto cend() const noexcept { return values_.cend(); }
+
+private:
+    // 资源在链表之后销毁，连续存储在资源之后释放。
+    std::vector<std::byte> storage_;
+    std::pmr::monotonic_buffer_resource resource_;
+    std::pmr::list<int> values_;
+};
+
+static SamplingList MakeSamplingList(std::size_t rangeSize)
+{
+    return SamplingList(rangeSize);
 }
 
 static void PrepareDefaultSamplingEngine()
