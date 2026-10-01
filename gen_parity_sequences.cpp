@@ -1,8 +1,8 @@
 // 跨标准序列一致性生成器（参考 gen_sequences.cpp）
 //
 // 同一份源文件分别编译两次：
-//   g++ -std=c++23 gen_parity_sequences.cpp                          → 使用 RandX.hpp
-//   g++ -std=c++17 -DRANDX_PARITY_CPP17 gen_parity_sequences.cpp    → 使用 RandX_Cpp17.hpp
+//   g++ -std=c++23 -I . gen_parity_sequences.cpp                       → 使用 RandX.hpp
+//   g++ -std=c++17 -I . -DRANDX_PARITY_CPP17 gen_parity_sequences.cpp    → 使用 RandX_Cpp17.hpp
 // 固定种子输出各引擎与便捷 API 的序列，供 CI 逐字节比对（cmp/fc），
 // 用于机械保证「双头文件输出序列完全一致」这一核心不变量。
 // 仅使用两个头文件的公共交集 API，不涉及编译期随机 / ranges 特性。

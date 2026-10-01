@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import json
 import io
+import os
 import subprocess
+import sys
 import tempfile
 import unittest
 from contextlib import redirect_stderr, redirect_stdout
@@ -69,6 +71,34 @@ CPP23_REQUIRED_CASES: tuple[str, ...] = (
     "cpp23-move-only-istream-range",
     "cpp23-move-only-istream-explicit",
 )
+
+
+class ConsoleEncodingTests(unittest.TestCase):
+    def test_cli_outputs_utf8_with_legacy_console_encoding(self) -> None:
+        script: Path = Path(__file__).with_name("compare_sampling.py")
+        environment: dict[str, str] = {
+            **os.environ, "PYTHONIOENCODING": "cp1252", "PYTHONUTF8": "0",
+        }
+        with tempfile.TemporaryDirectory() as directory:
+            root: Path = Path(directory)
+            failed_arguments: list[str] = [
+                "--baseline-ref", "HEAD", "--candidate-root", str(root / "missing"),
+                "--compiler", "g++", "--compiler-family", "gcc", "--standard", "c++17",
+                "--build-mode", "release", "--output-dir", str(root / "output"),
+            ]
+            for arguments, expected_status, stream_name, expected_text in (
+                (["--help"], 0, "stdout", "基点"),
+                (failed_arguments, 2, "stderr", "候选根目录不存在"),
+            ):
+                with self.subTest(arguments=arguments):
+                    result: subprocess.CompletedProcess[bytes] = subprocess.run(
+                        [sys.executable, str(script), *arguments],
+                        env=environment, capture_output=True, check=False,
+                    )
+                    self.assertEqual(result.returncode, expected_status, result.stderr)
+                    output: str = getattr(result, stream_name).decode("utf-8")
+                    self.assertIn(expected_text, output)
+                    self.assertNotIn("UnicodeEncodeError", output)
 CPP23_OPTIONAL_WIDE_CASES: tuple[str, ...] = (
     "cpp23-wide-difference-zero",
     "cpp23-wide-difference-length-error",

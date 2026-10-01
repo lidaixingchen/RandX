@@ -442,9 +442,9 @@ jobs:
         run: g++-14 --version
       - name: Build parity generators (C++23 + C++17)
         run: |
-          g++-14 -std=c++23 -O2 -Wall -Wextra \
+          g++-14 -std=c++23 -O2 -Wall -Wextra -I . \
             -o gen_parity_cpp23 gen_parity_sequences.cpp
-          g++-14 -std=c++17 -O2 -Wall -Wextra -DRANDX_PARITY_CPP17 \
+          g++-14 -std=c++17 -O2 -Wall -Wextra -I . -DRANDX_PARITY_CPP17 \
             -o gen_parity_cpp17 gen_parity_sequences.cpp
       - name: Generate & compare sequences byte-by-byte
         run: |
