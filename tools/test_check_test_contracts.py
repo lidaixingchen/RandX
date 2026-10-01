@@ -3,6 +3,9 @@
 from __future__ import annotations
 
 import io
+import os
+import subprocess
+import sys
 import unittest
 from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
@@ -334,6 +337,45 @@ class CompareCommandTests(unittest.TestCase):
                 with self.assertRaises(SystemExit) as result:
                     main(invalid_build_mode_arguments)
             self.assertEqual(result.exception.code, 2)
+
+
+class CommandEncodingTests(unittest.TestCase):
+    def test_cli_outputs_utf8_with_legacy_console_encoding(self) -> None:
+        registrations: dict[tuple[str, str], int] = {("公共/基础/引擎", "KAT"): 1}
+        with TemporaryDirectory() as temporary_directory:
+            manifest_dir: Path = Path(temporary_directory)
+            for standard, variant in (("c++17", "cpp17"), ("c++23", "cpp23")):
+                metadata: dict[str, str] = {
+                    "compiler": "msvc",
+                    "platform": "windows-2025",
+                    "standard": standard,
+                    "build_mode": "release",
+                    "variant": variant,
+                }
+                _write_manifest(manifest_dir / f"{standard}.json", metadata, registrations)
+
+            command: list[str] = [
+                sys.executable,
+                str(Path(__file__).with_name("check_test_contracts.py")),
+                "compare",
+                "--manifest-dir",
+                str(manifest_dir),
+            ]
+            environment: dict[str, str] = {**os.environ, "PYTHONIOENCODING": "cp1252"}
+            success: subprocess.CompletedProcess[bytes] = subprocess.run(
+                command, env=environment, capture_output=True, check=False
+            )
+            self.assertEqual(success.returncode, 0, success.stderr.decode("utf-8"))
+            self.assertIn("已核对 2 份清单", success.stdout.decode("utf-8"))
+
+            failure: subprocess.CompletedProcess[bytes] = subprocess.run(
+                [*command, "--expected-group", "msvc", "windows-2025", "debug"],
+                env=environment,
+                capture_output=True,
+                check=False,
+            )
+            self.assertEqual(failure.returncode, 1)
+            self.assertIn("缺少矩阵组", failure.stderr.decode("utf-8"))
 
 
 if __name__ == "__main__":

@@ -413,8 +413,8 @@ jobs:
       - name: Generate coverage report
         run: |
           # 使用 gcov-14 以匹配 g++-14 生成的 .gcda 格式（B43*），避免与系统 gcov-13（B33*）冲突
-          lcov --capture --directory . --output-file coverage.info --gcov-tool gcov-14 --branch-coverage
-          lcov --remove coverage.info '/usr/*' '*/third_party/*' '*/test_randx.cpp' '*/test_randx_cpp17.cpp' '*/tests/*' --output-file coverage.info --gcov-tool gcov-14 --branch-coverage
+          lcov --capture --directory . --output-file coverage.info --gcov-tool gcov-14 --branch-coverage \
+            --include "$PWD/RandX.hpp" --include "$PWD/RandX_Cpp17.hpp"
           lcov --list coverage.info --branch-coverage
           lcov --summary coverage.info --branch-coverage
       - name: Check coverage threshold
