@@ -82,6 +82,70 @@ TEST_SUITE("内部/序列化格式")
 
 TEST_SUITE("内部/抽样策略")
 {
+    TEST_CASE("抽样内核仅在需要随机抽取时获取一次引擎")
+    {
+        using Diff = std::ptrdiff_t;
+        constexpr Diff PopulationSize = RandX::detail::HashSetThresholdK * 2;
+        constexpr Diff SparseCount = 1;
+        constexpr Diff DenseCount = PopulationSize / 2;
+        std::vector<int> population(static_cast<std::size_t>(PopulationSize));
+        for (Diff i = 0; i < PopulationSize; ++i)
+            population[static_cast<std::size_t>(i)] = static_cast<int>(i);
+        RandX::Xoshiro256StarStar engine(RandX::DefaultSeed);
+        std::size_t acquisitions = 0;
+        const auto getter = [&]() -> RandX::Xoshiro256StarStar&
+        {
+            ++acquisitions;
+            return engine;
+        };
+        auto first = population.begin();
+        const auto checkRandomAccess = [&](Diff size, Diff count, std::size_t expectedAcquisitions)
+        {
+            acquisitions = 0;
+            const auto result = RandX::detail::SampleRandomAccess<
+                int, Diff, RandX::detail::SampleDistributionLifetime::Selection>(first, size, count, getter);
+            CHECK(acquisitions == expectedAcquisitions);
+            CHECK(result.size() == static_cast<std::size_t>((std::max)(Diff{0}, (std::min)(count, size))));
+        };
+        checkRandomAccess(PopulationSize, 0, 0);
+        checkRandomAccess(0, SparseCount, 0);
+        checkRandomAccess(PopulationSize, PopulationSize, 0);
+        checkRandomAccess(PopulationSize, SparseCount, 1);
+        checkRandomAccess(PopulationSize, DenseCount, 1);
+
+        const auto checkReservoir = [&](const std::string& source, Diff count, std::size_t expectedAcquisitions)
+        {
+            acquisitions = 0;
+            std::istringstream stream(source);
+            std::istream_iterator<int> current(stream);
+            std::istream_iterator<int> last;
+            (void)RandX::detail::SampleReservoir<int, Diff>(current, last, count, getter);
+            CHECK(acquisitions == expectedAcquisitions);
+        };
+        checkReservoir("1 2 3", 0, 0);
+        checkReservoir("", SparseCount, 0);
+        checkReservoir("1", SparseCount, 0);
+        checkReservoir("1 2 3", SparseCount, 1);
+    }
+
+    TEST_CASE("蓄水池获取引擎时输入已完成初填")
+    {
+        using Diff = std::ptrdiff_t;
+        constexpr Diff SampleCount = 2;
+        constexpr int NextValue = 3;
+        std::istringstream stream("1 2 3 4");
+        std::istream_iterator<int> first(stream);
+        std::istream_iterator<int> last;
+        const auto getter = [&]() -> RandX::Xoshiro256StarStar&
+        {
+            CHECK(*first == NextValue);
+            throw std::runtime_error("engine acquisition failure");
+        };
+        CHECK_THROWS_AS((RandX::detail::SampleReservoir<int, Diff>(first, last, SampleCount, getter)),
+                        std::runtime_error);
+        CHECK(*first == NextValue);
+    }
+
     TEST_CASE("RandSample 容器策略阈值分支")
     {
         RandX::Reseed(RandXTest::TestConstants::kDefaultEngineTestSeed);

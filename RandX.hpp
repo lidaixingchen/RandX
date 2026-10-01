@@ -2704,6 +2704,135 @@ namespace RandX
 			}
 			return result;
 		}
+
+		// 固定区间分布的生命周期由入口策略选择，碰撞重试也属于一次抽取。
+		enum class SampleDistributionLifetime { Selection, Draw };
+
+		template <class UInt, SampleDistributionLifetime Lifetime>
+		class SampleFixedIndexDistribution;
+
+		template <class UInt>
+		class SampleFixedIndexDistribution<UInt, SampleDistributionLifetime::Selection>
+		{
+			std::uniform_int_distribution<UInt> distribution;
+		public:
+			SampleFixedIndexDistribution(UInt lower, UInt upper) : distribution(lower, upper) {}
+			template <class Engine>
+			UInt operator()(Engine& engine) { return distribution(engine); }
+		};
+
+		template <class UInt>
+		class SampleFixedIndexDistribution<UInt, SampleDistributionLifetime::Draw>
+		{
+			UInt lower;
+			UInt upper;
+		public:
+			SampleFixedIndexDistribution(UInt lowerBound, UInt upperBound) : lower(lowerBound), upper(upperBound) {}
+			template <class Engine>
+			UInt operator()(Engine& engine)
+			{
+				return RandInt<UInt>(engine, lower, upper);
+			}
+		};
+
+		// 内核在公开适配层展开，保留局部迭代器与静态获取器的优化信息。
+#if defined(_MSC_VER)
+#define RANDX_DETAIL_SAMPLE_INLINE __forceinline
+#elif defined(__GNUC__) || defined(__clang__)
+#define RANDX_DETAIL_SAMPLE_INLINE inline __attribute__((always_inline))
+#else
+#define RANDX_DETAIL_SAMPLE_INLINE inline
+#endif
+		template <class T, class Diff, SampleDistributionLifetime Lifetime, class It, class GetEngine>
+		RANDX_DETAIL_SAMPLE_INLINE std::vector<T> SampleRandomAccess(It& first, Diff size, Diff n, GetEngine&& getEngine)
+		{
+			if (n <= 0 || size <= 0)
+				return {};
+			detail::ValidateSampleSize(size);
+			if (n >= size)
+			{
+				std::vector<T> all;
+				all.reserve(static_cast<std::size_t>(size));
+				for (Diff i = 0; i < size; ++i)
+					all.push_back(first[i]);
+				return all;
+			}
+
+			auto& rng = getEngine();
+
+			const auto sizeU = static_cast<std::uint64_t>(size);
+			const auto nU = static_cast<std::uint64_t>(n);
+			const auto nSample = static_cast<std::size_t>(n);
+
+			// 分支选择：n·K < size 时 hash-set 内存优（O(n)）；否则索引数组常数优（O(N)）
+			if (nU <= (sizeU - 1) / detail::HashSetThresholdK)
+			{
+				// hash-set 分支：O(n) 内存，O(n) 期望时间
+				std::unordered_set<std::uint64_t> selected;
+				selected.reserve(nSample);
+				std::vector<T> result;
+				result.reserve(nSample);
+				SampleFixedIndexDistribution<std::uint64_t, Lifetime> dist(0, sizeU - 1);
+				while (result.size() < nSample)
+				{
+					const std::uint64_t idx = dist(rng);
+					if (selected.insert(idx).second)
+						result.push_back(first[static_cast<Diff>(idx)]);
+				}
+				return result;
+			}
+
+			// 索引数组分支：O(N) 内存，O(N) 时间，无碰撞
+			const std::size_t sz = static_cast<std::size_t>(size);
+			std::vector<std::size_t> indices(sz);
+			for (std::size_t i = 0; i < sz; ++i)
+				indices[i] = i;
+
+			// Fisher-Yates 前 n 步：j ∈ [i, size-1]
+			for (std::size_t i = 0; i < nSample; ++i)
+			{
+				SampleFixedIndexDistribution<std::size_t, Lifetime> dist(i, sz - 1);
+				const std::size_t j = dist(rng);
+				std::swap(indices[i], indices[j]);
+			}
+
+			std::vector<T> result;
+			result.reserve(nSample);
+			for (std::size_t i = 0; i < nSample; ++i)
+				result.push_back(first[static_cast<Diff>(indices[i])]);
+			return result;
+		}
+
+
+		template <class T, class Diff, SampleDistributionLifetime Lifetime = SampleDistributionLifetime::Selection, class It, class Sentinel, class GetEngine>
+		RANDX_DETAIL_SAMPLE_INLINE std::vector<T> SampleReservoir(It& first, Sentinel& last, Diff n, GetEngine&& getEngine)
+		{
+			if (n <= 0)
+				return {};
+
+			std::vector<T> reservoir;
+			reservoir.reserve(static_cast<std::size_t>(n));
+
+			// 填满蓄水池
+			Diff i = 0;
+			for (; i < n && first != last; ++i, ++first)
+				reservoir.push_back(*first);
+
+			if (first == last)
+				return reservoir;  // 元素不足 n，返回全部
+
+			// Algorithm R：第 i 个元素（i >= n，0-indexed）以 n/(i+1) 概率替换蓄水池随机位置
+			// 关键：j ∈ [0, i]（闭区间），uniform_int_distribution(0, i) 正好是 [0, i] 闭区间
+			auto& rng = getEngine();
+			for (; first != last; ++i, ++first)
+			{
+				SampleFixedIndexDistribution<std::uint64_t, Lifetime> dist(0, static_cast<std::uint64_t>(i));
+				const auto j = dist(rng);
+				if (j < static_cast<std::uint64_t>(n))
+					reservoir[static_cast<std::size_t>(j)] = *first;
+			}
+			return reservoir;
+		}
 	}
 
 	/// @brief 无放回抽样（随机访问迭代器版，hash-set / 索引数组双分支）
@@ -2720,61 +2849,11 @@ namespace RandX
 		using Diff = std::iter_difference_t<It>;
 		using T = std::iter_value_t<It>;
 		const Diff size = static_cast<Diff>(std::ranges::distance(first, last));
-		if (n <= 0 || size <= 0)
-			return {};
-		detail::ValidateSampleSize(size);
-		if (n >= size)
-		{
-			std::vector<T> all;
-			all.reserve(static_cast<std::size_t>(size));
-			for (Diff i = 0; i < size; ++i)
-				all.push_back(first[i]);
-			return all;
-		}
-
-		auto& rng = DefaultEngine();
-
-		const auto sizeU = static_cast<std::uint64_t>(size);
-		const auto nU = static_cast<std::uint64_t>(n);
-		const auto nSample = static_cast<std::size_t>(n);
-
-		// 分支选择：n·K < size 时 hash-set 内存优（O(n)）；否则索引数组常数优（O(N)）
-		if (nU <= (sizeU - 1) / detail::HashSetThresholdK)
-		{
-			// hash-set 分支：O(n) 内存，O(n) 期望时间
-			std::unordered_set<std::uint64_t> selected;
-			selected.reserve(nSample);
-			std::vector<T> result;
-			result.reserve(nSample);
-			std::uniform_int_distribution<std::uint64_t> dist(0, sizeU - 1);
-			while (result.size() < nSample)
-			{
-				const std::uint64_t idx = dist(rng);
-				if (selected.insert(idx).second)
-					result.push_back(first[static_cast<Diff>(idx)]);
-			}
-			return result;
-		}
-
-		// 索引数组分支：O(N) 内存，O(N) 时间，无碰撞
-		const std::size_t sz = static_cast<std::size_t>(size);
-		std::vector<std::size_t> indices(sz);
-		for (std::size_t i = 0; i < sz; ++i)
-			indices[i] = i;
-
-		// Fisher-Yates 前 n 步：j ∈ [i, size-1]
-		for (std::size_t i = 0; i < nSample; ++i)
-		{
-			std::uniform_int_distribution<std::size_t> dist(i, sz - 1);
-			const std::size_t j = dist(rng);
-			std::swap(indices[i], indices[j]);
-		}
-
-		std::vector<T> result;
-		result.reserve(nSample);
-		for (std::size_t i = 0; i < nSample; ++i)
-			result.push_back(first[static_cast<Diff>(indices[i])]);
-		return result;
+		// 整型差值使用空请求快路径；其他差值类型由内核判定。
+		if constexpr (std::is_integral_v<Diff>)
+			if (n <= 0 || size <= 0) return {};
+		return detail::SampleRandomAccess<T, Diff, detail::SampleDistributionLifetime::Selection>(
+			first, size, n, []() -> Xoshiro256StarStar& { return DefaultEngine(); });
 	}
 
 	/// @brief 无放回抽样：按索引从容器中随机抽取 n 个元素
@@ -2804,31 +2883,7 @@ namespace RandX
 	{
 		using Diff = std::iter_difference_t<It>;
 		using T = std::iter_value_t<It>;
-		if (n <= 0)
-			return {};
-
-		std::vector<T> reservoir;
-		reservoir.reserve(static_cast<std::size_t>(n));
-
-		// 填满蓄水池
-		Diff i = 0;
-		for (; i < n && first != last; ++i, ++first)
-			reservoir.push_back(*first);
-
-		if (first == last)
-			return reservoir;  // 元素不足 n，返回全部
-
-		// Algorithm R：第 i 个元素（i >= n，0-indexed）以 n/(i+1) 概率替换蓄水池随机位置
-		// 关键：j ∈ [0, i]（闭区间），uniform_int_distribution(0, i) 正好是 [0, i] 闭区间
-		auto& rng = DefaultEngine();
-		for (; first != last; ++i, ++first)
-		{
-			std::uniform_int_distribution<std::uint64_t> dist(0, static_cast<std::uint64_t>(i));
-			const auto j = dist(rng);
-			if (j < static_cast<std::uint64_t>(n))
-				reservoir[static_cast<std::size_t>(j)] = *first;
-		}
-		return reservoir;
+		return detail::SampleReservoir<T, Diff>(first, last, n, []() -> Xoshiro256StarStar& { return DefaultEngine(); });
 	}
 
 	/// @brief 无放回抽样（指定引擎，随机访问迭代器版）
@@ -2846,56 +2901,11 @@ namespace RandX
 		using Diff = std::iter_difference_t<It>;
 		using T = std::iter_value_t<It>;
 		const Diff size = static_cast<Diff>(std::ranges::distance(first, last));
-		if (n <= 0 || size <= 0)
-			return {};
-		detail::ValidateSampleSize(size);
-		if (n >= size)
-		{
-			std::vector<T> all;
-			all.reserve(static_cast<std::size_t>(size));
-			for (Diff i = 0; i < size; ++i)
-				all.push_back(first[i]);
-			return all;
-		}
-
-		const auto sizeU = static_cast<std::uint64_t>(size);
-		const auto nU = static_cast<std::uint64_t>(n);
-		const auto nSample = static_cast<std::size_t>(n);
-
-		// 线性阈值：n·K < size 时用 hash-set（等价除法比较避免乘法溢出）
-		if (nU <= (sizeU - 1) / detail::HashSetThresholdK)
-		{
-			// hash-set 分支：用 RandInt 适配任意引擎
-			std::unordered_set<std::uint64_t> selected;
-			selected.reserve(nSample);
-			std::vector<T> result;
-			result.reserve(nSample);
-			while (result.size() < nSample)
-			{
-				const std::uint64_t idx = RandInt<std::uint64_t>(engine, 0, sizeU - 1);
-				if (selected.insert(idx).second)
-					result.push_back(first[static_cast<Diff>(idx)]);
-			}
-			return result;
-		}
-
-		// 索引数组分支：Fisher-Yates 前 n 步，j ∈ [i, size-1]
-		const std::size_t sz = static_cast<std::size_t>(size);
-		std::vector<std::size_t> indices(sz);
-		for (std::size_t i = 0; i < sz; ++i)
-			indices[i] = i;
-
-		for (std::size_t i = 0; i < nSample; ++i)
-		{
-			const std::size_t j = RandInt<std::size_t>(engine, i, sz - 1);
-			std::swap(indices[i], indices[j]);
-		}
-
-		std::vector<T> result;
-		result.reserve(nSample);
-		for (std::size_t i = 0; i < nSample; ++i)
-			result.push_back(first[static_cast<Diff>(indices[i])]);
-		return result;
+		// 整型差值使用空请求快路径；其他差值类型由内核判定。
+		if constexpr (std::is_integral_v<Diff>)
+			if (n <= 0 || size <= 0) return {};
+		return detail::SampleRandomAccess<T, Diff, detail::SampleDistributionLifetime::Draw>(
+			first, size, n, [&engine]() -> Engine& { return engine; });
 	}
 
 	/// @brief 无放回抽样（指定引擎，输入迭代器版，reservoir sampling）
@@ -2913,27 +2923,7 @@ namespace RandX
 	{
 		using Diff = std::iter_difference_t<It>;
 		using T = std::iter_value_t<It>;
-		if (n <= 0)
-			return {};
-
-		std::vector<T> reservoir;
-		reservoir.reserve(static_cast<std::size_t>(n));
-
-		Diff i = 0;
-		for (; i < n && first != last; ++i, ++first)
-			reservoir.push_back(*first);
-
-		if (first == last)
-			return reservoir;
-
-		// Algorithm R：j ∈ [0, i] 闭区间，RandInt(a,b) 是闭区间故上界为 i
-		for (; first != last; ++i, ++first)
-		{
-			const auto j = RandInt<std::uint64_t>(engine, 0, static_cast<std::uint64_t>(i));
-			if (j < static_cast<std::uint64_t>(n))
-				reservoir[static_cast<std::size_t>(j)] = *first;
-		}
-		return reservoir;
+		return detail::SampleReservoir<T, Diff, detail::SampleDistributionLifetime::Draw>(first, last, n, [&engine]() -> Engine& { return engine; });
 	}
 
 	/// @brief 无放回抽样：从容器中随机抽取 n 个元素（指定引擎重载）
@@ -2968,6 +2958,7 @@ namespace RandX
 			return detail::SampleBitmap<std::ranges::range_value_t<Container>, Diff>(engine, first, sizeU, n);
 		return RandSample(engine, first, first + size, count);
 	}
+#undef RANDX_DETAIL_SAMPLE_INLINE
 
 	/// @brief 生成 [0, n) 的随机排列
 	/// @param n 排列长度
