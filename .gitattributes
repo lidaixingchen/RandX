@@ -3,3 +3,11 @@
 ports/ export-ignore
 packaging/ export-ignore
 .github/ export-ignore
+
+/RandX.hpp text eol=lf linguist-generated=true
+/RandX_Cpp17.hpp text eol=lf linguist-generated=true
+/src/header_sources/** text eol=lf
+/tools/generate_headers.py text eol=lf
+/tools/test_generate_headers.py text eol=lf
+/tools/test_header_sources.py text eol=lf
+/tools/check_header_maintenance.py text eol=lf

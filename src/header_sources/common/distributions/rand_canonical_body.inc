@@ -1,0 +1,3 @@
+	{
+		return RandCanonical<T>(DefaultEngine());
+	}

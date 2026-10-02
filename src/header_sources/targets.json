@@ -1,0 +1,14 @@
+{
+  "targets": [
+    {
+      "name": "cpp23",
+      "output": "RandX.hpp",
+      "template": "cpp23/header.inc"
+    },
+    {
+      "name": "cpp17",
+      "output": "RandX_Cpp17.hpp",
+      "template": "cpp17/header.inc"
+    }
+  ]
+}

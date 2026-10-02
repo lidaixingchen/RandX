@@ -330,7 +330,7 @@ namespace RandX
 		{
 			return (lhs.m_state != rhs.m_state);
 		}
-	
+
 	private:
 
 		state_type m_state;
@@ -1048,11 +1048,11 @@ namespace RandX
 			&& !std::is_same_v<std::decay_t<SeedSeq>, typename SplitMix64::state_type>
 			&& !std::is_same_v<std::decay_t<SeedSeq>, SplitMix64>>*>
 	inline constexpr SplitMix64::SplitMix64(SeedSeq& seq)
-	{
-		std::array<std::uint32_t, 2> seeds;
-		seq.generate(seeds.data(), seeds.data() + seeds.size());
-		m_state = (static_cast<std::uint64_t>(seeds[0]) << 32) | seeds[1];
-	}
+		{
+			std::array<std::uint32_t, 2> seeds;
+			seq.generate(seeds.data(), seeds.data() + seeds.size());
+			m_state = (static_cast<std::uint64_t>(seeds[0]) << 32) | seeds[1];
+		}
 
 	inline constexpr SplitMix64::result_type SplitMix64::operator()() noexcept
 	{
@@ -1125,6 +1125,7 @@ namespace RandX
 		jumpPoly(p);
 	}
 
+
 	inline constexpr void Xoshiro256StarStar::longJump() noexcept
 	{
 		constexpr std::uint64_t p[] = {
@@ -1154,6 +1155,7 @@ namespace RandX
 		jumpPoly(p);
 	}
 
+
 	inline constexpr void Xoroshiro128StarStar::longJump() noexcept
 	{
 		constexpr std::uint64_t p[] = { 0xd2a98b26625eee7b, 0xdddf9b1090aa7ac1 };
@@ -1182,6 +1184,7 @@ namespace RandX
 		constexpr std::uint32_t p[] = { 0x8764000bu, 0xf542d2d3u, 0x6fa035c3u, 0x77f2db5bu };
 		jumpPoly(p);
 	}
+
 
 	inline constexpr void Xoshiro128StarStar::longJump() noexcept
 	{
@@ -1231,18 +1234,18 @@ namespace RandX
 			&& !std::is_same_v<std::decay_t<SeedSeq>, SFC64>>*>
 	inline constexpr SFC64::SFC64(SeedSeq& seq)
 		: Base()
-	{
-		std::array<std::uint32_t, 8> seeds;
-		seq.generate(seeds.data(), seeds.data() + seeds.size());
-		s_[0] = (static_cast<std::uint64_t>(seeds[0]) << 32) | seeds[1];
-		s_[1] = (static_cast<std::uint64_t>(seeds[2]) << 32) | seeds[3];
-		s_[2] = (static_cast<std::uint64_t>(seeds[4]) << 32) | seeds[5];
-		s_[3] = 1;
-		// 全零状态会导致输出可预测，强制修正
-		if ((s_[0] | s_[1] | s_[2]) == 0) s_[0] = 0x9E3779B97F4A7C15ULL;
-		// 与种子构造函数一致：12 轮预热
-		for (int i = 0; i < 12; ++i) { operator()(); }
-	}
+		{
+			std::array<std::uint32_t, 8> seeds;
+			seq.generate(seeds.data(), seeds.data() + seeds.size());
+			s_[0] = (static_cast<std::uint64_t>(seeds[0]) << 32) | seeds[1];
+			s_[1] = (static_cast<std::uint64_t>(seeds[2]) << 32) | seeds[3];
+			s_[2] = (static_cast<std::uint64_t>(seeds[4]) << 32) | seeds[5];
+			s_[3] = 1;
+			// 全零状态会导致输出可预测，强制修正
+			if ((s_[0] | s_[1] | s_[2]) == 0) s_[0] = 0x9E3779B97F4A7C15ULL;
+			// 与种子构造函数一致：12 轮预热
+			for (int i = 0; i < 12; ++i) { operator()(); }
+		}
 
 	inline constexpr SFC64::result_type SFC64::operator()() noexcept
 	{
