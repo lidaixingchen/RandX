@@ -173,6 +173,7 @@ def cmake_configure_command(
         "-DCMAKE_BUILD_TYPE=Release",
         "-DCMAKE_CXX_COMPILER=g++-14",
         f"-DCMAKE_CXX_STANDARD={standard}",
+        "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON",
         f"-DFETCHCONTENT_BASE_DIR={root / 'build' / '_deps'}",
     ]
     if header_override is not None:
@@ -242,6 +243,7 @@ def build(plan_path: Path, group: str, variant: str) -> None:
     log_path: Path = directory / "logs" / f"build-{variant}.log"
     run_logged(command, log_path)
     run_logged(["cmake", "--build", str(build_directory), "--target", target, "--parallel"], log_path)
+    save_build_diagnostics(build_directory, binary_path(root, group, variant, target), directory, variant)
 
     environment_updates: dict[str, Any] = {
         "generator": read_cmake_generator(build_directory),
@@ -252,6 +254,19 @@ def build(plan_path: Path, group: str, variant: str) -> None:
     if group in SAMPLING_GROUPS and variant == "baseline":
         environment_updates["baseline_commit"] = actual_commit(root / "sampling-baseline-src")
     update_environment(directory, environment_updates)
+
+
+def save_build_diagnostics(build_directory: Path, binary: Path, directory: Path, variant: str) -> None:
+    """保留实际编译命令和已链接程序的反汇编，供稳定性能差异定位。"""
+    diagnostics: Path = directory / "compiler" / variant
+    diagnostics.mkdir(parents=True, exist_ok=True)
+    copy2(build_directory / "compile_commands.json", diagnostics / "compile_commands.json")
+    with (diagnostics / "disassembly.txt").open("w", encoding="utf-8", newline="\n") as output_file:
+        subprocess.run(
+            ["objdump", "-d", "-C", str(binary)],
+            stdout=output_file, stderr=subprocess.PIPE, check=True,
+            text=True, encoding="utf-8",
+        )
 
 
 def read_cmake_generator(build_directory: Path) -> str:
