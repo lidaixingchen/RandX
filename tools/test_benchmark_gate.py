@@ -442,6 +442,23 @@ class EvaluateRunTests(unittest.TestCase):
         wrong_set: dict[str, Any] = evaluate_run(plan, execution, groups)
         self.assertEqual(wrong_set["groups"]["sampling_cpp17"]["status"], "DATA_ERROR")
 
+    def test_missing_group_is_execution_error_and_retains_other_groups(self) -> None:
+        plan, execution, groups = self.make_valid_case()
+        del groups["general"]
+        report: dict[str, Any] = evaluate_run(plan, execution, groups)
+        self.assertEqual(report["groups"]["general"]["status"], "EXECUTION_ERROR")
+        self.assertEqual(report["groups"]["sampling_cpp17"]["status"], "PASS")
+        self.assertFalse(report["publish_baseline"])
+
+    def test_both_sides_missing_expected_case_is_data_error(self) -> None:
+        plan, execution, groups = self.make_valid_case()
+        for variant in ("candidate", "baseline"):
+            groups["sampling_cpp17"]["metadata"]["expected"][variant].append("missing-case")
+        report: dict[str, Any] = evaluate_run(plan, execution, groups)
+        self.assertEqual(report["groups"]["sampling_cpp17"]["status"], "DATA_ERROR")
+        self.assertFalse(report["notify_regression"])
+        self.assertFalse(report["publish_baseline"])
+
     def test_confirmation_metadata_must_match_selected_cases_and_policy(self) -> None:
         plan, execution, groups = self.make_valid_case(140.0, 100.0, run_context())
         metadata: dict[str, Any] = groups["sampling_cpp17"]["files"]["confirmation/metadata.json"]
