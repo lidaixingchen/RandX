@@ -118,10 +118,11 @@ class BuildCommandTests(unittest.TestCase):
             self.assertEqual(len(calls), 2)
             self.assertEqual(calls[1][calls[1].index("--target") + 1], "benchmark_gbench_sampling_cpp17")
             self.assertEqual(calls[1].count("--target"), 1)
-            build_directory: Path = root / "build" / "sampling" / "sampling_cpp17-baseline"
+            resolved_root: Path = root.resolve()
+            build_directory: Path = resolved_root / "build" / "sampling" / "sampling_cpp17-baseline"
             save_diagnostics.assert_called_once_with(
                 build_directory, build_directory / "benchmark_gbench_sampling_cpp17",
-                root / "groups" / "sampling_cpp17", "baseline",
+                resolved_root / "groups" / "sampling_cpp17", "baseline",
             )
 
     def test_build_diagnostics_preserve_commands_and_linked_disassembly(self) -> None:
