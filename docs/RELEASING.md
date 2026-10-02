@@ -2,6 +2,36 @@
 
 本指南面向 RandX 维护者，描述如何将新版本发布到三个发布渠道。
 
+## 共同源码维护与发布检查
+
+维护入口为 `src/header_sources/targets.json` 及其引用的 `.inc` 文件。修改公共定义时编辑 `common/` 来源；修改标准约束、专属能力或适配时编辑对应的 `cpp23/`、`cpp17/` 来源。生产头文件由来源拼装生成，两个版本的来源和受影响产物必须在同一提交中更新。归属与声明上下文见 [共同源码迁移清单](共同源码迁移清单.md)。
+
+在 Miniconda 环境中使用 Python 3.12 或以上版本执行维护检查：
+
+```powershell
+python -X utf8 tools/generate_headers.py --write
+python -X utf8 -m unittest discover -s tools -p 'test_*header*.py' -v
+python -X utf8 tools/generate_headers.py --check
+```
+
+单元测试由 `tools/test_generate_headers.py` 和 `tools/test_header_sources.py` 提供，覆盖生成规则、命令行为、逐行映射、两版声明与完整正文的双向定位，以及来源可达性和共同归属。配置中的目标名和输出路径必须唯一；生成器在写入前拒绝重复映射名、规范化后重合或 Windows 大小写冲突的输出路径。`targets.json` 与 `@randx-include` 使用 POSIX 相对路径和 `/` 分隔符，反斜杠会被拒绝；来源映射也使用 POSIX 相对路径，因此在 Windows 和 Linux 上格式一致。
+
+编译诊断继续指向实际消费的 `RandX.hpp` 或 `RandX_Cpp17.hpp` 行号。需要定位维护来源时，执行 `python -X utf8 tools/generate_headers.py --map-dir build/header-maps`；每个目标的 JSON 中，`mappings` 数组记录目标行区间、来源路径和来源行区间。目标行 `L` 对应来源行 `source_start + L - target_start`；按来源路径和来源行筛选全部映射区间，可找到该来源在两个目标中的每次展开位置。临时生成产物可写到 `python -X utf8 tools/generate_headers.py --output-dir build/generated-headers` 指定的目录。
+
+需要验证编译诊断映射时，运行维护演练命令：
+
+```powershell
+python -X utf8 tools/check_header_maintenance.py `
+  --compiler g++ `
+  --artifact-dir build/header-maintenance
+```
+
+`--compiler` 指向支持 `-std=c++17`、`-std=c++23`、`-fsyntax-only` 和 `-I` 参数的 GCC/Clang 兼容编译器。该命令在隔离副本中演练共享几何分布正文，分别检查 C++17 与 C++23 的实际错误行能否映射回来源，再恢复副本并比较两个产物字节。每次使用新的产物父目录；其 `header-maintenance-drill` 子目录必须尚不存在，命令不会覆盖已有演练目录。
+
+显式 CMake 维护目标通过 `-DRANDX_ENABLE_HEADER_TOOLS=ON` 启用：`randx_generate_headers` 写入产物，`randx_check_headers` 运行上述两份头文件维护单元测试及一致性检查。普通配置、构建和安装直接使用已提交产物，生成工具默认关闭，消费者无需 Python。
+
+发布前必须执行生成检查、现有完整测试和发布渠道验收；tag 同时保留维护来源、生成器和正确产物。源码归档保留 `src/header_sources/`，安装包继续交付两份独立头文件与 CMake 配置。生成检查 job 名为 `Header generation checks (Ubuntu)` 和 `Header generation checks (Windows)`；当前 GitHub 分支规则尚未将这些状态配置为合并必需检查。
+
 ## 渠道概览
 
 | 渠道 | 适用用户 | 提交方式 | 状态 |

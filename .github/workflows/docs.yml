@@ -9,6 +9,21 @@ on:
       - 'RandX_Cpp17.hpp'
       - 'README.md'
       - 'Doxyfile'
+      - 'src/header_sources/**'
+      - 'tools/generate_headers.py'
+      - '.gitattributes'
+      - '.github/workflows/docs.yml'
+  pull_request:
+    branches: [master]
+    paths:
+      - 'CMakeLists.txt'
+      - 'RandX.hpp'
+      - 'RandX_Cpp17.hpp'
+      - 'README.md'
+      - 'Doxyfile'
+      - 'src/header_sources/**'
+      - 'tools/generate_headers.py'
+      - '.gitattributes'
       - '.github/workflows/docs.yml'
   workflow_dispatch:
 
@@ -24,6 +39,13 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Check generated headers
+        run: python -X utf8 tools/generate_headers.py --check
 
       - name: Cache Doxygen
         id: cache-doxygen
@@ -53,6 +75,7 @@ jobs:
         run: doxygen Doxyfile
 
       - name: Deploy to GitHub Pages
+        if: github.event_name != 'pull_request'
         uses: peaceiris/actions-gh-pages@84c30a85c19949d7eee79c4ff27748b70285e453  # v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}

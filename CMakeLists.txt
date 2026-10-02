@@ -83,7 +83,28 @@ option(RANDX_BUILD_TESTS "Build tests" OFF)
 option(RANDX_BUILD_BENCHMARK "Build benchmark" OFF)
 option(RANDX_BUILD_EXAMPLES "Build examples" OFF)
 option(RANDX_ENABLE_COVERAGE "Enable code coverage (GCC/Clang)" OFF)
+option(RANDX_ENABLE_HEADER_TOOLS "启用头文件生成维护目标" OFF)
 set(RANDX_SAMPLING_HEADER_DIR "" CACHE PATH "Optional header directory used by benchmark targets")
+
+if(RANDX_ENABLE_HEADER_TOOLS)
+    find_package(Python3 3.12 REQUIRED COMPONENTS Interpreter)
+
+    add_custom_target(randx_generate_headers
+        COMMAND "${Python3_EXECUTABLE}" -X utf8 "${CMAKE_CURRENT_SOURCE_DIR}/tools/generate_headers.py" --write
+        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+        COMMENT "生成 RandX 头文件"
+        VERBATIM
+    )
+
+    add_custom_target(randx_check_headers
+        COMMAND "${Python3_EXECUTABLE}" -X utf8 -m unittest discover
+                -s tools -p "test_*header*.py" -v
+        COMMAND "${Python3_EXECUTABLE}" -X utf8 "${CMAKE_CURRENT_SOURCE_DIR}/tools/generate_headers.py" --check
+        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+        COMMENT "检查 RandX 头文件生成结果"
+        VERBATIM
+    )
+endif()
 
 if(RANDX_BUILD_TESTS)
     enable_testing()

@@ -321,7 +321,7 @@ namespace RandX
 		constexpr void deserialize(state_type state) noexcept;
 
 		friend auto operator <=>(const SplitMix64&, const SplitMix64&) = default;
-	
+
 	private:
 
 		state_type m_state;
@@ -933,95 +933,97 @@ namespace RandX
 	#endif
 #endif
 			(void)out;
-		return false;
-	}
+			return false;
+		}
 
-	// ── A3 跨平台 OS 密码学熵源 ──
-	// 用 OS 密码学 API 填充 [buf, buf+n) 字节；成功返回 true，失败或不支持返回 false。
-	// 平台支持：Windows BCryptGenRandom、Linux getrandom、macOS SecRandomCopyBytes。
-	// 注：密码学安全组件在 OS 熵源不可用或失败时直接抛异常，绝不隐式降级至 std::random_device 或非安全源；
-	// getrandom 可能短读，内部循环直至填满；BCryptGenRandom/SecRandomCopyBytes 一次填满。
-	[[nodiscard]]
-	inline bool GetOsEntropyBytes(void* buf, std::size_t n) noexcept
-	{
-		if (n == 0) return true;
-		auto* p = static_cast<std::uint8_t*>(buf);
+		// ── A3 跨平台 OS 密码学熵源 ──
+		// 用 OS 密码学 API 填充 [buf, buf+n) 字节；成功返回 true，失败或不支持返回 false。
+		// 平台支持：Windows BCryptGenRandom、Linux getrandom、macOS SecRandomCopyBytes。
+		// 注：密码学安全组件在 OS 熵源不可用或失败时直接抛异常，绝不隐式降级至 std::random_device 或非安全源；
+		// getrandom 可能短读，内部循环直至填满；BCryptGenRandom/SecRandomCopyBytes 一次填满。
+		[[nodiscard]]
+		inline bool GetOsEntropyBytes(void* buf, std::size_t n) noexcept
+		{
+			if (n == 0) return true;
+			auto* p = static_cast<std::uint8_t*>(buf);
 
 #	if defined(_WIN32) && __has_include(<bcrypt.h>)
-		// Windows: BCryptGenRandom（分块处理 >4GB 时的 ULONG 截断）
-		// NTSTATUS >= 0 即 NT_SUCCESS（不能 == 0，正向 informational code 也属成功）
-		std::size_t filled = 0;
-		while (filled < n)
-		{
-			const ULONG chunkSize = static_cast<ULONG>((std::min)(n - filled, static_cast<std::size_t>((std::numeric_limits<ULONG>::max)())));
-			if (::BCryptGenRandom(nullptr, p + filled, chunkSize, BCRYPT_USE_SYSTEM_PREFERRED_RNG) < 0)
+			// Windows: BCryptGenRandom（分块处理 >4GB 时的 ULONG 截断）
+			// NTSTATUS >= 0 即 NT_SUCCESS（使用 BCRYPT_SUCCESS 宏或强转 NTSTATUS 判定）
+			std::size_t filled = 0;
+			while (filled < n)
 			{
-				return false;
+				const ULONG chunkSize = static_cast<ULONG>((std::min)(n - filled, static_cast<std::size_t>((std::numeric_limits<ULONG>::max)())));
+				const auto status = ::BCryptGenRandom(nullptr, p + filled, chunkSize, BCRYPT_USE_SYSTEM_PREFERRED_RNG);
+#	if defined(BCRYPT_SUCCESS)
+				if (!BCRYPT_SUCCESS(status)) return false;
+#	else
+				if (static_cast<NTSTATUS>(status) < 0) return false;
+#	endif
+				filled += chunkSize;
 			}
-			filled += chunkSize;
-		}
-		return true;
+			return true;
 
 #	elif defined(__linux__) && __has_include(<sys/random.h>)
-		// Linux: getrandom（循环处理短读与 EINTR）
-		std::size_t filled = 0;
-		while (filled < n)
-		{
-			const ssize_t ret = ::getrandom(p + filled, n - filled, 0);
-			if (ret < 0)
+			// Linux: getrandom（循环处理短读与 EINTR）
+			std::size_t filled = 0;
+			while (filled < n)
 			{
-				if (errno == EINTR) continue;  // 被信号打断，重试
-				return false;                   // ENOSYS/EFAULT 等不可恢复错误
+				const ssize_t ret = ::getrandom(p + filled, n - filled, 0);
+				if (ret < 0)
+				{
+					if (errno == EINTR) continue;  // 被信号打断，重试
+					return false;                   // ENOSYS/EFAULT 等不可恢复错误
+				}
+				if (ret == 0) return false;
+				filled += static_cast<std::size_t>(ret);
 			}
-			if (ret == 0) return false;
-			filled += static_cast<std::size_t>(ret);
-		}
-		return true;
+			return true;
 
 #	elif defined(__APPLE__) && __has_include(<Security/Security.h>)
-		// macOS: SecRandomCopyBytes（一次调用填满）
-		return (::SecRandomCopyBytes(kSecRandomDefault, n, p) == errSecSuccess);
+			// macOS: SecRandomCopyBytes（一次调用填满）
+			return (::SecRandomCopyBytes(kSecRandomDefault, n, p) == errSecSuccess);
 
 #	else
-		// 无可用 OS 密码学熵源 → 返回 false，SecureRandomBytes 将抛出异常
-		// 非安全场景的播种请使用 RandomSeed()（含 random_device → 时间戳回退链）
-		(void)p; (void)n;
-		return false;
+			// 无可用 OS 密码学熵源 → 返回 false，SecureRandomBytes 将抛出异常
+			// 非安全场景的播种请使用 RandomSeed()（含 random_device → 时间戳回退链）
+			(void)p; (void)n;
+			return false;
 #	endif
-	}
+		}
 
-	// 编译期特性检测：检测目标平台与编译器环境是否支持 OS 密码学熵源 API
-	// （Windows BCryptGenRandom / Linux getrandom / macOS SecRandomCopyBytes）。
-	// 返回 true 表示目标平台支持真 OS 密码学 API；返回 false 表示当前平台缺少 OS 密码学支持。
-	// 密码学安全组件（ChaCha20 / SecureRandomBytes）在熵源不可用或获取失败时直接抛异常，绝不降级。
-	[[nodiscard]]
-	inline constexpr bool HasCryptoGradeOsEntropy() noexcept
-	{
+		// 编译期特性检测：检测目标平台与编译器环境是否支持 OS 密码学熵源 API
+		// （Windows BCryptGenRandom / Linux getrandom / macOS SecRandomCopyBytes）。
+		// 返回 true 表示目标平台支持真 OS 密码学 API；返回 false 表示当前平台缺少 OS 密码学支持。
+		// 密码学安全组件（ChaCha20 / SecureRandomBytes）在熵源不可用或获取失败时直接抛异常，绝不降级。
+		[[nodiscard]]
+		inline constexpr bool HasCryptoGradeOsEntropy() noexcept
+		{
 #	if (defined(_WIN32) && __has_include(<bcrypt.h>)) || (defined(__linux__) && __has_include(<sys/random.h>)) || (defined(__APPLE__) && __has_include(<Security/Security.h>))
-		return true;
+			return true;
 #	else
-		return false;
+			return false;
 #	endif
-	}
+		}
 
-	// ── A4 ChaCha20 常数与辅助 ──
-	// ChaCha20 常数 "expand 32-byte k"（RFC 8439 §2.3）
-	inline constexpr std::uint32_t ChaCha20Constants[4] = {
-		0x61707865u, 0x3320646eu, 0x79622d32u, 0x6b206574u
-	};
-	// 参考 NIST SP 800-90A reseed_interval 概念（SP 800-90A 涵盖 Hash/HMAC/CTR_DRBG，不含 ChaCha20；
-	// 此处借用其"周期性强制 reseed 提供前向安全"思想，取保守阈值）
-	inline constexpr std::uint64_t ChaCha20ReseedThreshold = 1ULL << 20;  // 1 MB
+		// ── A4 ChaCha20 常数与辅助 ──
+		// ChaCha20 常数 "expand 32-byte k"（RFC 8439 §2.3）
+		inline constexpr std::uint32_t ChaCha20Constants[4] = {
+			0x61707865u, 0x3320646eu, 0x79622d32u, 0x6b206574u
+		};
+		// 参考 NIST SP 800-90A reseed_interval 概念（SP 800-90A 涵盖 Hash/HMAC/CTR_DRBG，不含 ChaCha20；
+		// 此处借用其"周期性强制 reseed 提供前向安全"思想，取保守阈值）
+		inline constexpr std::uint64_t ChaCha20ReseedThreshold = 1ULL << 20;  // 1 MB
 
-	// ChaCha20 quarter-round（仅 add/xor/rotl，常时间友好）
-	static void ChaCha20QuarterRound(std::uint32_t& a, std::uint32_t& b,
-	                                 std::uint32_t& c, std::uint32_t& d) noexcept
-	{
-		a += b; d ^= a; d = RotL(d, 16);
-		c += d; b ^= c; b = RotL(b, 12);
-		a += b; d ^= a; d = RotL(d, 8);
-		c += d; b ^= c; b = RotL(b, 7);
-	}
+		// ChaCha20 quarter-round（仅 add/xor/rotl，常时间友好）
+		static void ChaCha20QuarterRound(std::uint32_t& a, std::uint32_t& b,
+		                                 std::uint32_t& c, std::uint32_t& d) noexcept
+		{
+			a += b; d ^= a; d = RotL(d, 16);
+			c += d; b ^= c; b = RotL(b, 12);
+			a += b; d ^= a; d = RotL(d, 8);
+			c += d; b ^= c; b = RotL(b, 7);
+		}
 
 		template <class E>
 		concept RandomEngine =
@@ -1266,7 +1268,6 @@ namespace RandX
 	inline constexpr SplitMix64::SplitMix64(const state_type state) noexcept
 		: m_state(state) {}
 
-
 	inline constexpr SplitMix64::result_type SplitMix64::operator()() noexcept
 	{
 		std::uint64_t z = (m_state += 0x9e3779b97f4a7c15);
@@ -1332,15 +1333,16 @@ namespace RandX
 
 	inline constexpr void Xoshiro256StarStar::jump() noexcept
 	{
-		static constexpr std::uint64_t p[] = {
+		constexpr std::uint64_t p[] = {
 			0x180ec6d33cfd0aba, 0xd5a61266f0c9392c,
 			0xa9582618e03fc9aa, 0x39abdc4529b1661c };
 		jumpPoly(p);
 	}
 
+
 	inline constexpr void Xoshiro256StarStar::longJump() noexcept
 	{
-		static constexpr std::uint64_t p[] = {
+		constexpr std::uint64_t p[] = {
 			0x76e15d3efefdcbbf, 0xc5004e441c522fb3,
 			0x77710069854ee241, 0x39109bb02acbe635 };
 		jumpPoly(p);
@@ -1363,13 +1365,14 @@ namespace RandX
 
 	inline constexpr void Xoroshiro128StarStar::jump() noexcept
 	{
-		static constexpr std::uint64_t p[] = { 0xdf900294d8f554a5, 0x170865df4b3201fc };
+		constexpr std::uint64_t p[] = { 0xdf900294d8f554a5, 0x170865df4b3201fc };
 		jumpPoly(p);
 	}
 
+
 	inline constexpr void Xoroshiro128StarStar::longJump() noexcept
 	{
-		static constexpr std::uint64_t p[] = { 0xd2a98b26625eee7b, 0xdddf9b1090aa7ac1 };
+		constexpr std::uint64_t p[] = { 0xd2a98b26625eee7b, 0xdddf9b1090aa7ac1 };
 		jumpPoly(p);
 	}
 
@@ -1392,13 +1395,14 @@ namespace RandX
 
 	inline constexpr void Xoshiro128StarStar::jump() noexcept
 	{
-		static constexpr std::uint32_t p[] = { 0x8764000bu, 0xf542d2d3u, 0x6fa035c3u, 0x77f2db5bu };
+		constexpr std::uint32_t p[] = { 0x8764000bu, 0xf542d2d3u, 0x6fa035c3u, 0x77f2db5bu };
 		jumpPoly(p);
 	}
 
+
 	inline constexpr void Xoshiro128StarStar::longJump() noexcept
 	{
-		static constexpr std::uint32_t p[] = { 0xb523952eu, 0x0b6f099fu, 0xccf5a0efu, 0x1c580662u };
+		constexpr std::uint32_t p[] = { 0xb523952eu, 0x0b6f099fu, 0xccf5a0efu, 0x1c580662u };
 		jumpPoly(p);
 	}
 
@@ -1420,7 +1424,6 @@ namespace RandX
 		return result;
 	}
 
-
 	////////////////////////////////////////////////////////////////
 	//
 	//	SFC64 (Small Fast Counter)
@@ -1438,7 +1441,6 @@ namespace RandX
 		if ((s_[0] | s_[1] | s_[2]) == 0) s_[0] = 0x9E3779B97F4A7C15ULL;
 		for (int i = 0; i < 12; ++i) { operator()(); }
 	}
-
 
 	inline constexpr SFC64::result_type SFC64::operator()() noexcept
 	{
@@ -1932,9 +1934,9 @@ namespace RandX
 	{
 		if (min > max)
 			throw std::invalid_argument("RandChar: min > max");
-		std::uniform_int_distribution<std::int64_t> dist(
-			static_cast<std::int64_t>(min),
-			static_cast<std::int64_t>(max));
+		using IntT = std::int64_t;
+		std::uniform_int_distribution<IntT> dist(
+			static_cast<IntT>(min), static_cast<IntT>(max));
 		return static_cast<CharT>(dist(DefaultEngine()));
 	}
 
@@ -1959,9 +1961,9 @@ namespace RandX
 	{
 		if (min > max)
 			throw std::invalid_argument("RandChar: min > max");
-		std::uniform_int_distribution<std::int64_t> dist(
-			static_cast<std::int64_t>(min),
-			static_cast<std::int64_t>(max));
+		using IntT = std::int64_t;
+		std::uniform_int_distribution<IntT> dist(
+			static_cast<IntT>(min), static_cast<IntT>(max));
 		return static_cast<CharT>(dist(engine));
 	}
 
@@ -2493,7 +2495,7 @@ namespace RandX
 	[[nodiscard]]
 	inline constexpr T RandCanonical(Engine& engine)
 	{
-		if constexpr (std::same_as<T, double>)
+		if constexpr (std::is_same_v<T, double>)
 		{
 			if constexpr (detail::IsFull64BitEngine<Engine>)
 			{
@@ -2512,7 +2514,7 @@ namespace RandX
 				return std::generate_canonical<double, 53>(engine);
 			}
 		}
-		else if constexpr (std::same_as<T, float>)
+		else if constexpr (std::is_same_v<T, float>)
 		{
 			if constexpr (detail::IsFull64BitEngine<Engine>)
 			{

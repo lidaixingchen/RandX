@@ -18,7 +18,9 @@ on:
       - 'cmake/**'
       - 'tests/**'
       - 'tools/**'
+      - 'src/header_sources/**'
       - 'third_party/**'
+      - '.gitattributes'
       - '.github/workflows/ci.yml'
   pull_request:
     branches: [master]
@@ -37,7 +39,9 @@ on:
       - 'cmake/**'
       - 'tests/**'
       - 'tools/**'
+      - 'src/header_sources/**'
       - 'third_party/**'
+      - '.gitattributes'
       - '.github/workflows/ci.yml'
 
 permissions:
@@ -53,6 +57,36 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  header-generation-ubuntu:
+    name: Header generation checks (Ubuntu)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Run header generator unit tests
+        run: python -X utf8 -m unittest discover -s tools -p 'test_*header*.py' -v
+      - name: Check generated headers
+        run: python -X utf8 tools/generate_headers.py --check
+      - name: Verify shared-source diagnostic mapping
+        run: python -X utf8 tools/check_header_maintenance.py --compiler g++ --artifact-dir build/header-maintenance
+
+  header-generation-windows:
+    name: Header generation checks (Windows)
+    runs-on: windows-2025
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Run header generator unit tests
+        run: python -X utf8 -m unittest discover -s tools -p 'test_*header*.py' -v
+      - name: Check generated headers
+        run: python -X utf8 tools/generate_headers.py --check
+
   python-tests:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
@@ -77,6 +111,7 @@ jobs:
         run: python3 -m unittest discover -s tools -p 'test_confirm_sampling_benchmark.py' -v
 
   gcc:
+    needs: [header-generation-ubuntu, header-generation-windows]
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     strategy:
@@ -190,6 +225,7 @@ jobs:
           if-no-files-found: ignore
 
   clang:
+    needs: [header-generation-ubuntu, header-generation-windows]
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     strategy:
@@ -302,6 +338,7 @@ jobs:
           if-no-files-found: ignore
 
   msvc:
+    needs: [header-generation-ubuntu, header-generation-windows]
     runs-on: windows-2025
     timeout-minutes: 15
     strategy:
@@ -436,6 +473,7 @@ jobs:
   # C++17（RandX_Cpp17.hpp）编译，固定种子输出各引擎与便捷 API 序列后逐字节比对，
   # 机械保证「双头文件输出序列完全一致」不变量（KAT 测试保持不变，独立于本 job）
   parity:
+    needs: [header-generation-ubuntu, header-generation-windows]
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     steps:
@@ -466,6 +504,7 @@ jobs:
   # 示例编译冒烟检查：以 -DRANDX_BUILD_EXAMPLES=ON 构建 examples/ 全部示例
   # 与 gen_sequences.cpp，仅验证可编译，不运行
   examples:
+    needs: [header-generation-ubuntu, header-generation-windows]
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     steps:
@@ -480,6 +519,7 @@ jobs:
           cmake --build build
 
   coverage:
+    needs: [header-generation-ubuntu, header-generation-windows]
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     env:

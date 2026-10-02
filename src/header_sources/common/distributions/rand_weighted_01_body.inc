@@ -1,0 +1,3 @@
+	{
+		return RandWeighted(DefaultEngine(), weights);
+	}

@@ -13,6 +13,9 @@ on:
       - 'RandX_Cpp17.hpp'
       - 'benchmark_gbench.cpp'
       - 'CMakeLists.txt'
+      - 'src/header_sources/**'
+      - 'tools/generate_headers.py'
+      - '.gitattributes'
       - 'tools/compare_benchmark.py'
       - 'tools/merge_benchmark_repetitions.py'
       - 'tools/test_merge_benchmark_repetitions.py'
@@ -26,6 +29,9 @@ on:
       - 'RandX_Cpp17.hpp'
       - 'benchmark_gbench.cpp'
       - 'CMakeLists.txt'
+      - 'src/header_sources/**'
+      - 'tools/generate_headers.py'
+      - '.gitattributes'
       - 'tools/compare_benchmark.py'
       - 'tools/merge_benchmark_repetitions.py'
       - 'tools/test_merge_benchmark_repetitions.py'
@@ -63,6 +69,13 @@ jobs:
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Check generated headers
+        run: python -X utf8 tools/generate_headers.py --check
 
       - name: Check GCC 14
         run: g++-14 --version
