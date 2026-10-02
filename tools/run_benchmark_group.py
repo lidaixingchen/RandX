@@ -22,6 +22,8 @@ VARIANT_NAMES: tuple[str, ...] = ("candidate", "baseline")
 RUN_NAME_FLAG: str = "--benchmark_list_tests=true"
 RUN_FORMAT_FLAG: str = "--benchmark_format=json"
 REPORT_AGGREGATES_FLAG: str = "--benchmark_report_aggregates_only=true"
+GNU_RELEASE_FLAGS: tuple[str, ...] = ("-O3", "-DNDEBUG")
+CPU_CACHE_ROOT: Path = Path("/sys/devices/system/cpu")
 
 
 def read_json(path: Path) -> dict[str, Any]:
@@ -152,7 +154,7 @@ def binary_path(root: Path, group: str, variant: str, target: str) -> Path:
 
 
 def cmake_configure_command(
-    root: Path, group: str, variant: str, configuration: Mapping[str, Any],
+    root: Path, group: str, variant: str, configuration: Mapping[str, Any], loop_alignment: int | None = None,
 ) -> tuple[list[str], Path, Path]:
     """生成单组构建命令，并返回源码与构建目录。"""
     source, build_directory, header_override = build_locations(root, group, variant)
@@ -178,7 +180,20 @@ def cmake_configure_command(
     ]
     if header_override is not None:
         command.append(f"-DRANDX_SAMPLING_HEADER_DIR={header_override}")
+    if loop_alignment is not None:
+        release_flags: str = " ".join((*GNU_RELEASE_FLAGS, f"-falign-loops={loop_alignment}"))
+        command.append(f"-DCMAKE_CXX_FLAGS_RELEASE={release_flags}")
     return command, source, build_directory
+
+
+def instruction_cache_line_bytes(cpu: int, cache_root: Path = CPU_CACHE_ROOT) -> int:
+    """读取测量 CPU 的一级指令缓存行大小，作为小循环的共同对齐条件。"""
+    for cache in sorted((cache_root / f"cpu{cpu}" / "cache").glob("index*")):
+        level: str = (cache / "level").read_text(encoding="utf-8").strip()
+        cache_type: str = (cache / "type").read_text(encoding="utf-8").strip()
+        if level == "1" and cache_type in ("Instruction", "Unified"):
+            return int((cache / "coherency_line_size").read_text(encoding="utf-8").strip())
+    raise RuntimeError(f"CPU {cpu} 未提供一级指令缓存行信息")
 
 
 def ensure_group_directory(root: Path, group: str) -> Path:
@@ -226,6 +241,10 @@ def initialize(plan_path: Path, group: str) -> None:
         "hardware": json.loads(hardware.stdout),
         "cpu": None,
     }
+    if group in SAMPLING_GROUPS:
+        cpu: int = sampling_cpu()
+        environment["cpu"] = cpu
+        environment["loop_alignment"] = instruction_cache_line_bytes(cpu)
     write_json(directory / "environment.json", environment)
 
 
@@ -238,7 +257,10 @@ def build(plan_path: Path, group: str, variant: str) -> None:
     plan: dict[str, Any] = read_json(plan_path)
     configuration: dict[str, Any] = policy_group(plan, group)
     source, build_directory, _ = build_locations(root, group, variant)
-    command, _, _ = cmake_configure_command(root, group, variant, configuration)
+    loop_alignment: int | None = None
+    if group in SAMPLING_GROUPS:
+        loop_alignment = int(read_environment(directory)["loop_alignment"])
+    command, _, _ = cmake_configure_command(root, group, variant, configuration, loop_alignment)
     target: str = str(configuration["target"])
     log_path: Path = directory / "logs" / f"build-{variant}.log"
     run_logged(command, log_path)

@@ -13,6 +13,7 @@ from unittest.mock import patch
 
 import run_benchmark_group
 
+TEST_CACHE_LINE_BYTES: int = 64
 
 def group_config(group: str) -> dict[str, Any]:
     if group == "general":
@@ -85,6 +86,33 @@ class BuildCommandTests(unittest.TestCase):
             self.assertIn(f"-DFETCHCONTENT_BASE_DIR={root / 'build' / '_deps'}", command)
             self.assertEqual(configuration["target"], "benchmark_gbench_sampling_cpp17")
 
+    def test_sampling_variants_use_the_same_cache_line_alignment(self) -> None:
+        root: Path = Path("workspace")
+        for variant in ("candidate", "baseline"):
+            command, _, _ = run_benchmark_group.cmake_configure_command(
+                root, "sampling_cpp17", variant, group_config("sampling_cpp17"), TEST_CACHE_LINE_BYTES,
+            )
+            self.assertIn(
+                f"-DCMAKE_CXX_FLAGS_RELEASE=-O3 -DNDEBUG -falign-loops={TEST_CACHE_LINE_BYTES}", command
+            )
+
+    def test_cache_line_size_comes_from_l1_instruction_cache(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            root: Path = Path(temporary_directory)
+            for index, cache_type in enumerate(("Data", "Instruction", "Unified")):
+                cache: Path = root / "cpu3" / "cache" / f"index{index}"
+                cache.mkdir(parents=True)
+                (cache / "level").write_text("1" if cache_type != "Unified" else "2", encoding="utf-8")
+                (cache / "type").write_text(cache_type, encoding="utf-8")
+                line_size: int = TEST_CACHE_LINE_BYTES if cache_type == "Instruction" else TEST_CACHE_LINE_BYTES * 2
+                (cache / "coherency_line_size").write_text(str(line_size), encoding="utf-8")
+            self.assertEqual(run_benchmark_group.instruction_cache_line_bytes(3, root), TEST_CACHE_LINE_BYTES)
+
+    def test_missing_instruction_cache_information_fails(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            with self.assertRaisesRegex(RuntimeError, "一级指令缓存行"):
+                run_benchmark_group.instruction_cache_line_bytes(3, Path(temporary_directory))
+
     def test_measurement_arguments_use_policy_and_never_add_a_filter(self) -> None:
         configuration: dict[str, Any] = group_config("sampling_cpp23")
         arguments: list[str] = run_benchmark_group.benchmark_arguments(
@@ -100,6 +128,11 @@ class BuildCommandTests(unittest.TestCase):
             root: Path = Path(temporary_directory)
             plan_path: Path = root / "plan.json"
             plan_path.write_text(json.dumps(plan_value()), encoding="utf-8")
+            directory: Path = root / "groups" / "sampling_cpp17"
+            directory.mkdir(parents=True)
+            (directory / "environment.json").write_text(
+                json.dumps({"loop_alignment": TEST_CACHE_LINE_BYTES}), encoding="utf-8"
+            )
             calls: list[list[str]] = []
 
             def fake_run_logged(command: Sequence[str], log_path: Path, cwd: Path | None = None) -> subprocess.CompletedProcess[str]:
