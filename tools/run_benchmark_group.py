@@ -203,7 +203,7 @@ def initialize(plan_path: Path, group: str) -> None:
     baseline_commit: str | None = None
     if group in SAMPLING_GROUPS:
         baseline_commit = str(plan.get("sampling_commit") or "") or None
-    elif isinstance(baseline, dict):
+    elif plan.get("mode") == "COMPARE" and isinstance(baseline, dict):
         commit: Any = baseline.get("commit")
         baseline_commit = commit if isinstance(commit, str) else None
     if not isinstance(context, dict):

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import subprocess
 import tempfile
 import unittest
 from pathlib import Path
@@ -11,6 +12,7 @@ from typing import Any
 from unittest.mock import patch
 
 import benchmark_actions
+import run_benchmark_group
 
 
 def workflow_run(run_id: int) -> dict[str, Any]:
@@ -131,6 +133,33 @@ class ContextTests(unittest.TestCase):
 
 
 class ArtifactStateTests(unittest.TestCase):
+    def test_existing_baseline_refresh_records_candidate_only_across_adapters(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            root: Path = Path(temporary_directory)
+            plan_path: Path = root / "plan.json"
+            plan_path.write_text(json.dumps({
+                "mode": "REFRESH",
+                "required_steps": {"general": []},
+                "context": {"candidate_commit": "candidate", "run_id": 17, "run_attempt": 1},
+                "baseline": {"commit": "historical-baseline"},
+            }), encoding="utf-8")
+            hardware: subprocess.CompletedProcess[str] = subprocess.CompletedProcess(
+                ["lscpu", "--json"], 0, stdout='{"lscpu": []}', stderr="",
+            )
+            with (
+                patch.object(run_benchmark_group, "workspace_root", return_value=root),
+                patch.object(run_benchmark_group, "actual_commit", return_value="candidate"),
+                patch.object(run_benchmark_group, "first_line", return_value="version"),
+                patch.object(run_benchmark_group, "run_logged", return_value=hardware),
+            ):
+                run_benchmark_group.initialize(plan_path, "general")
+            result: dict[str, Any] = benchmark_actions.collect_group(
+                plan_path, "general", root / "groups", "{}",
+            )
+            self.assertIsNone(result["baseline_commit"])
+            self.assertIsNone(result["environment"]["baseline_commit"])
+            self.assertEqual(result["candidate_commit"], "candidate")
+
     def test_general_metadata_preserves_actual_baseline_checkout(self) -> None:
         with tempfile.TemporaryDirectory() as temporary_directory:
             root: Path = Path(temporary_directory)

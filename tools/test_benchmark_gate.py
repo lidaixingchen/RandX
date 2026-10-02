@@ -413,6 +413,17 @@ class EvaluateRunTests(unittest.TestCase):
         self.assertEqual(report["groups"]["sampling_cpp23"]["status"], "DATA_ERROR")
         self.assertIn("sampling_cpp17", {entry["group"] for entry in report["regressions"]})
 
+    def test_refresh_with_existing_baseline_uses_it_for_sampling_and_can_publish(self) -> None:
+        context: dict[str, Any] = run_context("workflow_dispatch", "refs/heads/master", True)
+        plan: dict[str, Any] = plan_run(policy_value(), context, successful_query())
+        self.assertIsNotNone(plan["baseline"])
+        self.assertEqual(plan["sampling_commit"], plan["baseline"]["commit"])
+        groups: dict[str, Any] = complete_groups(plan)
+        report: dict[str, Any] = evaluate_run(plan, execution_record(), groups)
+        self.assertEqual(report["exit_code"], 0)
+        self.assertTrue(report["publish_baseline"])
+        self.assertEqual(report["groups"]["general"]["comparison_status"], "SKIPPED")
+
     def test_job_failure_keeps_valid_comparison_evidence_and_blocks_publish(self) -> None:
         plan, execution, groups = self.make_valid_case(140.0, 100.0)
         execution["jobs"]["sampling_cpp17"] = "failure"
