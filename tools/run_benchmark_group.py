@@ -181,7 +181,9 @@ def cmake_configure_command(
     if header_override is not None:
         command.append(f"-DRANDX_SAMPLING_HEADER_DIR={header_override}")
     if loop_alignment is not None:
-        release_flags: str = " ".join((*GNU_RELEASE_FLAGS, f"-falign-loops={loop_alignment}"))
+        release_flags: str = " ".join((
+            *GNU_RELEASE_FLAGS, f"-falign-functions={loop_alignment}", f"-falign-loops={loop_alignment}",
+        ))
         command.append(f"-DCMAKE_CXX_FLAGS_RELEASE={release_flags}")
     return command, source, build_directory
 
@@ -264,8 +266,9 @@ def build(plan_path: Path, group: str, variant: str) -> None:
     target: str = str(configuration["target"])
     log_path: Path = directory / "logs" / f"build-{variant}.log"
     run_logged(command, log_path)
+    diagnostics: Path = save_build_commands(build_directory, directory, variant)
     run_logged(["cmake", "--build", str(build_directory), "--target", target, "--parallel"], log_path)
-    save_build_diagnostics(build_directory, binary_path(root, group, variant, target), directory, variant)
+    save_build_disassembly(binary_path(root, group, variant, target), diagnostics)
 
     environment_updates: dict[str, Any] = {
         "generator": read_cmake_generator(build_directory),
@@ -278,11 +281,16 @@ def build(plan_path: Path, group: str, variant: str) -> None:
     update_environment(directory, environment_updates)
 
 
-def save_build_diagnostics(build_directory: Path, binary: Path, directory: Path, variant: str) -> None:
-    """保留实际编译命令和已链接程序的反汇编，供稳定性能差异定位。"""
+def save_build_commands(build_directory: Path, directory: Path, variant: str) -> Path:
+    """构建前保留实际编译命令，编译失败时也能上传诊断。"""
     diagnostics: Path = directory / "compiler" / variant
     diagnostics.mkdir(parents=True, exist_ok=True)
     copy2(build_directory / "compile_commands.json", diagnostics / "compile_commands.json")
+    return diagnostics
+
+
+def save_build_disassembly(binary: Path, diagnostics: Path) -> None:
+    """保留已链接程序的反汇编，供稳定性能差异定位。"""
     with (diagnostics / "disassembly.txt").open("w", encoding="utf-8", newline="\n") as output_file:
         subprocess.run(
             ["objdump", "-d", "-C", str(binary)],

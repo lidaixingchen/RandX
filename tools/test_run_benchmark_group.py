@@ -93,7 +93,8 @@ class BuildCommandTests(unittest.TestCase):
                 root, "sampling_cpp17", variant, group_config("sampling_cpp17"), TEST_CACHE_LINE_BYTES,
             )
             self.assertIn(
-                f"-DCMAKE_CXX_FLAGS_RELEASE=-O3 -DNDEBUG -falign-loops={TEST_CACHE_LINE_BYTES}", command
+                f"-DCMAKE_CXX_FLAGS_RELEASE=-O3 -DNDEBUG -falign-functions={TEST_CACHE_LINE_BYTES} "
+                f"-falign-loops={TEST_CACHE_LINE_BYTES}", command
             )
 
     def test_cache_line_size_comes_from_l1_instruction_cache(self) -> None:
@@ -137,6 +138,10 @@ class BuildCommandTests(unittest.TestCase):
 
             def fake_run_logged(command: Sequence[str], log_path: Path, cwd: Path | None = None) -> subprocess.CompletedProcess[str]:
                 calls.append(list(command))
+                if "-B" in command:
+                    build: Path = Path(command[command.index("-B") + 1])
+                    build.mkdir(parents=True)
+                    (build / "compile_commands.json").write_text("[]", encoding="utf-8")
                 return subprocess.CompletedProcess(list(command), 0, "", "")
 
             with patch.dict(os.environ, {"GITHUB_WORKSPACE": str(root)}), patch.object(
@@ -144,7 +149,7 @@ class BuildCommandTests(unittest.TestCase):
             ), patch.object(run_benchmark_group, "first_line", return_value="tool version"), patch.object(
                 run_benchmark_group, "read_cmake_generator", return_value="Unix Makefiles"
             ), patch.object(run_benchmark_group, "actual_commit", return_value="baseline-commit"), patch.object(
-                run_benchmark_group, "save_build_diagnostics"
+                run_benchmark_group, "save_build_disassembly"
             ) as save_diagnostics:
                 run_benchmark_group.build(plan_path, "sampling_cpp17", "baseline")
 
@@ -154,8 +159,8 @@ class BuildCommandTests(unittest.TestCase):
             resolved_root: Path = root.resolve()
             build_directory: Path = resolved_root / "build" / "sampling" / "sampling_cpp17-baseline"
             save_diagnostics.assert_called_once_with(
-                build_directory, build_directory / "benchmark_gbench_sampling_cpp17",
-                resolved_root / "groups" / "sampling_cpp17", "baseline",
+                build_directory / "benchmark_gbench_sampling_cpp17",
+                resolved_root / "groups" / "sampling_cpp17" / "compiler" / "baseline",
             )
 
     def test_build_diagnostics_preserve_commands_and_linked_disassembly(self) -> None:
@@ -174,7 +179,8 @@ class BuildCommandTests(unittest.TestCase):
                 return subprocess.CompletedProcess(list(command), 0, "", "")
 
             with patch.object(run_benchmark_group.subprocess, "run", side_effect=fake_disassemble):
-                run_benchmark_group.save_build_diagnostics(build, binary, root / "group", "candidate")
+                diagnostics: Path = run_benchmark_group.save_build_commands(build, root / "group", "candidate")
+                run_benchmark_group.save_build_disassembly(binary, diagnostics)
             diagnostics: Path = root / "group" / "compiler" / "candidate"
             self.assertEqual((diagnostics / "compile_commands.json").read_text(encoding="utf-8"), commands)
             self.assertIn("<benchmark_loop>", (diagnostics / "disassembly.txt").read_text(encoding="utf-8"))
@@ -186,7 +192,32 @@ class BuildCommandTests(unittest.TestCase):
             with patch.object(
                 run_benchmark_group.subprocess, "run", side_effect=subprocess.CalledProcessError(1, "objdump")
             ), self.assertRaises(subprocess.CalledProcessError):
-                run_benchmark_group.save_build_diagnostics(root, root / "binary", root / "group", "baseline")
+                diagnostics: Path = run_benchmark_group.save_build_commands(root, root / "group", "baseline")
+                run_benchmark_group.save_build_disassembly(root / "binary", diagnostics)
+
+    def test_compile_failure_preserves_actual_commands(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            root: Path = Path(temporary_directory).resolve()
+            plan_path: Path = root / "plan.json"
+            plan_path.write_text(json.dumps(plan_value()), encoding="utf-8")
+            commands: str = '[{"command": "g++ -O3 -DNDEBUG broken.cpp"}]'
+
+            def fake_run_logged(command: Sequence[str], log_path: Path, cwd: Path | None = None) -> subprocess.CompletedProcess[str]:
+                if "--build" in command:
+                    raise subprocess.CalledProcessError(1, list(command))
+                build: Path = Path(command[command.index("-B") + 1])
+                build.mkdir(parents=True)
+                (build / "compile_commands.json").write_text(commands, encoding="utf-8")
+                return subprocess.CompletedProcess(list(command), 0, "", "")
+
+            with patch.dict(os.environ, {"GITHUB_WORKSPACE": str(root)}), patch.object(
+                run_benchmark_group, "run_logged", side_effect=fake_run_logged
+            ), patch.object(run_benchmark_group, "save_build_disassembly") as disassemble:
+                with self.assertRaises(subprocess.CalledProcessError):
+                    run_benchmark_group.build(plan_path, "general", "candidate")
+                disassemble.assert_not_called()
+            archived_commands: Path = root / "groups" / "general" / "compiler" / "candidate" / "compile_commands.json"
+            self.assertEqual(archived_commands.read_text(encoding="utf-8"), commands)
 
 
 class SamplingMeasurementTests(unittest.TestCase):

@@ -179,11 +179,12 @@ jobs:
         if: needs.benchmark_plan.outputs.mode == 'COMPARE'
         run: python -X utf8 tools/run_benchmark_group.py build --plan plan_artifact/benchmark-plan.json --group general --variant baseline
       - name: Upload general compiler diagnostics
+        if: always() && !cancelled()
         uses: actions/upload-artifact@v4
         with:
           name: benchmark-${{ github.run_id }}-${{ github.run_attempt }}-general-compiler
           path: groups/general/compiler/
-          if-no-files-found: error
+          if-no-files-found: warn
       - name: Enumerate baseline benchmark suite
         id: enumerate_baseline
         if: needs.benchmark_plan.outputs.mode == 'COMPARE'
@@ -247,11 +248,12 @@ jobs:
         id: build_baseline
         run: python -X utf8 tools/run_benchmark_group.py build --plan plan_artifact/benchmark-plan.json --group sampling_cpp17 --variant baseline
       - name: Upload C++17 compiler diagnostics
+        if: always() && !cancelled()
         uses: actions/upload-artifact@v4
         with:
           name: benchmark-${{ github.run_id }}-${{ github.run_attempt }}-sampling_cpp17-compiler
           path: groups/sampling_cpp17/compiler/
-          if-no-files-found: error
+          if-no-files-found: warn
       - name: Enumerate baseline C++17 sampling suite
         id: enumerate_baseline
         run: python -X utf8 tools/run_benchmark_group.py enumerate --plan plan_artifact/benchmark-plan.json --group sampling_cpp17 --variant baseline
@@ -319,11 +321,12 @@ jobs:
         id: build_baseline
         run: python -X utf8 tools/run_benchmark_group.py build --plan plan_artifact/benchmark-plan.json --group sampling_cpp23 --variant baseline
       - name: Upload C++23 compiler diagnostics
+        if: always() && !cancelled()
         uses: actions/upload-artifact@v4
         with:
           name: benchmark-${{ github.run_id }}-${{ github.run_attempt }}-sampling_cpp23-compiler
           path: groups/sampling_cpp23/compiler/
-          if-no-files-found: error
+          if-no-files-found: warn
       - name: Enumerate baseline C++23 sampling suite
         id: enumerate_baseline
         run: python -X utf8 tools/run_benchmark_group.py enumerate --plan plan_artifact/benchmark-plan.json --group sampling_cpp23 --variant baseline
