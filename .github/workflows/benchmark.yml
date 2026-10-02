@@ -54,7 +54,7 @@ on:
       validation_scenario:
         description: '平台故障演练场景'
         type: choice
-        options: [group_failure, download_failure, evaluate_exception, cancelled, refresh]
+        options: [group_failure, download_failure, evaluate_exception, cancelled, refresh, refresh_cancelled]
         required: true
       force_update_baseline:
         description: '强制更新基准测试基线'
@@ -89,7 +89,7 @@ jobs:
         with:
           python-version: '3.12'
       - name: Prepare isolated refresh policy
-        if: inputs.validation_scenario == 'refresh'
+        if: startsWith(inputs.validation_scenario, 'refresh')
         run: python tools/exercise_benchmark_platform.py policy
       - name: Capture benchmark context
         id: context
@@ -255,7 +255,7 @@ jobs:
         id: measure_sampling_rounds
         run: python -X utf8 tools/run_benchmark_group.py measure --plan plan_artifact/benchmark-plan.json --group sampling_cpp17
       - name: Prepare fixed confirmation suspects
-        if: inputs.validation_scenario == 'refresh'
+        if: startsWith(inputs.validation_scenario, 'refresh')
         run: python tools/exercise_benchmark_platform.py suspects sampling_cpp17
       - name: Aggregate C++17 sampling rounds
         id: aggregate
@@ -324,7 +324,7 @@ jobs:
         id: measure_sampling_rounds
         run: python -X utf8 tools/run_benchmark_group.py measure --plan plan_artifact/benchmark-plan.json --group sampling_cpp23
       - name: Prepare fixed confirmation suspects
-        if: inputs.validation_scenario == 'refresh'
+        if: startsWith(inputs.validation_scenario, 'refresh')
         run: python tools/exercise_benchmark_platform.py suspects sampling_cpp23
       - name: Aggregate C++23 sampling rounds
         id: aggregate
@@ -523,6 +523,11 @@ jobs:
           name: ${{ needs.benchmark_plan.outputs.baseline_name }}
           path: baseline-release/
           if-no-files-found: error
+      - name: Wait for publication cancellation
+        if: inputs.validation_scenario == 'refresh_cancelled'
+        env:
+          PUBLICATION_CANCELLATION_WINDOW_SECONDS: '60'
+        run: sleep "$PUBLICATION_CANCELLATION_WINDOW_SECONDS"
       - name: Return benchmark gate result
         if: always() && !cancelled()
         env:
