@@ -5,7 +5,10 @@
     "branch": "master",
     "workflow": ".github/workflows/benchmark.yml",
     "initial_sampling_commit": "e0ce50a6c0dd5e3b5158efb1cbe17a68bd93edec",
-    "publish_events": ["push", "workflow_dispatch"]
+    "publish_events": [
+      "push",
+      "workflow_dispatch"
+    ]
   },
   "groups": {
     "general": {
@@ -13,7 +16,7 @@
       "standard": 23,
       "target": "benchmark_gbench",
       "repetitions": 5,
-      "min_time": "0.5s",
+      "min_time": "0.01s",
       "tolerance": 0.25
     },
     "sampling_cpp17": {
@@ -21,20 +24,20 @@
       "standard": 17,
       "target": "benchmark_gbench_sampling_cpp17",
       "repetitions": 5,
-      "min_time": "0.1s",
+      "min_time": "0.01s",
       "tolerance": 0.25,
       "confirmation_repetitions": 6,
-      "confirmation_min_time": "1s"
+      "confirmation_min_time": "0.01s"
     },
     "sampling_cpp23": {
       "kind": "sampling",
       "standard": 23,
       "target": "benchmark_gbench_sampling_cpp23",
       "repetitions": 5,
-      "min_time": "0.1s",
+      "min_time": "0.01s",
       "tolerance": 0.25,
       "confirmation_repetitions": 6,
-      "confirmation_min_time": "1s"
+      "confirmation_min_time": "0.01s"
     }
   }
 }

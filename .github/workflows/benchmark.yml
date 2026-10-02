@@ -51,6 +51,11 @@ on:
       - '.github/workflows/benchmark.yml'
   workflow_dispatch:
     inputs:
+      validation_scenario:
+        description: '平台故障演练场景'
+        type: choice
+        options: [group_failure, download_failure, evaluate_exception, cancelled]
+        required: true
       force_update_baseline:
         description: '强制更新基准测试基线'
         type: boolean
@@ -63,7 +68,7 @@ permissions:
   issues: write
 
 concurrency:
-  group: benchmark-${{ github.ref }}
+  group: benchmark-${{ github.ref }}-${{ inputs.validation_scenario }}
   cancel-in-progress: true
 
 jobs:
@@ -94,7 +99,7 @@ jobs:
           BENCHMARK_RUN_ID: ${{ github.run_id }}
           BENCHMARK_RUN_ATTEMPT: ${{ github.run_attempt }}
           BENCHMARK_HEAD_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
-          BENCHMARK_FORK_PR: ${{ github.event.pull_request.head.repo.fork || false }}
+          BENCHMARK_FORK_PR: 'true'
           BENCHMARK_FORCE_UPDATE_BASELINE: ${{ inputs.force_update_baseline == true || inputs.force_update_baseline == 'true' }}
           BENCHMARK_CANCELLED: 'false'
         run: python -X utf8 tools/benchmark_actions.py context --output benchmark-context.json
@@ -181,7 +186,11 @@ jobs:
       - name: Measure baseline benchmark
         id: measure_baseline
         if: needs.benchmark_plan.outputs.mode == 'COMPARE'
-        run: python -X utf8 tools/run_benchmark_group.py measure --plan plan_artifact/benchmark-plan.json --group general --variant baseline
+        run: |
+          python -X utf8 tools/run_benchmark_group.py measure --plan plan_artifact/benchmark-plan.json --group general --variant baseline
+          if [ "${{ inputs.validation_scenario }}" = 'group_failure' ]; then
+            exit 2
+          fi
       - name: Collect group metadata
         if: always() && !cancelled()
         env:
@@ -354,7 +363,7 @@ jobs:
         continue-on-error: true
         uses: actions/download-artifact@v4
         with:
-          name: benchmark-${{ github.run_id }}-${{ github.run_attempt }}-general
+          name: ${{ inputs.validation_scenario == 'download_failure' && 'exercise-missing-artifact' || format('benchmark-{0}-{1}-general', github.run_id, github.run_attempt) }}
           path: groups/general
       - name: Download C++17 sampling group
         id: download_sampling_cpp17
@@ -398,7 +407,7 @@ jobs:
           BENCHMARK_RUN_ID: ${{ github.run_id }}
           BENCHMARK_RUN_ATTEMPT: ${{ github.run_attempt }}
           BENCHMARK_HEAD_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
-          BENCHMARK_FORK_PR: ${{ github.event.pull_request.head.repo.fork || false }}
+          BENCHMARK_FORK_PR: 'true'
           BENCHMARK_FORCE_UPDATE_BASELINE: ${{ inputs.force_update_baseline == true || inputs.force_update_baseline == 'true' }}
           BENCHMARK_CANCELLED: 'false'
         run: |
@@ -415,14 +424,17 @@ jobs:
       - name: Evaluate benchmark gate
         id: evaluate
         if: always() && !cancelled()
-        run: >-
-          python -X utf8 tools/benchmark_gate.py evaluate
-          --plan benchmark-plan/benchmark-plan.json
-          --execution execution.json
-          --groups-dir groups
-          --output benchmark-gate.json
-          --summary benchmark-summary.md
-          --github-output "$GITHUB_OUTPUT"
+        run: |
+          if [ "${{ inputs.validation_scenario }}" = 'evaluate_exception' ]; then
+            python -c "raise RuntimeError('平台演练：求值程序异常')"
+          fi
+          python -X utf8 tools/benchmark_gate.py evaluate \
+            --plan benchmark-plan/benchmark-plan.json \
+            --execution execution.json \
+            --groups-dir groups \
+            --output benchmark-gate.json \
+            --summary benchmark-summary.md \
+            --github-output "$GITHUB_OUTPUT"
       - name: Upload benchmark gate report
         if: always() && !cancelled()
         uses: actions/upload-artifact@v4
