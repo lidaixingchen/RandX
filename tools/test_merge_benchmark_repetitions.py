@@ -40,6 +40,15 @@ class MergeBenchmarkTests(unittest.TestCase):
             with self.subTest(invalid=invalid), self.assertRaises(ValueError):
                 merge_results([self.result(invalid), self.result(1), self.result(2)])
 
+    def test_boolean_raw_times_are_rejected_for_cpu_and_real(self) -> None:
+        for field in ("cpu_time", "real_time"):
+            for invalid in (False, True):
+                with self.subTest(field=field, invalid=invalid):
+                    result = self.result(1)
+                    result["benchmarks"][0][field] = invalid
+                    with self.assertRaises(ValueError):
+                        merge_results([self.result(1), result, self.result(1)])
+
 
 if __name__ == "__main__":
     unittest.main()

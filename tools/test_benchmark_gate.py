@@ -431,6 +431,10 @@ class EvaluateRunTests(unittest.TestCase):
         group: dict[str, Any] = report["groups"]["sampling_cpp17"]
         self.assertEqual(group["status"], "EXECUTION_ERROR")
         self.assertEqual(group["regressions"], [BENCHMARK_NAME])
+        self.assertIn(
+            {"group": "sampling_cpp17", "items": [BENCHMARK_NAME]},
+            report["regressions"],
+        )
         self.assertTrue(report["notify_regression"])
         self.assertFalse(report["publish_baseline"])
         self.assertEqual(report["exit_code"], 2)
@@ -442,6 +446,98 @@ class EvaluateRunTests(unittest.TestCase):
         self.assertEqual(report["groups"]["general"]["status"], "EXECUTION_ERROR")
         self.assertEqual(report["exit_code"], 2)
         self.assertFalse(report["publish_baseline"])
+
+    def test_required_step_failures_keep_diagnostics_without_qualifying_regressions(self) -> None:
+        cases: tuple[tuple[str, str, str | None], ...] = (
+            ("general", "measure_candidate", "failure"),
+            ("sampling_cpp17", "measure_candidate", "failure"),
+            ("sampling_cpp23", "aggregate", "failure"),
+            ("sampling_cpp17", "confirm", "failure"),
+            ("sampling_cpp23", "confirm", None),
+            ("sampling_cpp17", "aggregate", "skipped"),
+        )
+        for group_name, step_name, outcome in cases:
+            with self.subTest(group=group_name, step=step_name, outcome=outcome):
+                plan, execution, groups = self.make_valid_case(100.0, 100.0)
+                groups[group_name] = complete_group(group_name, plan, 140.0, 100.0)
+                steps: dict[str, Any] = groups[group_name]["metadata"]["steps"]
+                if outcome is None:
+                    del steps[step_name]
+                else:
+                    steps[step_name] = outcome
+
+                report: dict[str, Any] = evaluate_run(plan, execution, groups)
+                group: dict[str, Any] = report["groups"][group_name]
+                expected_comparison: str = "COMPARED" if group_name == "general" else "CONFIRMED"
+                expected_items: list[str] = ["BM_General"] if group_name == "general" else [BENCHMARK_NAME]
+                self.assertEqual(group["status"], "EXECUTION_ERROR")
+                self.assertEqual(group["comparison_status"], expected_comparison)
+                self.assertEqual(group["regressions"], expected_items)
+                self.assertEqual(report["regressions"], [])
+                self.assertFalse(report["notify_regression"])
+                self.assertFalse(report["publish_baseline"])
+
+    def test_step_failure_does_not_hide_another_groups_valid_regression(self) -> None:
+        plan, execution, groups = self.make_valid_case(100.0, 100.0)
+        groups["general"] = complete_group("general", plan, 140.0, 100.0)
+        groups["sampling_cpp17"] = complete_group("sampling_cpp17", plan, 140.0, 100.0)
+        groups["general"]["metadata"]["steps"]["measure_candidate"] = "failure"
+
+        report: dict[str, Any] = evaluate_run(plan, execution, groups)
+
+        self.assertEqual(report["groups"]["general"]["status"], "EXECUTION_ERROR")
+        self.assertEqual(report["groups"]["general"]["regressions"], ["BM_General"])
+        self.assertEqual(report["regressions"], [{"group": "sampling_cpp17", "items": [BENCHMARK_NAME]}])
+        self.assertTrue(report["notify_regression"])
+        self.assertFalse(report["publish_baseline"])
+
+    def test_sampling_bool_initial_rounds_are_data_errors_in_compare_and_refresh(self) -> None:
+        contexts: tuple[dict[str, Any], ...] = (
+            run_context("push", "refs/heads/master"),
+            run_context("workflow_dispatch", "refs/heads/master", True),
+        )
+        for context in contexts:
+            for group_name in ("sampling_cpp17", "sampling_cpp23"):
+                for field in ("cpu_time", "real_time"):
+                    with self.subTest(event=context["event"], group=group_name, field=field):
+                        plan = plan_run(policy_value(), context, successful_query())
+                        groups = complete_groups(plan, 100.0, 100.0)
+                        files: dict[str, Any] = groups[group_name]["files"]
+                        candidate_initial: dict[str, Any] = copy.deepcopy(files["candidate-initial.json"])
+                        final_candidate: dict[str, Any] = copy.deepcopy(files["confirmation/candidate.json"])
+                        files["rounds/candidate-1.json"]["benchmarks"][0][field] = True
+
+                        report: dict[str, Any] = evaluate_run(plan, execution_record(), groups)
+
+                        self.assertEqual(report["groups"][group_name]["status"], "DATA_ERROR")
+                        self.assertEqual(report["exit_code"], 2)
+                        self.assertFalse(report["publish_baseline"])
+                        self.assertEqual(files["candidate-initial.json"], candidate_initial)
+                        self.assertEqual(files["confirmation/candidate.json"], final_candidate)
+
+    def test_sampling_bool_confirmation_rounds_are_data_errors_in_compare_and_refresh(self) -> None:
+        contexts: tuple[dict[str, Any], ...] = (
+            run_context("push", "refs/heads/master"),
+            run_context("workflow_dispatch", "refs/heads/master", True),
+        )
+        for context in contexts:
+            for group_name in ("sampling_cpp17", "sampling_cpp23"):
+                for field in ("cpu_time", "real_time"):
+                    with self.subTest(event=context["event"], group=group_name, field=field):
+                        plan = plan_run(policy_value(), context, successful_query())
+                        groups = complete_groups(plan, 140.0, 100.0)
+                        files: dict[str, Any] = groups[group_name]["files"]
+                        candidate_initial: dict[str, Any] = copy.deepcopy(files["candidate-initial.json"])
+                        final_candidate: dict[str, Any] = copy.deepcopy(files["confirmation/candidate.json"])
+                        files["confirmation/rounds/candidate-1.json"]["benchmarks"][0][field] = True
+
+                        report: dict[str, Any] = evaluate_run(plan, execution_record(), groups)
+
+                        self.assertEqual(report["groups"][group_name]["status"], "DATA_ERROR")
+                        self.assertEqual(report["exit_code"], 2)
+                        self.assertFalse(report["publish_baseline"])
+                        self.assertEqual(files["candidate-initial.json"], candidate_initial)
+                        self.assertEqual(files["confirmation/candidate.json"], final_candidate)
 
     def test_missing_required_file_is_execution_error_and_wrong_set_is_data_error(self) -> None:
         plan, execution, groups = self.make_valid_case()

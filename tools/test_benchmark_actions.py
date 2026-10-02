@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import subprocess
 import tempfile
 import unittest
@@ -273,6 +274,34 @@ class WorkflowContractTests(unittest.TestCase):
         ci_workflow: str = ci_workflow_path.read_text(encoding="utf-8")
         self.assertEqual(ci_workflow.count("      - '.github/workflows/benchmark.yml'"), 2)
 
+    def test_issue_helper_and_tests_are_in_both_workflow_path_filters(self) -> None:
+        root: Path = Path(__file__).resolve().parents[1]
+        benchmark_workflow: str = (root / ".github" / "workflows" / "benchmark.yml").read_text(encoding="utf-8")
+        ci_workflow: str = (root / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
+        for path in ("tools/benchmark_issue.cjs", "tools/test_benchmark_issue.cjs"):
+            self.assertEqual(benchmark_workflow.count(f"      - '{path}'"), 2)
+        self.assertEqual(ci_workflow.count("      - 'tools/**'"), 2)
+
+    def test_workflow_has_six_jobs_and_ci_runs_issue_tests(self) -> None:
+        root: Path = Path(__file__).resolve().parents[1]
+        benchmark_workflow: str = (root / ".github" / "workflows" / "benchmark.yml").read_text(encoding="utf-8")
+        ci_workflow: str = (root / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
+        jobs_section: str = benchmark_workflow.split("jobs:\n", maxsplit=1)[1]
+        job_ids: list[str] = re.findall(r"(?m)^  ([a-z][a-z0-9_]*):$", jobs_section)
+
+        self.assertEqual(
+            job_ids,
+            [
+                "benchmark_plan",
+                "measure_general",
+                "measure_sampling_cpp17",
+                "measure_sampling_cpp23",
+                "benchmark",
+                "notify_regression",
+            ],
+        )
+        self.assertIn("node --test tools/test_benchmark_issue.cjs", ci_workflow)
+
     def test_final_job_directly_needs_all_three_measure_jobs(self) -> None:
         workflow_path: Path = Path(__file__).resolve().parents[1] / ".github" / "workflows" / "benchmark.yml"
         workflow: str = workflow_path.read_text(encoding="utf-8")
@@ -285,6 +314,27 @@ class WorkflowContractTests(unittest.TestCase):
         self.assertIn("--summary benchmark-summary.md", workflow)
         self.assertRegex(workflow, r"(?ms)^      - name: Evaluate benchmark gate\n        id: evaluate\n        if: always\(\) && !cancelled\(\)")
         self.assertRegex(workflow, r"(?ms)^      - name: Return benchmark gate result\n        if: always\(\) && !cancelled\(\)")
+
+    def test_regression_notification_runs_after_failed_gate_and_uses_attempt_report(self) -> None:
+        workflow_path: Path = Path(__file__).resolve().parents[1] / ".github" / "workflows" / "benchmark.yml"
+        workflow: str = workflow_path.read_text(encoding="utf-8")
+        benchmark_job: str = workflow.split("  benchmark:\n", maxsplit=1)[1].split("  notify_regression:\n", maxsplit=1)[0]
+        notify_job: str = workflow.split("  notify_regression:\n", maxsplit=1)[1]
+
+        self.assertIn("report_ready: ${{ steps.evaluate.outputs.report_ready }}", benchmark_job)
+        self.assertIn("notify_regression: ${{ steps.evaluate.outputs.notify_regression }}", benchmark_job)
+        self.assertRegex(
+            notify_job,
+            r"(?ms)^    needs: benchmark\n    if: >-\n      always\(\) && !cancelled\(\) &&\n      needs\.benchmark\.outputs\.report_ready == 'true' &&\n      needs\.benchmark\.outputs\.notify_regression == 'true' &&",
+        )
+        self.assertIn("(github.event_name != 'pull_request' || !github.event.pull_request.head.repo.fork)", notify_job)
+        self.assertIn("group: benchmark-regression-issue", notify_job)
+        self.assertIn("cancel-in-progress: false", notify_job)
+        self.assertIn("benchmark-${{ github.run_id }}-${{ github.run_attempt }}-report", notify_job)
+        self.assertIn("benchmark-report/benchmark-gate.json", notify_job)
+        self.assertIn("tools/benchmark_issue.cjs", notify_job)
+        self.assertNotIn("needs.notify_regression", benchmark_job)
+        self.assertEqual(benchmark_job.count("needs.measure_general.result == 'success'"), 2)
 
     def test_each_group_downloads_to_canonical_directory_and_uses_unique_artifact(self) -> None:
         workflow_path: Path = Path(__file__).resolve().parents[1] / ".github" / "workflows" / "benchmark.yml"
