@@ -296,9 +296,9 @@ def collect_group(
     if group in SAMPLING_GROUPS:
         baseline_commit: Any = environment.get("baseline_commit") or plan.get("sampling_commit")
     else:
-        baseline_commit = environment.get("baseline_commit") or (
-            plan_baseline.get("commit") if isinstance(plan_baseline, dict) else None
-        )
+        baseline_commit = environment.get("baseline_commit")
+        if not baseline_commit and plan.get("mode") == "COMPARE" and isinstance(plan_baseline, dict):
+            baseline_commit = plan_baseline.get("commit")
 
     run_id: Any = context.get("run_id") if isinstance(context, dict) else None
     run_attempt: Any = context.get("run_attempt") if isinstance(context, dict) else None
