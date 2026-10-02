@@ -16,6 +16,12 @@
 
 // @randx-include ../common/security/hardware_rand64_definition.inc
 
+// @randx-include ../common/security/os_entropy_reader.inc
+
+// @randx-include ../common/security/entropy_test_hooks.inc
+
+// @randx-include ../common/security/fill_os_entropy_definition.inc
+
 // @randx-include ../common/security/get_os_entropy_bytes_definition.inc
 
 // @randx-include ../common/security/has_crypto_grade_os_entropy_definition.inc

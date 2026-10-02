@@ -31,6 +31,7 @@ EXPECTED_GROUP_ARGUMENTS: tuple[str, str, str] = (
     "PLATFORM",
     "BUILD_MODE",
 )
+EXPECTED_SUITE_REGISTRATION_COUNT: int = 1
 
 
 class ContractError(Exception):
@@ -89,6 +90,117 @@ def collect_registrations(binary: Path) -> dict[tuple[str, str], int]:
 
     report: str = _run_doctest_query(binary, ["--reporters=xml", "--list-test-cases"])
     return parse_doctest_xml(report)
+
+
+def validate_doctest_execution(
+    output: str, expected_cases: Sequence[str], returncode: int
+) -> None:
+    """核对 doctest XML 中指定用例的实际执行次数与结果。"""
+    if not expected_cases:
+        raise ContractError("至少需要指定一个 --test-case 用例名。")
+    if any(not case for case in expected_cases):
+        raise ContractError("--test-case 用例名不能为空。")
+    if len(set(expected_cases)) != len(expected_cases):
+        raise ContractError("--test-case 用例名不能重复。")
+
+    try:
+        root: ElementTree.Element = ElementTree.fromstring(output)
+    except ElementTree.ParseError as error:
+        raise ContractError(f"无法解析 doctest 执行 XML：{error}") from error
+    if root.tag != "doctest":
+        raise ContractError(f"doctest 执行 XML 根节点无效：{root.tag!r}")
+
+    expected: set[str] = set(expected_cases)
+    executed: Counter[str] = Counter()
+    failures: list[str] = []
+    for test_case in root.iter("TestCase"):
+        name: str | None = test_case.get("name")
+        if not name:
+            raise ContractError("doctest 执行 XML 用例缺少名称。")
+        if test_case.get("skipped", "false").lower() == "true":
+            continue
+
+        results: list[ElementTree.Element] = list(test_case.findall("OverallResultsAsserts"))
+        if not results:
+            continue
+        if len(results) != 1:
+            raise ContractError(f"doctest 用例结果项重复：{name!r}")
+        executed[name] += 1
+        if results[0].get("test_case_success", "").lower() != "true":
+            failures.append(name)
+
+    summaries: list[ElementTree.Element] = root.findall("OverallResultsTestCases")
+    if len(summaries) != 1:
+        raise ContractError("doctest 执行 XML 缺少唯一的用例汇总。")
+    try:
+        summary_cases: int = int(summaries[0].get("successes", "")) + int(
+            summaries[0].get("failures", "")
+        )
+    except ValueError as error:
+        raise ContractError("doctest 执行 XML 用例汇总缺少有效计数。") from error
+    if summary_cases != sum(executed.values()):
+        raise ContractError(
+            "doctest 执行 XML 用例汇总与实际用例结果数不一致："
+            f"汇总 {summary_cases}，结果项 {sum(executed.values())}。"
+        )
+
+    missing: list[str] = sorted(expected - set(executed))
+    duplicates: list[tuple[str, int]] = sorted(
+        (name, count) for name, count in executed.items() if name in expected and count != 1
+    )
+    problems: list[str] = []
+    if missing:
+        problems.append(f"未执行指定用例：{missing!r}")
+    if duplicates:
+        problems.append(f"指定用例执行次数不为一次：{duplicates!r}")
+    if failures:
+        problems.append(f"用例失败：{sorted(failures)!r}")
+    if returncode != 0:
+        problems.append(f"doctest 退出码为 {returncode}")
+    if problems:
+        raise ContractError("；".join(problems))
+
+
+def _run_selected_cases(arguments: argparse.Namespace) -> None:
+    binary: Path = arguments.binary
+    if not binary.is_file():
+        raise ContractError(f"找不到测试程序：{binary}")
+    test_cases: list[str] = arguments.test_cases
+    if not test_cases:
+        raise ContractError("至少需要指定一个 --test-case 用例名。")
+    if any(not case for case in test_cases):
+        raise ContractError("--test-case 用例名不能为空。")
+    if len(set(test_cases)) != len(test_cases):
+        raise ContractError("--test-case 用例名不能重复。")
+
+    doctest_filters: str = ",".join(
+        case.replace("\\", "\\\\").replace(",", "\\,") for case in test_cases
+    )
+    command: list[str] = [
+        str(binary.resolve()),
+        "--reporters=xml",
+        "--no-version",
+        "--no-colors",
+        f"--test-case={doctest_filters}",
+    ]
+    try:
+        result: subprocess.CompletedProcess[str] = subprocess.run(
+            command,
+            check=False,
+            capture_output=True,
+            encoding="utf-8",
+            errors="replace",
+        )
+    except OSError as error:
+        raise ContractError(f"无法启动测试程序 {binary}: {error}") from error
+    try:
+        validate_doctest_execution(result.stdout, test_cases, result.returncode)
+    except ContractError as error:
+        details: str = result.stderr.strip() or result.stdout.strip()
+        if details:
+            raise ContractError(f"{error}\n{details}") from error
+        raise
+    print(f"已执行并通过 {len(test_cases)} 个 doctest 用例。")
 
 
 def _public_kind(suite: str) -> tuple[str, str] | None:
@@ -213,6 +325,44 @@ def _require_equal(
         )
 
 
+def _validate_suite_names(suites: Sequence[str]) -> None:
+    if not suites:
+        raise ContractError("至少需要指定一个 --suite 套件名。")
+    if any(not suite for suite in suites):
+        raise ContractError("指定套件名不能为空。")
+    if len(set(suites)) != len(suites):
+        raise ContractError("--suite 套件名不能重复。")
+
+
+def _suite_registrations(
+    manifests: Sequence[tuple[TestManifest, str]], suites: Sequence[str]
+) -> list[dict[tuple[str, str], int]]:
+    _validate_suite_names(suites)
+    selected_by_manifest: list[dict[tuple[str, str], int]] = []
+    errors: list[str] = []
+    for manifest, label in manifests:
+        selected: dict[tuple[str, str], int] = {
+            registration: count
+            for registration, count in manifest.registrations.items()
+            if registration[0] in suites
+        }
+        present_suites: set[str] = {suite for suite, _ in selected}
+        missing_suites: list[str] = sorted(set(suites) - present_suites)
+        if missing_suites:
+            errors.append(f"{label} 缺少指定套件：{missing_suites!r}")
+        duplicates: list[tuple[str, str, int]] = [
+            (suite, case, count)
+            for (suite, case), count in sorted(selected.items())
+            if count != EXPECTED_SUITE_REGISTRATION_COUNT
+        ]
+        if duplicates:
+            errors.append(f"{label} 的指定套件用例必须恰好注册一次：{duplicates!r}")
+        selected_by_manifest.append(selected)
+    if errors:
+        raise ContractError("；".join(errors))
+    return selected_by_manifest
+
+
 def _validate_pair(
     compat17: TestManifest,
     main23: TestManifest,
@@ -220,7 +370,23 @@ def _validate_pair(
     main_label: str,
     compare_char8_t: bool,
     allow_local_build_mode: bool = False,
+    suites: Sequence[str] | None = None,
 ) -> None:
+    if suites is not None:
+        _validate_metadata(compat17.metadata, compat_label, allow_local_build_mode)
+        _validate_metadata(main23.metadata, main_label, allow_local_build_mode)
+        compat_suites, main_suites = _suite_registrations(
+            [(compat17, compat_label), (main23, main_label)], suites
+        )
+        _require_equal(
+            compat_suites,
+            main_suites,
+            "指定套件注册清单",
+            compat_label,
+            main_label,
+        )
+        return
+
     validate_manifest(compat17, compat_label, allow_local_build_mode)
     validate_manifest(main23, main_label, allow_local_build_mode)
     compat_base: dict[tuple[str, str], int] = _registrations_for(compat17, "base")
@@ -264,10 +430,16 @@ def _validate_pair(
 
 
 def _manifest_from_collected(
-    registrations: dict[tuple[str, str], int], metadata: dict[str, str]
+    registrations: dict[tuple[str, str], int],
+    metadata: dict[str, str],
+    suites: Sequence[str] | None = None,
 ) -> TestManifest:
     manifest: TestManifest = TestManifest(metadata=metadata, registrations=registrations)
-    validate_manifest(manifest, "测试程序", allow_local_build_mode=True)
+    if suites is None:
+        validate_manifest(manifest, "测试程序", allow_local_build_mode=True)
+    else:
+        _validate_metadata(metadata, "测试程序", allow_local_build_mode=True)
+        _suite_registrations([(manifest, "测试程序")], suites)
     return manifest
 
 
@@ -359,6 +531,7 @@ def _compare_local_binaries(arguments: argparse.Namespace) -> None:
             "build_mode": "local",
             "variant": "cpp17",
         },
+        arguments.suites,
     )
     main: TestManifest = _manifest_from_collected(
         collect_registrations(arguments.cpp23_binary),
@@ -369,6 +542,7 @@ def _compare_local_binaries(arguments: argparse.Namespace) -> None:
             "build_mode": "local",
             "variant": "cpp23",
         },
+        arguments.suites,
     )
     _validate_pair(
         compat,
@@ -377,8 +551,12 @@ def _compare_local_binaries(arguments: argparse.Namespace) -> None:
         str(arguments.cpp23_binary),
         compare_char8_t=False,
         allow_local_build_mode=True,
+        suites=arguments.suites,
     )
-    print("基础及适用的条件公共注册清单一致。")
+    if arguments.suites is None:
+        print("基础及适用的条件公共注册清单一致。")
+    else:
+        print("指定套件注册清单一致。")
 
 
 def _group_key(metadata: dict[str, str]) -> tuple[str, str, str]:
@@ -388,13 +566,20 @@ def _group_key(metadata: dict[str, str]) -> tuple[str, str, str]:
 def _validate_matrix(
     manifests: list[TestManifest],
     expected_groups: Sequence[tuple[str, str, str]] | None = None,
+    suites: Sequence[str] | None = None,
+    standard_pair_groups: Sequence[tuple[str, str, str]] = (),
 ) -> None:
+    if suites is not None:
+        _validate_suite_names(suites)
     if not manifests and not expected_groups:
         raise ContractError("没有找到可核对的注册清单。")
     groups: dict[tuple[str, str, str], list[TestManifest]] = {}
     unique_keys: set[tuple[str, str, str, str, str]] = set()
     for manifest in manifests:
-        validate_manifest(manifest, str(manifest.metadata))
+        if suites is None:
+            validate_manifest(manifest, str(manifest.metadata))
+        else:
+            _validate_metadata(manifest.metadata, str(manifest.metadata))
         metadata: dict[str, str] = manifest.metadata
         key: tuple[str, str, str, str, str] = (
             metadata["compiler"],
@@ -433,7 +618,10 @@ def _validate_matrix(
         compiler, platform, build_mode = group
         group_label: str = f"{compiler}/{platform}/{build_mode}"
         required_standards: set[str] = {"c++17", "c++23"}
-        if not (compiler == MSVC_COMPILER_NAME and build_mode == RELEASE_MODE):
+        uses_standard_pair: bool = group in standard_pair_groups or (
+            suites is None and compiler == MSVC_COMPILER_NAME and build_mode == RELEASE_MODE
+        )
+        if not uses_standard_pair:
             required_standards.add("c++20")
         missing: set[str] = required_standards - set(by_standard)
         if missing:
@@ -448,6 +636,7 @@ def _validate_matrix(
             f"{group_label}/c++17",
             f"{group_label}/c++23",
             compare_char8_t=False,
+            suites=suites,
         )
         if compat20 is not None:
             _validate_pair(
@@ -456,14 +645,28 @@ def _validate_matrix(
                 f"{group_label}/c++20",
                 f"{group_label}/c++23",
                 compare_char8_t=True,
+                suites=suites,
+            )
+
+    if suites is not None:
+        labels: list[str] = [str(manifest.metadata) for manifest in manifests]
+        registrations = _suite_registrations(list(zip(manifests, labels)), suites)
+        for selected, label in zip(registrations[1:], labels[1:]):
+            _require_equal(
+                registrations[0], selected, "指定套件矩阵注册清单", labels[0], label
             )
 
 
 def _compare_manifests(arguments: argparse.Namespace) -> None:
     paths: list[Path] = sorted(arguments.manifest_dir.glob("*.json"))
     manifests: list[TestManifest] = [_load_manifest(path) for path in paths]
-    _validate_matrix(manifests, arguments.expected_groups)
-    print(f"已核对 {len(manifests)} 份清单及其跨标准公共注册契约。")
+    _validate_matrix(
+        manifests, arguments.expected_groups, arguments.suites, arguments.standard_pair_groups
+    )
+    if arguments.suites is None:
+        print(f"已核对 {len(manifests)} 份清单及其跨标准公共注册契约。")
+    else:
+        print(f"已核对 {len(manifests)} 份清单及指定套件的跨标准注册契约。")
 
 
 class _ExpectedGroupAction(argparse.Action):
@@ -507,17 +710,42 @@ def _build_parser() -> argparse.ArgumentParser:
     collect_parser.add_argument("--output", type=Path, required=True)
     collect_parser.set_defaults(handler=_collect_command)
 
+    run_selected_parser: argparse.ArgumentParser = subparsers.add_parser(
+        "run-selected", help="运行指定 doctest 用例并核对 XML 实际执行结果。"
+    )
+    run_selected_parser.add_argument("--binary", type=Path, required=True)
+    run_selected_parser.add_argument(
+        "--test-case",
+        dest="test_cases",
+        action="append",
+        required=True,
+        help="精确用例名，可重复指定。",
+    )
+    run_selected_parser.set_defaults(handler=_run_selected_cases)
+
     compare_binaries_parser: argparse.ArgumentParser = subparsers.add_parser(
         "compare-binaries", help="直接比较本机构建的 C++17 与 C++23 测试程序。"
     )
     compare_binaries_parser.add_argument("--cpp17-binary", type=Path, required=True)
     compare_binaries_parser.add_argument("--cpp23-binary", type=Path, required=True)
+    compare_binaries_parser.add_argument(
+        "--suite",
+        dest="suites",
+        action="append",
+        help="仅比较指定套件中的注册项，可重复指定精确套件名。",
+    )
     compare_binaries_parser.set_defaults(handler=_compare_local_binaries)
 
     compare_parser: argparse.ArgumentParser = subparsers.add_parser(
         "compare", help="核对矩阵清单及跨标准公共注册规则。"
     )
     compare_parser.add_argument("--manifest-dir", type=Path, required=True)
+    compare_parser.add_argument(
+        "--suite",
+        dest="suites",
+        action="append",
+        help="仅比较指定套件中的注册项，可重复指定精确套件名。",
+    )
     compare_parser.add_argument(
         "--expected-group",
         dest="expected_groups",
@@ -528,6 +756,15 @@ def _build_parser() -> argparse.ArgumentParser:
         help="预期矩阵组，可重复指定，每次提供 compiler、platform、build_mode。",
     )
     compare_parser.set_defaults(handler=_compare_manifests)
+    compare_parser.add_argument(
+        "--standard-pair-group",
+        dest="standard_pair_groups",
+        action=_ExpectedGroupAction,
+        nargs=len(EXPECTED_GROUP_ARGUMENTS),
+        metavar=EXPECTED_GROUP_ARGUMENTS,
+        default=(),
+        help="采用 C++17/C++23 标准对的矩阵组，其余组要求 C++17/C++20/C++23。",
+    )
     return parser
 
 

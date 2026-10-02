@@ -946,60 +946,131 @@ namespace RandX
 			return false;
 		}
 
-		// ── A3 跨平台 OS 密码学熵源 ──
-		// 用 OS 密码学 API 填充 [buf, buf+n) 字节；成功返回 true，失败或不支持返回 false。
-		// 平台支持：Windows BCryptGenRandom、Linux getrandom、macOS SecRandomCopyBytes。
-		// 注：密码学安全组件在 OS 熵源不可用或失败时直接抛异常，绝不隐式降级至 std::random_device 或非安全源；
-		// getrandom 可能短读，内部循环直至填满；BCryptGenRandom/SecRandomCopyBytes 一次填满。
+		// OS 熵读取的原生状态与平台适配
+		enum class EntropyReadStatus
+		{
+			Progress,
+			Interrupted,
+			Failure
+		};
+
+		struct EntropyReadResult
+		{
+			EntropyReadStatus status;
+			std::size_t bytes;
+		};
+
+#	if defined(_WIN32) && __has_include(<bcrypt.h>)
+		[[nodiscard]]
+		inline EntropyReadResult ConvertWindowsEntropyResult(NTSTATUS status, std::size_t requestedBytes) noexcept
+		{
+#		if defined(BCRYPT_SUCCESS)
+			return BCRYPT_SUCCESS(status)
+				? EntropyReadResult{EntropyReadStatus::Progress, requestedBytes}
+				: EntropyReadResult{EntropyReadStatus::Failure, 0};
+#		else
+			return static_cast<NTSTATUS>(status) >= 0
+				? EntropyReadResult{EntropyReadStatus::Progress, requestedBytes}
+				: EntropyReadResult{EntropyReadStatus::Failure, 0};
+#		endif
+		}
+#	elif defined(__linux__) && __has_include(<sys/random.h>)
+		[[nodiscard]]
+		inline EntropyReadResult ConvertLinuxEntropyResult(ssize_t result, int error) noexcept
+		{
+			if (result > 0)
+				return {EntropyReadStatus::Progress, static_cast<std::size_t>(result)};
+			if (result < 0 && error == EINTR)
+				return {EntropyReadStatus::Interrupted, 0};
+			return {EntropyReadStatus::Failure, 0};
+		}
+#	elif defined(__APPLE__) && __has_include(<Security/Security.h>)
+		[[nodiscard]]
+		inline EntropyReadResult ConvertAppleEntropyResult(int status, std::size_t requestedBytes) noexcept
+		{
+			return status == errSecSuccess
+				? EntropyReadResult{EntropyReadStatus::Progress, requestedBytes}
+				: EntropyReadResult{EntropyReadStatus::Failure, 0};
+		}
+#	endif
+
+		struct NativeOsEntropyReader
+		{
+			[[nodiscard]]
+			std::size_t maxRequestSize() const noexcept
+			{
+#	if defined(_WIN32) && __has_include(<bcrypt.h>)
+				return static_cast<std::size_t>((std::numeric_limits<ULONG>::max)());
+#	elif defined(__linux__) && __has_include(<sys/random.h>)
+				return static_cast<std::size_t>((std::numeric_limits<ssize_t>::max)());
+#	else
+				return (std::numeric_limits<std::size_t>::max)();
+#	endif
+			}
+
+			[[nodiscard]]
+			EntropyReadResult read(std::uint8_t* buffer, std::size_t length) noexcept
+			{
+#	if defined(_WIN32) && __has_include(<bcrypt.h>)
+				const ULONG requestSize = static_cast<ULONG>(length);
+				const NTSTATUS status = ::BCryptGenRandom(
+					nullptr, buffer, requestSize, BCRYPT_USE_SYSTEM_PREFERRED_RNG);
+				return ConvertWindowsEntropyResult(status, length);
+#	elif defined(__linux__) && __has_include(<sys/random.h>)
+				const ssize_t result = ::getrandom(buffer, length, 0);
+				const int error = result < 0 ? errno : 0;
+				return ConvertLinuxEntropyResult(result, error);
+#	elif defined(__APPLE__) && __has_include(<Security/Security.h>)
+				const int status = ::SecRandomCopyBytes(kSecRandomDefault, length, buffer);
+				return ConvertAppleEntropyResult(status, length);
+#	else
+				(void)buffer;
+				(void)length;
+				return {EntropyReadStatus::Failure, 0};
+#	endif
+			}
+		};
+
+#	if defined(RANDX_ENABLE_ENTROPY_TEST_HOOKS)
+		struct EntropyTestHook
+		{
+			bool (*fill)(void* context, void* buffer, std::size_t length) noexcept;
+			void* context;
+		};
+
+		inline thread_local EntropyTestHook entropyTestHook{};
+#	endif
+
+		template <class Reader>
+		[[nodiscard]]
+		inline bool FillOsEntropy(Reader& reader, void* buffer, std::size_t length) noexcept
+		{
+			if (length == 0) return true;
+
+			auto* destination = static_cast<std::uint8_t*>(buffer);
+			std::size_t filled = 0;
+			while (filled < length)
+			{
+				const std::size_t requestSize = (std::min)(length - filled, reader.maxRequestSize());
+				const EntropyReadResult result = reader.read(destination + filled, requestSize);
+				if (result.status == EntropyReadStatus::Failure) return false;
+				if (result.status == EntropyReadStatus::Interrupted) continue;
+				filled += result.bytes;
+			}
+			return true;
+		}
+
+		// 使用原生 OS reader 完整填充请求缓冲区
 		[[nodiscard]]
 		inline bool GetOsEntropyBytes(void* buf, std::size_t n) noexcept
 		{
 			if (n == 0) return true;
-			auto* p = static_cast<std::uint8_t*>(buf);
-
-#	if defined(_WIN32) && __has_include(<bcrypt.h>)
-			// Windows: BCryptGenRandom（分块处理 >4GB 时的 ULONG 截断）
-			// NTSTATUS >= 0 即 NT_SUCCESS（使用 BCRYPT_SUCCESS 宏或强转 NTSTATUS 判定）
-			std::size_t filled = 0;
-			while (filled < n)
-			{
-				const ULONG chunkSize = static_cast<ULONG>((std::min)(n - filled, static_cast<std::size_t>((std::numeric_limits<ULONG>::max)())));
-				const auto status = ::BCryptGenRandom(nullptr, p + filled, chunkSize, BCRYPT_USE_SYSTEM_PREFERRED_RNG);
-#	if defined(BCRYPT_SUCCESS)
-				if (!BCRYPT_SUCCESS(status)) return false;
-#	else
-				if (static_cast<NTSTATUS>(status) < 0) return false;
+#	if defined(RANDX_ENABLE_ENTROPY_TEST_HOOKS)
+			if (entropyTestHook.fill != nullptr)
+				return entropyTestHook.fill(entropyTestHook.context, buf, n);
 #	endif
-				filled += chunkSize;
-			}
-			return true;
-
-#	elif defined(__linux__) && __has_include(<sys/random.h>)
-			// Linux: getrandom（循环处理短读与 EINTR）
-			std::size_t filled = 0;
-			while (filled < n)
-			{
-				const ssize_t ret = ::getrandom(p + filled, n - filled, 0);
-				if (ret < 0)
-				{
-					if (errno == EINTR) continue;  // 被信号打断，重试
-					return false;                   // ENOSYS/EFAULT 等不可恢复错误
-				}
-				if (ret == 0) return false;
-				filled += static_cast<std::size_t>(ret);
-			}
-			return true;
-
-#	elif defined(__APPLE__) && __has_include(<Security/Security.h>)
-			// macOS: SecRandomCopyBytes（一次调用填满）
-			return (::SecRandomCopyBytes(kSecRandomDefault, n, p) == errSecSuccess);
-
-#	else
-			// 无可用 OS 密码学熵源 → 返回 false，SecureRandomBytes 将抛出异常
-			// 非安全场景的播种请使用 RandomSeed()（含 random_device → 时间戳回退链）
-			(void)p; (void)n;
-			return false;
-#	endif
+			NativeOsEntropyReader reader;
+			return FillOsEntropy(reader, buf, n);
 		}
 
 		// 编译期特性检测：检测目标平台与编译器环境是否支持 OS 密码学熵源 API
@@ -1550,36 +1621,74 @@ namespace RandX
 	//	便捷工具函数
 	//
 
+	namespace detail
+	{
+		struct NativeRandomSeedSources
+		{
+			[[nodiscard]]
+			bool TryHardware(std::uint64_t& out) noexcept
+			{
+				return HardwareRand64(out);
+			}
+
+			[[nodiscard]]
+			bool TryOs(std::uint64_t& out) noexcept
+			{
+				return GetOsEntropyBytes(&out, sizeof(out));
+			}
+
+			[[nodiscard]]
+			std::uint64_t ReadRandomDevice()
+			{
+				std::random_device rd;
+				constexpr int wordBits = std::numeric_limits<std::uint32_t>::digits;
+				return (static_cast<std::uint64_t>(rd()) << wordBits) | rd();
+			}
+
+			[[nodiscard]]
+			std::uint64_t Fallback() noexcept
+			{
+				const auto t1 = std::chrono::high_resolution_clock::now().time_since_epoch().count();
+				const auto t2 = std::chrono::steady_clock::now().time_since_epoch().count();
+				const auto threadId = std::hash<std::thread::id>{}(std::this_thread::get_id());
+				static std::atomic<std::uint64_t> counter{0};
+				std::uint64_t stackVar = 0;
+				const std::uint64_t addr = static_cast<std::uint64_t>(reinterpret_cast<std::uintptr_t>(&stackVar));
+
+				const std::uint64_t rawSeed = static_cast<std::uint64_t>(t1) ^ static_cast<std::uint64_t>(t2)
+				                              ^ threadId ^ addr ^ counter.fetch_add(1, std::memory_order_relaxed);
+				SplitMix64 sm{ rawSeed };
+				return sm();
+			}
+		};
+
+		template <class Sources>
+		[[nodiscard]]
+		inline std::uint64_t RandomSeedWithSources(Sources& sources)
+		{
+			std::uint64_t seed;
+			if (sources.TryHardware(seed))
+				return seed;
+			if (sources.TryOs(seed))
+				return seed;
+			try
+			{
+				return sources.ReadRandomDevice();
+			}
+			catch (...)
+			{
+				return sources.Fallback();
+			}
+		}
+	}
+
 	// 生成非确定性的 64 位种子（优先硬件 RNG，用于统计 PRNG 播种）
 	// 优先级链：RDRAND (x86_64) → detail::GetOsEntropyBytes → std::random_device → 时间戳回退
 	[[nodiscard]]
 	inline std::uint64_t RandomSeed()
 	{
-		std::uint64_t hw;
-		if (detail::HardwareRand64(hw))
-			return hw;
-		if (detail::GetOsEntropyBytes(&hw, sizeof(hw)))
-			return hw;
-		try
-		{
-			std::random_device rd;
-			return (static_cast<std::uint64_t>(rd()) << 32) | rd();
-		}
-		catch (...)
-		{
-			// 最终兜底：多维熵源（非密码学，仅保证 RandomSeed 永不抛异常，且防止 MSVC 15.6ms 时钟窗口下并发种子碰撞）
-			const auto t1 = std::chrono::high_resolution_clock::now().time_since_epoch().count();
-			const auto t2 = std::chrono::steady_clock::now().time_since_epoch().count();
-			const auto threadId = std::hash<std::thread::id>{}(std::this_thread::get_id());
-			static std::atomic<std::uint64_t> counter{0};
-			std::uint64_t stackVar = 0;
-			const std::uint64_t addr = static_cast<std::uint64_t>(reinterpret_cast<std::uintptr_t>(&stackVar));
-
-			const std::uint64_t rawSeed = static_cast<std::uint64_t>(t1) ^ static_cast<std::uint64_t>(t2)
-			                              ^ threadId ^ addr ^ counter.fetch_add(1, std::memory_order_relaxed);
-			SplitMix64 sm{ rawSeed };
-			return sm();
-		}
+		detail::NativeRandomSeedSources sources;
+		return detail::RandomSeedWithSources(sources);
 	}
 
 	/// @brief 获取当前线程专属的默认伪随机数生成引擎

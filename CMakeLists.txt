@@ -134,10 +134,50 @@ if(RANDX_BUILD_TESTS)
     target_link_libraries(test_randx_cpp17 PRIVATE RandX_Cpp17)
     add_test(NAME test_randx_cpp17 COMMAND test_randx_cpp17)
 
+    find_package(Threads REQUIRED)
+
+    # 故障注入目标在所有翻译单元中统一启用私有熵 hook。
+    add_executable(
+        test_entropy_cpp17
+        tests/entropy/test_entropy_cpp17.cpp
+        tests/entropy/entropy_cross_translation_unit.cpp
+    )
+    set_target_properties(test_entropy_cpp17 PROPERTIES
+        CXX_STANDARD 17
+        CXX_STANDARD_REQUIRED ON
+        CXX_EXTENSIONS OFF
+    )
+    target_compile_features(test_entropy_cpp17 PRIVATE cxx_std_17)
+    target_include_directories(test_entropy_cpp17 PRIVATE ${DOCTEST_INCLUDE_DIR})
+    target_compile_definitions(test_entropy_cpp17 PRIVATE
+        RANDX_ENABLE_ENTROPY_TEST_HOOKS
+        RANDX_ENTROPY_TEST_CPP17
+    )
+    target_link_libraries(test_entropy_cpp17 PRIVATE RandX_Cpp17 Threads::Threads)
+    add_test(NAME test_entropy_cpp17 COMMAND test_entropy_cpp17)
+
+    add_executable(
+        test_entropy_cpp23
+        tests/entropy/test_entropy_cpp23.cpp
+        tests/entropy/entropy_cross_translation_unit.cpp
+    )
+    set_target_properties(test_entropy_cpp23 PROPERTIES
+        CXX_STANDARD 23
+        CXX_STANDARD_REQUIRED ON
+        CXX_EXTENSIONS OFF
+    )
+    target_compile_features(test_entropy_cpp23 PRIVATE cxx_std_23)
+    target_include_directories(test_entropy_cpp23 PRIVATE ${DOCTEST_INCLUDE_DIR})
+    target_compile_definitions(test_entropy_cpp23 PRIVATE RANDX_ENABLE_ENTROPY_TEST_HOOKS)
+    target_link_libraries(test_entropy_cpp23 PRIVATE RandX_Cpp23 Threads::Threads)
+    add_test(NAME test_entropy_cpp23 COMMAND test_entropy_cpp23)
+
     # 套件名采用 UTF-8，供注册清单工具跨平台读取。
     if(MSVC)
         target_compile_options(test_randx PRIVATE /utf-8)
         target_compile_options(test_randx_cpp17 PRIVATE /utf-8)
+        target_compile_options(test_entropy_cpp17 PRIVATE /utf-8)
+        target_compile_options(test_entropy_cpp23 PRIVATE /utf-8)
     endif()
 
     # 固定 doctest 用例排序种子，仅用于重排测试，不用于 RandX 引擎播种。
@@ -149,6 +189,14 @@ if(RANDX_BUILD_TESTS)
     add_test(
         NAME test_randx_cpp17_randomized_order
         COMMAND test_randx_cpp17 --order-by=rand --rand-seed=${RANDX_DOCTEST_ORDER_SEED}
+    )
+    add_test(
+        NAME test_entropy_cpp17_randomized_order
+        COMMAND test_entropy_cpp17 --order-by=rand --rand-seed=${RANDX_DOCTEST_ORDER_SEED}
+    )
+    add_test(
+        NAME test_entropy_cpp23_randomized_order
+        COMMAND test_entropy_cpp23 --order-by=rand --rand-seed=${RANDX_DOCTEST_ORDER_SEED}
     )
 
     # Python 标准库工具直接检查现有两个目标，不额外构建注册清单程序。
@@ -162,6 +210,16 @@ if(RANDX_BUILD_TESTS)
                     --cpp17-binary "$<TARGET_FILE:test_randx_cpp17>"
                     --cpp23-binary "$<TARGET_FILE:test_randx>"
         )
+        add_test(
+            NAME test_entropy_contract_registry
+            COMMAND "${Python3_EXECUTABLE}"
+                    "${CMAKE_CURRENT_SOURCE_DIR}/tools/check_test_contracts.py"
+                    compare-binaries
+                    --cpp17-binary "$<TARGET_FILE:test_entropy_cpp17>"
+                    --cpp23-binary "$<TARGET_FILE:test_entropy_cpp23>"
+                    --suite "公共/基础/安全熵源故障"
+                    --suite "内部/熵源"
+        )
     endif()
 
     if(RANDX_ENABLE_COVERAGE AND (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang"))
@@ -169,6 +227,10 @@ if(RANDX_BUILD_TESTS)
         target_link_options(test_randx PRIVATE --coverage)
         target_compile_options(test_randx_cpp17 PRIVATE --coverage -O0 -g)
         target_link_options(test_randx_cpp17 PRIVATE --coverage)
+        target_compile_options(test_entropy_cpp17 PRIVATE --coverage -O0 -g)
+        target_link_options(test_entropy_cpp17 PRIVATE --coverage)
+        target_compile_options(test_entropy_cpp23 PRIVATE --coverage -O0 -g)
+        target_link_options(test_entropy_cpp23 PRIVATE --coverage)
     endif()
 endif()
 

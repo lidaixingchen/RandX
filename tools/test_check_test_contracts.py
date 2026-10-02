@@ -10,17 +10,25 @@ import unittest
 from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from unittest.mock import patch
+from xml.etree import ElementTree
 
 from check_test_contracts import (
     ContractError,
     TestManifest,
     _manifest_from_collected,
+    _validate_pair,
     _validate_matrix,
     _write_manifest,
     main,
     parse_doctest_xml,
+    validate_doctest_execution,
     validate_manifest,
 )
+
+SINGLE_REGISTRATION: int = 1
+DUPLICATE_REGISTRATION_COUNT: int = 2
+ENTROPY_SUITES: tuple[str, str] = ("公共/基础/安全熵源故障", "内部/熵源")
 
 
 class ParseDoctestXmlTests(unittest.TestCase):
@@ -39,6 +47,132 @@ class ParseDoctestXmlTests(unittest.TestCase):
     def test_rejects_output_without_valid_xml(self) -> None:
         with self.assertRaises(ContractError):
             parse_doctest_xml("no doctest output")
+
+
+class DoctestExecutionTests(unittest.TestCase):
+    TEST_CASES: tuple[str, str] = ("entropy read succeeds", "seed succeeds")
+
+    @staticmethod
+    def _case_xml(name: str, *, skipped: bool = False, success: bool = True) -> str:
+        if skipped:
+            return f'<TestCase name="{name}" skipped="true"/>'
+        result: str = "true" if success else "false"
+        failures: int = 0 if success else 1
+        return (
+            f'<TestCase name="{name}"><OverallResultsAsserts '
+            f'successes="1" failures="{failures}" test_case_success="{result}"'
+            "/></TestCase>"
+        )
+
+    @classmethod
+    def _xml(cls, cases: str) -> str:
+        test_cases: ElementTree.Element = ElementTree.fromstring(f"<root>{cases}</root>")
+        executed_results: list[ElementTree.Element] = [
+            result
+            for test_case in test_cases.iter("TestCase")
+            for result in test_case.findall("OverallResultsAsserts")
+        ]
+        failures: int = sum(
+            result.get("test_case_success", "").lower() != "true"
+            for result in executed_results
+        )
+        successes: int = len(executed_results) - failures
+        return (
+            "<doctest><TestSuite>"
+            f"{cases}"
+            f"</TestSuite><OverallResultsTestCases successes=\"{successes}\" "
+            f"failures=\"{failures}\""
+            " skipped=\"0\"/></doctest>"
+        )
+
+    def _run_cli(
+        self, output: str, returncode: int, test_cases: tuple[str, ...] | None = None
+    ) -> tuple[int, subprocess.CompletedProcess[str], str]:
+        selected_cases: tuple[str, ...] = test_cases or self.TEST_CASES
+        with TemporaryDirectory() as temporary_directory:
+            binary: Path = Path(temporary_directory) / "doctest-binary"
+            binary.touch()
+            arguments: list[str] = ["run-selected", "--binary", str(binary)]
+            for case in selected_cases:
+                arguments.extend(("--test-case", case))
+            result: subprocess.CompletedProcess[str] = subprocess.CompletedProcess(
+                args=[], returncode=returncode, stdout=output, stderr=""
+            )
+            with patch("check_test_contracts.subprocess.run", return_value=result) as run:
+                error_output: io.StringIO = io.StringIO()
+                with redirect_stdout(io.StringIO()):
+                    with redirect_stderr(error_output):
+                        status: int = main(arguments)
+            self.assertEqual(run.call_count, 1)
+            command: list[str] = run.call_args.args[0]
+            filter_arguments: list[str] = [
+                argument for argument in command if argument.startswith("--test-case=")
+            ]
+            expected_filter: str = ",".join(
+                case.replace("\\", "\\\\").replace(",", "\\,")
+                for case in selected_cases
+            )
+            self.assertEqual(filter_arguments, [f"--test-case={expected_filter}"])
+            return status, result, error_output.getvalue()
+
+    def test_run_selected_accepts_each_requested_case_once_and_successful(self) -> None:
+        output: str = self._xml(
+            self._case_xml(self.TEST_CASES[0]) + self._case_xml(self.TEST_CASES[1])
+        )
+        status, _, error = self._run_cli(output, 0)
+        self.assertEqual(status, 0)
+        self.assertEqual(error, "")
+
+    def test_run_selected_rejects_zero_matches_even_when_doctest_succeeds(self) -> None:
+        output: str = self._xml(
+            self._case_xml(self.TEST_CASES[0], skipped=True)
+            + self._case_xml(self.TEST_CASES[1], skipped=True)
+        )
+        status, _, error = self._run_cli(output, 0)
+        self.assertEqual(status, 1)
+        self.assertIn("未执行指定用例", error)
+
+    def test_run_selected_rejects_a_missing_requested_case(self) -> None:
+        output: str = self._xml(
+            self._case_xml(self.TEST_CASES[0])
+            + self._case_xml(self.TEST_CASES[1], skipped=True)
+        )
+        status, _, error = self._run_cli(output, 0)
+        self.assertEqual(status, 1)
+        self.assertIn(self.TEST_CASES[1], error)
+
+    def test_run_selected_rejects_a_case_executed_more_than_once(self) -> None:
+        output: str = self._xml(
+            self._case_xml(self.TEST_CASES[0])
+            + self._case_xml(self.TEST_CASES[0])
+            + self._case_xml(self.TEST_CASES[1])
+        )
+        status, _, error = self._run_cli(output, 0)
+        self.assertEqual(status, 1)
+        self.assertIn("执行次数不为一次", error)
+
+    def test_run_selected_rejects_a_real_case_failure(self) -> None:
+        output: str = self._xml(
+            self._case_xml(self.TEST_CASES[0], success=False)
+            + self._case_xml(self.TEST_CASES[1])
+        )
+        status, _, error = self._run_cli(output, 1)
+        self.assertEqual(status, 1)
+        self.assertIn("用例失败", error)
+
+    def test_rejects_duplicate_requested_case_names(self) -> None:
+        output: str = self._xml(self._case_xml(self.TEST_CASES[0]))
+        with self.assertRaisesRegex(ContractError, "不能重复"):
+            validate_doctest_execution(output, (self.TEST_CASES[0], self.TEST_CASES[0]), 0)
+
+    def test_escapes_doctest_filter_separators_in_case_names(self) -> None:
+        selected_cases: tuple[str, str] = ("first,case", "second\\case")
+        output: str = self._xml(
+            self._case_xml(selected_cases[0]) + self._case_xml(selected_cases[1])
+        )
+        status, _, error = self._run_cli(output, 0, selected_cases)
+        self.assertEqual(status, 0)
+        self.assertEqual(error, "")
 
 
 class ManifestValidationTests(unittest.TestCase):
@@ -207,6 +341,87 @@ class MatrixComparisonTests(unittest.TestCase):
         with self.assertRaisesRegex(ContractError, "char8_t.*公共注册清单为空"):
             _validate_matrix(manifests)
 
+    def test_suite_mode_rejects_internal_omission_when_public_entries_match(self) -> None:
+        public: dict[tuple[str, str], int] = {("公共/基础/引擎", "KAT"): SINGLE_REGISTRATION}
+        common_entropy: dict[tuple[str, str], int] = {
+            (ENTROPY_SUITES[0], "安全字节失败传播"): SINGLE_REGISTRATION
+        }
+        internal_entropy: dict[tuple[str, str], int] = {
+            (ENTROPY_SUITES[1], "填充读取错误传播"): SINGLE_REGISTRATION
+        }
+        compat: TestManifest = self._manifest(
+            "c++17", "cpp17", {**public, **common_entropy, **internal_entropy}
+        )
+        main: TestManifest = self._manifest(
+            "c++23", "cpp23", {**public, **common_entropy}
+        )
+
+        with self.assertRaisesRegex(ContractError, r"c\+\+23.*缺少指定套件"):
+            _validate_pair(compat, main, "c++17", "c++23", False, suites=ENTROPY_SUITES)
+
+    def test_suite_mode_reports_suite_missing_from_both_manifests(self) -> None:
+        registrations: dict[tuple[str, str], int] = {
+            (ENTROPY_SUITES[0], "安全字节失败传播"): SINGLE_REGISTRATION
+        }
+        compat: TestManifest = self._manifest("c++17", "cpp17", registrations)
+        main: TestManifest = self._manifest("c++23", "cpp23", registrations)
+
+        with self.assertRaisesRegex(ContractError, r"c\+\+17.*缺少指定套件.*c\+\+23.*缺少指定套件"):
+            _validate_pair(compat, main, "c++17", "c++23", False, suites=ENTROPY_SUITES)
+
+    def test_suite_mode_rejects_duplicate_internal_registration(self) -> None:
+        registrations: dict[tuple[str, str], int] = {
+            (ENTROPY_SUITES[0], "安全字节失败传播"): SINGLE_REGISTRATION,
+            (ENTROPY_SUITES[1], "填充读取错误传播"): DUPLICATE_REGISTRATION_COUNT,
+        }
+        compat: TestManifest = self._manifest("c++17", "cpp17", registrations)
+        main: TestManifest = self._manifest("c++23", "cpp23", registrations)
+
+        with self.assertRaisesRegex(ContractError, "恰好注册一次"):
+            _validate_pair(compat, main, "c++17", "c++23", False, suites=ENTROPY_SUITES)
+
+    def test_suite_mode_accepts_complete_equal_suites_without_public_cases(self) -> None:
+        registrations: dict[tuple[str, str], int] = {
+            (ENTROPY_SUITES[0], "安全字节失败传播"): SINGLE_REGISTRATION,
+            (ENTROPY_SUITES[1], "填充读取错误传播"): SINGLE_REGISTRATION,
+        }
+        manifests: list[TestManifest] = [
+            self._manifest("c++17", "cpp17", registrations),
+            self._manifest("c++20", "cpp17", registrations),
+            self._manifest("c++23", "cpp23", registrations),
+        ]
+
+        _validate_matrix(manifests, suites=ENTROPY_SUITES)
+
+    def test_suite_matrix_requires_cpp20_unless_standard_pair_is_declared(self) -> None:
+        registrations: dict[tuple[str, str], int] = {
+            (suite, "熵源契约"): SINGLE_REGISTRATION for suite in ENTROPY_SUITES
+        }
+        manifests: list[TestManifest] = [
+            self._manifest("c++17", "cpp17", registrations),
+            self._manifest("c++23", "cpp23", registrations),
+        ]
+        with self.assertRaisesRegex(ContractError, r"缺少矩阵清单.*c\+\+20"):
+            _validate_matrix(manifests, suites=ENTROPY_SUITES)
+        _validate_matrix(
+            manifests, suites=ENTROPY_SUITES,
+            standard_pair_groups=[("gcc-14", "ubuntu-24.04", "debug")],
+        )
+
+    def test_suite_matrix_rejects_shared_omission_in_another_compiler_group(self) -> None:
+        complete: dict[tuple[str, str], int] = {
+            (suite, "熵源契约"): SINGLE_REGISTRATION for suite in ENTROPY_SUITES
+        }
+        complete[(ENTROPY_SUITES[1], "读取进度")] = SINGLE_REGISTRATION
+        omitted = {key: count for key, count in complete.items() if key[1] != "读取进度"}
+        manifests: list[TestManifest] = [
+            self._manifest(standard, variant, registrations, compiler=compiler)
+            for compiler, registrations in (("gcc-14", complete), ("clang-18", omitted))
+            for standard, variant in (("c++17", "cpp17"), ("c++20", "cpp17"), ("c++23", "cpp23"))
+        ]
+        with self.assertRaisesRegex(ContractError, "指定套件矩阵注册清单不一致"):
+            _validate_matrix(manifests, suites=ENTROPY_SUITES)
+
     @staticmethod
     def _manifest(
         standard: str,
@@ -276,6 +491,58 @@ class MatrixComparisonTests(unittest.TestCase):
 
 
 class CompareCommandTests(unittest.TestCase):
+    def test_compare_binaries_accepts_repeated_suite_names(self) -> None:
+        registrations: dict[tuple[str, str], int] = {
+            (ENTROPY_SUITES[0], "安全字节失败传播"): SINGLE_REGISTRATION,
+            (ENTROPY_SUITES[1], "填充读取错误传播"): SINGLE_REGISTRATION,
+        }
+        arguments: list[str] = [
+            "compare-binaries",
+            "--cpp17-binary",
+            "entropy-cpp17",
+            "--cpp23-binary",
+            "entropy-cpp23",
+            "--suite",
+            ENTROPY_SUITES[0],
+            "--suite",
+            ENTROPY_SUITES[1],
+        ]
+        with patch(
+            "check_test_contracts.collect_registrations",
+            side_effect=[registrations, registrations],
+        ) as collect, redirect_stdout(io.StringIO()):
+            self.assertEqual(main(arguments), 0)
+        self.assertEqual(collect.call_count, 2)
+
+    def test_compare_command_accepts_suite_only_manifests(self) -> None:
+        registrations: dict[tuple[str, str], int] = {
+            (ENTROPY_SUITES[0], "安全字节失败传播"): SINGLE_REGISTRATION,
+            (ENTROPY_SUITES[1], "填充读取错误传播"): SINGLE_REGISTRATION,
+        }
+        with TemporaryDirectory() as temporary_directory:
+            manifest_dir: Path = Path(temporary_directory)
+            for standard, variant in (("c++17", "cpp17"), ("c++20", "cpp17"), ("c++23", "cpp23")):
+                metadata: dict[str, str] = {
+                    "compiler": "gcc-14",
+                    "platform": "ubuntu-24.04",
+                    "standard": standard,
+                    "build_mode": "debug",
+                    "variant": variant,
+                }
+                _write_manifest(manifest_dir / f"{standard}.json", metadata, registrations)
+
+            arguments: list[str] = [
+                "compare",
+                "--manifest-dir",
+                str(manifest_dir),
+                "--suite",
+                ENTROPY_SUITES[0],
+                "--suite",
+                ENTROPY_SUITES[1],
+            ]
+            with redirect_stdout(io.StringIO()):
+                self.assertEqual(main(arguments), 0)
+
     def test_repeated_expected_groups_reach_matrix_validation(self) -> None:
         registrations: dict[tuple[str, str], int] = {("公共/基础/引擎", "KAT"): 1}
         metadata_by_standard: list[dict[str, str]] = [

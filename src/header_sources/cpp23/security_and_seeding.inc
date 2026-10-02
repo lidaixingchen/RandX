@@ -3,6 +3,8 @@
 	//	便捷工具函数
 	//
 
+// @randx-include ../common/security/random_seed_sources.inc
+
 	/// @brief 生成非确定性的 64 位种子
 	/// @return 优先硬件 RNG 的种子值
 	/// @note 优先级链：RDRAND (x86_64) → detail::GetOsEntropyBytes → std::random_device → 时间戳回退
