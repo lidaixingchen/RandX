@@ -103,8 +103,12 @@ jobs:
           python3 -m unittest discover \
             -s tools/pract_rand/tests \
             -p 'test_*.py' -v
-      - name: Run contract registry checker unit tests
+      - name: Run doctest contract and execution checker unit tests
         run: python3 -m unittest discover -s tools -p 'test_check_test_contracts.py' -v
+      - name: Run production entropy preprocessor unit tests
+        run: python3 -m unittest discover -s tools -p 'test_check_entropy_preprocessor.py' -v
+      - name: Run entropy coverage report unit tests
+        run: python3 -m unittest discover -s tools -p 'test_inspect_entropy_coverage.py' -v
       - name: Run sampling comparison tool unit tests
         run: python3 -m unittest discover -s tools -p 'test_compare_sampling.py' -v
       - name: Run benchmark comparison unit tests
@@ -183,6 +187,32 @@ jobs:
             ./test_randx_cpp17 --order-by=rand --rand-seed="${RANDX_DOCTEST_ORDER_SEED}"
             ./test_randx_cpp17_release --order-by=rand --rand-seed="${RANDX_DOCTEST_ORDER_SEED}"
           fi
+      - name: Build and run entropy failure tests
+        run: |
+          mkdir -p entropy-build
+          if [[ "${{ matrix.std }}" == "c++23" ]]; then
+            entry="tests/entropy/test_entropy_cpp23.cpp"
+            variant="cpp23"
+            hook_flags=(-DRANDX_ENABLE_ENTROPY_TEST_HOOKS)
+          else
+            entry="tests/entropy/test_entropy_cpp17.cpp"
+            variant="cpp17"
+            hook_flags=(-DRANDX_ENABLE_ENTROPY_TEST_HOOKS -DRANDX_ENTROPY_TEST_CPP17)
+          fi
+          for build_mode in debug release; do
+            if [[ "$build_mode" == "debug" ]]; then
+              mode_flags=(-D_GLIBCXX_ASSERTIONS)
+            else
+              mode_flags=(-DNDEBUG)
+            fi
+            g++-14 -std='${{ matrix.std }}' -O2 "${mode_flags[@]}" -Wall -Wextra \
+              -I . -I third_party "${hook_flags[@]}" \
+              -o "entropy-build/test_entropy_${build_mode}" \
+              "$entry" tests/entropy/entropy_cross_translation_unit.cpp
+            "entropy-build/test_entropy_${build_mode}"
+            "entropy-build/test_entropy_${build_mode}" --order-by=rand \
+              --rand-seed="${RANDX_DOCTEST_ORDER_SEED}"
+          done
       - name: Compare sampling behavior against the source baseline
         run: |
           comparison_status=0
@@ -225,6 +255,25 @@ jobs:
             --binary "./${target}" --compiler gcc-14 --platform ubuntu-24.04 \
             --standard "${{ matrix.std }}" --build-mode release --variant "${variant}" \
             --output "contracts/gcc-${{ matrix.std }}-release-${variant}.json"
+      - name: Collect entropy failure manifests
+        run: |
+          mkdir -p entropy-contracts
+          if [[ "${{ matrix.std }}" == "c++23" ]]; then
+            variant="cpp23"
+          else
+            variant="cpp17"
+          fi
+          for build_mode in debug release; do
+            python3 tools/check_test_contracts.py collect \
+              --binary "entropy-build/test_entropy_${build_mode}" \
+              --compiler gcc-14 --platform ubuntu-24.04 \
+              --standard "${{ matrix.std }}" --build-mode "$build_mode" --variant "$variant" \
+              --output "entropy-contracts/gcc-${{ matrix.std }}-${build_mode}-${variant}.json"
+          done
+      - uses: actions/upload-artifact@v4
+        with:
+          name: entropy-contracts-gcc-${{ matrix.std }}
+          path: entropy-contracts/*.json
       - uses: actions/upload-artifact@v4
         with:
           name: test-contracts-gcc-${{ matrix.std }}
@@ -296,6 +345,32 @@ jobs:
             ./test_randx_cpp17 --order-by=rand --rand-seed="${RANDX_DOCTEST_ORDER_SEED}"
             ./test_randx_cpp17_release --order-by=rand --rand-seed="${RANDX_DOCTEST_ORDER_SEED}"
           fi
+      - name: Build and run entropy failure tests
+        run: |
+          mkdir -p entropy-build
+          if [[ "${{ matrix.std }}" == "c++23" ]]; then
+            entry="tests/entropy/test_entropy_cpp23.cpp"
+            variant="cpp23"
+            hook_flags=(-DRANDX_ENABLE_ENTROPY_TEST_HOOKS)
+          else
+            entry="tests/entropy/test_entropy_cpp17.cpp"
+            variant="cpp17"
+            hook_flags=(-DRANDX_ENABLE_ENTROPY_TEST_HOOKS -DRANDX_ENTROPY_TEST_CPP17)
+          fi
+          for build_mode in debug release; do
+            if [[ "$build_mode" == "debug" ]]; then
+              mode_flags=(-D_GLIBCXX_ASSERTIONS)
+            else
+              mode_flags=(-DNDEBUG)
+            fi
+            clang++-18 -std='${{ matrix.std }}' -O2 "${mode_flags[@]}" -Wall -Wextra \
+              -I . -I third_party "${hook_flags[@]}" \
+              -o "entropy-build/test_entropy_${build_mode}" \
+              "$entry" tests/entropy/entropy_cross_translation_unit.cpp
+            "entropy-build/test_entropy_${build_mode}"
+            "entropy-build/test_entropy_${build_mode}" --order-by=rand \
+              --rand-seed="${RANDX_DOCTEST_ORDER_SEED}"
+          done
       - name: Compare sampling behavior against the source baseline
         run: |
           comparison_status=0
@@ -338,6 +413,25 @@ jobs:
             --binary "./${target}" --compiler clang-18 --platform ubuntu-24.04 \
             --standard "${{ matrix.std }}" --build-mode release --variant "${variant}" \
             --output "contracts/clang-${{ matrix.std }}-release-${variant}.json"
+      - name: Collect entropy failure manifests
+        run: |
+          mkdir -p entropy-contracts
+          if [[ "${{ matrix.std }}" == "c++23" ]]; then
+            variant="cpp23"
+          else
+            variant="cpp17"
+          fi
+          for build_mode in debug release; do
+            python3 tools/check_test_contracts.py collect \
+              --binary "entropy-build/test_entropy_${build_mode}" \
+              --compiler clang-18 --platform ubuntu-24.04 \
+              --standard "${{ matrix.std }}" --build-mode "$build_mode" --variant "$variant" \
+              --output "entropy-contracts/clang-${{ matrix.std }}-${build_mode}-${variant}.json"
+          done
+      - uses: actions/upload-artifact@v4
+        with:
+          name: entropy-contracts-clang-${{ matrix.std }}
+          path: entropy-contracts/*.json
       - uses: actions/upload-artifact@v4
         with:
           name: test-contracts-clang-${{ matrix.std }}
@@ -428,6 +522,34 @@ jobs:
         run: |
           test_randx.exe --order-by=rand --rand-seed=%RANDX_DOCTEST_ORDER_SEED% || exit /b
           test_randx_release.exe --order-by=rand --rand-seed=%RANDX_DOCTEST_ORDER_SEED% || exit /b
+      - name: Build and run entropy failure tests
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path entropy-build | Out-Null
+          $standard = '${{ matrix.std }}'
+          if ($standard -eq 'c++23') {
+            $entry = 'tests/entropy/test_entropy_cpp23.cpp'
+            $variant = 'cpp23'
+            $standardFlag = '/std:c++23preview'
+            $hookFlags = @('/DRANDX_ENABLE_ENTROPY_TEST_HOOKS')
+          } else {
+            $entry = 'tests/entropy/test_entropy_cpp17.cpp'
+            $variant = 'cpp17'
+            $standardFlag = if ($standard -eq 'c++20') { '/std:c++20' } else { '/std:c++17' }
+            $hookFlags = @('/DRANDX_ENABLE_ENTROPY_TEST_HOOKS', '/DRANDX_ENTROPY_TEST_CPP17')
+          }
+          $sources = @($entry, 'tests/entropy/entropy_cross_translation_unit.cpp')
+          foreach ($buildMode in @('debug', 'release')) {
+            $optimizationFlags = if ($buildMode -eq 'debug') { @('/Od') } else { @('/O2', '/DNDEBUG') }
+            $binary = "entropy-build/test_entropy_${buildMode}.exe"
+            & cl $standardFlag /utf-8 /W4 /EHsc @optimizationFlags /I third_party /I . `
+              @hookFlags "/Fe:$binary" @sources
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+            & ".\$binary"
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+            & ".\$binary" --order-by=rand "--rand-seed=$env:RANDX_DOCTEST_ORDER_SEED"
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          }
       - name: Compare sampling behavior against the source baseline
         shell: pwsh
         run: |
@@ -470,6 +592,24 @@ jobs:
             python tools/check_test_contracts.py collect --binary $target --compiler msvc --platform windows-2025 --standard $standard --build-mode release --variant $variant --output "contracts/msvc-$standard-release-$variant.json"
             if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           }
+      - name: Collect entropy failure manifests
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path entropy-contracts | Out-Null
+          $standard = '${{ matrix.std }}'
+          if ($standard -eq 'c++23') { $variant = 'cpp23' } else { $variant = 'cpp17' }
+          foreach ($buildMode in @('debug', 'release')) {
+            $binary = "entropy-build/test_entropy_${buildMode}.exe"
+            python tools/check_test_contracts.py collect `
+              --binary $binary --compiler msvc --platform windows-2025 `
+              --standard $standard --build-mode $buildMode --variant $variant `
+              --output "entropy-contracts/msvc-$standard-$buildMode-$variant.json"
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: entropy-contracts-msvc-${{ matrix.std }}
+          path: entropy-contracts/*.json
       - uses: actions/upload-artifact@v4
         with:
           name: test-contracts-msvc-${{ matrix.std }}
@@ -480,6 +620,62 @@ jobs:
           name: sampling-comparison-msvc-${{ matrix.std }}
           path: sampling-comparisons/
           if-no-files-found: ignore
+
+  entropy-macos:
+    name: macOS entropy integration
+    needs: [header-generation-ubuntu, header-generation-windows]
+    runs-on: macos-15
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Check Apple Clang
+        run: clang++ --version
+      - name: Build and run entropy failure targets
+        run: |
+          mkdir -p entropy-build entropy-contracts
+          clang++ -std=c++17 -O2 -DNDEBUG -Wall -Wextra -I . -I third_party \
+            -DRANDX_ENABLE_ENTROPY_TEST_HOOKS -DRANDX_ENTROPY_TEST_CPP17 \
+            -o entropy-build/test_entropy_cpp17 \
+            tests/entropy/test_entropy_cpp17.cpp tests/entropy/entropy_cross_translation_unit.cpp \
+            -framework Security
+          ./entropy-build/test_entropy_cpp17
+          clang++ -std=c++23 -O2 -DNDEBUG -Wall -Wextra -I . -I third_party \
+            -DRANDX_ENABLE_ENTROPY_TEST_HOOKS \
+            -o entropy-build/test_entropy_cpp23 \
+            tests/entropy/test_entropy_cpp23.cpp tests/entropy/entropy_cross_translation_unit.cpp \
+            -framework Security
+          ./entropy-build/test_entropy_cpp23
+      - name: Collect independent entropy manifests
+        run: |
+          python3 tools/check_test_contracts.py collect \
+            --binary entropy-build/test_entropy_cpp17 --compiler apple-clang --platform macos-15 \
+            --standard c++17 --build-mode release --variant cpp17 \
+            --output entropy-contracts/macos-15-c++17-release-cpp17.json
+          python3 tools/check_test_contracts.py collect \
+            --binary entropy-build/test_entropy_cpp23 --compiler apple-clang --platform macos-15 \
+            --standard c++23 --build-mode release --variant cpp23 \
+            --output entropy-contracts/macos-15-c++23-release-cpp23.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: entropy-contracts-macos
+          path: entropy-contracts/*.json
+      - name: Build ordinary security tests with Security framework
+        run: |
+          clang++ -std=c++17 -O2 -DNDEBUG -Wall -Wextra -I . -I third_party \
+            -o test_randx_cpp17 test_randx_cpp17.cpp -framework Security
+          clang++ -std=c++23 -O2 -DNDEBUG -Wall -Wextra -I . -I third_party \
+            -o test_randx test_randx.cpp -framework Security
+      - name: Run selected real OS entropy tests
+        run: |
+          for binary in ./test_randx_cpp17 ./test_randx; do
+            python3 tools/check_test_contracts.py run-selected --binary "$binary" \
+              --test-case "SecureRandomBytes 填充缓冲区" \
+              --test-case "SecureSeed 返回不同值" \
+              --test-case "ChaCha20 默认构造成功初始化（OS 熵可用时）"
+          done
 
   # 跨标准序列一致性检查：同一生成器分别以 C++23（RandX.hpp）与
   # C++17（RandX_Cpp17.hpp）编译，固定种子输出各引擎与便捷 API 序列后逐字节比对，
@@ -550,37 +746,100 @@ jobs:
           tar -xzf "$RUNNER_TEMP/lcov-${RANDX_LCOV_VERSION}.tar.gz" -C "$RUNNER_TEMP"
           echo "$RUNNER_TEMP/lcov-${RANDX_LCOV_VERSION}/bin" >> "$GITHUB_PATH"
           "$RUNNER_TEMP/lcov-${RANDX_LCOV_VERSION}/bin/lcov" --version
-      - name: Build with coverage
+      - name: Verify production preprocessor configuration
         run: |
+          mkdir -p coverage-evidence
+          python3 tools/check_entropy_preprocessor.py \
+            --compiler g++-14 --standard c++17 --header RandX_Cpp17.hpp \
+            --output coverage-evidence/RandX-C++17.i
+          python3 tools/check_entropy_preprocessor.py \
+            --compiler g++-14 --standard c++20 --header RandX_Cpp17.hpp \
+            --output coverage-evidence/RandX-C++20.i
+          python3 tools/check_entropy_preprocessor.py \
+            --compiler g++-14 --standard c++23 --header RandX.hpp \
+            --output coverage-evidence/RandX-C++23.i
+      - name: Build production and fault coverage in separate directories
+        run: |
+          mkdir -p coverage-production coverage-entropy
           g++-14 -std=c++23 -O0 -g --coverage -I third_party \
-            -o test_randx test_randx.cpp
+            -o coverage-production/test_randx test_randx.cpp
           g++-14 -std=c++17 -O0 -g --coverage -I third_party \
-            -o test_randx_cpp17 test_randx_cpp17.cpp
-      - name: Run tests
+            -o coverage-production/test_randx_cpp17 test_randx_cpp17.cpp
+          g++-14 -std=c++23 -O0 -g --coverage -I . -I third_party \
+            -DRANDX_ENABLE_ENTROPY_TEST_HOOKS \
+            -o coverage-entropy/test_entropy_cpp23 \
+            tests/entropy/test_entropy_cpp23.cpp tests/entropy/entropy_cross_translation_unit.cpp
+          g++-14 -std=c++17 -O0 -g --coverage -I . -I third_party \
+            -DRANDX_ENABLE_ENTROPY_TEST_HOOKS -DRANDX_ENTROPY_TEST_CPP17 \
+            -o coverage-entropy/test_entropy_cpp17 \
+            tests/entropy/test_entropy_cpp17.cpp tests/entropy/entropy_cross_translation_unit.cpp
+      - name: Run production and fault coverage tests
         run: |
-          ./test_randx
-          ./test_randx_cpp17
-      - name: Generate coverage report
+          ./coverage-production/test_randx
+          ./coverage-production/test_randx_cpp17
+          ./coverage-entropy/test_entropy_cpp23
+          ./coverage-entropy/test_entropy_cpp17
+      - name: Generate independent coverage reports
         run: |
           # 使用 gcov-14 以匹配 g++-14 生成的 .gcda 格式（B43*），避免与系统 gcov-13（B33*）冲突
-          lcov --capture --directory . --output-file coverage.info --gcov-tool gcov-14 --branch-coverage \
+          lcov --capture --directory coverage-production \
+            --output-file coverage-production/coverage.info --gcov-tool gcov-14 --branch-coverage \
             --include "$PWD/RandX.hpp" --include "$PWD/RandX_Cpp17.hpp"
-          lcov --list coverage.info --branch-coverage
-          lcov --summary coverage.info --branch-coverage
+          lcov --list coverage-production/coverage.info --branch-coverage
+          lcov --summary coverage-production/coverage.info --branch-coverage
+          lcov --capture --directory coverage-entropy \
+            --output-file coverage-entropy/coverage.info --gcov-tool gcov-14 --branch-coverage \
+            --include "$PWD/RandX.hpp" --include "$PWD/RandX_Cpp17.hpp"
+          lcov --list coverage-entropy/coverage.info --branch-coverage
+          lcov --summary coverage-entropy/coverage.info --branch-coverage
+      - name: Report entropy branches and trace compatibility
+        shell: bash
+        run: |
+          set +e
+          python3 tools/inspect_entropy_coverage.py \
+            --production-report coverage-production/coverage.info \
+            --fault-report coverage-entropy/coverage.info \
+            --entropy-output coverage-entropy/entropy-branches.txt \
+            --compatibility-output coverage-evidence/coverage-compatibility.json
+          compatibility_status=$?
+          set -e
+          if [[ "$compatibility_status" -eq 0 ]]; then
+            lcov --add-tracefile coverage-production/coverage.info \
+              --add-tracefile coverage-entropy/coverage.info \
+              --output-file coverage-evidence/coverage-combined.info --branch-coverage
+            lcov --list coverage-evidence/coverage-combined.info --branch-coverage
+          elif [[ "$compatibility_status" -eq 3 ]]; then
+            echo "Coverage layouts differ; separate production and fault reports remain authoritative."
+          else
+            exit "$compatibility_status"
+          fi
       - name: Check coverage threshold
         run: |
-          COVERAGE=$(lcov --summary coverage.info --branch-coverage | grep -oP 'lines\.*:\s*\K[0-9.]+')
+          COVERAGE=$(lcov --summary coverage-production/coverage.info --branch-coverage | grep -oP 'lines\.*:\s*\K[0-9.]+')
           echo "Line coverage: ${COVERAGE}%"
           awk "BEGIN { exit !(${COVERAGE} >= 80) }" || (echo "Coverage ${COVERAGE}% < 80%" && exit 1)
-      - name: Upload coverage
+      - name: Upload production coverage
         uses: actions/upload-artifact@v4
         with:
-          name: coverage-report
-          path: coverage.info
+          name: coverage-production-report
+          path: coverage-production/coverage.info
+      - name: Upload entropy fault coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-entropy-fault-report
+          path: |
+            coverage-entropy/coverage.info
+            coverage-entropy/entropy-branches.txt
+      - name: Upload preprocessor and compatibility evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: entropy-coverage-evidence
+          path: coverage-evidence/
       - name: Upload to Codecov
         uses: codecov/codecov-action@b9fd7d16f6d7d1b5d2bec1a2887e65ceed900238  # v4
         with:
-          files: ./coverage.info
+          files: ./coverage-production/coverage.info
           fail_ci_if_error: false
 
   test-contracts:
@@ -605,3 +864,27 @@ jobs:
             --expected-group clang-18 ubuntu-24.04 release \
             --expected-group msvc windows-2025 debug \
             --expected-group msvc windows-2025 release
+
+  entropy-test-contracts:
+    needs: [gcc, clang, msvc, entropy-macos]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: entropy-contracts-*
+          path: entropy-contracts
+          merge-multiple: true
+      - name: Compare entropy suite manifests across platforms and standards
+        run: |
+          python3 tools/check_test_contracts.py compare --manifest-dir entropy-contracts \
+            --suite '公共/基础/安全熵源故障' --suite '内部/熵源' \
+            --expected-group gcc-14 ubuntu-24.04 debug \
+            --expected-group gcc-14 ubuntu-24.04 release \
+            --expected-group clang-18 ubuntu-24.04 debug \
+            --expected-group clang-18 ubuntu-24.04 release \
+            --expected-group msvc windows-2025 debug \
+            --expected-group msvc windows-2025 release \
+            --expected-group apple-clang macos-15 release \
+            --standard-pair-group apple-clang macos-15 release
