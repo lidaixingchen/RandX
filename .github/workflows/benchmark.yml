@@ -1,10 +1,5 @@
 name: Benchmark
 
-# 定位：性能回归门禁（gate）——基线对比失败即整个 job 失败，
-# 并自动创建 issue 通知维护者（参照 practrand-nightly.yml 的通知模式）。
-# paths 过滤与 ci.yml 的头文件/基准文件白名单保持一致（仅收录本 workflow
-# 实际构建的 benchmark_gbench.cpp，不含 ci.yml 独有的 benchmark.cpp 与测试文件），
-# 避免文档等无关改动触发运行。
 on:
   push:
     branches: [master]
@@ -17,10 +12,18 @@ on:
       - 'tools/generate_headers.py'
       - '.gitattributes'
       - 'tools/compare_benchmark.py'
+      - 'tools/test_compare_benchmark.py'
       - 'tools/merge_benchmark_repetitions.py'
       - 'tools/test_merge_benchmark_repetitions.py'
       - 'tools/confirm_sampling_benchmark.py'
       - 'tools/test_confirm_sampling_benchmark.py'
+      - 'tools/benchmark_policy.json'
+      - 'tools/benchmark_gate.py'
+      - 'tools/benchmark_actions.py'
+      - 'tools/run_benchmark_group.py'
+      - 'tools/test_benchmark_gate.py'
+      - 'tools/test_benchmark_actions.py'
+      - 'tools/test_run_benchmark_group.py'
       - '.github/workflows/benchmark.yml'
   pull_request:
     branches: [master]
@@ -33,10 +36,18 @@ on:
       - 'tools/generate_headers.py'
       - '.gitattributes'
       - 'tools/compare_benchmark.py'
+      - 'tools/test_compare_benchmark.py'
       - 'tools/merge_benchmark_repetitions.py'
       - 'tools/test_merge_benchmark_repetitions.py'
       - 'tools/confirm_sampling_benchmark.py'
       - 'tools/test_confirm_sampling_benchmark.py'
+      - 'tools/benchmark_policy.json'
+      - 'tools/benchmark_gate.py'
+      - 'tools/benchmark_actions.py'
+      - 'tools/run_benchmark_group.py'
+      - 'tools/test_benchmark_gate.py'
+      - 'tools/test_benchmark_actions.py'
+      - 'tools/test_run_benchmark_group.py'
       - '.github/workflows/benchmark.yml'
   workflow_dispatch:
     inputs:
@@ -48,318 +59,398 @@ on:
 
 permissions:
   contents: read
-  actions: write  # 下载基线需 read，上传新基线需 write
-  issues: write   # 回归失败时自动创建 issue
+  actions: write
+  issues: write
 
 concurrency:
   group: benchmark-${{ github.ref }}
   cancel-in-progress: true
 
-env:
-  RANDX_SAMPLING_INITIAL_BASELINE: 'e0ce50a6c0dd5e3b5158efb1cbe17a68bd93edec'
-  RANDX_SAMPLING_REPETITIONS: '5'
-  RANDX_SAMPLING_MIN_TIME: '0.1s'
-  RANDX_SAMPLING_CONFIRMATION_REPETITIONS: '6'
-  RANDX_SAMPLING_CONFIRMATION_MIN_TIME: '1s'
-  RANDX_SAMPLING_TOLERANCE: '0.25'
-
 jobs:
-  benchmark:
+  benchmark_plan:
+    name: Plan benchmark run
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    outputs:
+      plan_valid: ${{ steps.plan.outputs.plan_valid }}
+      mode: ${{ steps.plan.outputs.mode }}
+      baseline_name: ${{ steps.plan.outputs.baseline_name }}
+      candidate_commit: ${{ steps.plan.outputs.candidate_commit }}
+      baseline_commit: ${{ steps.plan.outputs.baseline_commit }}
+      sampling_commit: ${{ steps.plan.outputs.sampling_commit }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Capture benchmark context
+        id: context
+        if: always() && !cancelled()
+        env:
+          BENCHMARK_REPOSITORY: ${{ github.repository }}
+          BENCHMARK_REPOSITORY_ID: ${{ github.repository_id }}
+          BENCHMARK_EVENT: ${{ github.event_name }}
+          BENCHMARK_REF: ${{ github.ref }}
+          BENCHMARK_RUN_ID: ${{ github.run_id }}
+          BENCHMARK_RUN_ATTEMPT: ${{ github.run_attempt }}
+          BENCHMARK_HEAD_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
+          BENCHMARK_FORK_PR: ${{ github.event.pull_request.head.repo.fork || false }}
+          BENCHMARK_FORCE_UPDATE_BASELINE: ${{ inputs.force_update_baseline == true || inputs.force_update_baseline == 'true' }}
+          BENCHMARK_CANCELLED: 'false'
+        run: python -X utf8 tools/benchmark_actions.py context --output benchmark-context.json
+      - name: Query all baseline artifacts and runs
+        id: query
+        if: always() && !cancelled() && steps.context.outcome == 'success'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          python -X utf8 tools/benchmark_actions.py query
+          --policy tools/benchmark_policy.json
+          --context benchmark-context.json
+          --output baseline-query.json
+      - name: Create benchmark plan
+        id: plan
+        if: always() && !cancelled()
+        run: |
+          python -X utf8 tools/benchmark_gate.py plan \
+            --policy tools/benchmark_policy.json \
+            --context benchmark-context.json \
+            --query baseline-query.json \
+            --output benchmark-plan.json \
+            --github-output "$GITHUB_OUTPUT"
+          python -X utf8 tools/benchmark_actions.py plan-outputs \
+            --plan benchmark-plan.json --github-output "$GITHUB_OUTPUT"
+      - name: Upload benchmark plan
+        if: always() && !cancelled() && steps.plan.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-${{ github.run_id }}-${{ github.run_attempt }}-plan
+          path: |
+            benchmark-context.json
+            baseline-query.json
+            benchmark-plan.json
+          if-no-files-found: warn
+
+  measure_general:
+    name: Measure general benchmark
+    needs: benchmark_plan
+    if: needs.benchmark_plan.outputs.plan_valid == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
-
+        id: checkout_candidate
+        with:
+          ref: ${{ needs.benchmark_plan.outputs.candidate_commit }}
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-
-      - name: Check generated headers
-        run: python -X utf8 tools/generate_headers.py --check
-
-      - name: Check GCC 14
-        run: g++-14 --version
-
-      - name: Configure & Build
-        run: |
-          cmake -B build -DRANDX_BUILD_BENCHMARK=ON \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_CXX_COMPILER=g++-14 -DCMAKE_CXX_STANDARD=23
-          cmake --build build --target benchmark_gbench -j$(nproc)
-
-      - name: Run Benchmark
-        run: |
-          ./build/benchmark_gbench \
-            --benchmark_format=json \
-            --benchmark_out=result.json \
-            --benchmark_repetitions=5 \
-            --benchmark_report_aggregates_only=true
-
-      - name: Find Baseline Run
-        id: baseline-run
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          # 查询仓库历史上是否存在 benchmark-baseline artifact
-          TOTAL_COUNT=$(gh api "repos/${{ github.repository }}/actions/artifacts?name=benchmark-baseline" \
-            --jq '.total_count // 0')
-          echo "total-count=$TOTAL_COUNT" >> "$GITHUB_OUTPUT"
-
-          # 查询 master 分支最近一次有效（未过期）且非当前 run 的 baseline artifact 所在 run 和提交
-          BASELINE_JSON=$(gh api "repos/${{ github.repository }}/actions/artifacts?name=benchmark-baseline&per_page=30" \
-            --jq '[.artifacts[] | select(.expired == false and .workflow_run.head_branch == "master" and ((.workflow_run.id | tostring) != "${{ github.run_id }}"))] | sort_by(.created_at) | reverse | .[0] // {}')
-          RUN_ID=$(jq -r '.workflow_run.id // empty' <<< "$BASELINE_JSON")
-          BASELINE_SHA=$(jq -r '.workflow_run.head_sha // empty' <<< "$BASELINE_JSON")
-          echo "run-id=${RUN_ID:-}" >> "$GITHUB_OUTPUT"
-          echo "baseline-sha=${BASELINE_SHA:-}" >> "$GITHUB_OUTPUT"
-
-      - name: Check Baseline Availability
-        id: check-baseline
-        run: |
-          IS_FORCE="${{ inputs.force_update_baseline == true || inputs.force_update_baseline == 'true' }}"
-          TOTAL_COUNT="${{ steps.baseline-run.outputs.total-count }}"
-          RUN_ID="${{ steps.baseline-run.outputs.run-id }}"
-          BASELINE_SHA="${{ steps.baseline-run.outputs.baseline-sha }}"
-
-          if [ "$IS_FORCE" = "true" ]; then
-            echo "显式指定强制更新基线，跳过基线比较"
-            echo "skip-compare=true" >> "$GITHUB_OUTPUT"
-          elif [ -z "$RUN_ID" ] || [ -z "$BASELINE_SHA" ]; then
-            if [ "$TOTAL_COUNT" = "0" ]; then
-              echo "仓库首次运行，无历史基线记录，允许首次初始化基线"
-              echo "skip-compare=true" >> "$GITHUB_OUTPUT"
-            else
-              echo "::error::未找到可用的有效基线 artifact（可能已过期或查询失败，但仓库存在历史基线记录）。禁止静默跳过门禁！如需重建基线，请使用 workflow_dispatch 触发并勾选 force_update_baseline。"
-              exit 1
-            fi
-          else
-            echo "找到有效基线 Run ID: $RUN_ID"
-            echo "skip-compare=false" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Download Baseline
-        if: steps.check-baseline.outputs.skip-compare != 'true'
+      - name: Download benchmark plan
+        id: download_plan
         uses: actions/download-artifact@v4
         with:
-          name: benchmark-baseline
-          path: baseline-artifact
-          run-id: ${{ steps.baseline-run.outputs.run-id }}
-          github-token: ${{ github.token }}
-
-      - name: Verify Baseline File
-        if: steps.check-baseline.outputs.skip-compare != 'true'
-        run: |
-          if [ ! -f "baseline-artifact/result.json" ]; then
-            echo "::error::基线文件 baseline-artifact/result.json 下载后不存在或损坏！"
-            exit 1
-          fi
-
-      - name: Checkout Baseline Commit
-        if: steps.check-baseline.outputs.skip-compare != 'true'
+          name: benchmark-${{ github.run_id }}-${{ github.run_attempt }}-plan
+          path: plan_artifact
+      - name: Initialize group records
+        id: init_group
+        run: python -X utf8 tools/run_benchmark_group.py init --plan plan_artifact/benchmark-plan.json --group general
+      - name: Build candidate benchmark
+        id: build_candidate
+        run: python -X utf8 tools/run_benchmark_group.py build --plan plan_artifact/benchmark-plan.json --group general --variant candidate
+      - name: Enumerate candidate benchmark suite
+        id: enumerate_candidate
+        run: python -X utf8 tools/run_benchmark_group.py enumerate --plan plan_artifact/benchmark-plan.json --group general --variant candidate
+      - name: Measure candidate benchmark
+        id: measure_candidate
+        run: python -X utf8 tools/run_benchmark_group.py measure --plan plan_artifact/benchmark-plan.json --group general --variant candidate
+      - name: Checkout baseline commit
+        id: checkout_baseline
+        if: needs.benchmark_plan.outputs.mode == 'COMPARE'
         uses: actions/checkout@v4
         with:
-          ref: ${{ steps.baseline-run.outputs.baseline-sha }}
+          ref: ${{ needs.benchmark_plan.outputs.baseline_commit }}
           path: baseline-src
+      - name: Build baseline benchmark
+        id: build_baseline
+        if: needs.benchmark_plan.outputs.mode == 'COMPARE'
+        run: python -X utf8 tools/run_benchmark_group.py build --plan plan_artifact/benchmark-plan.json --group general --variant baseline
+      - name: Enumerate baseline benchmark suite
+        id: enumerate_baseline
+        if: needs.benchmark_plan.outputs.mode == 'COMPARE'
+        run: python -X utf8 tools/run_benchmark_group.py enumerate --plan plan_artifact/benchmark-plan.json --group general --variant baseline
+      - name: Measure baseline benchmark
+        id: measure_baseline
+        if: needs.benchmark_plan.outputs.mode == 'COMPARE'
+        run: python -X utf8 tools/run_benchmark_group.py measure --plan plan_artifact/benchmark-plan.json --group general --variant baseline
+      - name: Collect group metadata
+        if: always() && !cancelled()
+        env:
+          BENCHMARK_STEPS_JSON: ${{ toJSON(steps) }}
+        run: >-
+          python -X utf8 tools/benchmark_actions.py collect-group
+          --plan plan_artifact/benchmark-plan.json --group general
+          --groups-directory groups --steps-json "$BENCHMARK_STEPS_JSON"
+      - name: Upload general benchmark results and logs
+        if: always() && !cancelled()
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-${{ github.run_id }}-${{ github.run_attempt }}-general
+          path: groups/general/
+          if-no-files-found: warn
 
-      - name: Configure & Build Baseline
-        if: steps.check-baseline.outputs.skip-compare != 'true'
-        run: |
-          cmake -S baseline-src -B baseline-src/build -DRANDX_BUILD_BENCHMARK=ON \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_CXX_COMPILER=g++-14 -DCMAKE_CXX_STANDARD=23
-          cmake --build baseline-src/build --target benchmark_gbench -j$(nproc)
-
-      - name: Run Baseline Benchmark
-        id: baseline-benchmark
-        if: steps.check-baseline.outputs.skip-compare != 'true'
-        run: |
-          ./baseline-src/build/benchmark_gbench \
-            --benchmark_format=json \
-            --benchmark_out=same-machine-baseline.json \
-            --benchmark_repetitions=5 \
-            --benchmark_report_aggregates_only=true
-
-      - name: Checkout Sampling Baseline Headers
+  measure_sampling_cpp17:
+    name: Measure C++17 sampling benchmark
+    needs: benchmark_plan
+    if: needs.benchmark_plan.outputs.plan_valid == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        id: checkout_candidate
+        with:
+          ref: ${{ needs.benchmark_plan.outputs.candidate_commit }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Download benchmark plan
+        id: download_plan
+        uses: actions/download-artifact@v4
+        with:
+          name: benchmark-${{ github.run_id }}-${{ github.run_attempt }}-plan
+          path: plan_artifact
+      - name: Initialize group records
+        id: init_group
+        run: python -X utf8 tools/run_benchmark_group.py init --plan plan_artifact/benchmark-plan.json --group sampling_cpp17
+      - name: Build candidate C++17 sampling benchmark
+        id: build_candidate
+        run: python -X utf8 tools/run_benchmark_group.py build --plan plan_artifact/benchmark-plan.json --group sampling_cpp17 --variant candidate
+      - name: Enumerate candidate C++17 sampling suite
+        id: enumerate_candidate
+        run: python -X utf8 tools/run_benchmark_group.py enumerate --plan plan_artifact/benchmark-plan.json --group sampling_cpp17 --variant candidate
+      - name: Checkout sampling baseline headers
+        id: checkout_baseline
         uses: actions/checkout@v4
         with:
-          ref: ${{ steps.baseline-run.outputs.baseline-sha || env.RANDX_SAMPLING_INITIAL_BASELINE }}
+          ref: ${{ needs.benchmark_plan.outputs.sampling_commit }}
           path: sampling-baseline-src
-
-      - name: Configure & Build Same-Source Sampling Benchmarks
-        run: |
-          cmake -S . -B build_sampling_baseline \
-            -DRANDX_BUILD_BENCHMARK=ON \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_CXX_COMPILER=g++-14 -DCMAKE_CXX_STANDARD=23 \
-            -DFETCHCONTENT_BASE_DIR="${GITHUB_WORKSPACE}/build/_deps" \
-            -DRANDX_SAMPLING_HEADER_DIR="${GITHUB_WORKSPACE}/sampling-baseline-src"
-          cmake --build build_sampling_baseline \
-            --target benchmark_gbench_sampling_cpp17 benchmark_gbench_sampling_cpp23 -j$(nproc)
-
-          cmake -S . -B build_sampling_candidate \
-            -DRANDX_BUILD_BENCHMARK=ON \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_CXX_COMPILER=g++-14 -DCMAKE_CXX_STANDARD=23 \
-            -DFETCHCONTENT_BASE_DIR="${GITHUB_WORKSPACE}/build/_deps" \
-            -DRANDX_SAMPLING_HEADER_DIR="${GITHUB_WORKSPACE}"
-          cmake --build build_sampling_candidate \
-            --target benchmark_gbench_sampling_cpp17 benchmark_gbench_sampling_cpp23 -j$(nproc)
-
-      - name: Run Same-Source Sampling Benchmarks
-        id: sampling-runs
-        run: |
-          SAMPLING_CPU=$(python3 -c "import os; print(min(os.sched_getaffinity(0)))")
-          echo "cpu=$SAMPLING_CPU" >> "$GITHUB_OUTPUT"
-          mkdir -p sampling-rounds
-          for standard in cpp17 cpp23; do
-            for round in $(seq 1 "$RANDX_SAMPLING_REPETITIONS"); do
-              if (( round % 2 == 0 )); then
-                variants="candidate baseline"
-              else
-                variants="baseline candidate"
-              fi
-              for variant in $variants; do
-                taskset -c "$SAMPLING_CPU" "./build_sampling_${variant}/benchmark_gbench_sampling_${standard}" \
-                  --benchmark_format=json \
-                  --benchmark_out="sampling-rounds/${variant}-${standard}-${round}.json" \
-                  --benchmark_repetitions=1 \
-                  --benchmark_min_time="$RANDX_SAMPLING_MIN_TIME"
-              done
-            done
-            for variant in baseline candidate; do
-              python3 tools/merge_benchmark_repetitions.py \
-                sampling-rounds/"${variant}-${standard}-"*.json \
-                --output "sampling-${variant}-${standard}.json"
-            done
-            python3 tools/confirm_sampling_benchmark.py \
-              --baseline "sampling-baseline-${standard}.json" \
-              --candidate "sampling-candidate-${standard}.json" \
-              --baseline-binary "build_sampling_baseline/benchmark_gbench_sampling_${standard}" \
-              --candidate-binary "build_sampling_candidate/benchmark_gbench_sampling_${standard}" \
-              --output-dir "sampling-confirmation-${standard}" \
-              --repetitions "$RANDX_SAMPLING_CONFIRMATION_REPETITIONS" \
-              --min-time "$RANDX_SAMPLING_CONFIRMATION_MIN_TIME" \
-              --tolerance "$RANDX_SAMPLING_TOLERANCE" --cpu "$SAMPLING_CPU"
-          done
-
-      - name: Record Sampling Benchmark Environment
+      - name: Build baseline C++17 sampling benchmark
+        id: build_baseline
+        run: python -X utf8 tools/run_benchmark_group.py build --plan plan_artifact/benchmark-plan.json --group sampling_cpp17 --variant baseline
+      - name: Enumerate baseline C++17 sampling suite
+        id: enumerate_baseline
+        run: python -X utf8 tools/run_benchmark_group.py enumerate --plan plan_artifact/benchmark-plan.json --group sampling_cpp17 --variant baseline
+      - name: Measure alternating C++17 sampling rounds
+        id: measure_sampling_rounds
+        run: python -X utf8 tools/run_benchmark_group.py measure --plan plan_artifact/benchmark-plan.json --group sampling_cpp17
+      - name: Aggregate C++17 sampling rounds
+        id: aggregate
+        run: python -X utf8 tools/run_benchmark_group.py aggregate --plan plan_artifact/benchmark-plan.json --group sampling_cpp17
+      - name: Confirm C++17 sampling regressions
+        id: confirm
+        run: python -X utf8 tools/run_benchmark_group.py confirm --plan plan_artifact/benchmark-plan.json --group sampling_cpp17
+      - name: Collect group metadata
         if: always() && !cancelled()
+        env:
+          BENCHMARK_STEPS_JSON: ${{ toJSON(steps) }}
+        run: >-
+          python -X utf8 tools/benchmark_actions.py collect-group
+          --plan plan_artifact/benchmark-plan.json --group sampling_cpp17
+          --groups-directory groups --steps-json "$BENCHMARK_STEPS_JSON"
+      - name: Upload C++17 sampling results and logs
+        if: always() && !cancelled()
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-${{ github.run_id }}-${{ github.run_attempt }}-sampling_cpp17
+          path: groups/sampling_cpp17/
+          if-no-files-found: warn
+
+  measure_sampling_cpp23:
+    name: Measure C++23 sampling benchmark
+    needs: benchmark_plan
+    if: needs.benchmark_plan.outputs.plan_valid == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        id: checkout_candidate
+        with:
+          ref: ${{ needs.benchmark_plan.outputs.candidate_commit }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Download benchmark plan
+        id: download_plan
+        uses: actions/download-artifact@v4
+        with:
+          name: benchmark-${{ github.run_id }}-${{ github.run_attempt }}-plan
+          path: plan_artifact
+      - name: Initialize group records
+        id: init_group
+        run: python -X utf8 tools/run_benchmark_group.py init --plan plan_artifact/benchmark-plan.json --group sampling_cpp23
+      - name: Build candidate C++23 sampling benchmark
+        id: build_candidate
+        run: python -X utf8 tools/run_benchmark_group.py build --plan plan_artifact/benchmark-plan.json --group sampling_cpp23 --variant candidate
+      - name: Enumerate candidate C++23 sampling suite
+        id: enumerate_candidate
+        run: python -X utf8 tools/run_benchmark_group.py enumerate --plan plan_artifact/benchmark-plan.json --group sampling_cpp23 --variant candidate
+      - name: Checkout sampling baseline headers
+        id: checkout_baseline
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.benchmark_plan.outputs.sampling_commit }}
+          path: sampling-baseline-src
+      - name: Build baseline C++23 sampling benchmark
+        id: build_baseline
+        run: python -X utf8 tools/run_benchmark_group.py build --plan plan_artifact/benchmark-plan.json --group sampling_cpp23 --variant baseline
+      - name: Enumerate baseline C++23 sampling suite
+        id: enumerate_baseline
+        run: python -X utf8 tools/run_benchmark_group.py enumerate --plan plan_artifact/benchmark-plan.json --group sampling_cpp23 --variant baseline
+      - name: Measure alternating C++23 sampling rounds
+        id: measure_sampling_rounds
+        run: python -X utf8 tools/run_benchmark_group.py measure --plan plan_artifact/benchmark-plan.json --group sampling_cpp23
+      - name: Aggregate C++23 sampling rounds
+        id: aggregate
+        run: python -X utf8 tools/run_benchmark_group.py aggregate --plan plan_artifact/benchmark-plan.json --group sampling_cpp23
+      - name: Confirm C++23 sampling regressions
+        id: confirm
+        run: python -X utf8 tools/run_benchmark_group.py confirm --plan plan_artifact/benchmark-plan.json --group sampling_cpp23
+      - name: Collect group metadata
+        if: always() && !cancelled()
+        env:
+          BENCHMARK_STEPS_JSON: ${{ toJSON(steps) }}
+        run: >-
+          python -X utf8 tools/benchmark_actions.py collect-group
+          --plan plan_artifact/benchmark-plan.json --group sampling_cpp23
+          --groups-directory groups --steps-json "$BENCHMARK_STEPS_JSON"
+      - name: Upload C++23 sampling results and logs
+        if: always() && !cancelled()
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-${{ github.run_id }}-${{ github.run_attempt }}-sampling_cpp23
+          path: groups/sampling_cpp23/
+          if-no-files-found: warn
+
+  benchmark:
+    name: Benchmark
+    needs: [benchmark_plan, measure_general, measure_sampling_cpp17, measure_sampling_cpp23]
+    if: always() && !cancelled()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Download benchmark plan
+        id: download_plan
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          name: benchmark-${{ github.run_id }}-${{ github.run_attempt }}-plan
+          path: benchmark-plan
+      - name: Download general benchmark group
+        id: download_general
+        if: always() && !cancelled()
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          name: benchmark-${{ github.run_id }}-${{ github.run_attempt }}-general
+          path: groups/general
+      - name: Download C++17 sampling group
+        id: download_sampling_cpp17
+        if: always() && !cancelled()
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          name: benchmark-${{ github.run_id }}-${{ github.run_attempt }}-sampling_cpp17
+          path: groups/sampling_cpp17
+      - name: Download C++23 sampling group
+        id: download_sampling_cpp23
+        if: always() && !cancelled()
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          name: benchmark-${{ github.run_id }}-${{ github.run_attempt }}-sampling_cpp23
+          path: groups/sampling_cpp23
+      - name: Record execution and download outcomes
+        id: execution
+        if: always() && !cancelled()
+        env:
+          BENCHMARK_NEEDS_JSON: ${{ toJSON(needs) }}
+          BENCHMARK_STEPS_JSON: ${{ toJSON(steps) }}
+          BENCHMARK_PLAN_DOWNLOAD: ${{ steps.download_plan.outcome }}
+          BENCHMARK_PLAN_JOB_RESULT: ${{ needs.benchmark_plan.result }}
+        run: >-
+          python -X utf8 tools/benchmark_actions.py execution
+          --plan-job "$BENCHMARK_PLAN_JOB_RESULT"
+          --plan-download "$BENCHMARK_PLAN_DOWNLOAD"
+          --needs-json "$BENCHMARK_NEEDS_JSON"
+          --steps-json "$BENCHMARK_STEPS_JSON"
+          --output execution.json
+      - name: Create error plan when plan artifact is unavailable
+        id: fallback_plan
+        if: always() && !cancelled()
+        env:
+          BENCHMARK_REPOSITORY: ${{ github.repository }}
+          BENCHMARK_REPOSITORY_ID: ${{ github.repository_id }}
+          BENCHMARK_EVENT: ${{ github.event_name }}
+          BENCHMARK_REF: ${{ github.ref }}
+          BENCHMARK_RUN_ID: ${{ github.run_id }}
+          BENCHMARK_RUN_ATTEMPT: ${{ github.run_attempt }}
+          BENCHMARK_HEAD_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
+          BENCHMARK_FORK_PR: ${{ github.event.pull_request.head.repo.fork || false }}
+          BENCHMARK_FORCE_UPDATE_BASELINE: ${{ inputs.force_update_baseline == true || inputs.force_update_baseline == 'true' }}
+          BENCHMARK_CANCELLED: 'false'
         run: |
-          {
-            printf 'baseline_ref=%s\n' "${{ steps.baseline-run.outputs.baseline-sha || env.RANDX_SAMPLING_INITIAL_BASELINE }}"
-            if [ -d sampling-baseline-src/.git ]; then
-              printf 'baseline_commit=%s\n' "$(git -C sampling-baseline-src rev-parse HEAD)"
-            fi
-            printf 'candidate_commit=%s\n' "$(git rev-parse HEAD)"
-            printf 'candidate_source=%s\n' "${GITHUB_WORKSPACE}/benchmark_gbench.cpp"
-            printf 'compiler=g++-14\n'
-            g++-14 --version | head -n 1
-            cmake --version | head -n 1
-            printf 'generator=%s\n' "$(sed -n 's/^CMAKE_GENERATOR:INTERNAL=//p' build_sampling_candidate/CMakeCache.txt 2>/dev/null || true)"
-            printf 'google_benchmark_fetchcontent_tag=v1.8.5\n'
-            printf 'standards=cpp17,cpp23\n'
-            printf 'repetitions=%s\n' "$RANDX_SAMPLING_REPETITIONS"
-            printf 'min_time=%s\n' "$RANDX_SAMPLING_MIN_TIME"
-            printf 'confirmation_repetitions=%s\n' "$RANDX_SAMPLING_CONFIRMATION_REPETITIONS"
-            printf 'confirmation_min_time=%s\n' "$RANDX_SAMPLING_CONFIRMATION_MIN_TIME"
-            printf 'confirmation=one fixed balanced sequence for regressions and neighboring cases\n'
-            printf 'order=alternating pairs, reversed on even rounds\n'
-            printf 'cpu_affinity=%s\n' "${{ steps.sampling-runs.outputs.cpu }}"
-            printf 'aggregate=median\n'
-            printf 'baseline_configure=cmake -S . -B build_sampling_baseline -DRANDX_BUILD_BENCHMARK=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=g++-14 -DCMAKE_CXX_STANDARD=23 -DFETCHCONTENT_BASE_DIR=%s/build/_deps -DRANDX_SAMPLING_HEADER_DIR=sampling-baseline-src\n' "${GITHUB_WORKSPACE}"
-            printf 'candidate_configure=cmake -S . -B build_sampling_candidate -DRANDX_BUILD_BENCHMARK=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=g++-14 -DCMAKE_CXX_STANDARD=23 -DFETCHCONTENT_BASE_DIR=%s/build/_deps -DRANDX_SAMPLING_HEADER_DIR=.\n' "${GITHUB_WORKSPACE}"
-            printf 'build_targets=benchmark_gbench_sampling_cpp17 benchmark_gbench_sampling_cpp23\n'
-            printf 'run_options=--benchmark_format=json --benchmark_repetitions=1 --benchmark_min_time=%s\n' "$RANDX_SAMPLING_MIN_TIME"
-            printf 'aggregation=tools/merge_benchmark_repetitions.py\n'
-            printf 'comparison=tools/compare_benchmark.py with --tolerance 0.25 after median-name-set equality\n'
-          } > sampling-benchmark-metadata.txt
-
-      - name: Compare Same-Source Sampling C++17 Results
-        id: compare-sampling-cpp17
+          if [ ! -f benchmark-plan/benchmark-plan.json ]; then
+            python -X utf8 tools/benchmark_actions.py fallback-inputs \
+              --context-output benchmark-plan/context.json \
+              --query-output benchmark-plan/baseline-query.json
+            python -X utf8 tools/benchmark_gate.py plan \
+              --policy tools/benchmark_policy.json \
+              --context benchmark-plan/context.json \
+              --query benchmark-plan/baseline-query.json \
+              --output benchmark-plan/benchmark-plan.json
+          fi
+      - name: Evaluate benchmark gate
+        id: evaluate
+        if: always() && !cancelled()
+        run: >-
+          python -X utf8 tools/benchmark_gate.py evaluate
+          --plan benchmark-plan/benchmark-plan.json
+          --execution execution.json
+          --groups-dir groups
+          --output benchmark-gate.json
+          --summary benchmark-summary.md
+          --github-output "$GITHUB_OUTPUT"
+      - name: Upload benchmark gate report
+        if: always() && !cancelled()
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-${{ github.run_id }}-${{ github.run_attempt }}-report
+          path: |
+            benchmark-gate.json
+            benchmark-summary.md
+            execution.json
+          if-no-files-found: ignore
+      - name: Create issue for classified performance regression
         if: >-
-          !cancelled() && steps.sampling-runs.outcome == 'success' &&
-          inputs.force_update_baseline != true && inputs.force_update_baseline != 'true'
-        run: |
-          python3 - <<'PY'
-          import json
-          from pathlib import Path
-
-          def median_names(path):
-              with Path(path).open(encoding="utf-8") as result_file:
-                  result = json.load(result_file)
-              return sorted(
-                  item["name"]
-                  for item in result["benchmarks"]
-                  if item.get("aggregate_name") == "median"
-              )
-
-          baseline_names = median_names("sampling-confirmation-cpp17/baseline.json")
-          candidate_names = median_names("sampling-confirmation-cpp17/candidate.json")
-          if not baseline_names or baseline_names != candidate_names:
-              print("抽样基准项集合不一致。")
-              print("仅基点：", sorted(set(baseline_names) - set(candidate_names)))
-              print("仅候选：", sorted(set(candidate_names) - set(baseline_names)))
-              raise SystemExit(1)
-          print(f"C++17 抽样基准项集合一致：{len(baseline_names)} 项。")
-          PY
-          python3 tools/compare_benchmark.py \
-            sampling-confirmation-cpp17/candidate.json sampling-confirmation-cpp17/baseline.json --tolerance "$RANDX_SAMPLING_TOLERANCE"
-
-      - name: Compare Same-Source Sampling C++23 Results
-        id: compare-sampling-cpp23
-        if: >-
-          !cancelled() && steps.sampling-runs.outcome == 'success' &&
-          inputs.force_update_baseline != true && inputs.force_update_baseline != 'true'
-        run: |
-          python3 - <<'PY'
-          import json
-          from pathlib import Path
-
-          def median_names(path):
-              with Path(path).open(encoding="utf-8") as result_file:
-                  result = json.load(result_file)
-              return sorted(
-                  item["name"]
-                  for item in result["benchmarks"]
-                  if item.get("aggregate_name") == "median"
-              )
-
-          baseline_names = median_names("sampling-confirmation-cpp23/baseline.json")
-          candidate_names = median_names("sampling-confirmation-cpp23/candidate.json")
-          if not baseline_names or baseline_names != candidate_names:
-              print("抽样基准项集合不一致。")
-              print("仅基点：", sorted(set(baseline_names) - set(candidate_names)))
-              print("仅候选：", sorted(set(candidate_names) - set(baseline_names)))
-              raise SystemExit(1)
-          print(f"C++23 抽样基准项集合一致：{len(baseline_names)} 项。")
-          PY
-          python3 tools/compare_benchmark.py \
-            sampling-confirmation-cpp23/candidate.json sampling-confirmation-cpp23/baseline.json --tolerance "$RANDX_SAMPLING_TOLERANCE"
-
-      - name: Compare with Baseline
-        id: compare
-        if: >-
-          !cancelled() && steps.baseline-benchmark.outcome == 'success' &&
-          steps.check-baseline.outputs.skip-compare != 'true'
-        # 同一 runner 上测量两个提交的 median 聚合值，超出 25% 容差即失败。
-        run: python3 tools/compare_benchmark.py result.json same-machine-baseline.json --tolerance 0.25
-
-      - name: Create issue on regression
-        # 仅在基线对比这一步失败时建 issue（构建/环境失败不建）；
-        # fork PR 的 token 只读，跳过以免二次报错
-        if: >-
-          failure() && (
-            steps.compare.outcome == 'failure' ||
-            steps.compare-sampling-cpp17.outcome == 'failure' ||
-            steps.compare-sampling-cpp23.outcome == 'failure'
-          ) &&
+          !cancelled() &&
+          steps.evaluate.outcome == 'success' &&
+          steps.evaluate.outputs.report_ready == 'true' &&
+          steps.evaluate.outputs.notify_regression == 'true' &&
           (github.event_name != 'pull_request' || !github.event.pull_request.head.repo.fork)
         uses: actions/github-script@v7
         with:
           script: |
+            const fs = require('fs');
+            const report = JSON.parse(fs.readFileSync('benchmark-gate.json', 'utf8'));
+            if (report.report_ready !== true || report.notify_regression !== true) {
+              core.setFailed('门禁报告没有提供有效的回归通知资格。');
+              return;
+            }
             const date = new Date().toISOString().slice(0, 10);
             const titlePrefix = '[Benchmark 回归]';
-            // 查重：已有未关闭的同类 issue 则跳过
             const { data: issues } = await github.rest.issues.listForRepo({
               owner: context.repo.owner,
               repo: context.repo.repo,
@@ -367,64 +458,57 @@ jobs:
               labels: 'benchmark',
               per_page: 20
             });
-            const dup = issues.find(i => i.title.startsWith(titlePrefix));
-            if (dup) {
-              core.info(`已有未关闭 issue #${dup.number}，跳过创建`);
+            const duplicate = issues.find(issue => issue.title.startsWith(titlePrefix));
+            if (duplicate) {
+              core.info(`已有未关闭 issue #${duplicate.number}，跳过创建。`);
               return;
             }
             const runUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
-            const source = context.eventName === 'pull_request'
-              ? `PR #${context.payload.pull_request.number}`
-              : `push 到 \`${context.ref.replace('refs/heads/', '')}\`（${context.sha.slice(0, 7)}）`;
+            const summary = report.regressions.map(entry => {
+              const tolerance = report.policy.groups[entry.group].tolerance;
+              return `- ${entry.group}：${entry.items.length} 项有效回归，容差 ${(tolerance * 100).toFixed(1)}%。`;
+            }).join('\n');
             await github.rest.issues.create({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              title: `${titlePrefix} ${date} 基线对比超容差`,
-              body: [
-                `Benchmark 基线对比失败（项目现有 25% 容差），来源：${source}，详见 [workflow run](${runUrl})。`,
-                '',
-                '可能原因：',
-                '1. 引擎或便捷 API 实现引入性能回归',
-                '2. 共享 runner 噪声波动（重跑 workflow 确认是否可复现）',
-                '3. 编译器/依赖版本变更导致代码生成差异',
-                '',
-                '排查建议：',
-                '- 查看 run 日志中 compare_benchmark.py 输出的回归项表格',
-                '- 本地复现：构建 `benchmark_gbench` 后运行 `tools/compare_benchmark.py`',
-                '- 核对固定延长测量、运行顺序及优化代码，定位超过 25% 门槛的稳定回归',
-              ].join('\n'),
+              title: `${titlePrefix} ${date}`,
+              body: `性能门禁结论：${report.status}。\n\n${summary}\n\n完整用例、测量值和其他组错误见 [workflow run 的门禁报告](${runUrl})。`,
               labels: ['performance', 'benchmark']
             });
-
-      - name: Upload Benchmark Results
+      - name: Prepare baseline artifact
+        if: >-
+          success() && !cancelled() &&
+          needs.measure_general.result == 'success' &&
+          needs.measure_sampling_cpp17.result == 'success' &&
+          needs.measure_sampling_cpp23.result == 'success' &&
+          steps.evaluate.outputs.report_ready == 'true' &&
+          steps.evaluate.outputs.publish_baseline == 'true'
+        run: >-
+          python -X utf8 tools/benchmark_actions.py prepare-baseline
+          --groups-directory groups
+          --report benchmark-gate.json
+          --summary benchmark-summary.md
+          --output-directory baseline-release
+      - name: Upload accepted benchmark baseline
+        if: >-
+          success() && !cancelled() &&
+          needs.measure_general.result == 'success' &&
+          needs.measure_sampling_cpp17.result == 'success' &&
+          needs.measure_sampling_cpp23.result == 'success' &&
+          steps.evaluate.outputs.report_ready == 'true' &&
+          steps.evaluate.outputs.publish_baseline == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ needs.benchmark_plan.outputs.baseline_name }}
+          path: baseline-release/
+          if-no-files-found: error
+      - name: Return benchmark gate result
         if: always() && !cancelled()
-        uses: actions/upload-artifact@v4
-        with:
-          name: benchmark-results-${{ github.run_id }}
-          path: |
-            result.json
-            same-machine-baseline.json
-          if-no-files-found: warn
-
-      - name: Upload Same-Source Sampling Results
-        if: always() && !cancelled()
-        uses: actions/upload-artifact@v4
-        with:
-          name: benchmark-sampling-results-${{ github.run_id }}
-          path: |
-            sampling-baseline-cpp17.json
-            sampling-candidate-cpp17.json
-            sampling-baseline-cpp23.json
-            sampling-candidate-cpp23.json
-            sampling-benchmark-metadata.txt
-            sampling-rounds/*.json
-            sampling-confirmation-cpp17/
-            sampling-confirmation-cpp23/
-          if-no-files-found: warn
-
-      - name: Upload Current Result as Baseline
-        if: (success() && github.ref == 'refs/heads/master' && github.event_name == 'push') || (hashFiles('result.json') != '' && !cancelled() && (inputs.force_update_baseline == true || inputs.force_update_baseline == 'true'))
-        uses: actions/upload-artifact@v4
-        with:
-          name: benchmark-baseline
-          path: result.json
+        env:
+          BENCHMARK_REPORT_READY: ${{ steps.evaluate.outputs.report_ready }}
+          BENCHMARK_EXIT_CODE: ${{ steps.evaluate.outputs.exit_code }}
+        run: >-
+          python -X utf8 tools/benchmark_actions.py finish
+          --report benchmark-gate.json
+          --report-ready "$BENCHMARK_REPORT_READY"
+          --exit-code "$BENCHMARK_EXIT_CODE"
