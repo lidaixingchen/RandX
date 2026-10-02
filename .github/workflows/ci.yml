@@ -540,7 +540,7 @@ jobs:
           }
           $sources = @($entry, 'tests/entropy/entropy_cross_translation_unit.cpp')
           foreach ($buildMode in @('debug', 'release')) {
-            $optimizationFlags = if ($buildMode -eq 'debug') { @('/Od') } else { @('/O2', '/DNDEBUG') }
+            [string[]] $optimizationFlags = if ($buildMode -eq 'debug') { @('/Od') } else { @('/O2', '/DNDEBUG') }
             $binary = "entropy-build/test_entropy_${buildMode}.exe"
             & cl $standardFlag /utf-8 /W4 /EHsc @optimizationFlags /I third_party /I . `
               @hookFlags "/Fe:$binary" @sources
@@ -665,12 +665,12 @@ jobs:
       - name: Build ordinary security tests with Security framework
         run: |
           clang++ -std=c++17 -O2 -DNDEBUG -Wall -Wextra -I . -I third_party \
-            -o test_randx_cpp17 test_randx_cpp17.cpp -framework Security
+            -o entropy-build/test_security_cpp17 tests/entropy/test_security_cpp17.cpp -framework Security
           clang++ -std=c++23 -O2 -DNDEBUG -Wall -Wextra -I . -I third_party \
-            -o test_randx test_randx.cpp -framework Security
+            -o entropy-build/test_security_cpp23 tests/entropy/test_security_cpp23.cpp -framework Security
       - name: Run selected real OS entropy tests
         run: |
-          for binary in ./test_randx_cpp17 ./test_randx; do
+          for binary in ./entropy-build/test_security_cpp17 ./entropy-build/test_security_cpp23; do
             python3 tools/check_test_contracts.py run-selected --binary "$binary" \
               --test-case "SecureRandomBytes 填充缓冲区" \
               --test-case "SecureSeed 返回不同值" \
