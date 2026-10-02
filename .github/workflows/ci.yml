@@ -22,6 +22,7 @@ on:
       - 'third_party/**'
       - '.gitattributes'
       - '.github/workflows/ci.yml'
+      - '.github/workflows/benchmark.yml'
   pull_request:
     branches: [master]
     paths:
@@ -43,6 +44,7 @@ on:
       - 'third_party/**'
       - '.gitattributes'
       - '.github/workflows/ci.yml'
+      - '.github/workflows/benchmark.yml'
 
 permissions:
   contents: read
@@ -105,10 +107,20 @@ jobs:
         run: python3 -m unittest discover -s tools -p 'test_check_test_contracts.py' -v
       - name: Run sampling comparison tool unit tests
         run: python3 -m unittest discover -s tools -p 'test_compare_sampling.py' -v
+      - name: Run benchmark comparison unit tests
+        run: python3 -m unittest discover -s tools -p 'test_compare_benchmark.py' -v
       - name: Run benchmark aggregation unit tests
         run: python3 -m unittest discover -s tools -p 'test_merge_benchmark_repetitions.py' -v
       - name: Run sampling benchmark confirmation unit tests
         run: python3 -m unittest discover -s tools -p 'test_confirm_sampling_benchmark.py' -v
+      - name: Run benchmark gate unit tests
+        run: python3 -m unittest discover -s tools -p 'test_benchmark_gate.py' -v
+      - name: Run benchmark Actions adapter unit tests
+        run: python3 -m unittest discover -s tools -p 'test_benchmark_actions.py' -v
+      - name: Run benchmark issue notification tests
+        run: node --test tools/test_benchmark_issue.cjs
+      - name: Run benchmark group runner unit tests
+        run: python3 -m unittest discover -s tools -p 'test_run_benchmark_group.py' -v
 
   gcc:
     needs: [header-generation-ubuntu, header-generation-windows]

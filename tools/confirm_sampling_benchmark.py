@@ -11,7 +11,7 @@ import sys
 from pathlib import Path
 from typing import Any, Sequence
 
-from compare_benchmark import load_results, normalize_ms
+from compare_benchmark import benchmark_name, compare_results, load_results
 from merge_benchmark_repetitions import merge_results
 
 DEFAULT_REPETITIONS: int = 6
@@ -23,7 +23,7 @@ CASE_PATTERN: re.Pattern[str] = re.compile(
 
 
 def case_name(entry: dict[str, Any]) -> str:
-    return entry.get("run_name", entry["name"].removesuffix("_median"))
+    return benchmark_name(entry)
 
 
 def select_confirmation_cases(
@@ -32,17 +32,14 @@ def select_confirmation_cases(
     if not baseline or baseline.keys() != candidate.keys():
         raise ValueError("初测双边完整测量项集合须非空且一致")
     cases: dict[str, tuple[str, int, int]] = {}
-    failed: list[str] = []
+    comparison = compare_results(candidate, baseline, tolerance)
+    failed: set[str] = {case_name(baseline[name]) for name in comparison.regressions}
     for name, entry in baseline.items():
         case: str = case_name(entry)
         match: re.Match[str] | None = CASE_PATTERN.fullmatch(case)
         if match is None:
             raise ValueError(f"抽样参数名称不可解析：{case}")
         cases[case] = (match["family"], int(match["size"]), int(match["request"]))
-        base_time: float = normalize_ms(entry["cpu_time"], entry["time_unit"])
-        current_time: float = normalize_ms(candidate[name]["cpu_time"], candidate[name]["time_unit"])
-        if current_time > base_time * (1 + tolerance):
-            failed.append(case)
     selected: set[str] = set(failed)
     for case in failed:
         family, size, request = cases[case]
@@ -82,21 +79,24 @@ def confirm(
         raise ValueError("容差须为非负有限数")
     if not min_time.endswith("s") or not math.isfinite(float(min_time[:-1])) or float(min_time[:-1]) <= 0:
         raise ValueError("确认时间须为正秒数")
-    cases: list[str] = select_confirmation_cases(load_results(str(baseline_path)), load_results(str(candidate_path)), tolerance)
     output_dir.mkdir(parents=True, exist_ok=True)
-    initial: dict[str, dict[str, Any]] = {
-        "baseline": json.loads(baseline_path.read_text(encoding="utf-8")),
-        "candidate": json.loads(candidate_path.read_text(encoding="utf-8")),
-    }
     metadata: dict[str, Any] = {
         "initial": {"baseline": str(baseline_path.resolve()), "candidate": str(candidate_path.resolve())},
-        "cases": cases, "repetitions": repetitions, "min_time": min_time,
+        "cases": [], "repetitions": repetitions, "min_time": min_time,
         "tolerance": tolerance, "cpu": cpu, "result_encoding": result_encoding,
-        "order": "balanced alternating pairs", "runs": [],
+        "order": "balanced alternating pairs", "runs": [], "complete": False,
     }
     rounds: dict[str, list[dict[str, Any]]] = {"baseline": [], "candidate": []}
     binaries: dict[str, Path] = {"baseline": baseline_binary.resolve(), "candidate": candidate_binary.resolve()}
     try:
+        baseline_results: dict[str, dict[str, Any]] = load_results(baseline_path)
+        candidate_results: dict[str, dict[str, Any]] = load_results(candidate_path)
+        cases: list[str] = select_confirmation_cases(baseline_results, candidate_results, tolerance)
+        metadata["cases"] = cases
+        initial: dict[str, dict[str, Any]] = {
+            "baseline": json.loads(baseline_path.read_text(encoding="utf-8")),
+            "candidate": json.loads(candidate_path.read_text(encoding="utf-8")),
+        }
         if cases:
             case_filter: str = "^(" + "|".join(re.escape(case) for case in cases) + ")$"
             for round_index in range(repetitions):
@@ -124,6 +124,9 @@ def confirm(
             (output_dir / f"{variant}.json").write_text(json.dumps(accepted, ensure_ascii=False, indent=2), encoding="utf-8")
         metadata["complete"] = True
         print(f"抽样确认完成：固定确认 {len(cases)} 项，完整测量项保留。")
+    except Exception as error:
+        metadata["error"] = str(error)
+        raise
     finally:
         (output_dir / "metadata.json").write_text(json.dumps(metadata, ensure_ascii=False, indent=2), encoding="utf-8")
 

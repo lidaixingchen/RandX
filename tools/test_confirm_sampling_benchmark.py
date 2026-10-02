@@ -13,6 +13,7 @@ from pathlib import Path
 from unittest.mock import patch
 from typing import Any
 
+from compare_benchmark import BenchmarkDataError
 from confirm_sampling_benchmark import confirm, replace_measurements, select_confirmation_cases
 from merge_benchmark_repetitions import merge_results
 
@@ -117,6 +118,37 @@ class ConfirmationTests(unittest.TestCase):
         self.assertEqual(runner.call_count, 1)
         self.assertEqual((self.output / "baseline-1.stderr.txt").read_bytes(), b"raw stderr")
         self.assertFalse((self.output / "candidate.json").exists())
+        metadata: dict[str, Any] = json.loads((self.output / "metadata.json").read_text(encoding="utf-8"))
+        self.assertFalse(metadata["complete"])
+        self.assertEqual(len(metadata["runs"]), 1)
+
+    def test_initial_result_load_failure_saves_incomplete_metadata(self) -> None:
+        self.baseline.write_text("{invalid", encoding="utf-8")
+        with self.assertRaises(BenchmarkDataError):
+            self.run_confirmation()
+        metadata: dict[str, Any] = json.loads((self.output / "metadata.json").read_text(encoding="utf-8"))
+        self.assertFalse(metadata["complete"])
+        self.assertIn("不是有效 JSON", metadata["error"])
+        self.assertEqual(metadata["runs"], [])
+
+        process: subprocess.CompletedProcess[str] = subprocess.run(
+            [
+                sys.executable,
+                str(Path(__file__).with_name("confirm_sampling_benchmark.py")),
+                "--baseline", str(self.baseline),
+                "--candidate", str(self.candidate),
+                "--baseline-binary", "baseline",
+                "--candidate-binary", "candidate",
+                "--output-dir", str(self.output),
+            ],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        self.assertEqual(process.returncode, 2)
+        self.assertIn("不是有效 JSON", process.stderr)
+        metadata = json.loads((self.output / "metadata.json").read_text(encoding="utf-8"))
+        self.assertFalse(metadata["complete"])
 
     def test_no_regression_preserves_full_initial_results(self) -> None:
         self.candidate.write_bytes(self.baseline.read_bytes())
