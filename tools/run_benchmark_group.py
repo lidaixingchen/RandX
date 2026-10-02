@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import platform
 import shlex
 import subprocess
 import sys
@@ -208,6 +209,10 @@ def initialize(plan_path: Path, group: str) -> None:
     if not isinstance(context, dict):
         raise ValueError("计划缺少 context 对象")
 
+    hardware: subprocess.CompletedProcess[str] = run_logged(
+        ["lscpu", "--json"], directory / "logs" / "hardware.log",
+    )
+
     environment: dict[str, Any] = {
         "compiler": "g++-14",
         "compiler_version": first_line(["g++-14", "--version"]),
@@ -216,6 +221,8 @@ def initialize(plan_path: Path, group: str) -> None:
         "baseline_commit": baseline_commit,
         "runner_os": os.environ.get("RUNNER_OS", ""),
         "runner_arch": os.environ.get("RUNNER_ARCH", ""),
+        "system": platform.platform(),
+        "hardware": json.loads(hardware.stdout),
         "cpu": None,
     }
     write_json(directory / "environment.json", environment)

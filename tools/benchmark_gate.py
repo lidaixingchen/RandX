@@ -91,11 +91,11 @@ class BaselineCandidate:
 
 
 class GateInputError(ValueError):
-    """Raised when a policy, measurement artifact, or API record breaks its contract."""
+    """策略、测量产物或 API 记录违反输入契约。"""
 
 
 class GateExecutionError(RuntimeError):
-    """Raised when a required measurement artifact is unavailable."""
+    """必需的测量产物不可用。"""
 
 
 def _is_mapping(value: Any) -> bool:
@@ -737,7 +737,7 @@ def _group_input(
     policy: GatePolicy,
 ) -> tuple[Mapping[str, Any] | None, Mapping[str, Any], list[ErrorRecord]]:
     if not _is_mapping(group_value):
-        return {}, {}, [ErrorRecord(GateStatus.EXECUTION_ERROR, "组文件未能加载", group_name)]
+        return None, {}, [ErrorRecord(GateStatus.EXECUTION_ERROR, "组文件未能加载", group_name)]
     metadata: Any = group_value.get("metadata")
     files: Any = group_value.get("files")
     if not _is_mapping(metadata):
