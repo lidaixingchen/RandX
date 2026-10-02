@@ -1138,6 +1138,22 @@ def _report_error(error: ErrorRecord) -> dict[str, Any]:
     return _error_to_dict(error)
 
 
+def _has_qualified_regression(
+    group_name: str,
+    group_report: Mapping[str, Any],
+    required_steps_by_group: Mapping[str, Sequence[str]],
+) -> bool:
+    required_steps: Sequence[str] = required_steps_by_group.get(group_name, ())
+    steps: Any = group_report.get("steps")
+    return (
+        bool(group_report.get("regressions"))
+        and group_report.get("comparison_status") in ("COMPARED", "CONFIRMED")
+        and bool(required_steps)
+        and _is_mapping(steps)
+        and all(steps.get(step) == SUCCESS_OUTCOME for step in required_steps)
+    )
+
+
 def evaluate_run(
     plan: dict[str, Any],
     execution: dict[str, Any],
@@ -1280,9 +1296,9 @@ def evaluate_run(
             group_status = GroupStatus(group_report["status"])
         group_report["status"] = group_status.value
         refresh_mode: bool = plan.get("mode") == PlanMode.REFRESH.value
-        has_valid_regression: bool = bool(group_report.get("regressions")) and group_report.get(
-            "comparison_status",
-        ) in ("COMPARED", "CONFIRMED")
+        has_valid_regression: bool = _has_qualified_regression(
+            group_name, group_report, required_steps_by_group,
+        )
         if has_valid_regression and refresh_mode:
             group_report["waived"] = True
             waived_regressions.append({
@@ -1306,8 +1322,7 @@ def evaluate_run(
     active_regressions: list[dict[str, Any]] = [
         {"group": name, "items": list(group.get("regressions", []))}
         for name, group in group_reports.items()
-        if group.get("regressions")
-        and group.get("comparison_status") in ("COMPARED", "CONFIRMED")
+        if _has_qualified_regression(name, group, required_steps_by_group)
         and not group.get("waived")
     ]
     if any_cancelled:

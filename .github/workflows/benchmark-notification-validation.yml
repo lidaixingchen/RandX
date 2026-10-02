@@ -1,0 +1,95 @@
+name: 基准通知接线验收
+
+on:
+  push:
+    branches: [codex/benchmark-fault-validation]
+    paths:
+      - '.github/workflows/benchmark-notification-validation.yml'
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  benchmark:
+    runs-on: ubuntu-24.04
+    outputs:
+      report_ready: ${{ steps.evaluate.outputs.report_ready }}
+      notify_regression: ${{ steps.evaluate.outputs.notify_regression }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: 生成执行错误与有效回归并存的报告
+        id: evaluate
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          import sys
+          from pathlib import Path
+          sys.path.insert(0, 'tools')
+          import test_benchmark_gate as fixtures
+          from benchmark_gate import evaluate_run, plan_run
+          plan = plan_run(fixtures.policy_value(), fixtures.run_context('push', 'refs/heads/master'), fixtures.successful_query())
+          groups = {name: fixtures.complete_group(name, plan, 140.0 if name != 'sampling_cpp23' else 100.0, 100.0) for name in plan['groups']}
+          for name in ('sampling_cpp17', 'sampling_cpp23'):
+              groups[name]['files']['confirmation/metadata.json']['min_time'] = plan['policy']['groups'][name]['confirmation_min_time']
+          groups['general']['metadata']['steps']['measure_candidate'] = 'failure'
+          report = evaluate_run(plan, fixtures.execution_record(), groups)
+          assert report['exit_code'] == 2 and report['notify_regression'] is True
+          assert report['publish_baseline'] is False
+          assert [entry['group'] for entry in report['regressions']] == ['sampling_cpp17']
+          Path('benchmark-gate.json').write_text(json.dumps(report, ensure_ascii=False), encoding='utf-8')
+          with open(os.environ['GITHUB_OUTPUT'], 'a', encoding='utf-8') as output:
+              output.write('report_ready=true\nnotify_regression=true\n')
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-${{ github.run_id }}-${{ github.run_attempt }}-report
+          path: benchmark-gate.json
+          if-no-files-found: error
+      - name: 返回门禁错误
+        run: exit 2
+
+  notify_regression:
+    needs: benchmark
+    if: >-
+      always() && !cancelled() &&
+      needs.benchmark.outputs.report_ready == 'true' &&
+      needs.benchmark.outputs.notify_regression == 'true'
+    concurrency:
+      group: benchmark-regression-issue
+      cancel-in-progress: false
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: benchmark-${{ github.run_id }}-${{ github.run_attempt }}-report
+          path: benchmark-report
+      - name: 验证通知仅引用有效回归证据
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const assert = require('node:assert/strict');
+            const fs = require('node:fs');
+            const { createOrReuseBenchmarkIssue } = require('./tools/benchmark_issue.cjs');
+            const report = JSON.parse(fs.readFileSync('benchmark-report/benchmark-gate.json', 'utf8'));
+            const creates = [];
+            const mockGithub = {
+              paginate: async () => [],
+              rest: { issues: {
+                listForRepo: async () => ({data: []}),
+                create: async (parameters) => { creates.push(parameters); return {data: {number: 1}}; }
+              }}
+            };
+            const result = await createOrReuseBenchmarkIssue({github: mockGithub, context, core, report});
+            assert.equal(result.created, true);
+            assert.equal(creates.length, 1);
+            assert.match(creates[0].body, /sampling_cpp17/);
+            assert.doesNotMatch(creates[0].body, /general：|sampling_cpp23：/);
+            core.info('门禁失败后的报告输出、产物下载与有效证据通知接线通过。');
+      - name: 运行完整通知行为测试
+        run: node --test tools/test_benchmark_issue.cjs

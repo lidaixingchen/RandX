@@ -25,7 +25,7 @@ def merge_results(results: Sequence[dict[str, Any]]) -> dict[str, Any]:
             name: str = entry["name"]
             for field in ("cpu_time", "real_time"):
                 value: Any = entry[field]
-                if not isinstance(value, (int, float)) or not math.isfinite(value) or value < 0:
+                if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value) or value < 0:
                     raise ValueError(f"测量时间须为非负有限数：{name} {field}")
             if name in entries:
                 raise ValueError(f"单轮包含重复测量：{name}")
