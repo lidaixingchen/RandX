@@ -290,17 +290,27 @@
 	inline T RandNormal(Engine& engine, T mean = T{0}, T stddev = T{1})
 // @randx-include ../common/distributions/rand_normal_02_body.inc
 
+	namespace detail
+	{
+		// 标准库洗牌在独立操作内核中展开，调用方持有迭代器适配和引擎获取。
+		template <class It, class Engine>
+#if defined(__GNUC__) || defined(__clang__)
+		__attribute__((noinline, flatten))
+#endif
+		inline void ShuffleRange(It first, It last, Engine& engine)
+		{
+			std::shuffle(first, last, engine);
+		}
+	}
+
 	/// @brief 随机打乱容器
 	/// @param c 待打乱的容器
 	template <class Container,
 		std::enable_if_t<detail::is_random_access_container_v<Container>
 			&& !std::is_const_v<std::remove_reference_t<Container>>>* = nullptr>
-#if defined(__GNUC__) || defined(__clang__)
-	__attribute__((flatten))
-#endif
 	inline void RandShuffle(Container&& c)
 	{
-		std::shuffle(c.begin(), c.end(), DefaultEngine());
+		detail::ShuffleRange(c.begin(), c.end(), DefaultEngine());
 	}
 
 	/// @brief 用 [min, max] 范围的随机整数填充迭代器区间
@@ -578,7 +588,7 @@
 	{
 		using T = typename std::iterator_traits<decltype(std::begin(c))>::value_type;
 		using Diff = typename std::iterator_traits<decltype(std::begin(c))>::difference_type;
-		if (n == 0) return std::vector<T>{};
+		if (detail::IsEmptySampleRequest(n)) return std::vector<T>{};
 		// @randx-include ../common/sampling/sample_container_count.inc
 		const auto first = std::begin(c);
 		const auto last = std::end(c);
@@ -601,7 +611,7 @@
 	{
 		using T = typename std::iterator_traits<decltype(std::begin(c))>::value_type;
 		using Diff = typename std::iterator_traits<decltype(std::begin(c))>::difference_type;
-		if (n == 0) return std::vector<T>{};
+		if (detail::IsEmptySampleRequest(n)) return std::vector<T>{};
 		// @randx-include ../common/sampling/sample_container_count.inc
 		const auto first = std::begin(c);
 		const auto last = std::end(c);

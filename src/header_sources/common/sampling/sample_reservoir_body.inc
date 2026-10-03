@@ -19,7 +19,7 @@
 			for (; first != last; ++i, ++first)
 			{
 				SampleFixedIndexDistribution<std::uint64_t, Lifetime> dist(0, static_cast<std::uint64_t>(i));
-				const auto j = dist(rng);
+				const auto j = DrawReservoirSampleIndex(dist, rng);
 				if (j < static_cast<std::uint64_t>(n))
 					reservoir[static_cast<std::size_t>(j)] = *first;
 			}

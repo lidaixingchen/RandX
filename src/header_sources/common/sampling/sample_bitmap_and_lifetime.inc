@@ -15,12 +15,22 @@
 		inline constexpr std::uint64_t SampleBitmapThresholdK = HashSetThresholdK * SampleBitmapWordBits;
 		inline constexpr std::uint64_t SampleBitmapDensityDivisor = 2;
 
+		// 空请求的直接返回路径优先保留在调用点。
+		RANDX_DETAIL_SAMPLE_INLINE bool IsEmptySampleRequest(std::size_t count) noexcept
+		{
+#if defined(__GNUC__) || defined(__clang__)
+			return __builtin_expect(count == 0, true);
+#else
+			return count == 0;
+#endif
+		}
+
 		// 完整同宽引擎的区间映射在抽取点展开，保留标准库的分布算法。
-		template <class UInt, class Engine>
+		template <class Distribution, class Engine>
 #if defined(__GNUC__) || defined(__clang__)
 		__attribute__((flatten))
 #endif
-		RANDX_DETAIL_SAMPLE_INLINE UInt DrawFullRangeSampleDistribution(std::uniform_int_distribution<UInt>& distribution, Engine& engine)
+		RANDX_DETAIL_SAMPLE_INLINE auto DrawFullRangeSampleDistribution(Distribution& distribution, Engine& engine) -> decltype(distribution(engine))
 		{
 			return distribution(engine);
 		}
@@ -70,7 +80,7 @@
 		public:
 			SampleFixedIndexDistribution(UInt lower, UInt upper) : distribution(lower, upper) {}
 			template <class Engine>
-			UInt operator()(Engine& engine) { return DrawSampleDistribution(distribution, engine); }
+			UInt operator()(Engine& engine) { return distribution(engine); }
 		};
 
 		template <class UInt>
@@ -86,6 +96,15 @@
 				return RandInt<UInt>(engine, lower, upper);
 			}
 		};
+
+		template <class UInt, SampleDistributionLifetime Lifetime, class Engine>
+		RANDX_DETAIL_SAMPLE_INLINE UInt DrawReservoirSampleIndex(SampleFixedIndexDistribution<UInt, Lifetime>& distribution, Engine& engine)
+		{
+			if constexpr (Lifetime == SampleDistributionLifetime::Selection &&
+				Engine::min() == UInt{0} && Engine::max() == (std::numeric_limits<UInt>::max)())
+				return DrawFullRangeSampleDistribution(distribution, engine);
+			return distribution(engine);
+		}
 
 		// @randx-include sample_linear_indices.inc
 	// @randx-include sample_random_access_operations.inc

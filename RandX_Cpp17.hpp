@@ -2421,17 +2421,27 @@ namespace RandX
 		return dist(engine);
 	}
 
+	namespace detail
+	{
+		// 标准库洗牌在独立操作内核中展开，调用方持有迭代器适配和引擎获取。
+		template <class It, class Engine>
+#if defined(__GNUC__) || defined(__clang__)
+		__attribute__((noinline, flatten))
+#endif
+		inline void ShuffleRange(It first, It last, Engine& engine)
+		{
+			std::shuffle(first, last, engine);
+		}
+	}
+
 	/// @brief 随机打乱容器
 	/// @param c 待打乱的容器
 	template <class Container,
 		std::enable_if_t<detail::is_random_access_container_v<Container>
 			&& !std::is_const_v<std::remove_reference_t<Container>>>* = nullptr>
-#if defined(__GNUC__) || defined(__clang__)
-	__attribute__((flatten))
-#endif
 	inline void RandShuffle(Container&& c)
 	{
-		std::shuffle(c.begin(), c.end(), DefaultEngine());
+		detail::ShuffleRange(c.begin(), c.end(), DefaultEngine());
 	}
 
 	/// @brief 用 [min, max] 范围的随机整数填充迭代器区间
@@ -2905,12 +2915,22 @@ namespace RandX
 		inline constexpr std::uint64_t SampleBitmapThresholdK = HashSetThresholdK * SampleBitmapWordBits;
 		inline constexpr std::uint64_t SampleBitmapDensityDivisor = 2;
 
+		// 空请求的直接返回路径优先保留在调用点。
+		RANDX_DETAIL_SAMPLE_INLINE bool IsEmptySampleRequest(std::size_t count) noexcept
+		{
+#if defined(__GNUC__) || defined(__clang__)
+			return __builtin_expect(count == 0, true);
+#else
+			return count == 0;
+#endif
+		}
+
 		// 完整同宽引擎的区间映射在抽取点展开，保留标准库的分布算法。
-		template <class UInt, class Engine>
+		template <class Distribution, class Engine>
 #if defined(__GNUC__) || defined(__clang__)
 		__attribute__((flatten))
 #endif
-		RANDX_DETAIL_SAMPLE_INLINE UInt DrawFullRangeSampleDistribution(std::uniform_int_distribution<UInt>& distribution, Engine& engine)
+		RANDX_DETAIL_SAMPLE_INLINE auto DrawFullRangeSampleDistribution(Distribution& distribution, Engine& engine) -> decltype(distribution(engine))
 		{
 			return distribution(engine);
 		}
@@ -2960,7 +2980,7 @@ namespace RandX
 		public:
 			SampleFixedIndexDistribution(UInt lower, UInt upper) : distribution(lower, upper) {}
 			template <class Engine>
-			UInt operator()(Engine& engine) { return DrawSampleDistribution(distribution, engine); }
+			UInt operator()(Engine& engine) { return distribution(engine); }
 		};
 
 		template <class UInt>
@@ -2976,6 +2996,15 @@ namespace RandX
 				return RandInt<UInt>(engine, lower, upper);
 			}
 		};
+
+		template <class UInt, SampleDistributionLifetime Lifetime, class Engine>
+		RANDX_DETAIL_SAMPLE_INLINE UInt DrawReservoirSampleIndex(SampleFixedIndexDistribution<UInt, Lifetime>& distribution, Engine& engine)
+		{
+			if constexpr (Lifetime == SampleDistributionLifetime::Selection &&
+				Engine::min() == UInt{0} && Engine::max() == (std::numeric_limits<UInt>::max)())
+				return DrawFullRangeSampleDistribution(distribution, engine);
+			return distribution(engine);
+		}
 
 		inline constexpr std::size_t SampleLinearIndexCapacity = 2;
 		inline constexpr std::size_t SampleSingleValueCount = 1;
@@ -3141,7 +3170,7 @@ namespace RandX
 			for (; first != last; ++i, ++first)
 			{
 				SampleFixedIndexDistribution<std::uint64_t, Lifetime> dist(0, static_cast<std::uint64_t>(i));
-				const auto j = dist(rng);
+				const auto j = DrawReservoirSampleIndex(dist, rng);
 				if (j < static_cast<std::uint64_t>(n))
 					reservoir[static_cast<std::size_t>(j)] = *first;
 			}
@@ -3221,7 +3250,7 @@ namespace RandX
 	{
 		using T = typename std::iterator_traits<decltype(std::begin(c))>::value_type;
 		using Diff = typename std::iterator_traits<decltype(std::begin(c))>::difference_type;
-		if (n == 0) return std::vector<T>{};
+		if (detail::IsEmptySampleRequest(n)) return std::vector<T>{};
 		Diff count;
 		if constexpr (std::numeric_limits<Diff>::digits < std::numeric_limits<std::size_t>::digits)
 		{
@@ -3256,7 +3285,7 @@ namespace RandX
 	{
 		using T = typename std::iterator_traits<decltype(std::begin(c))>::value_type;
 		using Diff = typename std::iterator_traits<decltype(std::begin(c))>::difference_type;
-		if (n == 0) return std::vector<T>{};
+		if (detail::IsEmptySampleRequest(n)) return std::vector<T>{};
 		Diff count;
 		if constexpr (std::numeric_limits<Diff>::digits < std::numeric_limits<std::size_t>::digits)
 		{

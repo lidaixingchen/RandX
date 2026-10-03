@@ -250,16 +250,26 @@
 	inline T RandNormal(Engine& engine, T mean = T{0}, T stddev = T{1})
 // @randx-include ../common/distributions/rand_normal_02_body.inc
 
+	namespace detail
+	{
+		// 标准库洗牌在独立操作内核中展开，调用方持有容器适配和引擎获取。
+		template <class Container, class Engine>
+#if defined(__GNUC__) || defined(__clang__)
+		__attribute__((noinline, flatten))
+#endif
+		inline void ShuffleContainer(Container& c, Engine& engine)
+		{
+			std::ranges::shuffle(c, engine);
+		}
+	}
+
 	/// @brief 随机打乱容器
 	/// @param c 待打乱的容器
 	template <std::ranges::random_access_range Container>
 		requires std::permutable<std::ranges::iterator_t<Container>>
-#if defined(__GNUC__) || defined(__clang__)
-	__attribute__((flatten))
-#endif
 	inline void RandShuffle(Container&& c)
 	{
-		std::ranges::shuffle(c, DefaultEngine());
+		detail::ShuffleContainer(c, DefaultEngine());
 	}
 
 	/// @brief 用 [min, max] 范围的随机整数填充迭代器区间
@@ -533,7 +543,7 @@
 	{
 		using T = std::ranges::range_value_t<Container>;
 		using Diff = std::ranges::range_difference_t<const Container>;
-		if (n == 0) return std::vector<T>{};
+		if (detail::IsEmptySampleRequest(n)) return std::vector<T>{};
 		// @randx-include ../common/sampling/sample_container_count.inc
 		const auto first = std::ranges::begin(c);
 		const auto last = std::ranges::end(c);
@@ -613,7 +623,7 @@
 	{
 		using T = std::ranges::range_value_t<Container>;
 		using Diff = std::ranges::range_difference_t<const Container>;
-		if (n == 0) return std::vector<T>{};
+		if (detail::IsEmptySampleRequest(n)) return std::vector<T>{};
 		// @randx-include ../common/sampling/sample_container_count.inc
 		const auto first = std::ranges::begin(c);
 		const auto last = std::ranges::end(c);
