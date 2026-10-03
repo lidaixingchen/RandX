@@ -3077,7 +3077,7 @@ namespace RandX
 		}
 
 		template <class T, class Diff, SampleDistributionLifetime Lifetime, class It, class Engine>
-		inline std::vector<T> SampleDenseIndices(Engine& engine, It& first, Diff size, std::size_t count)
+		RANDX_DETAIL_SAMPLE_INLINE std::vector<T> SampleDenseIndicesInline(Engine& engine, It& first, Diff size, std::size_t count)
 		{
 			// 索引数组分支：O(N) 内存，O(N) 时间，无碰撞
 			const std::size_t sz = static_cast<std::size_t>(size);
@@ -3109,6 +3109,20 @@ namespace RandX
 			return result;
 		}
 
+		template <class T, class Diff, SampleDistributionLifetime Lifetime, class It, class Engine>
+		RANDX_DETAIL_SAMPLE_OPERATION_BOUNDARY std::vector<T> SampleDenseIndicesOperation(Engine& engine, It& first, Diff size, std::size_t count)
+		{
+			return SampleDenseIndicesInline<T, Diff, Lifetime>(engine, first, size, count);
+		}
+
+		template <class T, class Diff, SampleDistributionLifetime Lifetime, class It, class Engine>
+		RANDX_DETAIL_SAMPLE_INLINE std::vector<T> SampleDenseIndices(Engine& engine, It& first, Diff size, std::size_t count)
+		{
+			// 完整 64 位引擎在调用点保留状态，其他引擎保持独立的映射与遍历边界。
+			if constexpr (Engine::min() == std::uint64_t{0} && Engine::max() == (std::numeric_limits<std::uint64_t>::max)())
+				return SampleDenseIndicesInline<T, Diff, Lifetime>(engine, first, size, count);
+			return SampleDenseIndicesOperation<T, Diff, Lifetime>(engine, first, size, count);
+		}
 #undef RANDX_DETAIL_SAMPLE_OPERATION_BOUNDARY
 
 		template <class T, class Diff, SampleDistributionLifetime Lifetime, class It, class GetEngine>
