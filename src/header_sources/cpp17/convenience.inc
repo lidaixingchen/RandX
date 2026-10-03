@@ -581,7 +581,7 @@
 		const auto first = std::begin(c);
 		const auto last = std::end(c);
 		const Diff size = std::distance(first, last);
-		return detail::SampleContainer<T, Diff>(first, size, n, []() -> Xoshiro256StarStar& { return DefaultEngine(); });
+		return detail::SampleContainer<T, Diff>(first, size, n, detail::DefaultSampleEngineGetter{});
 	}
 
 	/// @brief 无放回抽样：从容器中随机抽取 n 个元素（指定引擎重载）

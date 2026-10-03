@@ -536,7 +536,7 @@
 		const auto first = std::ranges::begin(c);
 		const auto last = std::ranges::end(c);
 		const Diff size = std::ranges::distance(first, last);
-		return detail::SampleContainer<T, Diff>(first, size, n, []() -> Xoshiro256StarStar& { return DefaultEngine(); });
+		return detail::SampleContainer<T, Diff>(first, size, n, detail::DefaultSampleEngineGetter{});
 	}
 
 	/// @brief 无放回抽样（输入迭代器版，reservoir sampling Algorithm R）

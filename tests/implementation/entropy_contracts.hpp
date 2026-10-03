@@ -9,6 +9,7 @@
 #include <future>
 #include <limits>
 #include <stdexcept>
+#include <thread>
 #include <type_traits>
 #include <utility>
 #include <vector>
@@ -32,14 +33,14 @@ constexpr int kNativeNonInterruptedError = EIO;
 
 TEST_SUITE("内部/熵源")
 {
-    TEST_CASE("新线程空容器抽样保留默认引擎的首次熵读取")
+    TEST_CASE("新线程空容器抽样保持 OS 熵读取计数")
     {
         using namespace RandXTest::EntropyFixtures;
         struct Observation
         {
             bool empty;
-            std::size_t readsBeforeInitialization;
-            std::size_t readsAfterInitialization;
+            std::size_t readsBeforeSeed;
+            std::size_t readsAfterSeed;
             std::size_t unexpectedCalls;
         };
         const auto observe = []
@@ -50,16 +51,29 @@ TEST_SUITE("内部/熵源")
             const std::vector<int> population;
             constexpr std::size_t request = 1;
             const bool empty = RandX::RandSample(population, request).empty();
-            const auto readsBeforeInitialization = reader.hookFillCalls();
-            (void)RandX::DefaultEngine();
-            return Observation{empty, readsBeforeInitialization,
+            const auto readsBeforeSeed = reader.hookFillCalls();
+            (void)RandX::SecureSeed();
+            return Observation{empty, readsBeforeSeed,
                                reader.hookFillCalls(), reader.unexpectedCalls()};
         };
-        auto worker = std::async(std::launch::async, observe);
-        const auto observation = worker.get();
+        std::promise<Observation> result;
+        auto ready = result.get_future();
+        std::thread worker([&]
+        {
+            try
+            {
+                result.set_value(observe());
+            }
+            catch (...)
+            {
+                result.set_exception(std::current_exception());
+            }
+        });
+        worker.join();
+        const auto observation = ready.get();
         CHECK(observation.empty);
-        CHECK(observation.readsBeforeInitialization == kNoCalls);
-        CHECK(observation.readsAfterInitialization == kOneCall);
+        CHECK(observation.readsBeforeSeed == kNoCalls);
+        CHECK(observation.readsAfterSeed == kOneCall);
         CHECK(observation.unexpectedCalls == kNoCalls);
     }
 

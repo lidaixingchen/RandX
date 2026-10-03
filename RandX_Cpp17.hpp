@@ -3047,6 +3047,14 @@ namespace RandX
 			return reservoir;
 		}
 
+		struct DefaultSampleEngineGetter
+		{
+			Xoshiro256StarStar& operator()() const
+			{
+				return DefaultEngine();
+			}
+		};
+
 		template <class T, class Diff, class It, class GetEngine>
 		RANDX_DETAIL_SAMPLE_INLINE std::vector<T> SampleContainer(It first, Diff size, std::size_t n, GetEngine&& getEngine)
 		{
@@ -3147,7 +3155,7 @@ namespace RandX
 		const auto first = std::begin(c);
 		const auto last = std::end(c);
 		const Diff size = std::distance(first, last);
-		return detail::SampleContainer<T, Diff>(first, size, n, []() -> Xoshiro256StarStar& { return DefaultEngine(); });
+		return detail::SampleContainer<T, Diff>(first, size, n, detail::DefaultSampleEngineGetter{});
 	}
 
 	/// @brief 无放回抽样：从容器中随机抽取 n 个元素（指定引擎重载）
