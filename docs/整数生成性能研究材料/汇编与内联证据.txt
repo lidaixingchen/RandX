@@ -1,0 +1,53 @@
+原基准热循环：
+	.p2align 3
+.L517:
+ # C:\Users\LIDAIX~1\AppData\Local\Temp\randx-random-comparison-20261002\comparison.cpp:73:         for (std::size_t i = 0; i < ScalarCount; ++i) sum += static_cast<std::uint64_t>(Dice());
+	call	"_Z4Dicev"	 #
+ # C:\Users\LIDAIX~1\AppData\Local\Temp\randx-random-comparison-20261002\comparison.cpp:73:         for (std::size_t i = 0; i < ScalarCount; ++i) sum += static_cast<std::uint64_t>(Dice());
+	mov	eax, eax	 # _219, _218
+ # C:\Users\LIDAIX~1\AppData\Local\Temp\randx-random-comparison-20261002\comparison.cpp:73:         for (std::size_t i = 0; i < ScalarCount; ++i) sum += static_cast<std::uint64_t>(Dice());
+	add	rsi, rax	 # sum, _219
+ # C:\Users\LIDAIX~1\AppData\Local\Temp\randx-random-comparison-20261002\comparison.cpp:73:         for (std::size_t i = 0; i < ScalarCount; ++i) sum += static_cast<std::uint64_t>(Dice());
+	sub	rdi, 1	 # ivtmp_2625,
+	jne	.L517	 #,
+ # C:\Users\LIDAIX~1\AppData\Local\Temp\randx-random-comparison-20261002\comparison.cpp:74:         IntegerSink = sum;
+	mov	QWORD PTR "IntegerSink"[rip], rsi	 # IntegerSink, sum
+ # C:/hjpz/mingw64/lib/gcc/x86_64-w64-mingw32/16.1.0/include/c++/bits/chrono.h:205: 	    return _ToDur(static_cast<__to_rep>(__d.count()));
+	pxor	xmm8, xmm8	 # _227
+ # C:\Users\LIDAIX~1\AppData\Local\Temp\randx-random-comparison-20261002\comparison.cpp:63:     const auto end = Clock::now();
+GCC 内联诊断：
+C:\Users\LIDAIX~1\AppData\Local\Temp\randx-random-comparison-20261002\comparison.cpp:73:93: missed:   not inlinable: Measure.constprop/18716 -> int Dice()/12759, --param max-inline-insns-auto limit reached
+original.s: Dice call instruction count = 2
+other_original.s: Dice call instruction count = 0
+outlined.s: Dice call instruction count = 0
+原 Dice 包装函数入口：
+	.def	"_Z4Dicev";	.scl	2;	.type	32;	.endef
+	.seh_proc	"_Z4Dicev"
+"_Z4Dicev":
+.LFB18345:
+	push	r15	 #
+	.seh_pushreg	r15
+	push	r14	 #
+	.seh_pushreg	r14
+	push	rbp	 #
+	.seh_pushreg	rbp
+	push	rdi	 #
+	.seh_pushreg	rdi
+	push	rsi	 #
+	.seh_pushreg	rsi
+	push	rbx	 #
+	.seh_pushreg	rbx
+	sub	rsp, 40	 #,
+	.seh_stackalloc	40
+	.seh_endprologue
+ # C:\Users\LIDAIX~1\AppData\Local\Temp\randx-integer-study-20261002/RandX.hpp:1626: 		thread_local Xoshiro256StarStar engine{ RandomSeed() };
+	mov	ebx, DWORD PTR "_tls_index"[rip]	 # tmp264,
+	mov	r11, QWORD PTR gs:88	 # tmp265,
+	mov	rsi, QWORD PTR [r11+rbx*8]	 # tmp164,
+	cmp	BYTE PTR "_ZGVZN5RandX13DefaultEngineEvE6engine"@secrel32[rsi], 0	 # MEM[(char *)&_ZGVZN5RandX13DefaultEngineEvE6engine],
+	je	.L203	 #,
+ # C:\Users\LIDAIX~1\AppData\Local\Temp\randx-integer-study-20261002/RandX.hpp:1396: 		s_[2] ^= s_[0];
+	mov	r10, QWORD PTR "_ZZN5RandX13DefaultEngineEvE6engine"@secrel32[rsi]	 # pretmp_206, MEM[(value_type &)&engine]
+	mov	rax, rsi	 # tmp212, tmp164
+.L204:
+ # C:\Users\LIDAIX~1\AppData\Local\Temp\randx-integer-study-20261002/RandX.hpp:1394: 		const std::uint64_t result = detail::RotL(s_[1] * 5, 7) * 9;

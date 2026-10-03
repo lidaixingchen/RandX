@@ -38,9 +38,9 @@ python -X utf8 tools/check_header_maintenance.py `
 |------|---------|---------|------|
 | **vcpkg 官方 ports** | CMake / MSBuild 用户（最广） | PR 到 microsoft/vcpkg | 待首发 |
 | **xmake-repo** | xmake 用户 | PR 到 xmake-io/xmake-repo | 待首发 |
-| **CMake FetchContent** | 所有 CMake 3.11+ 用户 | 无需提交，靠 Git tag 自动可用 | 已可用 |
+| **CMake FetchContent** | 满足项目 CMake 最低版本的用户 | 无需提交，靠 Git tag 自动可用 | 已可用 |
 
-> **官方 registry 不接受 CI 自动推送**——必须通过 PR review 流程。CI 工作流 [`packaging-validation.yml`](.github/workflows/packaging-validation.yml) 仅做本地预演，验证 port 能否构建。
+> 上游 registry 通过 PR 审核接收包定义。CI 工作流 [`packaging-validation.yml`](../.github/workflows/packaging-validation.yml) 做打包预演，验证 port 能否构建。
 
 ## 前置准备
 
@@ -69,8 +69,8 @@ vcpkg version           # 任意受支持版本
 ### 1. 准备 port 文件
 
 本仓库的 `ports/randx/` 目录已就绪：
-- [`vcpkg.json`](ports/randx/vcpkg.json) — port manifest
-- [`portfile.cmake`](ports/randx/portfile.cmake) — 安装脚本（含 v1.4.2 tarball 的 SHA512）
+- [`vcpkg.json`](../ports/randx/vcpkg.json) — 包清单
+- [`portfile.cmake`](../ports/randx/portfile.cmake) — 发布包安装脚本
 
 ### 2. 复制到 vcpkg fork
 
@@ -94,7 +94,7 @@ vcpkg 要求每个 port 在 `versions/` 下登记版本信息：
 .\vcpkg.exe x-add-version randx
 ```
 
-参考模板：[`packaging/vcpkg/versions/`](packaging/vcpkg/versions/)
+参考模板：[`packaging/vcpkg/versions/`](../packaging/vcpkg/versions/)
 
 ### 4. 本地验证
 
@@ -190,7 +190,7 @@ git push origin v1.4.0
 
 ### 步骤 2：等待 CI 验证
 
-在 GitHub Actions 页面用 `workflow_dispatch` 触发 [Packaging Validation](.github/workflows/packaging-validation.yml) 工作流（可指定 version 参数）：
+在 GitHub Actions 页面用 `workflow_dispatch` 触发[打包验证](../.github/workflows/packaging-validation.yml)工作流（可指定 version 参数）：
 
 - **vcpkg-validate**（windows-latest）：用 overlay port 安装 + 验证头文件
 - **xrepo-validate**（ubuntu-24.04）：注册本地 xmake-repo + 安装 + 触发 on_test
@@ -250,13 +250,13 @@ git push origin bump-randx-1.4.0
 
 ### 步骤 6：更新 CHANGELOG
 
-在 [`CHANGELOG.md`](CHANGELOG.md) 顶部追加新版本小节，记录本次发布的变更。
+在[变更记录](../CHANGELOG.md)顶部追加新版本小节，记录本次发布的变更。
 
 ---
 
 ## CI 工作流说明
 
-文件：[`.github/workflows/packaging-validation.yml`](.github/workflows/packaging-validation.yml)
+文件：[打包验证工作流](../.github/workflows/packaging-validation.yml)
 
 **触发条件**：
 - 手动：在 GitHub Actions 页面用 `workflow_dispatch` 触发，可指定 version 参数

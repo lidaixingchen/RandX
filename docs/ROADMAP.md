@@ -1,6 +1,6 @@
-# RandX 项目演进与改进路线图 (Project Roadmap)
+# RandX 项目演进与改进路线图
 
-本文档旨在明确 **RandX** 伪随机数生成器库的未来改进与演进方向。通过与全球顶级工业级随机数基础设施（如 *Intel MKL VSL*, *Google Abseil Random*, *PCG*, *Rust `rand`*, *libsodium*, *TRNG*, *SFMT* 等）进行系统性多维对比，我们制定了以下重构与功能演化方案，以推动 RandX 从一个优秀的轻量级开源库，演进为兼具极限吞吐量、工程安全性与现代 C++ 规范的顶级 PRNG/CSPRNG 基础设施。
+本文记录 RandX 的已完成能力、近期实施工作与需要先验证需求的扩展方向。近期优先强化敏感内存擦除并新增三角分布，随后推进包生态与性能趋势展示。批量生成、并行流管理和类型体系依据实际使用场景进入独立设计。
 
 > **维护约定**：本路线图每次版本发布后须与代码库对账修订；每个特性条目须标注
 > **C++17 同步策略**（同步 / 降级 / 仅 C++23）、**破坏性**（是 / 否）与**验收标准**。
@@ -11,182 +11,172 @@
 
 - [一、 战略定位与总体目标](#一-战略定位与总体目标)
 - [二、 核心改进维度与落地方案](#二-核心改进维度与落地方案)
-  - [1. 安全维度：SecureWipe 强化与密码学内存屏障](#1-安全维度securewipe-强化与密码学内存屏障)
-  - [2. 数值与分布维度：直通浮点便捷层与科学分布扩展](#2-数值与分布维度直通浮点便捷层与科学分布扩展)
+  - [1. 安全维度：SecureWipe 强化与优化构建验证](#1-安全维度securewipe-强化与优化构建验证)
+  - [2. 数值与分布维度：三角分布](#2-数值与分布维度三角分布)
   - [3. 工程生态维度：上游包仓库提交与性能看板](#3-工程生态维度上游包仓库提交与性能看板)
   - [4. 性能维度：SIMD 矢量化批量填充](#4-性能维度simd-矢量化批量填充)
   - [5. 多线程与 HPC 维度：并行随机流切割](#5-多线程与-hpc-维度并行随机流切割)
-  - [6. 接口维度：强类型 BitGen 范式隔离](#6-接口维度强类型-bitgen-范式隔离)
+  - [6. 接口维度：安全用途的类型契约](#6-接口维度安全用途的类型契约)
 - [三、 已完成事项存档](#三-已完成事项存档)
-- [四、 版本演进阶段划分 (Milestones)](#四-版本演进阶段划分-milestones)
+- [四、 版本演进阶段划分](#四-版本演进阶段划分)
 - [五、 前瞻观察项（暂不排期）](#五-前瞻观察项暂不排期)
 
 ---
 
 ## 一、 战略定位与总体目标
 
-RandX 致力于在保持 **Header-only（纯头文件）**、**Zero-dependency（零外部依赖）**、**C++23 Concepts / C++17 SFINAE 现代化 API** 的优势前提下，针对工业级高并发、高性能计算 (HPC) 与严苛安全场景填补补强，实现以下三大目标：
+RandX 保持纯头文件、消费者零外部依赖、C++23 Concepts 与 C++17 SFINAE 双版本接口，在以下方向演进：
 
-1. **工程安全深化**：完善 Release 模式下的密码学内存抹除机制，对齐 *libsodium* 级别的敏感数据防护。
-2. **吞吐量突破**：引入硬件级 SIMD 矢量化批量生成（AVX2/NEON），消除大数组填充的标量瓶颈。
-3. **多线程/集群扩展**：在既有 `jump()`/`MakeStreamEngine` 之上封装一键式并行流分配器，支持大规模多线程与 OpenMP 计算。
+1. **安全与数值契约**：建立优化构建下的擦除证据，扩展具有明确参数及边界行为的分布。
+2. **工程可维护性**：复用共同实现、共享契约测试、集中性能策略和可观测的熵源失败测试，降低双版本演进成本。
+3. **使用场景扩展**：提高安装与性能观测的便利性；依据批量和并行工作负载确定后续接口及实现。
 
-### 与既有核心约束的张力声明
+### 核心约束
 
 本项目存在两条第一优先级约束，所有路线图条目在设计时必须显式回应：
 
-- **双头文件同步**：`RandX.hpp` 与 `RandX_Cpp17.hpp` 的算法输出序列完全一致、便捷 API 签名一致。新特性若无法在 C++17 下等价实现，须明确标注降级或排除策略。
+- **双头文件同步**：共同 API 的算法与输出序列一致；从 `src/header_sources/` 修改并生成 `RandX.hpp` 与 `RandX_Cpp17.hpp`。标准专属能力须明确适用标准。
 - **引擎精简原则**（v1.5 引擎去重的延续）：新增引擎前必须完成与现有引擎（`SFC64`、`RomuDuoJr` 等）的差异化定位论证，避免功能重叠回潮。
 
 ---
 
 ## 二、 核心改进维度与落地方案
 
-> 各维度按当前优先级排序：低风险高价值项优先，需前置设计文档的高风险项靠后。
+> 前两项共用[安全擦除与三角分布实施方案](安全擦除与三角分布实施方案.md)，按擦除、分布的顺序实施。生态工作随后推进，后三项先建立需求与设计证据。
 
-### 1. 安全维度：SecureWipe 强化与密码学内存屏障
+### 1. 安全维度：SecureWipe 强化与优化构建验证
 
-* **标杆**：*libsodium*
-* **现状**：`detail::SecureWipe` 目前为 volatile 逐字节清零，可防常规死存储消除，但在 LTO 全程序优化下防护强度不足，且未利用 OS 专用 API。
+* **现状**：`detail::SecureWipe` 使用 volatile 逐字节清零；异常守卫已有测试。当前实现需要补充最终链接产物的 Release／LTO 审计证据，并利用具有明确擦除契约的可用平台函数。
 * **落地方案**：
-  * Windows 下调用 `::SecureZeroMemory`，Linux 下调用 `explicit_bzero`（glibc ≥ 2.25）/ `memset_s`，macOS 下调用 `memset_s`，无可用 API 时回退现有 volatile 循环并追加 `asm volatile("" ::: "memory")` 编译器屏障。
-  * 平台分支与既有 OS 熵源优先级链（BCrypt/getrandom/SecRandomCopyBytes）的条件编译结构保持一致风格。
-* **C++17 同步策略**：同步（纯预处理器分支，无语言特性差异）。
+  * Windows 使用 SDK 可见的 `SecureZeroMemory`；glibc Linux 在版本及特性声明满足时使用 `explicit_bzero`；Apple 在声明及部署目标满足时使用 `memset_s`。
+  * 其他声明环境使用共同兼容擦除实现与可用的编译器屏障。单头文件依据消费者实际声明选择后端，保持 `noexcept`、零长度和精确擦除范围契约。
+  * 分别测试原生与兼容路径，用擦除后不再读取材料的探针检查最终机器码，并验证空擦除变异能被识别。
+* **C++17 同步策略**：同步，平台选择与擦除正文采用共同来源。
 * **破坏性**：否。
-* **验收标准**：各平台编译通过；`-O2 -flto` 下反汇编确认 wipe 未被消除；ChaCha20 现有擦除调用点行为不变。
+* **验收标准**：Windows、Linux、macOS 的功能与优化构建通过；GCC／Clang LTO、MSVC `/GL /LTCG` 的最终产物有擦除证据；ChaCha20 生命周期及熵源失败测试通过。详细矩阵与证据要求见合并方案。
 
-### 2. 数值与分布维度：直通浮点便捷层与科学分布扩展
+### 2. 数值与分布维度：三角分布
 
-* **公开 `RandUniform53` / `RandUniform24` 便捷 API**
-  * **标杆**：*xoshiro 官方原论文推荐算法*
-  * **现状**：核心转换算法已由 `DoubleFromBits`（`(i >> 11) * 0x1.0p-53`）与 `FloatFromBits` 实现并公开声明。
-  * **落地方案**：在便捷 API 层补充带引擎参数与默认引擎两种重载的 `RandUniform53(engine)` / `RandUniform24(engine)`，内部复用既有转换函数；32 位输出引擎（`Xoshiro128StarStar`、`Xoroshiro64StarStar`）在 53-bit 路径下须双抽取拼接，24-bit 路径走 `FloatFromBits`。同时评估 `RandReal` 在 `[0,1)` 特例下切换直通快速路径的收益与回归风险。
-  * **C++17 同步策略**：同步。
-  * **破坏性**：否（`RandReal` 快速路径若改变输出序列则单独评审，默认不改变）。
-  * **验收标准**：KAT 固定种子输出比对；与 `std::uniform_real_distribution` 基准对比提速 ≥ 30%；两头文件输出一致。
-* **扩展工程与科学分布：Zipf（齐普夫）、Triangular（三角形）**
-  * **现状**：标准库无此二者；柯西分布已由 `RandCauchy` 提供，不在本条目范围。
-  * **落地方案**：`RandZipf(n, s)` 采用拒绝-反演法（参考 Rust `rand_distr::Zipf`）；`RandTriangular(min, peak, max)` 采用逆变换法。参数校验与异常行为对齐现有 16 种分布 API 风格。
-  * **C++17 同步策略**：同步。
-  * **破坏性**：否。
-  * **验收标准**：矩检验（均值/方差）纳入统计分布测试套件；卡方拟合优度检验通过。
+* **现状**：`RandCanonical<T>` 已提供直通 float／double 采样及 32 位引擎拼接，`RandReal(0,1)` 已使用该路径。近期数值扩展为 `RandTriangular`。
+* **落地方案**：新增默认与显式引擎重载，以共同内核完成参数校验和逆变换；覆盖端点众数、退化区间、极端有限区间与浮点量化。
+* **随机消耗**：非法和退化输入不调用引擎、不获取默认引擎；合法非退化输入调用一次 `RandCanonical<T>`，底层取值次数遵循其既有规则。
+* **C++17 同步策略**：同步，使用相同参数契约、算法正文与共享测试。
+* **破坏性**：否。
+* **验收标准**：有限半开输出、异常和随机消耗测试通过；独立分位参考、预定矩检验及拟合优度检验通过；两版本一致性与现有性能门禁通过。宽度限制与验证细节见合并方案。
 
 ### 3. 工程生态维度：上游包仓库提交与性能看板
 
 * **上游包仓库提交**
   * **现状**：本地 vcpkg port（`ports/randx/`）、registry 版本片段（`packaging/vcpkg/versions/`）、xmake-repo 打包（`packaging/xmake-repo/`）均已就绪；`RandXConfig.cmake.in` 与 CMake `install(EXPORT)` 已支持 `find_package(RandX)` + `target_link_libraries(target PRIVATE RandX::RandX)`。
-  * **落地方案**：剩余工作为向上游提交——vcpkg 官方 registry PR、xmake-repo 官方仓库 PR、新增 Conan Center recipe 并提交 conan-center-index。
+  * **落地方案**：先推进 vcpkg 官方 registry 提交；随后独立推进 xmake-repo 提交与 Conan Center recipe。各阶段先以发布版本完成本地安装及消费者验证，再提交对应上游 PR。
   * **C++17 同步策略**：不适用（打包层）。
   * **破坏性**：否。
-  * **验收标准**：三个上游仓库的 PR 被合并，用户可通过官方源直接安装。
+  * **验收标准**：C++17／C++23 独立消费者可通过包管理器安装并编译，头文件及平台链接依赖正确，上游 PR 已提交。合并与官方源可安装状态分别记录，取决于上游审核进度。
 * **自动化性能看板**
-  * **现状**：`benchmark_gbench.cpp`（Google Benchmark）与 `tools/compare_benchmark.py` 已存在。
-  * **落地方案**：CI 中接入 `github-action-benchmark`，将各引擎 GB/s 吞吐量按提交历史发布至 gh-pages 看板；覆盖 x86-64（AVX2）与 ARM64（GitHub Actions ARM runner）两类架构。
-  * **验收标准**：看板随每次 push 自动更新；性能回退超阈值（如 10%）时 CI 告警。
+  * **现状**：分组基准、同机基线比较、确认运行与报告已集中管理，策略位于 `tools/benchmark_policy.json`，当前回归容差为 25%。
+  * **落地方案**：读取现有门禁报告与基准产物，按提交展示吞吐量和耗时趋势；保留编译器、配置及架构信息。ARM64 数据在可验证的执行环境具备后独立接入。
+  * **C++17 同步策略**：展示现有各标准基准组，策略继续集中维护。
+  * **破坏性**：否。
+  * **验收标准**：已发布数据可追溯到提交、配置和原始产物；不同架构独立展示与比较；告警遵循同一门禁策略。
 
 ### 4. 性能维度：SIMD 矢量化批量填充
 
 * **标杆**：*Intel MKL VSL*, *SFMT*
-* **落地方案**：提供 `RandFillSIMD`（AVX2 / ARM NEON）批量填充接口，利用 `__m256i` 一次并行推进 4 条独立 64-bit 引擎状态，将大数组填充吞吐量提升 3~4 倍。
+* **落地方案**：依据大批量填充场景设计 AVX2／ARM NEON 接口，明确多条引擎状态的布局与输出交织规则，测量批量规模、初始化成本及相对标量实现的收益。
 * **可复现性声明（设计前提）**：
   * SIMD 路径本质是 N 条独立流的交织输出，**输出序列与标量引擎不一致，且不承诺跨指令集一致**。`RandFillSIMD` 定位为独立的高吞吐填充设施，配套独立 KAT（固定种子下 AVX2 与 NEON 各自的已知序列），不纳入标量引擎 KAT 体系。
-  * 指令集选择采用**编译期分发**（`__AVX2__` / `__ARM_NEON` 宏检测，未启用时静默回退标量实现），不做运行时 dispatch——header-only 形态下运行时多版本分发在 MSVC 上支持不佳。
-  * AVX-512 降级为实验性观察项（CI 标准 runner 无法覆盖测试，见[前瞻观察项](#五-前瞻观察项暂不排期)）。
-* **前置条件**：需先产出独立设计文档（状态布局、seed 派生规则、回退语义），评审通过后开工。
+  * 指令集选择与回退语义在独立设计中确定。编译期分发是候选方式；消费者目标指令集、运行硬件要求及回退输出必须公开说明。
+  * AVX-512 属于观察项，实施前须建立可重复的硬件验证环境，见[前瞻观察项](#五-前瞻观察项暂不排期)。
+* **前置条件**：先证明目标批量工作负载值得专用接口，再产出独立设计文档（状态布局、seed 派生规则、输出顺序、回退语义与实测收益）。
 * **C++17 同步策略**：同步（intrinsics 与语言标准无关；C++23 版可额外提供 ranges 风格重载）。
 * **破坏性**：否（新增接口）。
-* **验收标准**：AVX2/NEON 路径吞吐 ≥ 标量 `RandFill` 3 倍；SIMD KAT 通过；PractRand 256GB 无失败；未启用 SIMD 的平台回退路径输出与文档声明一致。
+* **验收标准**：设计阶段依据同机测量冻结目标批量规模与性能门槛；SIMD KAT 和预定 PractRand 检验通过；回退输出符合文档；两标准采用相同路径时输出一致。
 
 ### 5. 多线程与 HPC 维度：并行随机流切割
 
 * **标杆**：*TRNG*, *Intel MKL VSL*
-* **现状**：已有 `MakeStreamEngine<Engine>(streamId, seed)` 基于 `jump()` 创建非重叠子序列。
-* **落地方案**：`ParallelStreamGrid` 定位为 **`MakeStreamEngine` 之上的高阶封装**（非替代）：
-  * **Block-Splitting（块切分）**：基于既有 `jump()`（2^128 步长）为线程池 / OpenMP 并行循环一键分配互不重叠的引擎实例，管理流 ID 分配与生命周期。
-  * **跨线程自动派生**：主线程派生子线程时自动递增流 ID，保证数学上的无重叠。
-  * **明确不做 Leapfrog（跨步法）**：xoshiro 族无廉价任意步长 skip-ahead，Leapfrog 需逐步交织或现算跳转多项式，性能与复杂度均不可接受。该能力仅在未来引入支持任意跳转的引擎（如 PCG64）时重新评估。
+* **现状**：已有 `MakeStreamEngine<Engine>(streamId, seed)`；不同引擎的 jump 距离不同，流间隔及每流消耗预算共同决定无重叠条件。
+* **落地方案**：在实际并行任务需要集中管理时设计 `ParallelStreamGrid`，封装 `MakeStreamEngine` 的流分配与生命周期。
+  * **块切分**：按引擎实际 jump 距离、周期和流数量推导预算，明确允许的流 ID 及每流最大消耗。
+  * **可复现分配**：逻辑任务 ID 决定流 ID，使结果可在不同调度顺序下复现。
+  * **初始化效率**：单独测量建池成本，连续分配避免对每个流反复从种子累计 jump；采样吞吐另行测量。
+* **前置条件**：独立设计说明任务到流的映射、数学预算、初始化复杂度及所有权。
 * **C++17 同步策略**：同步（`std::thread` / thread_local 均为 C++17 可用）。
 * **破坏性**：否。
-* **验收标准**：多线程场景下各流序列两两无重叠（jump 数学保证 + 抽样碰撞检测）；与手写 `MakeStreamEngine` 循环相比零额外吞吐损耗。
+* **验收标准**：jump 与预算论证成立；固定种子和任务映射在不同调度下复现；各流 KAT、初始化及吞吐基准通过。输出值偶然相等不能作为状态子序列重叠的判据。
 
-### 6. 接口维度：强类型 BitGen 范式隔离
+### 6. 接口维度：安全用途的类型契约
 
-* **标杆**：*Google Abseil*（`absl::BitGen` vs `absl::InsecureBitGen`）
-* **落地方案**：在 API 层明确区分场景，从编译期杜绝类型误用：
-
-  ```cpp
-  // 用于游戏、渲染、模拟（追求极速）
-  RandX::InsecureRng rng;
-
-  // 用于密钥、令牌、安全通信（密码学安全）
-  RandX::CryptoRng secureRng;
-  ```
-
-* **迁移与弃用路径（破坏性变更，随 v3.0 主版本发布）**：
-  * 现有便捷 API 的 `thread_local Xoshiro256StarStar` 默认引擎归入 `InsecureRng` 语义侧，行为不变；
-  * v2.x 末期先以别名 + `[[deprecated]]` 提示引导迁移，v3.0 正式切换；
-  * footer 标注 `BREAKING CHANGE`，CHANGELOG 提供逐 API 迁移对照表。
-* **前置条件**：独立设计文档（类型层级、与既有 8 引擎的关系、`DefaultEngine()` 归属）评审通过。
-* **C++17 同步策略**：同步（类型别名与包装类均可在 C++17 实现）。
-* **破坏性**：**是**。
-* **验收标准**：`CryptoRng` 误用于普通分布 API 或反向误用时编译期报错（C++23 concepts / C++17 static_assert）；既有测试全量迁移通过。
+* **落地方案**：评估以类型及构造方式表达普通模拟、可信熵播种和确定性复现的契约；安全入口明确限制可接受的随机源。
+* **前置条件**：独立设计说明类型与现有引擎的关系、可信初始化条件、`DefaultEngine()` 归属及真实误用场景。
+* **C++17 同步策略**：同步，Concepts 与 SFINAE 表达相同约束。
+* **破坏性**：待设计确定；改变现有默认入口或签名时按主版本发布，并提供迁移对照表。
+* **验收标准**：不满足安全入口要求的源在编译期被拒绝；符合 URBG 要求的密码学引擎仍可用于普通分布；迁移契约与双版本测试通过。
 
 ---
 
 ## 三、 已完成事项存档
 
-以下条目曾列于路线图，经与代码库对账确认已实现，存档备查：
+以下能力已实现；五项架构工作已完成。实现状态与正式发布版本分别记录：
 
-| 事项 | 实现位置 | 完成版本 |
+| 事项 | 实现位置与记录 | 完成版本或验收状态 |
 |------|----------|----------|
 | 直通无偏浮点转换核心算法 | `DoubleFromBits` / `FloatFromBits` | v1.x 早期 |
 | 柯西分布 | `RandCauchy`（含统计测试） | v1.x |
-| Release 模式全零吸收态兜底 | `EngineBase` state 构造 / `deserialize()` 静默修正（`s_[0]=1`）；ChaCha20 强制修正 | v1.5 |
+| PRNG 全零吸收态处理 | `EngineBase` 状态构造／`deserialize()` 与引擎状态政策 | 已实现 |
+| 直通浮点便捷采样与 `[0,1)` 快速路径 | `RandCanonical<T>`、`RandReal(0,1)` | v1.5.0 |
 | 现代 CMake 导出（`RandX::RandX`） | `RandXConfig.cmake.in` + `install(EXPORT)` | v1.x |
 | 本地 vcpkg port 与 registry 片段 | `ports/randx/`、`packaging/vcpkg/versions/` | v1.x |
 | xmake-repo 打包 | `packaging/xmake-repo/packages/r/randx/` | v1.x |
 | Google Benchmark 基准与对比脚本 | `benchmark_gbench.cpp`、`tools/compare_benchmark.py` | v1.4 |
+| Doxygen 文档发布 | `Doxyfile`、`.github/workflows/docs.yml`；部署记录见[熵源验收](熵源失败测试验收结果.md) | 已验收 |
+| 共享双版本契约测试 | `tests/common/`、`tools/check_test_contracts.py`；[迁移清单](共享契约测试迁移清单.md) | 已完成 |
+| 抽样内核收拢 | `src/header_sources/common/sampling/`；[验收结果](抽样内核收拢验收结果.md) | 已验收 |
+| 双头文件共同实现来源 | `src/header_sources/`、`tools/generate_headers.py`；[迁移清单](共同源码迁移清单.md) | 已完成 |
+| 性能门禁策略集中 | `tools/benchmark_gate.py`、`tools/benchmark_policy.json`；[验收结果](性能门禁策略集中验收结果.md) | 已验收 |
+| 熵源失败测试 | 共同 OS 熵源读取器、测试注入及 `tests/entropy/`；[验收结果](熵源失败测试验收结果.md) | 已验收 |
 
 ---
 
-## 四、 版本演进阶段划分 (Milestones)
+## 四、 版本演进阶段划分
 
-当前版本：**v1.5.0**。
+当前发布版本：**v1.5.0**。以下版本为规划槽位，实际发布依据验收范围确定。
 
 ```
-      [v1.6 近期计划] ──► SecureWipe OS API 强化 / RandUniform53·24 便捷层 / Zipf·Triangular 分布
+      [v1.6 安全与数值] ──► SecureWipe 平台擦除与优化验证 / RandTriangular
                                 │
                                 ▼
-      [v1.7 生态补全] ──► vcpkg·Conan·xmake 上游提交 / CI 性能看板 (gh-pages)
+      [v1.7 生态补全] ──► vcpkg 优先的分阶段上游提交 / 复用门禁数据的性能看板
                                 │
                                 ▼
-      [v2.0 性能与多线程] ──► RandFillSIMD (AVX2/NEON) / ParallelStreamGrid 并行流封装
+      [v2.0 场景扩展] ──► 经需求与测量确认的批量生成 / 并行流管理
                                 │
                                 ▼
-      [v3.0 架构升级 ⚠BREAKING] ──► Abseil 式强类型 InsecureRng/CryptoRng 隔离
+      [v3.0 类型演进] ──► 经独立设计确认的安全用途类型契约及迁移
 ```
 
-### Milestone 1 (v1.6 安全与数值补强)
+### 阶段一：v1.6 安全与数值补强
 
-- [ ] 升级 `detail::SecureWipe`：接入 `SecureZeroMemory` / `explicit_bzero` / `memset_s` 与编译器内存屏障（两头文件同步）。
-- [ ] 公开 `RandUniform53` / `RandUniform24` 便捷 API（复用既有 `DoubleFromBits`/`FloatFromBits`），并评估 `RandReal` 快速路径。
-- [ ] 新增 `RandZipf`、`RandTriangular` 分布及配套统计测试。
+- [ ] 按[合并实施方案](安全擦除与三角分布实施方案.md)完成平台擦除与兼容路径、Release／LTO 最终机器码验证。
+- [ ] 完成 `RandTriangular` 共同内核、公开重载、数值与统计测试、示例及基准。
+- [ ] 完成双版本、跨平台及现有性能门禁验收，归档擦除证据与分布验证结果。
 
-### Milestone 2 (v1.7 生态补全)
+### 阶段二：v1.7 生态补全
 
-- [ ] vcpkg 官方 registry、conan-center-index、xmake-repo 官方仓库三路上游提交。
-- [ ] CI 接入 `github-action-benchmark`，建立 x86-64 / ARM64 双架构 GB/s 吞吐看板与回退告警。
+- [ ] 验证发布包的独立消费者，先提交 vcpkg 官方 registry PR。
+- [ ] 分别推进 xmake-repo 与 Conan Center，并记录上游审核状态。
+- [ ] 复用集中门禁报告建立性能趋势看板，保持配置可追溯与架构独立比较。
 
-### Milestone 3 (v2.0 性能与多线程突破)
+### 阶段三：v2.0 批量与并行场景扩展
 
-- [ ] 产出并评审 `RandFillSIMD` 设计文档（状态布局 / seed 派生 / 独立 KAT / 回退语义）。
-- [ ] 实现 AVX2 / NEON 编译期分发的 `RandFillSIMD` 及标量回退路径。
-- [ ] 实现 `ParallelStreamGrid`（基于 `MakeStreamEngine` 的高阶封装，Block-Splitting 策略）。
+- [ ] 以实际批量工作负载确定 `RandFillSIMD` 的收益、状态布局、输出顺序及回退契约。
+- [ ] 以实际并行任务确定流映射、引擎预算与初始化成本，完成 `ParallelStreamGrid` 设计。
+- [ ] 按已确认设计实施，并运行独立 KAT、统计检测与同机基准。
 
-### Milestone 4 (v3.0 生态与架构升级，BREAKING)
+### 阶段四：v3.0 类型契约演进
 
-- [ ] 产出并评审强类型 `InsecureRng` / `CryptoRng` 隔离层设计文档（含 `DefaultEngine()` 归属决策）。
-- [ ] v2.x 末期落地 `[[deprecated]]` 迁移提示，v3.0 完成切换并发布迁移对照表。
+- [ ] 依据实际误用场景完成安全用途类型契约及默认入口设计。
+- [ ] 若设计涉及破坏性变化，提供过渡版本、迁移对照表及主版本发布计划。
 
 ---
 
@@ -194,13 +184,13 @@ RandX 致力于在保持 **Header-only（纯头文件）**、**Zero-dependency�
 
 以下方向保持技术跟踪，暂不进入里程碑：
 
-* **AVX-512 矢量化**：CI 标准 runner 无 AVX-512 硬件，无法建立可靠回归测试；待基础设施可用后由 v2.0 的 AVX2 设施平滑扩展。
+* **AVX-512 矢量化**：在可重复的硬件与回归验证环境具备后，评估批量生成收益。
 * **新增极速引擎（wyrand / PCG64）**：与现有 `SFC64` / `RomuDuoJr` 定位重叠度高，违背 v1.5 引擎去重方向；仅当出现明确差异化需求（如 PCG64 的任意步长跳转解锁 Leapfrog）时重启论证。
-* **C++26 `std::generate_random`（P1068）**：标准化落地后为 `RandFillSIMD` 提供标准接口适配层。
+* **Zipf 分布**：出现有限离散重尾采样需求后，独立设计参数域、数值算法、尾部精度与统计验证。
+* **标准批量随机接口**：跟踪标准提案及编译器支持，在接口确定后评估适配。
 * **C++20 Modules（`import RandX;`）**：待三大编译器 named modules 支持成熟后评估。
 * **TestU01 BigCrush 定期检测**：作为 PractRand nightly 的补充，评估 CI 时长成本后决定。
-* **Doxygen 文档站点**：基于既有 `Doxyfile` 发布 GitHub Pages API 文档。
 
 ---
 
-*最新更新日期：2026-07-28（依据代码库对账结果全面修订）*
+*最新更新日期：2026-10-02。对账基点：`a773584`。近期实施计划见[安全擦除与三角分布实施方案](安全擦除与三角分布实施方案.md)。*

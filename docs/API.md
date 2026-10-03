@@ -1,7 +1,7 @@
 # RandX API 详细参考
 
-> 本页为完整 API 签名与参数说明。快速概览见 [README.md](../README.md) 的 API 速查表。
-> 所有函数默认使用线程局部 `Xoshiro256StarStar` 引擎，也支持传入自定义引擎：`RandInt(rng, min, max)`。
+> 本页按功能说明常用调用方式与参数行为；全量声明与重载见 [Doxygen API 参考](https://lidaixingchen.github.io/RandX/)，快速概览见 [README](../README.md)。下文约束采用 C++23 表达，C++17 的共同接口以 SFINAE 表达。
+> 普通运行时采样的默认重载使用线程局部 `Xoshiro256StarStar`，显式引擎调用例如 `RandInt(rng, min, max)`。安全接口直接读取 OS 熵，编译期随机使用模板种子。
 
 ---
 
@@ -38,7 +38,13 @@ template <std::floating_point T, class Engine>
 [[nodiscard]] inline T RandReal(Engine& engine, T min = T{0}, T max = T{1});
 ```
 
-返回均匀分布于 [min, max) 的随机浮点数。
+返回均匀分布于 [min, max) 的随机浮点数；相等端点返回该值。参数须有限、按序排列，宽度须在返回类型中可表示，否则抛出 `std::invalid_argument`。`[0,1)` 区间使用 `RandCanonical<T>` 路径。
+
+### RandCanonical
+
+调用方式：`RandCanonical<T>()`、`RandCanonical<T>(engine)`；`RandCanonicalDouble()` 和 `RandCanonicalFloat()` 分别调用对应返回类型的默认重载。
+
+返回 `[0,1)` 浮点数。float／double 对满位宽 64 位引擎分别提取高 24／53 位，各取一次输出；满位宽 32 位引擎生成 float 取一次输出，生成 double 取两次并按高低位拼接。其他引擎及 long double 使用现有 `std::generate_canonical` 路径。
 
 ### RandBool
 
@@ -80,10 +86,10 @@ template <class Engine>
 ```cpp
 template <int N, std::integral T = std::uint64_t>
     requires (N > 0 && N <= 64)
-[[nodiscard]] inline T RandBits() noexcept;
+[[nodiscard]] inline T RandBits();
 ```
 
-返回 [0, 2^N) 的随机整数。N==64 时直接返回 `rng()`，否则掩码截取低 N 位。
+T 须为整数类型且不为 bool，N 还须不超过 `std::numeric_limits<T>::digits`。返回 [0, 2^N) 的随机整数，支持 `RandBits<N, T>(engine)`；满位宽 32 位引擎在 N 超过 32 时拼接两次输出，其他引擎按其取值范围进行映射。
 
 ---
 
@@ -116,7 +122,7 @@ template <int N, std::integral T = std::uint64_t>
 
 `RandGeometric` 生成首次成功前的失败次数，将结果分为块编号与块内整数余数：块编号采用稳定的逆变换，块内余数采用整数拒绝采样，以保留大整数的低位随机性。`p=1` 返回零且不消耗引擎输出；参数无效或过小时抛出 `std::invalid_argument`，抽样值超出返回类型范围时抛出 `std::overflow_error`。抽样超限时，引擎已消耗本次抽样所需的输出。
 
-`RandBeta` 无 STL 对应，自实现 Gamma(a)/(Gamma(a)+Gamma(b))，含除零保护。
+`RandBeta` 校验有限且为正的形状参数，普通参数路径稳定归一化两个 Gamma 样本，极端参数路径使用对数域采样与归一化。无效参数抛出 `std::invalid_argument`；无法形成有效样本时按数值契约抛出 `std::domain_error`。
 
 ---
 
@@ -152,7 +158,7 @@ template <class Container>
 [[nodiscard]] inline auto RandSample(const Container& c, std::size_t n);
 // n >= size 时返回全部副本
 
-// 随机访问迭代器版（hash-set / 索引数组双分支）
+// 随机访问迭代器版
 template <std::random_access_iterator It>
 [[nodiscard]] inline std::vector<std::iter_value_t<It>>
 RandSample(It first, It last, std::iter_difference_t<It> n);
@@ -169,9 +175,7 @@ template <std::random_access_iterator It, class Engine>
 RandSample(Engine& engine, It first, It last, std::iter_difference_t<It> n);
 ```
 
-随机访问版策略：`n * 64 < size` 时用 hash-set（O(n) 内存），否则用索引数组（O(N)）。
-
-容器版只复制选中的元素，支持带只读成员的可复制构造类型。极稀疏抽样复用迭代器版的 hash-set 路径；中等采样量使用位图记录已选索引，辅助内存约为容器长度的八分之一字节；超过一半的采样量复用索引数组路径。`n=0` 返回空结果；`n` 不小于容器大小时，按原顺序返回全部元素的副本。
+随机访问迭代器与容器入口复用共同抽样内核，按范围长度与请求数量选择稀疏集合、位图或索引数组路径。容器版只复制选中的元素，支持带只读成员的可复制构造类型；`n=0` 返回空结果，`n` 不小于容器大小时按原顺序返回全部元素的副本。
 
 随机访问范围的长度须同时能用 `std::uint64_t` 和 `std::size_t` 表示；正数量抽样超出该长度限制时抛出 `std::length_error`，不消耗引擎输出。
 
@@ -266,7 +270,7 @@ namespace RandX::ranges
 | `Lower` | [a-z] | 26 |
 | `Upper` | [A-Z] | 26 |
 | `Digit` | [0-9] | 10 |
-| `Hex` | [0-9a-fA-F] | 16 |
+| `Hex` | [0-9a-f] | 16 |
 | `Printable` | [!-~] | 94 |
 | `Base64` | [A-Za-z0-9+/] | 64 |
 | `Base64UrlSafe` | [A-Za-z0-9-_] | 64 |
@@ -303,19 +307,19 @@ template <class Engine>
 
 ```cpp
 template <std::integral T = int, std::uint64_t Seed = DefaultSeed>
-[[nodiscard]] inline constexpr T RandIntCE(T min, T max) noexcept;
+[[nodiscard]] inline constexpr T RandIntCE(T min, T max);
 
 template <std::integral T = int, std::uint64_t Seed = DefaultSeed>
-[[nodiscard]] inline constexpr T RandIntCE(T max) noexcept;  // [0, max]
+[[nodiscard]] inline constexpr T RandIntCE(T max);  // [0, max]
 ```
 
-使用 Lemire 有界法，无模偏差。结果由 Seed 模板参数决定。MSVC 条件编译：无 `__uint128_t` 时回退到拒绝采样。
+结果由 Seed 模板参数决定，显式写法为 `RandIntCE<T, Seed>(min, max)`。支持宽乘法时使用 Lemire 有界法，其他环境使用拒绝采样，均保持无模偏差。非法区间抛出 `std::invalid_argument`；在常量求值中该调用不能形成有效常量表达式。
 
 ### ShuffleCE
 
 ```cpp
 template <std::random_access_iterator It, std::uint64_t Seed = DefaultSeed>
-constexpr void ShuffleCE(It first, It last) noexcept;
+constexpr void ShuffleCE(It first, It last);
 ```
 
 `std::shuffle` 在 C++23 中仍非 constexpr，故自实现 Fisher-Yates。
@@ -324,7 +328,7 @@ constexpr void ShuffleCE(It first, It last) noexcept;
 
 ```cpp
 template <class T, std::size_t N, std::uint64_t Seed = DefaultSeed>
-[[nodiscard]] constexpr std::array<T, N> ShuffledArray(std::array<T, N> arr) noexcept;
+[[nodiscard]] constexpr std::array<T, N> ShuffledArray(std::array<T, N> arr);
 ```
 
 ---
@@ -335,7 +339,8 @@ template <class T, std::size_t N, std::uint64_t Seed = DefaultSeed>
 
 ```cpp
 [[nodiscard]] constexpr state_type serialize() const noexcept;
-constexpr void deserialize(state_type state) noexcept;
+constexpr void deserialize(const state_type& state) noexcept;  // 数组状态引擎
+constexpr void deserialize(state_type state) noexcept;         // SplitMix64
 ```
 
 | 引擎 | state_type |
@@ -349,35 +354,13 @@ constexpr void deserialize(state_type state) noexcept;
 | RomuDuoJr | `std::array<std::uint64_t, 2>` |
 | ChaCha20 | **不提供**（CSPRNG 安全约束） |
 
-### 全零状态静默修正
+### 状态输入与恢复
 
-全零状态是 xoshiro/xoroshiro 算法族的吸收态（输出永远为 0）。为防止引擎陷入吸收态，
-数组状态引擎（Xoshiro256StarStar / Xoroshiro128StarStar / Xoshiro128StarStar /
-Xoroshiro64StarStar / SFC64 / RomuDuoJr）在以下入口会**静默修正**全零输入，
-Debug 与 Release 行为一致，无断言触发、无返回值、无可查询标志：
+xoshiro／xoroshiro 与 RomuDuoJr 的全零数组状态会陷入吸收态。状态构造与 `deserialize()` 将这类输入的首个状态字置为 1，Debug／Release 行为一致。
 
-| 入口 | 修正规则 |
-|------|--------|
-| `EngineBase(state_type)` 状态构造 | 若全零则置 `s_[0] = 1`，其余不变 |
-| `deserialize(state_type)` | 若全零则置 `s_[0] = 1`，其余不变 |
-| SeedSeq / 单值播种构造 | 播种后若仍全零则置 `s_[0] = 1` |
-| `SFC64(seed)` / `SFC64(SeedSeq&)` | 若 3 个状态字均为 0，则置 `s_[0] = 0x9E3779B97F4A7C15`（counter 固定为 1） |
+SFC64 的计数器使全零完整快照可以正常推进，状态构造和 `deserialize()` 保留该快照；种子构造另有状态初始化与预热规则。SplitMix64 的标量零状态合法。ChaCha20 不提供状态构造或序列化入口。
 
-> `SplitMix64` 为标量状态、非吸收态，不参与此修正；`ChaCha20` 不提供状态构造 / deserialize。
-
-修正后的输出序列完全确定（与种子无关），且 C++23 与 C++17 两个头文件一致。以全零输入为例，
-各引擎修正后前 3 个输出为：
-
-| 引擎 | 修正后前 3 个输出 |
-|------|----------------|
-| Xoshiro256StarStar | `0, 5760, 5760` |
-| Xoroshiro128StarStar | `5760, 97014257280, 16610091813126018688` |
-| Xoshiro128StarStar | `0, 5760, 5760` |
-| Xoroshiro64StarStar | `3802928447, 3134575995, 1411955750` |
-| SFC64 | `1, 1, 11` |
-| RomuDuoJr | `1, 0, 3205649788950522037` |
-
-该行为已在 `test_randx.cpp` 与 `test_randx_cpp17.cpp` 的「全零输入 → 修正后确定序列」断言中回归。
+状态构造、反序列化与播种是不同契约，不能将某一入口的处理泛化到所有入口。共同回归测试位于 `tests/common/engine_contracts.hpp` 和 `tests/common/serialization_contracts.hpp`。
 
 ### operator<< / operator>>
 
@@ -389,7 +372,7 @@ template <class CharT, class Traits, detail::SerializableEngine Engine>
 std::basic_istream<CharT, Traits>& operator>>(std::basic_istream<CharT, Traits>& is, Engine& engine);
 ```
 
-格式：空格分隔的十进制数序列（兼容 `std::random_engine`）。SplitMix64（标量 state_type）和 ChaCha20 不支持。
+格式为空格分隔的十进制状态字。SplitMix64 通过标量 `serialize()`／`deserialize()` 保存恢复状态，ChaCha20 不提供这些流接口。流式输入失败时设置 failbit 并保留原引擎状态；状态有效性按各引擎政策判断。
 
 ---
 
@@ -422,7 +405,9 @@ static constexpr result_type max() noexcept;  // UINT64_MAX
 ```
 
 不提供 serialize/deserialize、operator<</>>、jump/longJump（CSPRNG 安全约束）。
-输出 2^20 字节后自动 reseed（前向安全）。非线程安全。
+默认构造启用自动重播种，输出达到 2^20 字节后从 OS 熵获取新材料；显式种子与直接 key／nonce 构造关闭自动重播种。手动 `reseed()` 保持原自动设置。默认构造、重播种和自动重播种均可能因 OS 熵读取失败抛出 `std::runtime_error`。
+
+单实例由单线程独立使用。移动后的源实例生成或 discard 时抛出 `std::logic_error`；确定性模式耗尽 block 计数器后抛出 `std::overflow_error`。
 
 ### SecureRandomBytes
 
@@ -430,6 +415,8 @@ static constexpr result_type max() noexcept;  // UINT64_MAX
 inline void SecureRandomBytes(void* buf, std::size_t n);
 // 异常: std::runtime_error（OS 熵源不可用）
 ```
+
+直接读取 OS 密码学熵源，失败抛异常；不经过普通 `RandomSeed()` 回退链。长度为零时直接返回，非零请求需提供有效目标存储。
 
 ### SecureSeed
 
@@ -440,10 +427,10 @@ inline void SecureRandomBytes(void* buf, std::size_t n);
 ### IsOsCryptoEntropyAvailable
 
 ```cpp
-[[nodiscard]] inline bool IsOsCryptoEntropyAvailable() noexcept;
-// true = BCryptGenRandom/getrandom/SecRandomCopyBytes 可用
-// false = std::random_device 兜底，不保证密码学安全
+[[nodiscard]] inline constexpr bool IsOsCryptoEntropyAvailable() noexcept;
 ```
+
+查询目标平台及头文件环境是否支持 BCryptGenRandom／getrandom／SecRandomCopyBytes。true 表示编译期能力具备，false 表示缺少支持的 OS 密码学接口；运行时读取失败仍由安全接口抛异常。
 
 ---
 
@@ -479,7 +466,7 @@ template <class Engine>
 MakeStreamEngine(std::uint64_t streamId, std::uint64_t seed = DefaultSeed);
 ```
 
-各流间隔 2^128 步（xoshiro256）或 2^64 步（xoroshiro128/xoshiro128）。仅支持满足 `StreamEngine` concept 的引擎。
+仅支持具有 jump 能力的引擎。当前实现将流 ID 的高位部分映射为 longJump 次数、低位部分映射为 jump 次数；小 ID 的相邻流间隔为 2^128 步（Xoshiro256StarStar）或 2^64 步（Xoroshiro128StarStar／Xoshiro128StarStar）。流数量、周期与每流消耗预算共同决定状态子序列的分隔条件，任意两个输出值相等不能作为子序列重叠的判据。
 
 ### Reseed / ReseedRandom
 
@@ -500,8 +487,10 @@ inline void ReseedRandom();               // 重置为真随机种子
 
 ```cpp
 [[nodiscard]] inline Xoshiro256StarStar& DefaultEngine();
-// 线程局部，首次调用时 std::random_device 播种
+// 线程局部，首次调用时通过 RandomSeed() 播种
 ```
+
+引用的生命周期属于当前线程；异步任务或其他线程应持有自己的引擎。
 
 ---
 

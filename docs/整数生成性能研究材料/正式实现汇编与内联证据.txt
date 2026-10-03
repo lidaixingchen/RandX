@@ -1,0 +1,62 @@
+整数生成性能修复：正式实现代码生成证据
+日期：2026-10-03；MinGW GCC 16.1.0，C++23，-O3 -DNDEBUG，LTO 关闭。
+源码：产品对照基准.cpp；基线为 a773584 实施前快照，候选为生成器产出的修复头文件。
+
+基线内联诊断：
+docs/整数生成性能研究材料/产品对照基准.cpp:69:96: missed:   not inlinable: int main()/12935 -> int Dice()/12759, --param max-inline-insns-auto limit reached
+docs/整数生成性能研究材料/产品对照基准.cpp:73:93: missed:   not inlinable: Measure.constprop/18716 -> int Dice()/12759, --param max-inline-insns-auto limit reached
+
+基线计时循环：
+.L517:
+	call	_Z4Dicev
+	movl	%eax, %eax
+	addq	%rax, %rsi
+	subq	$1, %rdi
+	jne	.L517
+	movq	%rsi, IntegerSink(%rip)
+
+
+候选初始化分支：
+.L447:
+	movzbl	_ZGVZN5RandX13DefaultEngineEvE6engine@secrel32(%r12), %r13d
+	testb	%r13b, %r13b
+	jne	.L443
+	movq	%r15, %rcx
+	call	_ZN5RandX6detail19CreateDefaultEngineEv
+	movb	$1, _ZGVZN5RandX13DefaultEngineEvE6engine@secrel32(%r12)
+
+
+候选稳态计时循环与状态提交：
+.L450:
+	leaq	(%rcx,%rcx,4), %rax
+	movq	%rcx, %rdx
+	xorq	%r11, %r9
+	rolq	$7, %rax
+	salq	$17, %rdx
+	xorq	%rcx, %r8
+	leaq	(%rax,%rax,8), %rax
+	xorq	%r9, %rcx
+	xorq	%rdx, %r9
+	mulq	%r10
+	xorq	%r8, %r11
+	rorq	$19, %r8
+	cmpq	$3, %rax
+	jbe	.L450
+	leal	1(%rdx), %eax
+	addq	$1, %rdi
+	addq	%rax, %rbp
+	cmpq	$5000000, %rdi
+	jne	.L450
+	movq	%gs:88, %rax
+	movq	(%rax,%rbx,8), %rax
+	movq	%rcx, 8+_ZZN5RandX13DefaultEngineEvE6engine@secrel32(%rax)
+	movq	%r11, _ZZN5RandX13DefaultEngineEvE6engine@secrel32(%rax)
+	movq	%r9, 16+_ZZN5RandX13DefaultEngineEvE6engine@secrel32(%rax)
+	movq	%r8, 24+_ZZN5RandX13DefaultEngineEvE6engine@secrel32(%rax)
+.L446:
+	movq	%rbp, IntegerSink(%rip)
+
+
+候选 .L450 以寄存器持有引擎状态，逐次生成与乘积映射位于循环内，批次结束后提交状态。
+初始化守卫为零才进入 CreateDefaultEngine 调用；计时循环使用同一普通 Dice 业务函数定义。
+C++17 对应基线计时循环同样保留 call Dice，候选计时循环同样展开；九轮测量记录见正式实现复测原始结果.csv。
