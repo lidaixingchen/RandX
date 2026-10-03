@@ -17,9 +17,11 @@
 			const auto nU = static_cast<std::uint64_t>(n);
 			const auto nSample = static_cast<std::size_t>(n);
 
-			// 分支选择：n·K < size 时 hash-set 内存优（O(n)）；否则索引数组常数优（O(N)）
+			// 分支选择：n·K < size 时使用 O(n) 稀疏存储；否则使用 O(N) 索引数组。
 			if (nU <= (sizeU - 1) / detail::HashSetThresholdK)
 			{
+				if (nSample <= SampleLinearIndexCapacity)
+					return SampleLinearIndices<T, Diff, Lifetime>(rng, first, sizeU, nSample);
 				// hash-set 分支：O(n) 内存，O(n) 期望时间
 				std::unordered_set<std::uint64_t> selected;
 				selected.reserve(nSample);

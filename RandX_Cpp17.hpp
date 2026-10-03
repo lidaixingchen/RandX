@@ -2948,6 +2948,35 @@ namespace RandX
 			}
 		};
 
+		inline constexpr std::size_t SampleLinearIndexCapacity = 2;
+
+		// 小样本分支保持独立调用边界，限制通用抽样内核的展开规模。
+		template <class T, class Diff, SampleDistributionLifetime Lifetime, class It, class Engine>
+#if defined(_MSC_VER)
+		__declspec(noinline)
+#elif defined(__GNUC__) || defined(__clang__)
+		__attribute__((noinline))
+#endif
+		inline std::vector<T> SampleLinearIndices(Engine& engine, It& first, std::uint64_t size, std::size_t count)
+		{
+			// 单个索引和索引对使用定长存储，每次重抽至多比较一个已选索引。
+			std::array<std::uint64_t, SampleLinearIndexCapacity> selected{};
+			std::vector<T> result;
+			result.reserve(count);
+			SampleFixedIndexDistribution<std::uint64_t, Lifetime> dist(0, size - 1);
+			while (result.size() < count)
+			{
+				const std::uint64_t index = dist(engine);
+				const auto selectedEnd = selected.begin() + result.size();
+				if (std::find(selected.begin(), selectedEnd, index) == selectedEnd)
+				{
+					selected[result.size()] = index;
+					result.push_back(first[static_cast<Diff>(index)]);
+				}
+			}
+			return result;
+		}
+
 		// 内核在公开适配层展开，保留局部迭代器与静态获取器的优化信息。
 #if defined(_MSC_VER)
 #define RANDX_DETAIL_SAMPLE_INLINE __forceinline
@@ -2977,9 +3006,11 @@ namespace RandX
 			const auto nU = static_cast<std::uint64_t>(n);
 			const auto nSample = static_cast<std::size_t>(n);
 
-			// 分支选择：n·K < size 时 hash-set 内存优（O(n)）；否则索引数组常数优（O(N)）
+			// 分支选择：n·K < size 时使用 O(n) 稀疏存储；否则使用 O(N) 索引数组。
 			if (nU <= (sizeU - 1) / detail::HashSetThresholdK)
 			{
+				if (nSample <= SampleLinearIndexCapacity)
+					return SampleLinearIndices<T, Diff, Lifetime>(rng, first, sizeU, nSample);
 				// hash-set 分支：O(n) 内存，O(n) 期望时间
 				std::unordered_set<std::uint64_t> selected;
 				selected.reserve(nSample);

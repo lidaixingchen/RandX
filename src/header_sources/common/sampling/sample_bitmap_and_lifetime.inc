@@ -68,3 +68,5 @@
 				return RandInt<UInt>(engine, lower, upper);
 			}
 		};
+
+		// @randx-include sample_linear_indices.inc

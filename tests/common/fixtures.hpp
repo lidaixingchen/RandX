@@ -270,6 +270,19 @@ struct CountingEngine
     }
 };
 
+template <std::uint64_t PopulationSize>
+struct ScriptedSampleIndexEngine
+{
+    using result_type = std::uint64_t;
+    static constexpr result_type min() noexcept { return 0; }
+    static constexpr result_type max() noexcept { return PopulationSize - 1; }
+
+    std::vector<result_type> values;
+    std::size_t callCount{0};
+
+    result_type operator()() { return values.at(callCount++); }
+};
+
 struct ThrowingEngine
 {
     using result_type = std::uint64_t;
