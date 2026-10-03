@@ -2894,7 +2894,13 @@ namespace RandX
 		inline constexpr std::uint64_t SampleBitmapThresholdK = HashSetThresholdK * SampleBitmapWordBits;
 		inline constexpr std::uint64_t SampleBitmapDensityDivisor = 2;
 
+		// 位图操作保持独立边界，循环内的分布与引擎运算在内核中展开。
 		template <class T, class Diff, class It, class Engine>
+#if defined(_MSC_VER)
+		__declspec(noinline)
+#elif defined(__GNUC__) || defined(__clang__)
+		__attribute__((noinline, flatten))
+#endif
 		inline std::vector<T> SampleBitmap(Engine& engine, It first, std::uint64_t size, std::size_t n)
 		{
 			const std::size_t wordCount = static_cast<std::size_t>(
@@ -2949,6 +2955,7 @@ namespace RandX
 		};
 
 		inline constexpr std::size_t SampleLinearIndexCapacity = 2;
+		inline constexpr std::size_t SampleSingleValueCount = 1;
 
 		// 小样本分支保持独立调用边界，限制通用抽样内核的展开规模。
 		template <class T, class Diff, SampleDistributionLifetime Lifetime, class It, class Engine>
@@ -2988,6 +2995,12 @@ namespace RandX
 		template <class T, class Diff, class It>
 		RANDX_DETAIL_SAMPLE_OPERATION_BOUNDARY std::vector<T> CopySamplePopulation(It& first, Diff size)
 		{
+			// 标准容器迭代器与原生指针保持连续存储的批量复制能力。
+			if constexpr (std::is_trivially_copyable_v<T> &&
+				(std::is_pointer_v<It> ||
+				 std::is_same_v<It, typename std::vector<T>::iterator> ||
+				 std::is_same_v<It, typename std::vector<T>::const_iterator>))
+				return std::vector<T>(first, first + size);
 			std::vector<T> all;
 			all.reserve(static_cast<std::size_t>(size));
 			for (Diff i = 0; i < size; ++i)
@@ -3018,6 +3031,15 @@ namespace RandX
 		{
 			// 索引数组分支：O(N) 内存，O(N) 时间，无碰撞
 			const std::size_t sz = static_cast<std::size_t>(size);
+			// 整数差值在公开适配中限定请求数量，循环中的分布上下界始终有序。
+			if constexpr (std::is_integral_v<Diff>)
+			{
+#if defined(_MSC_VER)
+				__assume(count <= sz);
+#elif defined(__GNUC__) || defined(__clang__)
+				if (count > sz) __builtin_unreachable();
+#endif
+			}
 			std::vector<std::size_t> indices(sz);
 			for (std::size_t i = 0; i < sz; ++i)
 				indices[i] = i;
@@ -3053,7 +3075,19 @@ namespace RandX
 				return {};
 			detail::ValidateSampleSize(size);
 			if (n >= size)
+			{
+				if constexpr (std::is_integral_v<Diff>)
+				{
+					if (size == static_cast<Diff>(SampleSingleValueCount))
+					{
+						std::vector<T> all;
+						all.reserve(SampleSingleValueCount);
+						all.push_back(first[Diff{0}]);
+						return all;
+					}
+				}
 				return CopySamplePopulation<T>(first, size);
+			}
 
 			auto& rng = getEngine();
 			const auto sizeU = static_cast<std::uint64_t>(size);

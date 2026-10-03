@@ -10,6 +10,12 @@
 		template <class T, class Diff, class It>
 		RANDX_DETAIL_SAMPLE_OPERATION_BOUNDARY std::vector<T> CopySamplePopulation(It& first, Diff size)
 		{
+			// 标准容器迭代器与原生指针保持连续存储的批量复制能力。
+			if constexpr (std::is_trivially_copyable_v<T> &&
+				(std::is_pointer_v<It> ||
+				 std::is_same_v<It, typename std::vector<T>::iterator> ||
+				 std::is_same_v<It, typename std::vector<T>::const_iterator>))
+				return std::vector<T>(first, first + size);
 			std::vector<T> all;
 			all.reserve(static_cast<std::size_t>(size));
 			for (Diff i = 0; i < size; ++i)
@@ -40,6 +46,15 @@
 		{
 			// 索引数组分支：O(N) 内存，O(N) 时间，无碰撞
 			const std::size_t sz = static_cast<std::size_t>(size);
+			// 整数差值在公开适配中限定请求数量，循环中的分布上下界始终有序。
+			if constexpr (std::is_integral_v<Diff>)
+			{
+#if defined(_MSC_VER)
+				__assume(count <= sz);
+#elif defined(__GNUC__) || defined(__clang__)
+				if (count > sz) __builtin_unreachable();
+#endif
+			}
 			std::vector<std::size_t> indices(sz);
 			for (std::size_t i = 0; i < sz; ++i)
 				indices[i] = i;

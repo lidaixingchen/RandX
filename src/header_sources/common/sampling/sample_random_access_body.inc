@@ -3,7 +3,19 @@
 				return {};
 			detail::ValidateSampleSize(size);
 			if (n >= size)
+			{
+				if constexpr (std::is_integral_v<Diff>)
+				{
+					if (size == static_cast<Diff>(SampleSingleValueCount))
+					{
+						std::vector<T> all;
+						all.reserve(SampleSingleValueCount);
+						all.push_back(first[Diff{0}]);
+						return all;
+					}
+				}
 				return CopySamplePopulation<T>(first, size);
+			}
 
 			auto& rng = getEngine();
 			const auto sizeU = static_cast<std::uint64_t>(size);

@@ -15,7 +15,13 @@
 		inline constexpr std::uint64_t SampleBitmapThresholdK = HashSetThresholdK * SampleBitmapWordBits;
 		inline constexpr std::uint64_t SampleBitmapDensityDivisor = 2;
 
+		// 位图操作保持独立边界，循环内的分布与引擎运算在内核中展开。
 		template <class T, class Diff, class It, class Engine>
+#if defined(_MSC_VER)
+		__declspec(noinline)
+#elif defined(__GNUC__) || defined(__clang__)
+		__attribute__((noinline, flatten))
+#endif
 		inline std::vector<T> SampleBitmap(Engine& engine, It first, std::uint64_t size, std::size_t n)
 		{
 			const std::size_t wordCount = static_cast<std::size_t>(

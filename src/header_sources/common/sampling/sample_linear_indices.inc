@@ -1,4 +1,5 @@
 		inline constexpr std::size_t SampleLinearIndexCapacity = 2;
+		inline constexpr std::size_t SampleSingleValueCount = 1;
 
 		// 小样本分支保持独立调用边界，限制通用抽样内核的展开规模。
 		template <class T, class Diff, SampleDistributionLifetime Lifetime, class It, class Engine>
