@@ -2972,28 +2972,30 @@ namespace RandX
 			}
 		};
 
-		template <class T, class Diff, class It, class GetEngine>
-		RANDX_DETAIL_SAMPLE_INLINE std::vector<T> SampleContainer(It first, Diff size, std::size_t n, GetEngine&& getEngine)
+		template <class It>
+		struct SampleEndGetter
 		{
-			if (size <= 0) return {};
-			auto& engine = getEngine();
-			ValidateSampleSize(size);
-			Diff count;
-			if constexpr (std::numeric_limits<Diff>::digits < std::numeric_limits<std::size_t>::digits)
+			const It& last;
+			auto operator()() const
 			{
-				constexpr auto maxCount = static_cast<std::size_t>((std::numeric_limits<Diff>::max)());
-				count = static_cast<Diff>((std::min)(n, maxCount));
+				return last;
 			}
-			else
+		};
+
+		template <class It, class Diff>
+		struct NormalizedSampleEndGetter
+		{
+			const It& first;
+			Diff size;
+			auto operator()() const
 			{
-				count = static_cast<Diff>(n);
+				return first + size;
 			}
-			const auto sizeU = static_cast<std::uint64_t>(size);
-			if (n > (sizeU - 1) / SampleBitmapThresholdK && n <= sizeU / SampleBitmapDensityDivisor)
-				return SampleBitmap<T, Diff>(engine, first, sizeU, n);
-			return SampleRandomAccess<T, Diff, SampleDistributionLifetime::Draw>(
-				first, size, count, [&engine]() -> auto& { return engine; });
-		}
+		};
+
+		template <class T, class Diff, class It, class GetEngine, class GetLast>
+		RANDX_DETAIL_SAMPLE_INLINE std::vector<T> SampleContainer(
+			const It& first, Diff size, std::size_t n, GetEngine&& getEngine, GetLast&& getLast);
 	}
 
 	/// @brief 无放回抽样（随机访问迭代器版，hash-set / 索引数组双分支）
@@ -3024,7 +3026,7 @@ namespace RandX
 	template <std::ranges::random_access_range Container>
 		requires std::copy_constructible<std::ranges::range_value_t<Container>>
 	[[nodiscard]]
-	inline auto RandSample(const Container& c, std::size_t n)
+	RANDX_DETAIL_SAMPLE_INLINE auto RandSample(const Container& c, std::size_t n)
 	{
 		using T = std::ranges::range_value_t<Container>;
 		using Diff = std::ranges::range_difference_t<const Container>;
@@ -3032,7 +3034,7 @@ namespace RandX
 		const auto first = std::ranges::begin(c);
 		const auto last = std::ranges::end(c);
 		const Diff size = std::ranges::distance(first, last);
-		return detail::SampleContainer<T, Diff>(first, size, n, detail::DefaultSampleEngineGetter{});
+		return detail::SampleContainer<T, Diff>(first, size, n, detail::DefaultSampleEngineGetter{}, detail::NormalizedSampleEndGetter<decltype(first), Diff>{first, size});
 	}
 
 	/// @brief 无放回抽样（输入迭代器版，reservoir sampling Algorithm R）
@@ -3100,7 +3102,7 @@ namespace RandX
 	template <detail::RandomEngine Engine, std::ranges::random_access_range Container>
 		requires std::copy_constructible<std::ranges::range_value_t<Container>>
 	[[nodiscard]]
-	inline auto RandSample(Engine& engine, const Container& c, std::size_t n)
+	RANDX_DETAIL_SAMPLE_INLINE auto RandSample(Engine& engine, const Container& c, std::size_t n)
 	{
 		using T = std::ranges::range_value_t<Container>;
 		using Diff = std::ranges::range_difference_t<const Container>;
@@ -3108,7 +3110,32 @@ namespace RandX
 		const auto first = std::ranges::begin(c);
 		const auto last = std::ranges::end(c);
 		const Diff size = std::ranges::distance(first, last);
-		return detail::SampleContainer<T, Diff>(first, size, n, [&engine]() -> Engine& { return engine; });
+		return detail::SampleContainer<T, Diff>(first, size, n, [&engine]() -> Engine& { return engine; }, detail::NormalizedSampleEndGetter<decltype(first), Diff>{first, size});
+	}
+	namespace detail
+	{
+		template <class T, class Diff, class It, class GetEngine, class GetLast>
+		RANDX_DETAIL_SAMPLE_INLINE std::vector<T> SampleContainer(
+			const It& first, Diff size, std::size_t n, GetEngine&& getEngine, GetLast&& getLast)
+		{
+			if (size <= 0) return {};
+			auto& engine = getEngine();
+			ValidateSampleSize(size);
+			Diff count;
+			if constexpr (std::numeric_limits<Diff>::digits < std::numeric_limits<std::size_t>::digits)
+			{
+				constexpr auto maxCount = static_cast<std::size_t>((std::numeric_limits<Diff>::max)());
+				count = static_cast<Diff>((std::min)(n, maxCount));
+			}
+			else
+			{
+				count = static_cast<Diff>(n);
+			}
+			const auto sizeU = static_cast<std::uint64_t>(size);
+			if (n > (sizeU - 1) / SampleBitmapThresholdK && n <= sizeU / SampleBitmapDensityDivisor)
+				return SampleBitmap<T, Diff>(engine, first, sizeU, n);
+			return RandSample(engine, first, getLast(), count);
+		}
 	}
 #undef RANDX_DETAIL_SAMPLE_INLINE
 

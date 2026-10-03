@@ -1,13 +1,6 @@
-		struct DefaultSampleEngineGetter
-		{
-			Xoshiro256StarStar& operator()() const
-			{
-				return DefaultEngine();
-			}
-		};
-
-		template <class T, class Diff, class It, class GetEngine>
-		RANDX_DETAIL_SAMPLE_INLINE std::vector<T> SampleContainer(It first, Diff size, std::size_t n, GetEngine&& getEngine)
+		template <class T, class Diff, class It, class GetEngine, class GetLast>
+		RANDX_DETAIL_SAMPLE_INLINE std::vector<T> SampleContainer(
+			const It& first, Diff size, std::size_t n, GetEngine&& getEngine, GetLast&& getLast)
 		{
 			if (size <= 0) return {};
 			auto& engine = getEngine();
@@ -25,6 +18,5 @@
 			const auto sizeU = static_cast<std::uint64_t>(size);
 			if (n > (sizeU - 1) / SampleBitmapThresholdK && n <= sizeU / SampleBitmapDensityDivisor)
 				return SampleBitmap<T, Diff>(engine, first, sizeU, n);
-			return SampleRandomAccess<T, Diff, SampleDistributionLifetime::Draw>(
-				first, size, count, [&engine]() -> auto& { return engine; });
+			return RandSample(engine, first, getLast(), count);
 		}

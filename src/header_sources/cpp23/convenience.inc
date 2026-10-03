@@ -497,7 +497,7 @@
 		RANDX_DETAIL_SAMPLE_INLINE std::vector<T> SampleReservoir(It& first, Sentinel& last, Diff n, GetEngine&& getEngine)
 		// @randx-include ../common/sampling/sample_reservoir_body.inc
 
-		// @randx-include ../common/sampling/sample_container_definition.inc
+		// @randx-include ../common/sampling/sample_container_declaration.inc
 	}
 
 	/// @brief 无放回抽样（随机访问迭代器版，hash-set / 索引数组双分支）
@@ -528,7 +528,7 @@
 	template <std::ranges::random_access_range Container>
 		requires std::copy_constructible<std::ranges::range_value_t<Container>>
 	[[nodiscard]]
-	inline auto RandSample(const Container& c, std::size_t n)
+	RANDX_DETAIL_SAMPLE_INLINE auto RandSample(const Container& c, std::size_t n)
 	{
 		using T = std::ranges::range_value_t<Container>;
 		using Diff = std::ranges::range_difference_t<const Container>;
@@ -536,7 +536,7 @@
 		const auto first = std::ranges::begin(c);
 		const auto last = std::ranges::end(c);
 		const Diff size = std::ranges::distance(first, last);
-		return detail::SampleContainer<T, Diff>(first, size, n, detail::DefaultSampleEngineGetter{});
+		return detail::SampleContainer<T, Diff>(first, size, n, detail::DefaultSampleEngineGetter{}, detail::NormalizedSampleEndGetter<decltype(first), Diff>{first, size});
 	}
 
 	/// @brief 无放回抽样（输入迭代器版，reservoir sampling Algorithm R）
@@ -604,7 +604,7 @@
 	template <detail::RandomEngine Engine, std::ranges::random_access_range Container>
 		requires std::copy_constructible<std::ranges::range_value_t<Container>>
 	[[nodiscard]]
-	inline auto RandSample(Engine& engine, const Container& c, std::size_t n)
+	RANDX_DETAIL_SAMPLE_INLINE auto RandSample(Engine& engine, const Container& c, std::size_t n)
 	{
 		using T = std::ranges::range_value_t<Container>;
 		using Diff = std::ranges::range_difference_t<const Container>;
@@ -612,7 +612,11 @@
 		const auto first = std::ranges::begin(c);
 		const auto last = std::ranges::end(c);
 		const Diff size = std::ranges::distance(first, last);
-		return detail::SampleContainer<T, Diff>(first, size, n, [&engine]() -> Engine& { return engine; });
+		return detail::SampleContainer<T, Diff>(first, size, n, [&engine]() -> Engine& { return engine; }, detail::NormalizedSampleEndGetter<decltype(first), Diff>{first, size});
+	}
+	namespace detail
+	{
+		// @randx-include ../common/sampling/sample_container_definition.inc
 	}
 #undef RANDX_DETAIL_SAMPLE_INLINE
 
