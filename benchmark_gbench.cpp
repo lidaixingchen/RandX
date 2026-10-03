@@ -397,6 +397,8 @@ BENCHMARK_TEMPLATE(BM_RandSampleReservoirExplicit, RandX::Xoshiro128StarStar)
 
 #else
 
+#include "benchmarks/common/default_api_benchmarks.hpp"
+
 // ============================================================================
 //	具名常量（消除魔法数字）
 // ============================================================================

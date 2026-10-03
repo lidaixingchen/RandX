@@ -1616,6 +1616,19 @@ namespace RandX
 		return detail::RandomSeedWithSources(sources);
 	}
 
+	namespace detail
+	{
+#if defined(_MSC_VER)
+		__declspec(noinline)
+#elif defined(__GNUC__) || defined(__clang__)
+		__attribute__((noinline))
+#endif
+		inline Xoshiro256StarStar CreateDefaultEngine()
+		{
+			return Xoshiro256StarStar{ RandomSeed() };
+		}
+	}
+
 	/// @brief 获取当前线程专属的默认伪随机数生成引擎
 	/// @return 线程局部 Xoshiro256StarStar 引擎的左值引用
 	/// @warning 返回引用的生命周期严格绑定于当前线程的线程局部存储（TLS），
@@ -1623,7 +1636,7 @@ namespace RandX
 	[[nodiscard]]
 	inline Xoshiro256StarStar& DefaultEngine()
 	{
-		thread_local Xoshiro256StarStar engine{ RandomSeed() };
+		thread_local Xoshiro256StarStar engine = detail::CreateDefaultEngine();
 		return engine;
 	}
 

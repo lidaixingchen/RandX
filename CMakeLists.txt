@@ -136,11 +136,43 @@ if(RANDX_BUILD_TESTS)
 
     find_package(Threads REQUIRED)
 
+    add_executable(
+        test_default_engine_cpp17
+        tests/default_engine/test_default_engine_cpp17.cpp
+        tests/default_engine/default_engine_cross_translation_unit.cpp
+    )
+    set_target_properties(test_default_engine_cpp17 PROPERTIES
+        CXX_STANDARD 17
+        CXX_STANDARD_REQUIRED ON
+        CXX_EXTENSIONS OFF
+    )
+    target_compile_features(test_default_engine_cpp17 PRIVATE cxx_std_17)
+    target_include_directories(test_default_engine_cpp17 PRIVATE ${DOCTEST_INCLUDE_DIR})
+    target_compile_definitions(test_default_engine_cpp17 PRIVATE RANDX_DEFAULT_ENGINE_TEST_CPP17)
+    target_link_libraries(test_default_engine_cpp17 PRIVATE RandX_Cpp17 Threads::Threads)
+    add_test(NAME test_default_engine_cpp17 COMMAND test_default_engine_cpp17)
+
+    add_executable(
+        test_default_engine_cpp23
+        tests/default_engine/test_default_engine_cpp23.cpp
+        tests/default_engine/default_engine_cross_translation_unit.cpp
+    )
+    set_target_properties(test_default_engine_cpp23 PROPERTIES
+        CXX_STANDARD 23
+        CXX_STANDARD_REQUIRED ON
+        CXX_EXTENSIONS OFF
+    )
+    target_compile_features(test_default_engine_cpp23 PRIVATE cxx_std_23)
+    target_include_directories(test_default_engine_cpp23 PRIVATE ${DOCTEST_INCLUDE_DIR})
+    target_link_libraries(test_default_engine_cpp23 PRIVATE RandX_Cpp23 Threads::Threads)
+    add_test(NAME test_default_engine_cpp23 COMMAND test_default_engine_cpp23)
+
     # 故障注入目标在所有翻译单元中统一启用私有熵 hook。
     add_executable(
         test_entropy_cpp17
         tests/entropy/test_entropy_cpp17.cpp
         tests/entropy/entropy_cross_translation_unit.cpp
+        tests/default_engine/default_engine_cross_translation_unit.cpp
     )
     set_target_properties(test_entropy_cpp17 PROPERTIES
         CXX_STANDARD 17
@@ -152,6 +184,7 @@ if(RANDX_BUILD_TESTS)
     target_compile_definitions(test_entropy_cpp17 PRIVATE
         RANDX_ENABLE_ENTROPY_TEST_HOOKS
         RANDX_ENTROPY_TEST_CPP17
+        RANDX_DEFAULT_ENGINE_TEST_CPP17
     )
     target_link_libraries(test_entropy_cpp17 PRIVATE RandX_Cpp17 Threads::Threads)
     add_test(NAME test_entropy_cpp17 COMMAND test_entropy_cpp17)
@@ -160,6 +193,7 @@ if(RANDX_BUILD_TESTS)
         test_entropy_cpp23
         tests/entropy/test_entropy_cpp23.cpp
         tests/entropy/entropy_cross_translation_unit.cpp
+        tests/default_engine/default_engine_cross_translation_unit.cpp
     )
     set_target_properties(test_entropy_cpp23 PROPERTIES
         CXX_STANDARD 23
@@ -176,6 +210,8 @@ if(RANDX_BUILD_TESTS)
     if(MSVC)
         target_compile_options(test_randx PRIVATE /utf-8)
         target_compile_options(test_randx_cpp17 PRIVATE /utf-8)
+        target_compile_options(test_default_engine_cpp17 PRIVATE /utf-8)
+        target_compile_options(test_default_engine_cpp23 PRIVATE /utf-8)
         target_compile_options(test_entropy_cpp17 PRIVATE /utf-8)
         target_compile_options(test_entropy_cpp23 PRIVATE /utf-8)
     endif()
@@ -189,6 +225,14 @@ if(RANDX_BUILD_TESTS)
     add_test(
         NAME test_randx_cpp17_randomized_order
         COMMAND test_randx_cpp17 --order-by=rand --rand-seed=${RANDX_DOCTEST_ORDER_SEED}
+    )
+    add_test(
+        NAME test_default_engine_cpp17_randomized_order
+        COMMAND test_default_engine_cpp17 --order-by=rand --rand-seed=${RANDX_DOCTEST_ORDER_SEED}
+    )
+    add_test(
+        NAME test_default_engine_cpp23_randomized_order
+        COMMAND test_default_engine_cpp23 --order-by=rand --rand-seed=${RANDX_DOCTEST_ORDER_SEED}
     )
     add_test(
         NAME test_entropy_cpp17_randomized_order
@@ -211,12 +255,40 @@ if(RANDX_BUILD_TESTS)
                     --cpp23-binary "$<TARGET_FILE:test_randx>"
         )
         add_test(
+            NAME test_default_engine_contract_registry
+            COMMAND "${Python3_EXECUTABLE}"
+                    "${CMAKE_CURRENT_SOURCE_DIR}/tools/check_test_contracts.py"
+                    compare-binaries
+                    --cpp17-binary "$<TARGET_FILE:test_default_engine_cpp17>"
+                    --cpp23-binary "$<TARGET_FILE:test_default_engine_cpp23>"
+                    --suite "公共/基础/默认引擎"
+        )
+        add_test(
+            NAME test_default_engine_hook_cpp17_registry
+            COMMAND "${Python3_EXECUTABLE}"
+                    "${CMAKE_CURRENT_SOURCE_DIR}/tools/check_test_contracts.py"
+                    compare-binaries
+                    --cpp17-binary "$<TARGET_FILE:test_default_engine_cpp17>"
+                    --cpp23-binary "$<TARGET_FILE:test_entropy_cpp17>"
+                    --suite "公共/基础/默认引擎"
+        )
+        add_test(
+            NAME test_default_engine_hook_cpp23_registry
+            COMMAND "${Python3_EXECUTABLE}"
+                    "${CMAKE_CURRENT_SOURCE_DIR}/tools/check_test_contracts.py"
+                    compare-binaries
+                    --cpp17-binary "$<TARGET_FILE:test_default_engine_cpp23>"
+                    --cpp23-binary "$<TARGET_FILE:test_entropy_cpp23>"
+                    --suite "公共/基础/默认引擎"
+        )
+        add_test(
             NAME test_entropy_contract_registry
             COMMAND "${Python3_EXECUTABLE}"
                     "${CMAKE_CURRENT_SOURCE_DIR}/tools/check_test_contracts.py"
                     compare-binaries
                     --cpp17-binary "$<TARGET_FILE:test_entropy_cpp17>"
                     --cpp23-binary "$<TARGET_FILE:test_entropy_cpp23>"
+                    --suite "公共/基础/默认引擎"
                     --suite "公共/基础/安全熵源故障"
                     --suite "内部/熵源"
         )
@@ -227,6 +299,10 @@ if(RANDX_BUILD_TESTS)
         target_link_options(test_randx PRIVATE --coverage)
         target_compile_options(test_randx_cpp17 PRIVATE --coverage -O0 -g)
         target_link_options(test_randx_cpp17 PRIVATE --coverage)
+        target_compile_options(test_default_engine_cpp17 PRIVATE --coverage -O0 -g)
+        target_link_options(test_default_engine_cpp17 PRIVATE --coverage)
+        target_compile_options(test_default_engine_cpp23 PRIVATE --coverage -O0 -g)
+        target_link_options(test_default_engine_cpp23 PRIVATE --coverage)
         target_compile_options(test_entropy_cpp17 PRIVATE --coverage -O0 -g)
         target_link_options(test_entropy_cpp17 PRIVATE --coverage)
         target_compile_options(test_entropy_cpp23 PRIVATE --coverage -O0 -g)
@@ -279,6 +355,32 @@ if(RANDX_BUILD_BENCHMARK)
     randx_add_sampling_benchmark(benchmark_gbench_sampling_cpp17 17 RandX_Cpp17)
     target_compile_definitions(benchmark_gbench_sampling_cpp17 PRIVATE RANDX_BENCHMARK_CPP17)
     randx_add_sampling_benchmark(benchmark_gbench_sampling_cpp23 23 RandX_Cpp23)
+
+    add_executable(benchmark_gbench_default_cpp17 benchmark_gbench_default_cpp17.cpp)
+    target_link_libraries(benchmark_gbench_default_cpp17 PRIVATE benchmark::benchmark RandX_Cpp17)
+    target_compile_features(benchmark_gbench_default_cpp17 PRIVATE cxx_std_17)
+    set_target_properties(benchmark_gbench_default_cpp17 PROPERTIES
+        CXX_STANDARD 17
+        CXX_STANDARD_REQUIRED ON
+        CXX_EXTENSIONS OFF
+    )
+    randx_set_benchmark_header_override(benchmark_gbench_default_cpp17)
+
+    function(randx_add_initialization_observation target_name standard library_target)
+        add_executable(${target_name} benchmark_gbench_initialization.cpp)
+        target_link_libraries(${target_name} PRIVATE benchmark::benchmark ${library_target})
+        target_compile_features(${target_name} PRIVATE cxx_std_${standard})
+        target_compile_definitions(${target_name} PRIVATE RANDX_BENCHMARK_INITIALIZATION_OBSERVATION)
+        set_target_properties(${target_name} PROPERTIES
+            CXX_STANDARD ${standard}
+            CXX_STANDARD_REQUIRED ON
+            CXX_EXTENSIONS OFF
+        )
+        randx_set_benchmark_header_override(${target_name})
+    endfunction()
+    randx_add_initialization_observation(benchmark_gbench_initialization_cpp17 17 RandX_Cpp17)
+    target_compile_definitions(benchmark_gbench_initialization_cpp17 PRIVATE RANDX_BENCHMARK_CPP17)
+    randx_add_initialization_observation(benchmark_gbench_initialization_cpp23 23 RandX_Cpp23)
 endif()
 
 if(RANDX_BUILD_EXAMPLES)
