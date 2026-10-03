@@ -327,7 +327,7 @@ if(RANDX_BUILD_BENCHMARK)
     set(BENCHMARK_ENABLE_TESTING OFF CACHE INTERNAL "")
     FetchContent_MakeAvailable(benchmark_gbench_dep)
 
-    add_executable(benchmark_gbench benchmark_gbench.cpp)
+    add_executable(benchmark_gbench benchmark_gbench.cpp benchmark_gbench_default_cpp23.cpp)
     target_link_libraries(benchmark_gbench PRIVATE benchmark::benchmark RandX)
     target_compile_features(benchmark_gbench PRIVATE cxx_std_23)
 

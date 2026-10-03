@@ -180,14 +180,30 @@ class BuildOutputOverrideTests(unittest.TestCase):
         self.source_directory.mkdir()
         self.source: Path = self.source_directory / "benchmark_gbench.cpp"
         self.source.touch()
+        self.default_source: Path = self.source_directory / "benchmark_gbench_default_cpp23.cpp"
+        self.default_source.touch()
         self.compiler: Path = self.root / "compiler tools" / "cl.exe"
         self.compiler.parent.mkdir()
         self.compiler.touch()
 
-    def compile_command(self, include_directories: Sequence[Path], target: str = "benchmark_gbench") -> str:
+    def compile_command(
+        self,
+        include_directories: Sequence[Path],
+        target: str = "benchmark_gbench",
+        source: Path | None = None,
+    ) -> str:
         includes: str = " ".join(f'/I"{directory}"' for directory in include_directories)
-        object_path: Path = self.build_directory / "CMakeFiles" / f"{target}.dir" / "benchmark_gbench.cpp.obj"
-        return f'"{self.compiler}" {includes} /Fo"{object_path}" /c "{self.source}"'
+        source_path: Path = source or self.source
+        object_path: Path = self.build_directory / "CMakeFiles" / f"{target}.dir" / f"{source_path.name}.obj"
+        return f'"{self.compiler}" {includes} /Fo"{object_path}" /c "{source_path}"'
+
+    def complete_compile_output(self, include_directories: Sequence[Path]) -> str:
+        return "\n".join(
+            (
+                self.compile_command(include_directories),
+                self.compile_command(include_directories, source=self.default_source),
+            )
+        )
 
     def verify(self, build_output: str) -> dict[str, Any]:
         return pair.verify_build_output_override(
@@ -207,20 +223,115 @@ class BuildOutputOverrideTests(unittest.TestCase):
         self.assertEqual(raised.exception.details["first_header_directory"], str(self.shadow.resolve()))
 
     def test_msvc_command_with_spaces_and_correct_include_order_is_verified(self) -> None:
-        evidence: dict[str, Any] = self.verify(self.compile_command([self.snapshot]))
+        evidence: dict[str, Any] = self.verify(self.complete_compile_output([self.snapshot]))
 
         self.assertTrue(evidence["verified"])
         self.assertEqual(evidence["selected_directory"], str(self.snapshot.resolve()))
-        self.assertIn("compiler tools", evidence["commands"][0]["compile_command"])
+        self.assertEqual(len(evidence["commands"]), 2)
+        self.assertTrue(all("compiler tools" in row["compile_command"] for row in evidence["commands"]))
+
+    def test_msvc_verbose_output_checks_the_second_translation_unit(self) -> None:
+        output: str = "\n".join(
+            (
+                self.compile_command([self.snapshot]),
+                self.compile_command([self.shadow, self.snapshot], source=self.default_source),
+            )
+        )
+
+        with self.assertRaises(pair.BenchmarkPairError) as raised:
+            self.verify(output)
+
+        self.assertEqual(raised.exception.details["source"], self.default_source.name)
+        self.assertEqual(raised.exception.details["first_header_directory"], str(self.shadow.resolve()))
+
+    def test_compile_database_requires_both_cpp23_translation_units(self) -> None:
+        compile_commands: Path = self.build_directory / "compile_commands.json"
+        pair.write_json(
+            compile_commands,
+            [
+                {
+                    "directory": str(self.build_directory),
+                    "file": str(self.source),
+                    "command": self.compile_command([self.snapshot]),
+                }
+            ],
+        )
+
+        with self.assertRaises(pair.BenchmarkPairError) as raised:
+            pair.verify_compile_database_override(
+                compile_commands,
+                self.snapshot,
+                "RandX.hpp",
+                "benchmark_gbench",
+            )
+
+        self.assertEqual(
+            raised.exception.details["missing_sources"],
+            ["benchmark_gbench_default_cpp23.cpp"],
+        )
+
+    def test_compile_database_records_include_selection_for_each_cpp23_source(self) -> None:
+        compile_commands: Path = self.build_directory / "compile_commands.json"
+        entries: list[dict[str, Any]] = []
+        for source in (self.source, self.default_source):
+            command: str = self.compile_command([self.snapshot], source=source)
+            entries.append(
+                {
+                    "directory": str(self.build_directory),
+                    "file": str(source),
+                    "command": command,
+                }
+            )
+        pair.write_json(compile_commands, entries)
+
+        evidence: dict[str, Any] = pair.verify_compile_database_override(
+            compile_commands,
+            self.snapshot,
+            "RandX.hpp",
+            "benchmark_gbench",
+        )
+
+        self.assertEqual(len(evidence["commands"]), 2)
+        self.assertEqual(
+            {Path(str(row["source"])).name for row in evidence["commands"]},
+            {self.source.name, self.default_source.name},
+        )
+
+    def test_compile_database_checks_second_translation_unit_include_order(self) -> None:
+        compile_commands: Path = self.build_directory / "compile_commands.json"
+        entries: list[dict[str, Any]] = []
+        for source, include_directories in (
+            (self.source, [self.snapshot]),
+            (self.default_source, [self.shadow, self.snapshot]),
+        ):
+            entries.append(
+                {
+                    "directory": str(self.build_directory),
+                    "file": str(source),
+                    "command": self.compile_command(include_directories, source=source),
+                }
+            )
+        pair.write_json(compile_commands, entries)
+
+        with self.assertRaises(pair.BenchmarkPairError) as raised:
+            pair.verify_compile_database_override(
+                compile_commands,
+                self.snapshot,
+                "RandX.hpp",
+                "benchmark_gbench",
+            )
+
+        self.assertEqual(Path(str(raised.exception.details["source"])).name, self.default_source.name)
+        self.assertEqual(raised.exception.details["first_header_directory"], str(self.shadow.resolve()))
 
     def test_other_target_paths_in_the_log_do_not_count_as_target_evidence(self) -> None:
         unrelated_command: str = self.compile_command([self.shadow], "dependent_benchmark_gbench")
-        target_command: str = self.compile_command([self.snapshot])
-        output: str = f"configured snapshot: {self.snapshot}\n{unrelated_command}\n{target_command}"
+        target_compile_output: str = self.complete_compile_output([self.snapshot])
+        output: str = f"configured snapshot: {self.snapshot}\n{unrelated_command}\n{target_compile_output}"
 
         evidence: dict[str, Any] = self.verify(output)
 
-        self.assertEqual(len(evidence["commands"]), 1)
+        self.assertEqual(len(evidence["commands"]), 2)
         self.assertEqual(evidence["commands"][0]["selected_directory"], str(self.snapshot.resolve()))
 
     def test_other_target_compiling_the_same_source_cannot_verify_the_snapshot(self) -> None:
@@ -249,7 +360,12 @@ class BuildOutputOverrideTests(unittest.TestCase):
             f'/I"{relative_snapshot}" /Fo"{relative_object}" /c "{relative_source}"',
             encoding="utf-8",
         )
-        command: str = f'"{self.compiler}" @"{response_file.name}"'
+        command: str = "\n".join(
+            (
+                f'"{self.compiler}" @"{response_file.name}"',
+                self.compile_command([self.snapshot], source=self.default_source),
+            )
+        )
 
         evidence: dict[str, Any] = self.verify(command)
 
@@ -301,7 +417,13 @@ class BuildOutputOverrideTests(unittest.TestCase):
             f'/I"{self.snapshot}" /Fo"CMakeFiles/benchmark_gbench.dir/benchmark_gbench.cpp.obj" /c "{self.source}"',
             encoding="utf-16",
         )
-        evidence: dict[str, Any] = self.verify(f'"{self.compiler}" @"{response_file.name}"')
+        build_output: str = "\n".join(
+            (
+                f'"{self.compiler}" @"{response_file.name}"',
+                self.compile_command([self.snapshot], source=self.default_source),
+            )
+        )
+        evidence: dict[str, Any] = self.verify(build_output)
         self.assertTrue(evidence["verified"])
 
 
@@ -387,24 +509,31 @@ class SimulatedPairRunTests(unittest.TestCase):
                 f"RANDX_SAMPLING_HEADER_DIR:PATH={header_directory}",
             ]
             (build_directory / "CMakeCache.txt").write_text("\n".join(cache_lines) + "\n", encoding="utf-8")
-            source_file: Path = pair.PROJECT_ROOT / "benchmark_gbench.cpp"
-            compile_database: list[dict[str, Any]] = [
-                {
-                    "directory": str(pair.PROJECT_ROOT),
-                    "file": str(source_file),
-                    "arguments": [
-                        str(self.compiler),
-                        "-I",
-                        str(header_directory),
-                        "-I",
-                        str(pair.PROJECT_ROOT),
-                        "-O3",
-                        "-std=c++17" if standard == "17" else "-std=c++23",
-                        "-c",
-                        str(source_file),
-                    ],
-                }
-            ]
+            target: str = next(
+                configured_target
+                for _, configured_standard, configured_target in pair.STANDARD_CONFIGURATIONS
+                if str(configured_standard) == standard
+            )
+            compile_database: list[dict[str, Any]] = []
+            for source_name in pair.BENCHMARK_TARGET_SOURCES[target]:
+                source_file: Path = pair.PROJECT_ROOT / source_name
+                compile_database.append(
+                    {
+                        "directory": str(pair.PROJECT_ROOT),
+                        "file": str(source_file),
+                        "arguments": [
+                            str(self.compiler),
+                            "-I",
+                            str(header_directory),
+                            "-I",
+                            str(pair.PROJECT_ROOT),
+                            "-O3",
+                            "-std=c++17" if standard == "17" else "-std=c++23",
+                            "-c",
+                            str(source_file),
+                        ],
+                    }
+                )
             pair.write_json(build_directory / "compile_commands.json", compile_database)
             return subprocess.CompletedProcess(arguments, 0, "configured\n", "")
 
@@ -489,6 +618,11 @@ class SimulatedPairRunTests(unittest.TestCase):
         self.assertEqual(
             report["builds"]["cpp23/baseline"]["override_evidence"]["selected_directory"],
             str(self.baseline_headers.resolve()),
+        )
+        cpp23_override: dict[str, Any] = report["builds"]["cpp23/baseline"]["override_evidence"]
+        self.assertEqual(
+            {Path(str(row["source"])).name for row in cpp23_override["commands"]},
+            set(pair.BENCHMARK_TARGET_SOURCES["benchmark_gbench"]),
         )
         cpp17_build: dict[str, Any] = report["builds"]["cpp17/candidate"]
         self.assertEqual(cpp17_build["standard_library"]["name"], "libstdc++")

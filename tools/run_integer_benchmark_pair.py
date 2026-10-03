@@ -39,9 +39,9 @@ STANDARD_CONFIGURATIONS: tuple[tuple[str, int, str], ...] = (
 )
 SIDES: tuple[str, str] = ("baseline", "candidate")
 HEADER_NAMES: tuple[str, str] = ("RandX.hpp", "RandX_Cpp17.hpp")
-BENCHMARK_TARGET_SOURCES: Mapping[str, str] = {
-    "benchmark_gbench": "benchmark_gbench.cpp",
-    "benchmark_gbench_default_cpp17": "benchmark_gbench_default_cpp17.cpp",
+BENCHMARK_TARGET_SOURCES: Mapping[str, tuple[str, ...]] = {
+    "benchmark_gbench": ("benchmark_gbench.cpp", "benchmark_gbench_default_cpp23.cpp"),
+    "benchmark_gbench_default_cpp17": ("benchmark_gbench_default_cpp17.cpp",),
 }
 INCLUDE_FLAG_PATTERN: re.Pattern[str] = re.compile(
     r"(?<!\S)(?:-I|/I)(?:\s*)(?:\"([^\"]+)\"|'([^']+)'|([^\s]+))"
@@ -478,6 +478,8 @@ def verify_target_compile_entries_override(
     method: str,
 ) -> dict[str, Any]:
     """按编译命令中的 include 顺序确认目标头文件来自请求的快照。"""
+    expected_sources: tuple[str, ...] = BENCHMARK_TARGET_SOURCES[target]
+    compiled_sources: set[str] = set()
     command_evidence: list[dict[str, Any]] = []
     for entry in target_entries:
         command: str = compile_command_text(entry)
@@ -495,6 +497,15 @@ def verify_target_compile_entries_override(
             None,
         )
         source: Any = entry.get("file")
+        if isinstance(source, str):
+            source_name: str = source.replace("\\", "/").rsplit("/", 1)[-1]
+            if source_name in expected_sources:
+                compiled_sources.add(source_name)
+        compiled_sources.update(
+            expected_source
+            for expected_source in expected_sources
+            if command_contains_source(command, expected_source)
+        )
         if first_header_directory is None:
             raise BenchmarkPairError(
                 "data_error",
@@ -525,6 +536,14 @@ def verify_target_compile_entries_override(
                 "selected_directory": str(first_header_directory),
                 "compile_command": command,
             }
+        )
+    missing_sources: list[str] = sorted(set(expected_sources) - compiled_sources)
+    if missing_sources:
+        raise BenchmarkPairError(
+            "data_error",
+            f"{target} 的实际编译命令未覆盖预期源文件。",
+            target,
+            {"missing_sources": missing_sources, "compiled_sources": sorted(compiled_sources)},
         )
     return {
         "verified": True,
@@ -560,7 +579,8 @@ def verify_compile_database_override(
             entry
             for entry in entries
             if isinstance(entry.get("file"), str)
-            and Path(str(entry["file"])).name == BENCHMARK_TARGET_SOURCES[target]
+            and str(entry["file"]).replace("\\", "/").rsplit("/", 1)[-1]
+            in BENCHMARK_TARGET_SOURCES[target]
         ]
     if not target_entries and len(entries) == 1:
         target_entries = entries
@@ -601,7 +621,10 @@ def response_file_mentions_target(command: str, target: str) -> bool:
     """检查响应文件名是否包含目标对象或基准源标识。"""
     for match in RESPONSE_FILE_PATTERN.finditer(command):
         response_path: str = next(value for value in match.groups() if value)
-        if command_contains_target(response_path, target) or BENCHMARK_TARGET_SOURCES[target].casefold() in response_path.casefold():
+        if command_contains_target(response_path, target) or any(
+            source_name.casefold() in response_path.casefold()
+            for source_name in BENCHMARK_TARGET_SOURCES[target]
+        ):
             return True
     return False
 
@@ -615,13 +638,15 @@ def verify_build_output_override(
     compiler: str,
 ) -> dict[str, Any]:
     """从详细构建输出中定位目标编译命令并验证头文件选择。"""
-    source_name: str = BENCHMARK_TARGET_SOURCES[target]
+    source_names: tuple[str, ...] = BENCHMARK_TARGET_SOURCES[target]
     target_entries: list[Mapping[str, Any]] = []
     for output_line in build_output.splitlines():
         command: str = output_line.strip()
         if not command or not command_contains_compiler(command, compiler):
             continue
-        direct_target_hint: bool = command_contains_target(command, target) or command_contains_source(command, source_name)
+        direct_target_hint: bool = command_contains_target(command, target) or any(
+            command_contains_source(command, source_name) for source_name in source_names
+        )
         response_target_hint: bool = response_file_mentions_target(command, target)
         if not command_contains_compile_switch(command) and "@" not in command:
             continue
@@ -636,10 +661,14 @@ def verify_build_output_override(
                     {"compile_command": command, **error.details},
                 ) from error
             continue
+        source_name: str | None = next(
+            (name for name in source_names if command_contains_source(expanded_command, name)),
+            None,
+        )
         if (
             command_contains_compiler(expanded_command, compiler)
             and command_contains_compile_switch(expanded_command)
-            and command_contains_source(expanded_command, source_name)
+            and source_name is not None
             and command_contains_target(expanded_command, target)
         ):
             target_entries.append(
