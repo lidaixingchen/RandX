@@ -265,6 +265,15 @@ static void PrepareDefaultSamplingEngine()
     RandX::Reseed(kSamplingSeed);
 }
 
+template <class T>
+static inline void ObserveSamplingResult(std::vector<T>& result)
+{
+    benchmark::DoNotOptimize(result);
+    auto data = result.data();
+    benchmark::DoNotOptimize(data);
+    if (!result.empty()) benchmark::ClobberMemory();
+}
+
 static void BM_RandSampleIteratorDefault(benchmark::State& state)
 {
     const auto rangeSize = static_cast<std::size_t>(state.range(0));
@@ -276,8 +285,7 @@ static void BM_RandSampleIteratorDefault(benchmark::State& state)
     {
         benchmark::DoNotOptimize(request);
         auto result = RandX::RandSample(values.cbegin(), values.cend(), request);
-        benchmark::DoNotOptimize(result.data());
-        if (!result.empty()) benchmark::ClobberMemory();
+        ObserveSamplingResult(result);
     }
 }
 BENCHMARK(BM_RandSampleIteratorDefault)
@@ -296,8 +304,7 @@ static void BM_RandSampleIteratorExplicit(benchmark::State& state)
     {
         benchmark::DoNotOptimize(request);
         auto result = RandX::RandSample(engine, values.cbegin(), values.cend(), request);
-        benchmark::DoNotOptimize(result.data());
-        if (!result.empty()) benchmark::ClobberMemory();
+        ObserveSamplingResult(result);
     }
 }
 BENCHMARK_TEMPLATE(BM_RandSampleIteratorExplicit, RandX::Xoshiro256StarStar)
@@ -318,8 +325,7 @@ static void BM_RandSampleContainerDefault(benchmark::State& state)
     {
         benchmark::DoNotOptimize(request);
         auto result = RandX::RandSample(values, request);
-        benchmark::DoNotOptimize(result.data());
-        if (!result.empty()) benchmark::ClobberMemory();
+        ObserveSamplingResult(result);
     }
 }
 BENCHMARK(BM_RandSampleContainerDefault)
@@ -338,8 +344,7 @@ static void BM_RandSampleContainerExplicit(benchmark::State& state)
     {
         benchmark::DoNotOptimize(request);
         auto result = RandX::RandSample(engine, values, request);
-        benchmark::DoNotOptimize(result.data());
-        if (!result.empty()) benchmark::ClobberMemory();
+        ObserveSamplingResult(result);
     }
 }
 BENCHMARK_TEMPLATE(BM_RandSampleContainerExplicit, RandX::Xoshiro256StarStar)
@@ -362,8 +367,7 @@ static void BM_RandSampleReservoirDefault(benchmark::State& state)
         auto first = values.cbegin();
         auto last = values.cend();
         auto result = RandX::RandSample(first, last, request);
-        benchmark::DoNotOptimize(result.data());
-        if (!result.empty()) benchmark::ClobberMemory();
+        ObserveSamplingResult(result);
     }
 }
 BENCHMARK(BM_RandSampleReservoirDefault)
@@ -384,8 +388,7 @@ static void BM_RandSampleReservoirExplicit(benchmark::State& state)
         auto first = values.cbegin();
         auto last = values.cend();
         auto result = RandX::RandSample(engine, first, last, request);
-        benchmark::DoNotOptimize(result.data());
-        if (!result.empty()) benchmark::ClobberMemory();
+        ObserveSamplingResult(result);
     }
 }
 BENCHMARK_TEMPLATE(BM_RandSampleReservoirExplicit, RandX::Xoshiro256StarStar)
