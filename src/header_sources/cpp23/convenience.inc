@@ -254,6 +254,9 @@
 	/// @param c 待打乱的容器
 	template <std::ranges::random_access_range Container>
 		requires std::permutable<std::ranges::iterator_t<Container>>
+#if defined(__GNUC__) || defined(__clang__)
+	__attribute__((flatten))
+#endif
 	inline void RandShuffle(Container&& c)
 	{
 		std::ranges::shuffle(c, DefaultEngine());
@@ -478,9 +481,7 @@
 
 	namespace detail
 	{
-		// @randx-include ../common/sampling/sample_bitmap_and_lifetime.inc
-
-		// 公开适配层展开边界和策略选择，操作内核持有分配与遍历。
+		// 抽样适配与位图路径在调用点展开，索引操作内核持有分配与遍历。
 #if defined(_MSC_VER)
 #define RANDX_DETAIL_SAMPLE_INLINE __forceinline
 #elif defined(__GNUC__) || defined(__clang__)
@@ -488,6 +489,8 @@
 #else
 #define RANDX_DETAIL_SAMPLE_INLINE inline
 #endif
+		// @randx-include ../common/sampling/sample_bitmap_and_lifetime.inc
+
 		template <class T, class Diff, SampleDistributionLifetime Lifetime, class It, class GetEngine>
 		RANDX_DETAIL_SAMPLE_INLINE std::vector<T> SampleRandomAccess(It& first, Diff size, Diff n, GetEngine&& getEngine)
 		// @randx-include ../common/sampling/sample_random_access_body.inc

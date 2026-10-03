@@ -15,14 +15,26 @@
 		inline constexpr std::uint64_t SampleBitmapThresholdK = HashSetThresholdK * SampleBitmapWordBits;
 		inline constexpr std::uint64_t SampleBitmapDensityDivisor = 2;
 
-		// 位图操作保持独立边界，循环内的分布与引擎运算在内核中展开。
-		template <class T, class Diff, class It, class Engine>
-#if defined(_MSC_VER)
-		__declspec(noinline)
-#elif defined(__GNUC__) || defined(__clang__)
-		__attribute__((noinline, flatten))
+		// 完整同宽引擎的区间映射在抽取点展开，保留标准库的分布算法。
+		template <class UInt, class Engine>
+#if defined(__GNUC__) || defined(__clang__)
+		__attribute__((flatten))
 #endif
-		inline std::vector<T> SampleBitmap(Engine& engine, It first, std::uint64_t size, std::size_t n)
+		RANDX_DETAIL_SAMPLE_INLINE UInt DrawFullRangeSampleDistribution(std::uniform_int_distribution<UInt>& distribution, Engine& engine)
+		{
+			return distribution(engine);
+		}
+
+		template <class UInt, class Engine>
+		RANDX_DETAIL_SAMPLE_INLINE UInt DrawSampleDistribution(std::uniform_int_distribution<UInt>& distribution, Engine& engine)
+		{
+			if constexpr (Engine::min() == UInt{0} && Engine::max() == (std::numeric_limits<UInt>::max)())
+				return DrawFullRangeSampleDistribution(distribution, engine);
+			return distribution(engine);
+		}
+
+		template <class T, class Diff, class It, class Engine>
+		RANDX_DETAIL_SAMPLE_INLINE std::vector<T> SampleBitmap(Engine& engine, It first, std::uint64_t size, std::size_t n)
 		{
 			const std::size_t wordCount = static_cast<std::size_t>(
 				size / SampleBitmapWordBits + (size % SampleBitmapWordBits != 0));
@@ -33,7 +45,7 @@
 			// 每个索引占一位；重复索引重抽，接受顺序仍是均匀的无放回抽样。
 			while (result.size() < n)
 			{
-				const std::uint64_t index = indices(engine);
+				const std::uint64_t index = DrawSampleDistribution(indices, engine);
 				auto& word = selected[static_cast<std::size_t>(index / SampleBitmapWordBits)];
 				const std::uint64_t mask = std::uint64_t{1} << (index % SampleBitmapWordBits);
 				if ((word & mask) == 0)
@@ -58,7 +70,7 @@
 		public:
 			SampleFixedIndexDistribution(UInt lower, UInt upper) : distribution(lower, upper) {}
 			template <class Engine>
-			UInt operator()(Engine& engine) { return distribution(engine); }
+			UInt operator()(Engine& engine) { return DrawSampleDistribution(distribution, engine); }
 		};
 
 		template <class UInt>
