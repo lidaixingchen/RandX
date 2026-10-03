@@ -670,25 +670,30 @@ TEST_SUITE("公共/基础/抽样")
         constexpr std::size_t kRepeatedIndex = RandX::detail::HashSetThresholdK / 2;
         constexpr std::size_t kDistinctIndex = kRepeatedIndex + 1;
         constexpr std::size_t kThirdIndex = kDistinctIndex + 1;
-        constexpr std::size_t kRepeatedDrawCount = 3;
         using Engine = RandXTest::SamplingContractFixtures::ScriptedSampleIndexEngine<kPopulationSize>;
         const std::vector<std::uint64_t> draws{
             kRepeatedIndex, kRepeatedIndex, kRepeatedIndex, kDistinctIndex, kThirdIndex};
-        const std::vector<std::size_t> accepted{kRepeatedIndex, kDistinctIndex, kThirdIndex};
         std::vector<std::size_t> population(kPopulationSize);
         std::iota(population.begin(), population.end(), std::size_t{0});
 
         for (const std::size_t count : kRequestCounts)
         {
-            const std::vector<std::size_t> expected(accepted.begin(), accepted.begin() + count);
-            const std::size_t expectedCalls = count == 1 ? 1 : kRepeatedDrawCount + count - 1;
+            Engine expectedEngine{draws};
+            std::unordered_set<std::uint64_t> expectedIndices;
+            std::vector<std::size_t> expected;
+            while (expected.size() < count)
+            {
+                std::uniform_int_distribution<std::uint64_t> distribution(0, kPopulationSize - 1);
+                const auto index = distribution(expectedEngine);
+                if (expectedIndices.insert(index).second) expected.push_back(population[index]);
+            }
             Engine iteratorEngine{draws};
             CHECK(RandX::RandSample(iteratorEngine, population.begin(), population.end(),
                 static_cast<std::ptrdiff_t>(count)) == expected);
-            CHECK(iteratorEngine.callCount == expectedCalls);
+            CHECK(iteratorEngine.callCount == expectedEngine.callCount);
             Engine containerEngine{draws};
             CHECK(RandX::RandSample(containerEngine, population, count) == expected);
-            CHECK(containerEngine.callCount == expectedCalls);
+            CHECK(containerEngine.callCount == expectedEngine.callCount);
 
             RandX::Reseed(RandXTest::TestConstants::kDefaultEngineTestSeed);
             auto referenceEngine = RandX::DefaultEngine();
@@ -717,6 +722,13 @@ TEST_SUITE("公共/基础/抽样")
         using Trace = RandXTest::SamplingContractFixtures::OperationTrace;
         using Iterator = RandXTest::SamplingContractFixtures::RandomAccessIterator<Item>;
         Engine engine{{kRepeatedIndex, kRepeatedIndex, kRepeatedIndex, kDistinctIndex}};
+        auto expectedEngine = engine;
+        std::unordered_set<std::uint64_t> expectedIndices;
+        while (expectedIndices.size() < kRequestCount)
+        {
+            std::uniform_int_distribution<std::uint64_t> distribution(0, kPopulationSize - 1);
+            expectedIndices.insert(distribution(expectedEngine));
+        }
         Trace itemTrace;
         itemTrace.throwOnCopyAttempt = kRequestCount;
         itemTrace.engineCallCount = &engine.callCount;
@@ -730,7 +742,7 @@ TEST_SUITE("公共/基础/抽样")
 
         CHECK_THROWS_AS((void)RandX::RandSample(engine, first, last,
             static_cast<std::ptrdiff_t>(kRequestCount)), std::runtime_error);
-        CHECK(engine.callCount == engine.values.size());
+        CHECK(engine.callCount == expectedEngine.callCount);
         CHECK(itemTrace.engineCallsAtThrow == engine.callCount);
         CHECK(itemTrace.copyAttempts == kRequestCount);
         CHECK(sourceTrace.dereferences == kRequestCount);

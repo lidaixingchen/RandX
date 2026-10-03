@@ -279,8 +279,14 @@ struct ScriptedSampleIndexEngine
 
     std::vector<result_type> values;
     std::size_t callCount{0};
+    RandX::SplitMix64 continuation{TestConstants::kEngineContractSeed};
 
-    result_type operator()() { return values.at(callCount++); }
+    result_type operator()()
+    {
+        const std::size_t position = callCount++;
+        if (position < values.size()) return values[position];
+        return continuation() % PopulationSize;
+    }
 };
 
 struct ThrowingEngine
