@@ -1,0 +1,386 @@
+{
+  "source_commit": "ec7cdb8b64dbbe213f23c97e0520a7cac991e53d",
+  "candidate_commit": "b987ab2d20e1299e775d0d7f2b9db6f36cb3faeb",
+  "baseline_commit": "9fbf20f91a3daedc7124bfc89747c4da3da4f90f",
+  "standard": "C++23",
+  "compiler_commands": {
+    "baseline": [
+      "C:/hjpz/mingw64/bin/g++.exe",
+      "-O3",
+      "-DNDEBUG",
+      "-std=c++23",
+      "-DBENCHMARK_STATIC_DEFINE",
+      "-DRANDX_BENCHMARK_SAMPLING_ONLY",
+      "-falign-functions=64",
+      "-falign-loops=64",
+      "-IC:\\Users\\lidaixingchen\\source\\repos\\Pseudo-random-number-generator-based-on-Xoshiro\\build\\call-boundary-probes\\sampling-baseline",
+      "-IC:\\Users\\lidaixingchen\\source\\repos\\Pseudo-random-number-generator-based-on-Xoshiro\\build\\deps\\benchmark_gbench_dep-src\\include",
+      "-IC:\\Users\\lidaixingchen\\source\\repos\\Pseudo-random-number-generator-based-on-Xoshiro",
+      "benchmark_gbench.cpp",
+      "C:\\Users\\lidaixingchen\\source\\repos\\Pseudo-random-number-generator-based-on-Xoshiro\\build\\integer-layout-pair-build\\20261003T124056612397Z\\_deps\\benchmark_gbench_dep-build\\src\\libbenchmark.a",
+      "-lshlwapi",
+      "-lbcrypt",
+      "-o",
+      "C:\\Users\\lidaixingchen\\source\\repos\\Pseudo-random-number-generator-based-on-Xoshiro\\build\\scalar-sampling-observation\\cpp23\\baseline\\benchmark.exe"
+    ],
+    "candidate": [
+      "C:/hjpz/mingw64/bin/g++.exe",
+      "-O3",
+      "-DNDEBUG",
+      "-std=c++23",
+      "-DBENCHMARK_STATIC_DEFINE",
+      "-DRANDX_BENCHMARK_SAMPLING_ONLY",
+      "-falign-functions=64",
+      "-falign-loops=64",
+      "-IC:\\Users\\lidaixingchen\\source\\repos\\Pseudo-random-number-generator-based-on-Xoshiro\\build\\integer-dense-policy-candidate",
+      "-IC:\\Users\\lidaixingchen\\source\\repos\\Pseudo-random-number-generator-based-on-Xoshiro\\build\\deps\\benchmark_gbench_dep-src\\include",
+      "-IC:\\Users\\lidaixingchen\\source\\repos\\Pseudo-random-number-generator-based-on-Xoshiro",
+      "benchmark_gbench.cpp",
+      "C:\\Users\\lidaixingchen\\source\\repos\\Pseudo-random-number-generator-based-on-Xoshiro\\build\\integer-layout-pair-build\\20261003T124056612397Z\\_deps\\benchmark_gbench_dep-build\\src\\libbenchmark.a",
+      "-lshlwapi",
+      "-lbcrypt",
+      "-o",
+      "C:\\Users\\lidaixingchen\\source\\repos\\Pseudo-random-number-generator-based-on-Xoshiro\\build\\scalar-sampling-observation\\cpp23\\candidate\\benchmark.exe"
+    ]
+  },
+  "case": "BM_RandSampleContainerExplicit<RandX::Xoshiro128StarStar>/range_size:0/request:1",
+  "min_time": "0.3s",
+  "repetitions": 3,
+  "run_order": "balanced alternating pairs",
+  "raw_rounds": {
+    "baseline": [
+      {
+        "context": {
+          "date": "2026-10-04T00:36:40+08:00",
+          "host_name": "Àú´úÐÇ³½",
+          "executable": "C:\\Users\\lidaixingchen\\source\\repos\\Pseudo-random-number-generator-based-on-Xoshiro\\build\\scalar-sampling-observation\\cpp23\\baseline\\benchmark.exe",
+          "num_cpus": 16,
+          "mhz_per_cpu": 3194,
+          "caches": [
+            {
+              "type": "Data",
+              "level": 1,
+              "size": 32768,
+              "num_sharing": 2
+            },
+            {
+              "type": "Instruction",
+              "level": 1,
+              "size": 32768,
+              "num_sharing": 2
+            },
+            {
+              "type": "Unified",
+              "level": 2,
+              "size": 524288,
+              "num_sharing": 2
+            },
+            {
+              "type": "Unified",
+              "level": 3,
+              "size": 16777216,
+              "num_sharing": 16
+            }
+          ],
+          "load_avg": [],
+          "library_version": "v1.8.5",
+          "library_build_type": "release",
+          "json_schema_version": 1
+        },
+        "benchmarks": [
+          {
+            "name": "BM_RandSampleContainerExplicit<RandX::Xoshiro128StarStar>/range_size:0/request:1",
+            "family_index": 0,
+            "per_family_instance_index": 0,
+            "run_name": "BM_RandSampleContainerExplicit<RandX::Xoshiro128StarStar>/range_size:0/request:1",
+            "run_type": "iteration",
+            "repetitions": 1,
+            "repetition_index": 0,
+            "threads": 1,
+            "iterations": 1344000000,
+            "real_time": 0.2549009672769725,
+            "cpu_time": 0.25576636904761907,
+            "time_unit": "ns"
+          }
+        ]
+      },
+      {
+        "context": {
+          "date": "2026-10-04T00:36:57+08:00",
+          "host_name": "Àú´úÐÇ³½",
+          "executable": "C:\\Users\\lidaixingchen\\source\\repos\\Pseudo-random-number-generator-based-on-Xoshiro\\build\\scalar-sampling-observation\\cpp23\\baseline\\benchmark.exe",
+          "num_cpus": 16,
+          "mhz_per_cpu": 3194,
+          "caches": [
+            {
+              "type": "Data",
+              "level": 1,
+              "size": 32768,
+              "num_sharing": 2
+            },
+            {
+              "type": "Instruction",
+              "level": 1,
+              "size": 32768,
+              "num_sharing": 2
+            },
+            {
+              "type": "Unified",
+              "level": 2,
+              "size": 524288,
+              "num_sharing": 2
+            },
+            {
+              "type": "Unified",
+              "level": 3,
+              "size": 16777216,
+              "num_sharing": 16
+            }
+          ],
+          "load_avg": [],
+          "library_version": "v1.8.5",
+          "library_build_type": "release",
+          "json_schema_version": 1
+        },
+        "benchmarks": [
+          {
+            "name": "BM_RandSampleContainerExplicit<RandX::Xoshiro128StarStar>/range_size:0/request:1",
+            "family_index": 0,
+            "per_family_instance_index": 0,
+            "run_name": "BM_RandSampleContainerExplicit<RandX::Xoshiro128StarStar>/range_size:0/request:1",
+            "run_type": "iteration",
+            "repetitions": 1,
+            "repetition_index": 0,
+            "threads": 1,
+            "iterations": 1344000000,
+            "real_time": 0.2574648065525426,
+            "cpu_time": 0.25576636904761907,
+            "time_unit": "ns"
+          }
+        ]
+      },
+      {
+        "context": {
+          "date": "2026-10-04T00:37:02+08:00",
+          "host_name": "Àú´úÐÇ³½",
+          "executable": "C:\\Users\\lidaixingchen\\source\\repos\\Pseudo-random-number-generator-based-on-Xoshiro\\build\\scalar-sampling-observation\\cpp23\\baseline\\benchmark.exe",
+          "num_cpus": 16,
+          "mhz_per_cpu": 3194,
+          "caches": [
+            {
+              "type": "Data",
+              "level": 1,
+              "size": 32768,
+              "num_sharing": 2
+            },
+            {
+              "type": "Instruction",
+              "level": 1,
+              "size": 32768,
+              "num_sharing": 2
+            },
+            {
+              "type": "Unified",
+              "level": 2,
+              "size": 524288,
+              "num_sharing": 2
+            },
+            {
+              "type": "Unified",
+              "level": 3,
+              "size": 16777216,
+              "num_sharing": 16
+            }
+          ],
+          "load_avg": [],
+          "library_version": "v1.8.5",
+          "library_build_type": "release",
+          "json_schema_version": 1
+        },
+        "benchmarks": [
+          {
+            "name": "BM_RandSampleContainerExplicit<RandX::Xoshiro128StarStar>/range_size:0/request:1",
+            "family_index": 0,
+            "per_family_instance_index": 0,
+            "run_name": "BM_RandSampleContainerExplicit<RandX::Xoshiro128StarStar>/range_size:0/request:1",
+            "run_type": "iteration",
+            "repetitions": 1,
+            "repetition_index": 0,
+            "threads": 1,
+            "iterations": 1344000000,
+            "real_time": 0.25659241070267547,
+            "cpu_time": 0.244140625,
+            "time_unit": "ns"
+          }
+        ]
+      }
+    ],
+    "candidate": [
+      {
+        "context": {
+          "date": "2026-10-04T00:36:45+08:00",
+          "host_name": "Àú´úÐÇ³½",
+          "executable": "C:\\Users\\lidaixingchen\\source\\repos\\Pseudo-random-number-generator-based-on-Xoshiro\\build\\scalar-sampling-observation\\cpp23\\candidate\\benchmark.exe",
+          "num_cpus": 16,
+          "mhz_per_cpu": 3194,
+          "caches": [
+            {
+              "type": "Data",
+              "level": 1,
+              "size": 32768,
+              "num_sharing": 2
+            },
+            {
+              "type": "Instruction",
+              "level": 1,
+              "size": 32768,
+              "num_sharing": 2
+            },
+            {
+              "type": "Unified",
+              "level": 2,
+              "size": 524288,
+              "num_sharing": 2
+            },
+            {
+              "type": "Unified",
+              "level": 3,
+              "size": 16777216,
+              "num_sharing": 16
+            }
+          ],
+          "load_avg": [],
+          "library_version": "v1.8.5",
+          "library_build_type": "release",
+          "json_schema_version": 1
+        },
+        "benchmarks": [
+          {
+            "name": "BM_RandSampleContainerExplicit<RandX::Xoshiro128StarStar>/range_size:0/request:1",
+            "family_index": 0,
+            "per_family_instance_index": 0,
+            "run_name": "BM_RandSampleContainerExplicit<RandX::Xoshiro128StarStar>/range_size:0/request:1",
+            "run_type": "iteration",
+            "repetitions": 1,
+            "repetition_index": 0,
+            "threads": 1,
+            "iterations": 336000000,
+            "real_time": 1.2562386904651899,
+            "cpu_time": 1.2555803571428572,
+            "time_unit": "ns"
+          }
+        ]
+      },
+      {
+        "context": {
+          "date": "2026-10-04T00:36:51+08:00",
+          "host_name": "Àú´úÐÇ³½",
+          "executable": "C:\\Users\\lidaixingchen\\source\\repos\\Pseudo-random-number-generator-based-on-Xoshiro\\build\\scalar-sampling-observation\\cpp23\\candidate\\benchmark.exe",
+          "num_cpus": 16,
+          "mhz_per_cpu": 3194,
+          "caches": [
+            {
+              "type": "Data",
+              "level": 1,
+              "size": 32768,
+              "num_sharing": 2
+            },
+            {
+              "type": "Instruction",
+              "level": 1,
+              "size": 32768,
+              "num_sharing": 2
+            },
+            {
+              "type": "Unified",
+              "level": 2,
+              "size": 524288,
+              "num_sharing": 2
+            },
+            {
+              "type": "Unified",
+              "level": 3,
+              "size": 16777216,
+              "num_sharing": 16
+            }
+          ],
+          "load_avg": [],
+          "library_version": "v1.8.5",
+          "library_build_type": "release",
+          "json_schema_version": 1
+        },
+        "benchmarks": [
+          {
+            "name": "BM_RandSampleContainerExplicit<RandX::Xoshiro128StarStar>/range_size:0/request:1",
+            "family_index": 0,
+            "per_family_instance_index": 0,
+            "run_name": "BM_RandSampleContainerExplicit<RandX::Xoshiro128StarStar>/range_size:0/request:1",
+            "run_type": "iteration",
+            "repetitions": 1,
+            "repetition_index": 0,
+            "threads": 1,
+            "iterations": 336000000,
+            "real_time": 1.294921130898902,
+            "cpu_time": 1.2555803571428572,
+            "time_unit": "ns"
+          }
+        ]
+      },
+      {
+        "context": {
+          "date": "2026-10-04T00:37:07+08:00",
+          "host_name": "Àú´úÐÇ³½",
+          "executable": "C:\\Users\\lidaixingchen\\source\\repos\\Pseudo-random-number-generator-based-on-Xoshiro\\build\\scalar-sampling-observation\\cpp23\\candidate\\benchmark.exe",
+          "num_cpus": 16,
+          "mhz_per_cpu": 3194,
+          "caches": [
+            {
+              "type": "Data",
+              "level": 1,
+              "size": 32768,
+              "num_sharing": 2
+            },
+            {
+              "type": "Instruction",
+              "level": 1,
+              "size": 32768,
+              "num_sharing": 2
+            },
+            {
+              "type": "Unified",
+              "level": 2,
+              "size": 524288,
+              "num_sharing": 2
+            },
+            {
+              "type": "Unified",
+              "level": 3,
+              "size": 16777216,
+              "num_sharing": 16
+            }
+          ],
+          "load_avg": [],
+          "library_version": "v1.8.5",
+          "library_build_type": "release",
+          "json_schema_version": 1
+        },
+        "benchmarks": [
+          {
+            "name": "BM_RandSampleContainerExplicit<RandX::Xoshiro128StarStar>/range_size:0/request:1",
+            "family_index": 0,
+            "per_family_instance_index": 0,
+            "run_name": "BM_RandSampleContainerExplicit<RandX::Xoshiro128StarStar>/range_size:0/request:1",
+            "run_type": "iteration",
+            "repetitions": 1,
+            "repetition_index": 0,
+            "threads": 1,
+            "iterations": 336000000,
+            "real_time": 1.2521681547652752,
+            "cpu_time": 1.2555803571428572,
+            "time_unit": "ns"
+          }
+        ]
+      }
+    ]
+  }
+}
