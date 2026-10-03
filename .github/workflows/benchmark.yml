@@ -7,6 +7,9 @@ on:
       - 'RandX.hpp'
       - 'RandX_Cpp17.hpp'
       - 'benchmark_gbench.cpp'
+      - 'benchmark_gbench_default_cpp17.cpp'
+      - 'benchmark_gbench_initialization.cpp'
+      - 'benchmarks/**'
       - 'CMakeLists.txt'
       - 'src/header_sources/**'
       - 'tools/generate_headers.py'
@@ -26,6 +29,8 @@ on:
       - 'tools/benchmark_issue.cjs'
       - 'tools/test_benchmark_issue.cjs'
       - 'tools/test_run_benchmark_group.py'
+      - 'tools/run_integer_benchmark_pair.py'
+      - 'tools/test_run_integer_benchmark_pair.py'
       - '.github/workflows/benchmark.yml'
   pull_request:
     branches: [master]
@@ -33,6 +38,9 @@ on:
       - 'RandX.hpp'
       - 'RandX_Cpp17.hpp'
       - 'benchmark_gbench.cpp'
+      - 'benchmark_gbench_default_cpp17.cpp'
+      - 'benchmark_gbench_initialization.cpp'
+      - 'benchmarks/**'
       - 'CMakeLists.txt'
       - 'src/header_sources/**'
       - 'tools/generate_headers.py'
@@ -52,6 +60,8 @@ on:
       - 'tools/benchmark_issue.cjs'
       - 'tools/test_benchmark_issue.cjs'
       - 'tools/test_run_benchmark_group.py'
+      - 'tools/run_integer_benchmark_pair.py'
+      - 'tools/test_run_integer_benchmark_pair.py'
       - '.github/workflows/benchmark.yml'
   workflow_dispatch:
     inputs:
@@ -209,6 +219,77 @@ jobs:
           path: groups/general/
           if-no-files-found: warn
 
+  measure_default_cpp17:
+    name: Measure C++17 default interface benchmark
+    needs: benchmark_plan
+    if: needs.benchmark_plan.outputs.plan_valid == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        id: checkout_candidate
+        with:
+          ref: ${{ needs.benchmark_plan.outputs.candidate_commit }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Download benchmark plan
+        id: download_plan
+        uses: actions/download-artifact@v4
+        with:
+          name: benchmark-${{ github.run_id }}-${{ github.run_attempt }}-plan
+          path: plan_artifact
+      - name: Initialize group records
+        id: init_group
+        run: python -X utf8 tools/run_benchmark_group.py init --plan plan_artifact/benchmark-plan.json --group default_cpp17
+      - name: Build candidate C++17 default interface benchmark
+        id: build_candidate
+        run: python -X utf8 tools/run_benchmark_group.py build --plan plan_artifact/benchmark-plan.json --group default_cpp17 --variant candidate
+      - name: Enumerate candidate C++17 default interface suite
+        id: enumerate_candidate
+        run: python -X utf8 tools/run_benchmark_group.py enumerate --plan plan_artifact/benchmark-plan.json --group default_cpp17 --variant candidate
+      - name: Measure candidate C++17 default interface benchmark
+        id: measure_candidate
+        run: python -X utf8 tools/run_benchmark_group.py measure --plan plan_artifact/benchmark-plan.json --group default_cpp17 --variant candidate
+      - uses: actions/checkout@v4
+        id: checkout_baseline
+        with:
+          ref: ${{ needs.benchmark_plan.outputs.sampling_commit }}
+          path: default-cpp17-baseline-src
+          sparse-checkout: RandX_Cpp17.hpp
+          sparse-checkout-cone-mode: false
+      - name: Build baseline C++17 default interface benchmark
+        id: build_baseline
+        run: python -X utf8 tools/run_benchmark_group.py build --plan plan_artifact/benchmark-plan.json --group default_cpp17 --variant baseline
+      - name: Upload C++17 default interface compiler diagnostics
+        if: always() && !cancelled()
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-${{ github.run_id }}-${{ github.run_attempt }}-default_cpp17-compiler
+          path: groups/default_cpp17/compiler/
+          if-no-files-found: warn
+      - name: Enumerate baseline C++17 default interface suite
+        id: enumerate_baseline
+        run: python -X utf8 tools/run_benchmark_group.py enumerate --plan plan_artifact/benchmark-plan.json --group default_cpp17 --variant baseline
+      - name: Measure baseline C++17 default interface benchmark
+        id: measure_baseline
+        run: python -X utf8 tools/run_benchmark_group.py measure --plan plan_artifact/benchmark-plan.json --group default_cpp17 --variant baseline
+      - name: Collect group metadata
+        if: always() && !cancelled()
+        env:
+          BENCHMARK_STEPS_JSON: ${{ toJSON(steps) }}
+        run: >-
+          python -X utf8 tools/benchmark_actions.py collect-group
+          --plan plan_artifact/benchmark-plan.json --group default_cpp17
+          --groups-directory groups --steps-json "$BENCHMARK_STEPS_JSON"
+      - name: Upload C++17 default interface results and logs
+        if: always() && !cancelled()
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-${{ github.run_id }}-${{ github.run_attempt }}-default_cpp17
+          path: groups/default_cpp17/
+          if-no-files-found: warn
+
   measure_sampling_cpp17:
     name: Measure C++17 sampling benchmark
     needs: benchmark_plan
@@ -357,7 +438,7 @@ jobs:
 
   benchmark:
     name: Benchmark
-    needs: [benchmark_plan, measure_general, measure_sampling_cpp17, measure_sampling_cpp23]
+    needs: [benchmark_plan, measure_general, measure_default_cpp17, measure_sampling_cpp17, measure_sampling_cpp23]
     if: always() && !cancelled()
     runs-on: ubuntu-24.04
     timeout-minutes: 15
@@ -384,6 +465,14 @@ jobs:
         with:
           name: benchmark-${{ github.run_id }}-${{ github.run_attempt }}-general
           path: groups/general
+      - name: Download C++17 default interface group
+        id: download_default_cpp17
+        if: always() && !cancelled()
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          name: benchmark-${{ github.run_id }}-${{ github.run_attempt }}-default_cpp17
+          path: groups/default_cpp17
       - name: Download C++17 sampling group
         id: download_sampling_cpp17
         if: always() && !cancelled()
@@ -465,6 +554,7 @@ jobs:
         if: >-
           success() && !cancelled() &&
           needs.measure_general.result == 'success' &&
+          needs.measure_default_cpp17.result == 'success' &&
           needs.measure_sampling_cpp17.result == 'success' &&
           needs.measure_sampling_cpp23.result == 'success' &&
           steps.evaluate.outputs.report_ready == 'true' &&
@@ -479,6 +569,7 @@ jobs:
         if: >-
           success() && !cancelled() &&
           needs.measure_general.result == 'success' &&
+          needs.measure_default_cpp17.result == 'success' &&
           needs.measure_sampling_cpp17.result == 'success' &&
           needs.measure_sampling_cpp23.result == 'success' &&
           steps.evaluate.outputs.report_ready == 'true' &&

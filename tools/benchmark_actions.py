@@ -14,7 +14,7 @@ from urllib.parse import quote
 
 
 ARTIFACT_PAGE_SIZE: int = 100
-GROUP_NAMES: tuple[str, ...] = ("general", "sampling_cpp17", "sampling_cpp23")
+GROUP_NAMES: tuple[str, ...] = ("general", "default_cpp17", "sampling_cpp17", "sampling_cpp23")
 SAMPLING_GROUPS: frozenset[str] = frozenset(("sampling_cpp17", "sampling_cpp23"))
 VALID_REPORT_EXIT_CODES: frozenset[int] = frozenset((0, 1, 2, 3))
 
@@ -293,7 +293,7 @@ def collect_group(
     candidate_commit: Any = environment.get("candidate_commit")
     if not isinstance(candidate_commit, str) or not candidate_commit:
         candidate_commit = context.get("candidate_commit") if isinstance(context, dict) else None
-    if group in SAMPLING_GROUPS:
+    if group in SAMPLING_GROUPS or group == "default_cpp17":
         baseline_commit: Any = environment.get("baseline_commit") or plan.get("sampling_commit")
     else:
         baseline_commit = environment.get("baseline_commit")
@@ -337,11 +337,7 @@ def capture_execution(
         result: Any = job.get("result")
         return result if isinstance(result, str) else "skipped"
 
-    jobs: dict[str, str] = {
-        "general": job_result("measure_general"),
-        "sampling_cpp17": job_result("measure_sampling_cpp17"),
-        "sampling_cpp23": job_result("measure_sampling_cpp23"),
-    }
+    jobs: dict[str, str] = {group: job_result(f"measure_{group}") for group in GROUP_NAMES}
     downloads: dict[str, str] = {
         group: step_outcome(download_steps, f"download_{group}") for group in GROUP_NAMES
     }
@@ -366,6 +362,8 @@ def prepare_baseline(groups_directory: Path, report_path: Path, summary_path: Pa
     """准备唯一发布的通用基线 artifact 内容。"""
     output.mkdir(parents=True, exist_ok=True)
     copy2(groups_directory / "general" / "candidate.json", output / "result.json")
+    copy2(groups_directory / "default_cpp17" / "candidate.json", output / "default_cpp17-result.json")
+    copy2(groups_directory / "default_cpp17" / "group.json", output / "default_cpp17-group.json")
     copy2(report_path, output / "benchmark-gate.json")
     copy2(summary_path, output / "benchmark-summary.md")
 

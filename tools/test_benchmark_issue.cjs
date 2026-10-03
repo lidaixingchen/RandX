@@ -142,6 +142,20 @@ test('formats the issue only from report.regressions evidence', async () => {
   assert.doesNotMatch(issue.body, /unrelated|must-not-appear|general：/);
 });
 
+test('formats default_cpp17 regressions using the reported group tolerance', async () => {
+  const { github, core, state } = githubMock([]);
+  const report = {
+    ...regressionReport(),
+    policy: { groups: { default_cpp17: { tolerance: 0.25 } } },
+    regressions: [{ group: 'default_cpp17', items: [{ name: 'BM_Default/case:1' }] }],
+  };
+
+  await createOrReuseBenchmarkIssue({ github, context: REPOSITORY_CONTEXT, core, report });
+
+  const [issue] = state.createCalls;
+  assert.match(issue.body, /default_cpp17：1 项有效回归，容差 25\.0%/);
+});
+
 test('keeps valid regression evidence when another group makes the report an error', async () => {
   const { github, core, state } = githubMock([]);
   const report = {

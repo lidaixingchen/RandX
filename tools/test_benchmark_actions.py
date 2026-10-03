@@ -161,6 +161,33 @@ class ArtifactStateTests(unittest.TestCase):
             self.assertIsNone(result["environment"]["baseline_commit"])
             self.assertEqual(result["candidate_commit"], "candidate")
 
+    def test_default_cpp17_initialization_records_benchmark_and_header_commits(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            root: Path = Path(temporary_directory)
+            plan_path: Path = root / "plan.json"
+            plan_path.write_text(json.dumps({
+                "mode": "REFRESH",
+                "context": {},
+                "sampling_commit": "planned-header-commit",
+            }), encoding="utf-8")
+            hardware: subprocess.CompletedProcess[str] = subprocess.CompletedProcess(
+                ["lscpu", "--json"], 0, stdout='{"lscpu": []}', stderr="",
+            )
+            with (
+                patch.object(run_benchmark_group, "workspace_root", return_value=root),
+                patch.object(run_benchmark_group, "actual_commit", return_value="candidate-commit"),
+                patch.object(run_benchmark_group, "first_line", return_value="version"),
+                patch.object(run_benchmark_group, "run_logged", return_value=hardware),
+            ):
+                run_benchmark_group.initialize(plan_path, "default_cpp17")
+
+            environment: dict[str, Any] = json.loads(
+                (root / "groups" / "default_cpp17" / "environment.json").read_text(encoding="utf-8")
+            )
+            self.assertEqual(environment["benchmark_source_commit"], "candidate-commit")
+            self.assertEqual(environment["candidate_header_source_commit"], "candidate-commit")
+            self.assertEqual(environment["baseline_header_source_commit"], "planned-header-commit")
+
     def test_general_metadata_preserves_actual_baseline_checkout(self) -> None:
         with tempfile.TemporaryDirectory() as temporary_directory:
             root: Path = Path(temporary_directory)
@@ -235,15 +262,92 @@ class ArtifactStateTests(unittest.TestCase):
             self.assertEqual(metadata["environment"]["cpu"], 4)
             self.assertTrue((groups_directory / "sampling_cpp17" / "group.json").is_file())
 
+    def test_default_cpp17_metadata_uses_the_unified_header_baseline(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            root: Path = Path(temporary_directory)
+            plan_path: Path = root / "plan.json"
+            groups_directory: Path = root / "groups"
+            plan: dict[str, Any] = {
+                "mode": "REFRESH",
+                "required_steps": {
+                    "default_cpp17": [
+                        "checkout_candidate", "build_candidate", "enumerate_candidate", "measure_candidate",
+                        "checkout_baseline", "build_baseline", "enumerate_baseline", "measure_baseline",
+                    ]
+                },
+                "context": {"run_id": 17, "run_attempt": 3, "candidate_commit": "candidate-commit"},
+                "baseline": None,
+                "sampling_commit": "planned-header-commit",
+            }
+            plan_path.write_text(json.dumps(plan), encoding="utf-8")
+            group_directory: Path = groups_directory / "default_cpp17"
+            group_directory.mkdir(parents=True)
+            (group_directory / "environment.json").write_text(json.dumps({
+                "candidate_commit": "candidate-commit",
+                "baseline_commit": "planned-header-commit",
+                "benchmark_source_commit": "candidate-commit",
+                "candidate_header_source_commit": "candidate-commit",
+                "baseline_header_source_commit": "planned-header-commit",
+            }), encoding="utf-8")
+            (group_directory / "expected.json").write_text(
+                json.dumps({"candidate": ["BM_Default"], "baseline": ["BM_Default"]}), encoding="utf-8",
+            )
+            step_values: dict[str, dict[str, str]] = {
+                step_id: {"outcome": "success", "conclusion": "success"}
+                for step_id in plan["required_steps"]["default_cpp17"]
+            }
+
+            result: dict[str, Any] = benchmark_actions.collect_group(
+                plan_path, "default_cpp17", groups_directory, json.dumps(step_values),
+            )
+
+            self.assertEqual(result["baseline_commit"], "planned-header-commit")
+            self.assertEqual(result["environment"]["benchmark_source_commit"], "candidate-commit")
+            self.assertEqual(result["environment"]["baseline_header_source_commit"], "planned-header-commit")
+
+    def test_baseline_artifact_keeps_general_result_and_adds_default_cpp17_report(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            root: Path = Path(temporary_directory)
+            groups_directory: Path = root / "groups"
+            general: Path = groups_directory / "general"
+            default_cpp17: Path = groups_directory / "default_cpp17"
+            general.mkdir(parents=True)
+            default_cpp17.mkdir(parents=True)
+            (general / "candidate.json").write_text("{\"group\":\"general\"}\n", encoding="utf-8")
+            (default_cpp17 / "candidate.json").write_text("{\"group\":\"default_cpp17\"}\n", encoding="utf-8")
+            (default_cpp17 / "group.json").write_text(
+                "{\"benchmark_source_commit\":\"candidate\",\"baseline_header_source_commit\":\"baseline\"}\n",
+                encoding="utf-8",
+            )
+            report_path: Path = root / "gate.json"
+            summary_path: Path = root / "summary.md"
+            output: Path = root / "baseline-release"
+            report_path.write_text("{}\n", encoding="utf-8")
+            summary_path.write_text("summary\n", encoding="utf-8")
+
+            benchmark_actions.prepare_baseline(groups_directory, report_path, summary_path, output)
+
+            self.assertEqual((output / "result.json").read_text(encoding="utf-8"), "{\"group\":\"general\"}\n")
+            self.assertEqual(
+                (output / "default_cpp17-result.json").read_text(encoding="utf-8"),
+                "{\"group\":\"default_cpp17\"}\n",
+            )
+            self.assertEqual(
+                (output / "default_cpp17-group.json").read_text(encoding="utf-8"),
+                (default_cpp17 / "group.json").read_text(encoding="utf-8"),
+            )
+
     def test_execution_records_each_job_and_download_without_collapse(self) -> None:
         needs: dict[str, Any] = {
             "benchmark_plan": {"result": "success"},
             "measure_general": {"result": "success"},
+            "measure_default_cpp17": {"result": "success"},
             "measure_sampling_cpp17": {"result": "failure"},
             "measure_sampling_cpp23": {"result": "success"},
         }
         steps: dict[str, Any] = {
             "download_general": {"outcome": "success", "conclusion": "success"},
+            "download_default_cpp17": {"outcome": "success", "conclusion": "success"},
             "download_sampling_cpp17": {"outcome": "failure", "conclusion": "success"},
             "download_sampling_cpp23": {"outcome": "skipped", "conclusion": "skipped"},
         }
@@ -280,9 +384,16 @@ class WorkflowContractTests(unittest.TestCase):
         ci_workflow: str = (root / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
         for path in ("tools/benchmark_issue.cjs", "tools/test_benchmark_issue.cjs"):
             self.assertEqual(benchmark_workflow.count(f"      - '{path}'"), 2)
+        for path in (
+            "benchmark_gbench_default_cpp17.cpp",
+            "benchmarks/**",
+            "tools/run_integer_benchmark_pair.py",
+            "tools/test_run_integer_benchmark_pair.py",
+        ):
+            self.assertEqual(benchmark_workflow.count(f"      - '{path}'"), 2)
         self.assertEqual(ci_workflow.count("      - 'tools/**'"), 2)
 
-    def test_workflow_has_six_jobs_and_ci_runs_issue_tests(self) -> None:
+    def test_workflow_has_seven_jobs_and_ci_runs_issue_tests(self) -> None:
         root: Path = Path(__file__).resolve().parents[1]
         benchmark_workflow: str = (root / ".github" / "workflows" / "benchmark.yml").read_text(encoding="utf-8")
         ci_workflow: str = (root / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
@@ -294,6 +405,7 @@ class WorkflowContractTests(unittest.TestCase):
             [
                 "benchmark_plan",
                 "measure_general",
+                "measure_default_cpp17",
                 "measure_sampling_cpp17",
                 "measure_sampling_cpp23",
                 "benchmark",
@@ -302,12 +414,12 @@ class WorkflowContractTests(unittest.TestCase):
         )
         self.assertIn("node --test tools/test_benchmark_issue.cjs", ci_workflow)
 
-    def test_final_job_directly_needs_all_three_measure_jobs(self) -> None:
+    def test_final_job_directly_needs_all_four_measure_jobs(self) -> None:
         workflow_path: Path = Path(__file__).resolve().parents[1] / ".github" / "workflows" / "benchmark.yml"
         workflow: str = workflow_path.read_text(encoding="utf-8")
         self.assertRegex(
             workflow,
-            r"(?ms)^  benchmark:\n.*?^    needs: \[benchmark_plan, measure_general, measure_sampling_cpp17, measure_sampling_cpp23\]$",
+            r"(?ms)^  benchmark:\n.*?^    needs: \[benchmark_plan, measure_general, measure_default_cpp17, measure_sampling_cpp17, measure_sampling_cpp23\]$",
         )
         self.assertRegex(workflow, r"(?ms)^  benchmark:\n.*?^    if: always\(\) && !cancelled\(\)$")
         self.assertIn("--output benchmark-gate.json", workflow)
@@ -335,11 +447,12 @@ class WorkflowContractTests(unittest.TestCase):
         self.assertIn("tools/benchmark_issue.cjs", notify_job)
         self.assertNotIn("needs.notify_regression", benchmark_job)
         self.assertEqual(benchmark_job.count("needs.measure_general.result == 'success'"), 2)
+        self.assertEqual(benchmark_job.count("needs.measure_default_cpp17.result == 'success'"), 2)
 
     def test_each_group_downloads_to_canonical_directory_and_uses_unique_artifact(self) -> None:
         workflow_path: Path = Path(__file__).resolve().parents[1] / ".github" / "workflows" / "benchmark.yml"
         workflow: str = workflow_path.read_text(encoding="utf-8")
-        for group in ("general", "sampling_cpp17", "sampling_cpp23"):
+        for group in ("general", "default_cpp17", "sampling_cpp17", "sampling_cpp23"):
             self.assertIn(f"path: groups/{group}", workflow)
             self.assertIn(
                 f"benchmark-${{{{ github.run_id }}}}-${{{{ github.run_attempt }}}}-{group}",
@@ -347,7 +460,7 @@ class WorkflowContractTests(unittest.TestCase):
             )
             self.assertIn(f"path: groups/{group}/", workflow)
         self.assertEqual(workflow.count("name: ${{ needs.benchmark_plan.outputs.baseline_name }}"), 1)
-        self.assertEqual(workflow.count("continue-on-error: true"), 4)
+        self.assertEqual(workflow.count("continue-on-error: true"), 5)
         self.assertIn("steps.evaluate.outputs.publish_baseline == 'true'", workflow)
         self.assertIn("BENCHMARK_EXIT_CODE: ${{ steps.evaluate.outputs.exit_code }}", workflow)
 
@@ -356,6 +469,9 @@ class WorkflowContractTests(unittest.TestCase):
         workflow: str = workflow_path.read_text(encoding="utf-8")
         self.assertIn("run_benchmark_group.py measure --plan plan_artifact/benchmark-plan.json --group general --variant candidate", workflow)
         self.assertIn("run_benchmark_group.py measure --plan plan_artifact/benchmark-plan.json --group general --variant baseline", workflow)
+        self.assertIn("run_benchmark_group.py measure --plan plan_artifact/benchmark-plan.json --group default_cpp17 --variant candidate", workflow)
+        self.assertIn("run_benchmark_group.py measure --plan plan_artifact/benchmark-plan.json --group default_cpp17 --variant baseline", workflow)
+        self.assertIn("sparse-checkout: RandX_Cpp17.hpp", workflow)
         self.assertIn("id: measure_sampling_rounds", workflow)
         self.assertIn("--benchmark_list_tests=true", (Path(__file__).resolve().parent / "run_benchmark_group.py").read_text(encoding="utf-8"))
         self.assertNotIn("pull_request_target", workflow)

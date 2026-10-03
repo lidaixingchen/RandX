@@ -16,7 +16,8 @@ from typing import Any, Mapping, Sequence
 from compare_benchmark import benchmark_name, parse_results
 
 
-GROUP_NAMES: tuple[str, ...] = ("general", "sampling_cpp17", "sampling_cpp23")
+GENERAL_GROUP_NAMES: tuple[str, ...] = ("general", "default_cpp17")
+GROUP_NAMES: tuple[str, ...] = (*GENERAL_GROUP_NAMES, "sampling_cpp17", "sampling_cpp23")
 SAMPLING_GROUPS: frozenset[str] = frozenset(("sampling_cpp17", "sampling_cpp23"))
 VARIANT_NAMES: tuple[str, ...] = ("candidate", "baseline")
 RUN_NAME_FLAG: str = "--benchmark_list_tests=true"
@@ -138,6 +139,11 @@ def build_locations(root: Path, group: str, variant: str) -> tuple[Path, Path, P
         source: Path = root / "baseline-src"
         return source, source / "build" / "general-baseline", None
 
+    if group == "default_cpp17":
+        build_directory: Path = root / "build" / group / variant
+        override_directory: Path = root if variant == "candidate" else root / "default-cpp17-baseline-src"
+        return root, build_directory, override_directory
+
     if group not in SAMPLING_GROUPS:
         raise ValueError(f"未知比较组：{group}")
     source = root
@@ -221,6 +227,8 @@ def initialize(plan_path: Path, group: str) -> None:
     baseline_commit: str | None = None
     if group in SAMPLING_GROUPS:
         baseline_commit = str(plan.get("sampling_commit") or "") or None
+    elif group == "default_cpp17":
+        baseline_commit = str(plan.get("sampling_commit") or "") or None
     elif plan.get("mode") == "COMPARE" and isinstance(baseline, dict):
         commit: Any = baseline.get("commit")
         baseline_commit = commit if isinstance(commit, str) else None
@@ -243,6 +251,14 @@ def initialize(plan_path: Path, group: str) -> None:
         "hardware": json.loads(hardware.stdout),
         "cpu": None,
     }
+    if group == "default_cpp17":
+        if baseline_commit is None:
+            raise ValueError("default_cpp17 缺少统一计划选择的头文件基线提交")
+        environment.update({
+            "benchmark_source_commit": candidate_commit,
+            "candidate_header_source_commit": candidate_commit,
+            "baseline_header_source_commit": baseline_commit,
+        })
     if group in SAMPLING_GROUPS:
         cpu: int = sampling_cpu()
         environment["cpu"] = cpu
@@ -259,6 +275,15 @@ def build(plan_path: Path, group: str, variant: str) -> None:
     plan: dict[str, Any] = read_json(plan_path)
     configuration: dict[str, Any] = policy_group(plan, group)
     source, build_directory, _ = build_locations(root, group, variant)
+    if group == "default_cpp17" and variant == "baseline":
+        baseline_directory: Path = root / "default-cpp17-baseline-src"
+        baseline_header: Path = baseline_directory / "RandX_Cpp17.hpp"
+        if not baseline_header.is_file():
+            raise ValueError(f"历史基线 checkout 缺少 C++17 发布头文件：{baseline_header}")
+        actual_baseline_header_commit: str = actual_commit(baseline_directory)
+        expected_baseline_header_commit: Any = read_environment(directory).get("baseline_header_source_commit")
+        if actual_baseline_header_commit != expected_baseline_header_commit:
+            raise ValueError("历史 C++17 头文件提交与统一计划不匹配")
     loop_alignment: int | None = None
     if group in SAMPLING_GROUPS:
         loop_alignment = int(read_environment(directory)["loop_alignment"])
@@ -276,6 +301,12 @@ def build(plan_path: Path, group: str, variant: str) -> None:
     }
     if group == "general" and variant == "baseline":
         environment_updates["baseline_commit"] = actual_commit(source)
+    if group == "default_cpp17":
+        benchmark_source_commit: str = actual_commit(source)
+        environment_updates["benchmark_source_commit"] = benchmark_source_commit
+        environment_updates[f"{variant}_header_source_commit"] = (
+            actual_baseline_header_commit if variant == "baseline" else benchmark_source_commit
+        )
     if group in SAMPLING_GROUPS and variant == "baseline":
         environment_updates["baseline_commit"] = actual_commit(root / "sampling-baseline-src")
     update_environment(directory, environment_updates)
@@ -388,14 +419,16 @@ def benchmark_arguments(configuration: Mapping[str, Any], output_path: Path, rep
     ]
 
 
-def measure_general(plan_path: Path, variant: str) -> None:
+def measure_general(plan_path: Path, variant: str, group: str = "general") -> None:
     """测量通用 benchmark 的一个版本。"""
     root: Path = workspace_root()
     plan: dict[str, Any] = read_json(plan_path)
-    configuration: dict[str, Any] = policy_group(plan, "general")
-    directory: Path = ensure_group_directory(root, "general")
+    if group not in GENERAL_GROUP_NAMES:
+        raise ValueError(f"{group} 不是通用比较组")
+    configuration: dict[str, Any] = policy_group(plan, group)
+    directory: Path = ensure_group_directory(root, group)
     names: list[str] = expected_names(directory, variant)
-    binary: Path = binary_path(root, "general", variant, str(configuration["target"]))
+    binary: Path = binary_path(root, group, variant, str(configuration["target"]))
     output_path: Path = directory / f"{variant}.json"
     repetitions: Any = configuration.get("repetitions")
     if isinstance(repetitions, bool) or not isinstance(repetitions, int):
@@ -587,8 +620,8 @@ def main() -> int:
             enumerate_benchmarks(arguments.plan, arguments.group, arguments.variant)
             return 0
         if arguments.command == "measure":
-            if arguments.group == "general" and arguments.variant is not None:
-                measure_general(arguments.plan, arguments.variant)
+            if arguments.group in GENERAL_GROUP_NAMES and arguments.variant is not None:
+                measure_general(arguments.plan, arguments.variant, arguments.group)
             elif arguments.group in SAMPLING_GROUPS and arguments.variant is None:
                 measure_sampling_rounds(arguments.plan, arguments.group)
             else:

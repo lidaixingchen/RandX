@@ -21,6 +21,11 @@ def group_config(group: str) -> dict[str, Any]:
             "kind": "general", "standard": 23, "target": "benchmark_gbench",
             "repetitions": 5, "min_time": "0.5s", "tolerance": 0.25,
         }
+    if group == "default_cpp17":
+        return {
+            "kind": "general", "standard": 17, "target": "benchmark_gbench_default_cpp17",
+            "repetitions": 5, "min_time": "0.5s", "tolerance": 0.25,
+        }
     standard: int = 17 if group == "sampling_cpp17" else 23
     return {
         "kind": "sampling", "standard": standard,
@@ -35,6 +40,7 @@ def plan_value() -> dict[str, Any]:
         "policy": {
             "groups": {
                 "general": group_config("general"),
+                "default_cpp17": group_config("default_cpp17"),
                 "sampling_cpp17": group_config("sampling_cpp17"),
                 "sampling_cpp23": group_config("sampling_cpp23"),
             }
@@ -72,6 +78,119 @@ class BuildCommandTests(unittest.TestCase):
             self.assertIn("-DCMAKE_CXX_STANDARD=23", command)
             self.assertIn("-DCMAKE_EXPORT_COMPILE_COMMANDS=ON", command)
             self.assertIn(f"-DFETCHCONTENT_BASE_DIR={root / 'build' / '_deps'}", command)
+
+    def test_default_cpp17_uses_current_sources_and_only_overrides_the_baseline_header(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            root: Path = Path(temporary_directory)
+            configuration: dict[str, Any] = group_config("default_cpp17")
+            candidate_command, candidate_source, candidate_build = run_benchmark_group.cmake_configure_command(
+                root, "default_cpp17", "candidate", configuration,
+            )
+            baseline_command, baseline_source, baseline_build = run_benchmark_group.cmake_configure_command(
+                root, "default_cpp17", "baseline", configuration,
+            )
+
+            self.assertEqual(candidate_source, root)
+            self.assertEqual(baseline_source, root)
+            self.assertEqual(candidate_build, root / "build" / "default_cpp17" / "candidate")
+            self.assertEqual(baseline_build, root / "build" / "default_cpp17" / "baseline")
+            self.assertIn(f"-DRANDX_SAMPLING_HEADER_DIR={root}", candidate_command)
+            self.assertIn(
+                f"-DRANDX_SAMPLING_HEADER_DIR={root / 'default-cpp17-baseline-src'}",
+                baseline_command,
+            )
+            self.assertIn("-DCMAKE_CXX_STANDARD=17", baseline_command)
+            self.assertEqual(configuration["target"], "benchmark_gbench_default_cpp17")
+
+    def test_default_cpp17_measurement_uses_its_own_target_and_policy(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            root: Path = Path(temporary_directory).resolve()
+            plan_path: Path = root / "plan.json"
+            plan_path.write_text(json.dumps(plan_value()), encoding="utf-8")
+            directory: Path = root / "groups" / "default_cpp17"
+            directory.mkdir(parents=True)
+            case: str = "BM_Default/range_size:1"
+            (directory / "expected.json").write_text(
+                json.dumps({"candidate": [case], "baseline": [case]}), encoding="utf-8",
+            )
+            commands: list[list[str]] = []
+
+            def fake_run_logged(command: Sequence[str], log_path: Path, cwd: Path | None = None) -> subprocess.CompletedProcess[str]:
+                commands.append(list(command))
+                output_argument: str = next(value for value in command if value.startswith("--benchmark_out="))
+                write_benchmark_result(Path(output_argument.partition("=")[2]), case, 1.0, aggregate=True)
+                return subprocess.CompletedProcess(list(command), 0, "", "")
+
+            with patch.dict(os.environ, {"GITHUB_WORKSPACE": str(root)}), patch.object(
+                run_benchmark_group, "run_logged", side_effect=fake_run_logged,
+            ):
+                run_benchmark_group.measure_general(plan_path, "candidate", "default_cpp17")
+
+            self.assertEqual(commands[0][0], str(root / "build" / "default_cpp17" / "candidate" / "benchmark_gbench_default_cpp17"))
+            self.assertIn("--benchmark_repetitions=5", commands[0])
+            self.assertIn("--benchmark_min_time=0.5s", commands[0])
+            self.assertEqual(json.loads((directory / "candidate.json").read_text(encoding="utf-8"))["benchmarks"][0]["run_name"], case)
+
+    def test_default_cpp17_build_requires_the_header_only_baseline_checkout(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            root: Path = Path(temporary_directory).resolve()
+            plan_path: Path = root / "plan.json"
+            plan: dict[str, Any] = plan_value()
+            plan["sampling_commit"] = "baseline-commit"
+            plan_path.write_text(json.dumps(plan), encoding="utf-8")
+            with patch.dict(os.environ, {"GITHUB_WORKSPACE": str(root)}):
+                with self.assertRaisesRegex(ValueError, r"历史基线 checkout 缺少 C\+\+17 发布头文件"):
+                    run_benchmark_group.build(plan_path, "default_cpp17", "baseline")
+
+    def test_default_cpp17_build_invokes_only_its_configured_target(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            root: Path = Path(temporary_directory).resolve()
+            plan_path: Path = root / "plan.json"
+            plan: dict[str, Any] = plan_value()
+            plan["sampling_commit"] = "baseline-commit"
+            plan_path.write_text(json.dumps(plan), encoding="utf-8")
+            baseline_headers: Path = root / "default-cpp17-baseline-src"
+            baseline_headers.mkdir()
+            (baseline_headers / "RandX_Cpp17.hpp").write_text("header", encoding="utf-8")
+            directory: Path = root / "groups" / "default_cpp17"
+            directory.mkdir(parents=True)
+            (directory / "environment.json").write_text(
+                json.dumps({"baseline_header_source_commit": "baseline-commit"}), encoding="utf-8",
+            )
+            calls: list[list[str]] = []
+
+            def fake_run_logged(command: Sequence[str], log_path: Path, cwd: Path | None = None) -> subprocess.CompletedProcess[str]:
+                calls.append(list(command))
+                if "-B" in command:
+                    build: Path = Path(command[command.index("-B") + 1])
+                    build.mkdir(parents=True)
+                    (build / "compile_commands.json").write_text("[]", encoding="utf-8")
+                return subprocess.CompletedProcess(list(command), 0, "", "")
+
+            def fake_actual_commit(directory: Path) -> str:
+                return "baseline-commit" if directory.name == "default-cpp17-baseline-src" else "candidate-commit"
+
+            with patch.dict(os.environ, {"GITHUB_WORKSPACE": str(root)}), patch.object(
+                run_benchmark_group, "run_logged", side_effect=fake_run_logged
+            ), patch.object(run_benchmark_group, "first_line", return_value="tool version"), patch.object(
+                run_benchmark_group, "read_cmake_generator", return_value="Unix Makefiles"
+            ), patch.object(run_benchmark_group, "actual_commit", side_effect=fake_actual_commit), patch.object(
+                run_benchmark_group, "save_build_disassembly"
+            ) as save_diagnostics:
+                run_benchmark_group.build(plan_path, "default_cpp17", "baseline")
+
+            self.assertEqual(len(calls), 2)
+            self.assertEqual(calls[0][calls[0].index("-S") + 1], str(root))
+            header_override: str = next(
+                argument for argument in calls[0] if argument.startswith("-DRANDX_SAMPLING_HEADER_DIR=")
+            )
+            self.assertEqual(header_override, f"-DRANDX_SAMPLING_HEADER_DIR={baseline_headers}")
+            self.assertEqual(calls[1][calls[1].index("--target") + 1], "benchmark_gbench_default_cpp17")
+            build_directory: Path = root / "build" / "default_cpp17" / "baseline"
+            save_diagnostics.assert_called_once_with(
+                build_directory / "benchmark_gbench_default_cpp17",
+                root / "groups" / "default_cpp17" / "compiler" / "baseline",
+            )
 
     def test_sampling_variants_use_one_source_shared_dependencies_and_one_target(self) -> None:
         with tempfile.TemporaryDirectory() as temporary_directory:

@@ -11,7 +11,7 @@ import unittest
 from pathlib import Path
 from typing import Any
 
-from benchmark_gate import evaluate_run, plan_run
+from benchmark_gate import GROUP_NAMES, evaluate_run, plan_run
 from compare_benchmark import parse_results
 from confirm_sampling_benchmark import replace_measurements, select_confirmation_cases
 from merge_benchmark_repetitions import merge_results
@@ -21,6 +21,7 @@ TOOLS_DIR: Path = Path(__file__).resolve().parent
 POLICY_PATH: Path = TOOLS_DIR / "benchmark_policy.json"
 GATE_SCRIPT: Path = TOOLS_DIR / "benchmark_gate.py"
 BENCHMARK_NAME: str = "BM_Sample/range_size:1/request:1"
+DEFAULT_BENCHMARK_NAME: str = "BM_Default/range_size:1"
 
 
 def policy_value() -> dict[str, Any]:
@@ -129,8 +130,8 @@ def raw_result(values: dict[str, float]) -> dict[str, Any]:
 def execution_record() -> dict[str, Any]:
     return {
         "plan_job": "success",
-        "jobs": {"general": "success", "sampling_cpp17": "success", "sampling_cpp23": "success"},
-        "downloads": {"general": "success", "sampling_cpp17": "success", "sampling_cpp23": "success"},
+        "jobs": {group: "success" for group in GROUP_NAMES},
+        "downloads": {group: "success" for group in GROUP_NAMES},
         "errors": [],
     }
 
@@ -160,6 +161,12 @@ def complete_group(
         "expected": {"candidate": [BENCHMARK_NAME], "baseline": [BENCHMARK_NAME]},
         "environment": {"cpu": 1, "runner": "ubuntu-latest"},
     }
+    if group_name == "default_cpp17":
+        metadata["environment"].update({
+            "benchmark_source_commit": plan["context"]["candidate_commit"],
+            "candidate_header_source_commit": plan["context"]["candidate_commit"],
+            "baseline_header_source_commit": plan["sampling_commit"],
+        })
     if group_name == "general":
         metadata["expected"]["candidate"] = ["BM_General", "BM_GeneralNew"]
         metadata["expected"]["baseline"] = [] if plan["mode"] == "REFRESH" else ["BM_General"]
@@ -168,6 +175,17 @@ def complete_group(
         }
         if plan["mode"] == "COMPARE":
             files["baseline.json"] = median_result({"BM_General": baseline_time})
+        return {"metadata": metadata, "files": files, "load_errors": []}
+
+    if group_name == "default_cpp17":
+        metadata["expected"] = {
+            "candidate": [DEFAULT_BENCHMARK_NAME],
+            "baseline": [DEFAULT_BENCHMARK_NAME],
+        }
+        files = {
+            "candidate.json": median_result({DEFAULT_BENCHMARK_NAME: candidate_time}),
+            "baseline.json": median_result({DEFAULT_BENCHMARK_NAME: baseline_time}),
+        }
         return {"metadata": metadata, "files": files, "load_errors": []}
 
     candidate_rounds: list[dict[str, Any]] = [
@@ -314,6 +332,9 @@ class PlanRunTests(unittest.TestCase):
         self.assertIsNone(plan["baseline"])
         self.assertEqual(plan["sampling_commit"], policy["baseline"]["initial_sampling_commit"])
         self.assertEqual(len(plan["required_steps"]["general"]), 4)
+        self.assertEqual(plan["policy"]["groups"]["default_cpp17"]["kind"], "general")
+        self.assertEqual(plan["policy"]["groups"]["default_cpp17"]["standard"], 17)
+        self.assertEqual(len(plan["required_steps"]["default_cpp17"]), 8)
         self.assertIn("confirm", plan["required_steps"]["sampling_cpp17"])
 
     def test_refresh_request_from_other_ref_is_context_error(self) -> None:
@@ -400,8 +421,39 @@ class EvaluateRunTests(unittest.TestCase):
         self.assertEqual(report["exit_code"], 0)
         self.assertTrue(report["publish_baseline"])
         self.assertFalse(report["notify_regression"])
-        self.assertEqual(len(report["waived_regressions"]), 2)
+        self.assertEqual(len(report["waived_regressions"]), 3)
         self.assertTrue(report["groups"]["sampling_cpp17"]["waived"])
+
+    def test_default_cpp17_compares_the_planned_header_during_refresh(self) -> None:
+        context: dict[str, Any] = run_context("workflow_dispatch", "refs/heads/master", True)
+        plan: dict[str, Any] = plan_run(
+            policy_value(), context, {"success": True, "artifacts": [], "runs": {}, "error": ""},
+        )
+        group: dict[str, Any] = complete_group("default_cpp17", plan)
+
+        report: dict[str, Any] = evaluate_run(
+            plan,
+            execution_record(),
+            {name: complete_group(name, plan) for name in GROUP_NAMES},
+        )
+
+        self.assertEqual(group["metadata"]["baseline_commit"], plan["sampling_commit"])
+        self.assertEqual(report["groups"]["general"]["comparison_status"], "SKIPPED")
+        self.assertEqual(report["groups"]["default_cpp17"]["comparison_status"], "COMPARED")
+        self.assertTrue(report["publish_baseline"])
+
+    def test_default_cpp17_requires_matching_complete_expected_sets_and_source_commits(self) -> None:
+        plan, execution, groups = self.make_valid_case()
+        groups["default_cpp17"]["metadata"]["expected"]["baseline"] = []
+        incomplete: dict[str, Any] = evaluate_run(plan, execution, groups)
+        self.assertEqual(incomplete["groups"]["default_cpp17"]["status"], "DATA_ERROR")
+        self.assertFalse(incomplete["publish_baseline"])
+
+        plan, execution, groups = self.make_valid_case()
+        groups["default_cpp17"]["metadata"]["environment"]["baseline_header_source_commit"] = "other-commit"
+        wrong_source: dict[str, Any] = evaluate_run(plan, execution, groups)
+        self.assertEqual(wrong_source["groups"]["default_cpp17"]["status"], "DATA_ERROR")
+        self.assertFalse(wrong_source["publish_baseline"])
 
     def test_regression_and_other_group_data_error_are_both_retained(self) -> None:
         plan, execution, groups = self.make_valid_case(140.0, 100.0, run_context())
@@ -450,6 +502,7 @@ class EvaluateRunTests(unittest.TestCase):
     def test_required_step_failures_keep_diagnostics_without_qualifying_regressions(self) -> None:
         cases: tuple[tuple[str, str, str | None], ...] = (
             ("general", "measure_candidate", "failure"),
+            ("default_cpp17", "measure_baseline", "failure"),
             ("sampling_cpp17", "measure_candidate", "failure"),
             ("sampling_cpp23", "aggregate", "failure"),
             ("sampling_cpp17", "confirm", "failure"),
@@ -468,8 +521,12 @@ class EvaluateRunTests(unittest.TestCase):
 
                 report: dict[str, Any] = evaluate_run(plan, execution, groups)
                 group: dict[str, Any] = report["groups"][group_name]
-                expected_comparison: str = "COMPARED" if group_name == "general" else "CONFIRMED"
-                expected_items: list[str] = ["BM_General"] if group_name == "general" else [BENCHMARK_NAME]
+                expected_comparison: str = "COMPARED" if group_name in ("general", "default_cpp17") else "CONFIRMED"
+                expected_items: list[str] = (
+                    ["BM_General"] if group_name == "general"
+                    else [DEFAULT_BENCHMARK_NAME] if group_name == "default_cpp17"
+                    else [BENCHMARK_NAME]
+                )
                 self.assertEqual(group["status"], "EXECUTION_ERROR")
                 self.assertEqual(group["comparison_status"], expected_comparison)
                 self.assertEqual(group["regressions"], expected_items)
@@ -550,12 +607,14 @@ class EvaluateRunTests(unittest.TestCase):
         self.assertEqual(wrong_set["groups"]["sampling_cpp17"]["status"], "DATA_ERROR")
 
     def test_missing_group_is_execution_error_and_retains_other_groups(self) -> None:
-        plan, execution, groups = self.make_valid_case()
-        del groups["general"]
-        report: dict[str, Any] = evaluate_run(plan, execution, groups)
-        self.assertEqual(report["groups"]["general"]["status"], "EXECUTION_ERROR")
-        self.assertEqual(report["groups"]["sampling_cpp17"]["status"], "PASS")
-        self.assertFalse(report["publish_baseline"])
+        for missing_group in ("general", "default_cpp17"):
+            with self.subTest(group=missing_group):
+                plan, execution, groups = self.make_valid_case()
+                del groups[missing_group]
+                report: dict[str, Any] = evaluate_run(plan, execution, groups)
+                self.assertEqual(report["groups"][missing_group]["status"], "EXECUTION_ERROR")
+                self.assertEqual(report["groups"]["sampling_cpp17"]["status"], "PASS")
+                self.assertFalse(report["publish_baseline"])
 
     def test_both_sides_missing_expected_case_is_data_error(self) -> None:
         plan, execution, groups = self.make_valid_case()

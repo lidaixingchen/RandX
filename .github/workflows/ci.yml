@@ -14,6 +14,9 @@ on:
       - 'example.cpp'
       - 'benchmark.cpp'
       - 'benchmark_gbench.cpp'
+      - 'benchmark_gbench_default_cpp17.cpp'
+      - 'benchmark_gbench_initialization.cpp'
+      - 'benchmarks/**'
       - 'CMakeLists.txt'
       - 'cmake/**'
       - 'tests/**'
@@ -36,6 +39,9 @@ on:
       - 'example.cpp'
       - 'benchmark.cpp'
       - 'benchmark_gbench.cpp'
+      - 'benchmark_gbench_default_cpp17.cpp'
+      - 'benchmark_gbench_initialization.cpp'
+      - 'benchmarks/**'
       - 'CMakeLists.txt'
       - 'cmake/**'
       - 'tests/**'
@@ -187,6 +193,32 @@ jobs:
             ./test_randx_cpp17 --order-by=rand --rand-seed="${RANDX_DOCTEST_ORDER_SEED}"
             ./test_randx_cpp17_release --order-by=rand --rand-seed="${RANDX_DOCTEST_ORDER_SEED}"
           fi
+      - name: 构建并运行生产默认引擎套件
+        if: matrix.std != 'c++20'
+        run: |
+          mkdir -p default-engine-build
+          if [[ "${{ matrix.std }}" == "c++23" ]]; then
+            entry="tests/default_engine/test_default_engine_cpp23.cpp"
+            variant="cpp23"
+            entry_flags=()
+          else
+            entry="tests/default_engine/test_default_engine_cpp17.cpp"
+            variant="cpp17"
+            entry_flags=(-DRANDX_DEFAULT_ENGINE_TEST_CPP17)
+          fi
+          for build_mode in debug release; do
+            if [[ "$build_mode" == "debug" ]]; then
+              mode_flags=(-D_GLIBCXX_ASSERTIONS)
+            else
+              mode_flags=(-DNDEBUG)
+            fi
+            binary="default-engine-build/test_default_engine_${build_mode}"
+            g++-14 -std='${{ matrix.std }}' -O2 "${mode_flags[@]}" -Wall -Wextra -pthread \
+              -I . -I third_party "${entry_flags[@]}" \
+              -o "$binary" "$entry" tests/default_engine/default_engine_cross_translation_unit.cpp
+            "$binary"
+            "$binary" --order-by=rand --rand-seed="${RANDX_DOCTEST_ORDER_SEED}"
+          done
       - name: Build and run entropy failure tests
         run: |
           mkdir -p entropy-build
@@ -197,7 +229,7 @@ jobs:
           else
             entry="tests/entropy/test_entropy_cpp17.cpp"
             variant="cpp17"
-            hook_flags=(-DRANDX_ENABLE_ENTROPY_TEST_HOOKS -DRANDX_ENTROPY_TEST_CPP17)
+            hook_flags=(-DRANDX_ENABLE_ENTROPY_TEST_HOOKS -DRANDX_ENTROPY_TEST_CPP17 -DRANDX_DEFAULT_ENGINE_TEST_CPP17)
           fi
           for build_mode in debug release; do
             if [[ "$build_mode" == "debug" ]]; then
@@ -205,14 +237,29 @@ jobs:
             else
               mode_flags=(-DNDEBUG)
             fi
-            g++-14 -std='${{ matrix.std }}' -O2 "${mode_flags[@]}" -Wall -Wextra \
+            g++-14 -std='${{ matrix.std }}' -O2 "${mode_flags[@]}" -Wall -Wextra -pthread \
               -I . -I third_party "${hook_flags[@]}" \
               -o "entropy-build/test_entropy_${build_mode}" \
-              "$entry" tests/entropy/entropy_cross_translation_unit.cpp
+              "$entry" tests/entropy/entropy_cross_translation_unit.cpp \
+              tests/default_engine/default_engine_cross_translation_unit.cpp
             "entropy-build/test_entropy_${build_mode}"
             "entropy-build/test_entropy_${build_mode}" --order-by=rand \
               --rand-seed="${RANDX_DOCTEST_ORDER_SEED}"
           done
+      - name: 核对生产默认引擎与熵源 hook 注册一致
+        if: matrix.std != 'c++20'
+        run: |
+          comparison_status=0
+          for build_mode in debug release; do
+            python3 tools/check_test_contracts.py compare-binaries \
+              --cpp17-binary "default-engine-build/test_default_engine_${build_mode}" \
+              --cpp23-binary "entropy-build/test_entropy_${build_mode}" \
+              --suite '公共/基础/默认引擎' || {
+                result=$?
+                if (( result > comparison_status )); then comparison_status=$result; fi
+              }
+          done
+          exit "$comparison_status"
       - name: Compare sampling behavior against the source baseline
         run: |
           comparison_status=0
@@ -255,6 +302,18 @@ jobs:
             --binary "./${target}" --compiler gcc-14 --platform ubuntu-24.04 \
             --standard "${{ matrix.std }}" --build-mode release --variant "${variant}" \
             --output "contracts/gcc-${{ matrix.std }}-release-${variant}.json"
+      - name: 收集生产默认引擎套件清单
+        if: matrix.std != 'c++20'
+        run: |
+          mkdir -p default-engine-contracts
+          if [[ "${{ matrix.std }}" == "c++23" ]]; then variant="cpp23"; else variant="cpp17"; fi
+          for build_mode in debug release; do
+            python3 tools/check_test_contracts.py collect \
+              --binary "default-engine-build/test_default_engine_${build_mode}" \
+              --compiler gcc-14 --platform ubuntu-24.04 \
+              --standard "${{ matrix.std }}" --build-mode "$build_mode" --variant "$variant" \
+              --output "default-engine-contracts/gcc-${{ matrix.std }}-${build_mode}-${variant}.json"
+          done
       - name: Collect entropy failure manifests
         run: |
           mkdir -p entropy-contracts
@@ -278,6 +337,11 @@ jobs:
         with:
           name: test-contracts-gcc-${{ matrix.std }}
           path: contracts/*.json
+      - uses: actions/upload-artifact@v4
+        if: matrix.std != 'c++20'
+        with:
+          name: default-engine-contracts-gcc-${{ matrix.std }}
+          path: default-engine-contracts/*.json
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
@@ -345,6 +409,32 @@ jobs:
             ./test_randx_cpp17 --order-by=rand --rand-seed="${RANDX_DOCTEST_ORDER_SEED}"
             ./test_randx_cpp17_release --order-by=rand --rand-seed="${RANDX_DOCTEST_ORDER_SEED}"
           fi
+      - name: 构建并运行生产默认引擎套件
+        if: matrix.std != 'c++20'
+        run: |
+          mkdir -p default-engine-build
+          if [[ "${{ matrix.std }}" == "c++23" ]]; then
+            entry="tests/default_engine/test_default_engine_cpp23.cpp"
+            variant="cpp23"
+            entry_flags=()
+          else
+            entry="tests/default_engine/test_default_engine_cpp17.cpp"
+            variant="cpp17"
+            entry_flags=(-DRANDX_DEFAULT_ENGINE_TEST_CPP17)
+          fi
+          for build_mode in debug release; do
+            if [[ "$build_mode" == "debug" ]]; then
+              mode_flags=(-D_GLIBCXX_ASSERTIONS)
+            else
+              mode_flags=(-DNDEBUG)
+            fi
+            binary="default-engine-build/test_default_engine_${build_mode}"
+            clang++-18 -std='${{ matrix.std }}' -O2 "${mode_flags[@]}" -Wall -Wextra -pthread \
+              -I . -I third_party "${entry_flags[@]}" \
+              -o "$binary" "$entry" tests/default_engine/default_engine_cross_translation_unit.cpp
+            "$binary"
+            "$binary" --order-by=rand --rand-seed="${RANDX_DOCTEST_ORDER_SEED}"
+          done
       - name: Build and run entropy failure tests
         run: |
           mkdir -p entropy-build
@@ -355,7 +445,7 @@ jobs:
           else
             entry="tests/entropy/test_entropy_cpp17.cpp"
             variant="cpp17"
-            hook_flags=(-DRANDX_ENABLE_ENTROPY_TEST_HOOKS -DRANDX_ENTROPY_TEST_CPP17)
+            hook_flags=(-DRANDX_ENABLE_ENTROPY_TEST_HOOKS -DRANDX_ENTROPY_TEST_CPP17 -DRANDX_DEFAULT_ENGINE_TEST_CPP17)
           fi
           for build_mode in debug release; do
             if [[ "$build_mode" == "debug" ]]; then
@@ -363,14 +453,29 @@ jobs:
             else
               mode_flags=(-DNDEBUG)
             fi
-            clang++-18 -std='${{ matrix.std }}' -O2 "${mode_flags[@]}" -Wall -Wextra \
+            clang++-18 -std='${{ matrix.std }}' -O2 "${mode_flags[@]}" -Wall -Wextra -pthread \
               -I . -I third_party "${hook_flags[@]}" \
               -o "entropy-build/test_entropy_${build_mode}" \
-              "$entry" tests/entropy/entropy_cross_translation_unit.cpp
+              "$entry" tests/entropy/entropy_cross_translation_unit.cpp \
+              tests/default_engine/default_engine_cross_translation_unit.cpp
             "entropy-build/test_entropy_${build_mode}"
             "entropy-build/test_entropy_${build_mode}" --order-by=rand \
               --rand-seed="${RANDX_DOCTEST_ORDER_SEED}"
           done
+      - name: 核对生产默认引擎与熵源 hook 注册一致
+        if: matrix.std != 'c++20'
+        run: |
+          comparison_status=0
+          for build_mode in debug release; do
+            python3 tools/check_test_contracts.py compare-binaries \
+              --cpp17-binary "default-engine-build/test_default_engine_${build_mode}" \
+              --cpp23-binary "entropy-build/test_entropy_${build_mode}" \
+              --suite '公共/基础/默认引擎' || {
+                result=$?
+                if (( result > comparison_status )); then comparison_status=$result; fi
+              }
+          done
+          exit "$comparison_status"
       - name: Compare sampling behavior against the source baseline
         run: |
           comparison_status=0
@@ -413,6 +518,18 @@ jobs:
             --binary "./${target}" --compiler clang-18 --platform ubuntu-24.04 \
             --standard "${{ matrix.std }}" --build-mode release --variant "${variant}" \
             --output "contracts/clang-${{ matrix.std }}-release-${variant}.json"
+      - name: 收集生产默认引擎套件清单
+        if: matrix.std != 'c++20'
+        run: |
+          mkdir -p default-engine-contracts
+          if [[ "${{ matrix.std }}" == "c++23" ]]; then variant="cpp23"; else variant="cpp17"; fi
+          for build_mode in debug release; do
+            python3 tools/check_test_contracts.py collect \
+              --binary "default-engine-build/test_default_engine_${build_mode}" \
+              --compiler clang-18 --platform ubuntu-24.04 \
+              --standard "${{ matrix.std }}" --build-mode "$build_mode" --variant "$variant" \
+              --output "default-engine-contracts/clang-${{ matrix.std }}-${build_mode}-${variant}.json"
+          done
       - name: Collect entropy failure manifests
         run: |
           mkdir -p entropy-contracts
@@ -436,6 +553,11 @@ jobs:
         with:
           name: test-contracts-clang-${{ matrix.std }}
           path: contracts/*.json
+      - uses: actions/upload-artifact@v4
+        if: matrix.std != 'c++20'
+        with:
+          name: default-engine-contracts-clang-${{ matrix.std }}
+          path: default-engine-contracts/*.json
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
@@ -522,6 +644,35 @@ jobs:
         run: |
           test_randx.exe --order-by=rand --rand-seed=%RANDX_DOCTEST_ORDER_SEED% || exit /b
           test_randx_release.exe --order-by=rand --rand-seed=%RANDX_DOCTEST_ORDER_SEED% || exit /b
+      - name: 构建并运行生产默认引擎套件
+        if: matrix.std != 'c++20'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path default-engine-build | Out-Null
+          $standard = '${{ matrix.std }}'
+          if ($standard -eq 'c++23') {
+            $entry = 'tests/default_engine/test_default_engine_cpp23.cpp'
+            $variant = 'cpp23'
+            $standardFlag = '/std:c++23preview'
+            $entryFlags = @()
+          } else {
+            $entry = 'tests/default_engine/test_default_engine_cpp17.cpp'
+            $variant = 'cpp17'
+            $standardFlag = '/std:c++17'
+            $entryFlags = @('/DRANDX_DEFAULT_ENGINE_TEST_CPP17')
+          }
+          $sources = @($entry, 'tests/default_engine/default_engine_cross_translation_unit.cpp')
+          foreach ($buildMode in @('debug', 'release')) {
+            [string[]] $optimizationFlags = if ($buildMode -eq 'debug') { @('/Od') } else { @('/O2', '/DNDEBUG') }
+            $binary = "default-engine-build/test_default_engine_${buildMode}.exe"
+            & cl $standardFlag /utf-8 /W4 /EHsc @optimizationFlags /I third_party /I . `
+              @entryFlags "/Fe:$binary" @sources
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+            & ".\$binary"
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+            & ".\$binary" --order-by=rand "--rand-seed=$env:RANDX_DOCTEST_ORDER_SEED"
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          }
       - name: Build and run entropy failure tests
         shell: pwsh
         run: |
@@ -536,9 +687,9 @@ jobs:
             $entry = 'tests/entropy/test_entropy_cpp17.cpp'
             $variant = 'cpp17'
             $standardFlag = if ($standard -eq 'c++20') { '/std:c++20' } else { '/std:c++17' }
-            $hookFlags = @('/DRANDX_ENABLE_ENTROPY_TEST_HOOKS', '/DRANDX_ENTROPY_TEST_CPP17')
+            $hookFlags = @('/DRANDX_ENABLE_ENTROPY_TEST_HOOKS', '/DRANDX_ENTROPY_TEST_CPP17', '/DRANDX_DEFAULT_ENGINE_TEST_CPP17')
           }
-          $sources = @($entry, 'tests/entropy/entropy_cross_translation_unit.cpp')
+          $sources = @($entry, 'tests/entropy/entropy_cross_translation_unit.cpp', 'tests/default_engine/default_engine_cross_translation_unit.cpp')
           foreach ($buildMode in @('debug', 'release')) {
             [string[]] $optimizationFlags = if ($buildMode -eq 'debug') { @('/Od') } else { @('/O2', '/DNDEBUG') }
             $binary = "entropy-build/test_entropy_${buildMode}.exe"
@@ -550,6 +701,21 @@ jobs:
             & ".\$binary" --order-by=rand "--rand-seed=$env:RANDX_DOCTEST_ORDER_SEED"
             if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           }
+      - name: 核对生产默认引擎与熵源 hook 注册一致
+        if: matrix.std != 'c++20'
+        shell: pwsh
+        run: |
+          $comparisonStatus = 0
+          foreach ($buildMode in @('debug', 'release')) {
+            $productionBinary = "default-engine-build/test_default_engine_${buildMode}.exe"
+            $hookBinary = "entropy-build/test_entropy_${buildMode}.exe"
+            python tools/check_test_contracts.py compare-binaries `
+              --cpp17-binary $productionBinary `
+              --cpp23-binary $hookBinary `
+              --suite '公共/基础/默认引擎'
+            if ($LASTEXITCODE -gt $comparisonStatus) { $comparisonStatus = $LASTEXITCODE }
+          }
+          exit $comparisonStatus
       - name: Compare sampling behavior against the source baseline
         shell: pwsh
         run: |
@@ -592,6 +758,21 @@ jobs:
             python tools/check_test_contracts.py collect --binary $target --compiler msvc --platform windows-2025 --standard $standard --build-mode release --variant $variant --output "contracts/msvc-$standard-release-$variant.json"
             if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           }
+      - name: 收集生产默认引擎套件清单
+        if: matrix.std != 'c++20'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path default-engine-contracts | Out-Null
+          $standard = '${{ matrix.std }}'
+          if ($standard -eq 'c++23') { $variant = 'cpp23' } else { $variant = 'cpp17' }
+          foreach ($buildMode in @('debug', 'release')) {
+            $binary = "default-engine-build/test_default_engine_${buildMode}.exe"
+            python tools/check_test_contracts.py collect `
+              --binary $binary --compiler msvc --platform windows-2025 `
+              --standard $standard --build-mode $buildMode --variant $variant `
+              --output "default-engine-contracts/msvc-$standard-$buildMode-$variant.json"
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          }
       - name: Collect entropy failure manifests
         shell: pwsh
         run: |
@@ -615,6 +796,11 @@ jobs:
           name: test-contracts-msvc-${{ matrix.std }}
           path: contracts/*.json
       - uses: actions/upload-artifact@v4
+        if: matrix.std != 'c++20'
+        with:
+          name: default-engine-contracts-msvc-${{ matrix.std }}
+          path: default-engine-contracts/*.json
+      - uses: actions/upload-artifact@v4
         if: failure()
         with:
           name: sampling-comparison-msvc-${{ matrix.std }}
@@ -637,15 +823,17 @@ jobs:
         run: |
           mkdir -p entropy-build entropy-contracts
           clang++ -std=c++17 -O2 -DNDEBUG -Wall -Wextra -I . -I third_party \
-            -DRANDX_ENABLE_ENTROPY_TEST_HOOKS -DRANDX_ENTROPY_TEST_CPP17 \
+            -DRANDX_ENABLE_ENTROPY_TEST_HOOKS -DRANDX_ENTROPY_TEST_CPP17 -DRANDX_DEFAULT_ENGINE_TEST_CPP17 \
             -o entropy-build/test_entropy_cpp17 \
             tests/entropy/test_entropy_cpp17.cpp tests/entropy/entropy_cross_translation_unit.cpp \
+            tests/default_engine/default_engine_cross_translation_unit.cpp \
             -framework Security
           ./entropy-build/test_entropy_cpp17
           clang++ -std=c++23 -O2 -DNDEBUG -Wall -Wextra -I . -I third_party \
             -DRANDX_ENABLE_ENTROPY_TEST_HOOKS \
             -o entropy-build/test_entropy_cpp23 \
             tests/entropy/test_entropy_cpp23.cpp tests/entropy/entropy_cross_translation_unit.cpp \
+            tests/default_engine/default_engine_cross_translation_unit.cpp \
             -framework Security
           ./entropy-build/test_entropy_cpp23
       - name: Collect independent entropy manifests
@@ -765,18 +953,31 @@ jobs:
             -o coverage-production/test_randx test_randx.cpp
           g++-14 -std=c++17 -O0 -g --coverage -I third_party \
             -o coverage-production/test_randx_cpp17 test_randx_cpp17.cpp
-          g++-14 -std=c++23 -O0 -g --coverage -I . -I third_party \
+          g++-14 -std=c++23 -O0 -g --coverage -pthread -I . -I third_party \
+            -o coverage-production/test_default_engine_cpp23 \
+            tests/default_engine/test_default_engine_cpp23.cpp \
+            tests/default_engine/default_engine_cross_translation_unit.cpp
+          g++-14 -std=c++17 -O0 -g --coverage -pthread -I . -I third_party \
+            -DRANDX_DEFAULT_ENGINE_TEST_CPP17 \
+            -o coverage-production/test_default_engine_cpp17 \
+            tests/default_engine/test_default_engine_cpp17.cpp \
+            tests/default_engine/default_engine_cross_translation_unit.cpp
+          g++-14 -std=c++23 -O0 -g --coverage -pthread -I . -I third_party \
             -DRANDX_ENABLE_ENTROPY_TEST_HOOKS \
             -o coverage-entropy/test_entropy_cpp23 \
-            tests/entropy/test_entropy_cpp23.cpp tests/entropy/entropy_cross_translation_unit.cpp
-          g++-14 -std=c++17 -O0 -g --coverage -I . -I third_party \
-            -DRANDX_ENABLE_ENTROPY_TEST_HOOKS -DRANDX_ENTROPY_TEST_CPP17 \
+            tests/entropy/test_entropy_cpp23.cpp tests/entropy/entropy_cross_translation_unit.cpp \
+            tests/default_engine/default_engine_cross_translation_unit.cpp
+          g++-14 -std=c++17 -O0 -g --coverage -pthread -I . -I third_party \
+            -DRANDX_ENABLE_ENTROPY_TEST_HOOKS -DRANDX_ENTROPY_TEST_CPP17 -DRANDX_DEFAULT_ENGINE_TEST_CPP17 \
             -o coverage-entropy/test_entropy_cpp17 \
-            tests/entropy/test_entropy_cpp17.cpp tests/entropy/entropy_cross_translation_unit.cpp
+            tests/entropy/test_entropy_cpp17.cpp tests/entropy/entropy_cross_translation_unit.cpp \
+            tests/default_engine/default_engine_cross_translation_unit.cpp
       - name: Run production and fault coverage tests
         run: |
           ./coverage-production/test_randx
           ./coverage-production/test_randx_cpp17
+          ./coverage-production/test_default_engine_cpp23
+          ./coverage-production/test_default_engine_cpp17
           ./coverage-entropy/test_entropy_cpp23
           ./coverage-entropy/test_entropy_cpp17
       - name: Generate independent coverage reports
@@ -865,6 +1066,36 @@ jobs:
             --expected-group msvc windows-2025 debug \
             --expected-group msvc windows-2025 release
 
+  default-engine-test-contracts:
+    needs: [gcc, clang, msvc]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: 检查默认引擎清单比较接线
+        run: python3 -m unittest discover -s tools -p 'test_default_engine_ci_wiring.py' -v
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: default-engine-contracts-*
+          path: default-engine-contracts
+          merge-multiple: true
+      - name: 核对各标准、构建配置与平台的生产默认引擎清单
+        run: |
+          python3 tools/check_test_contracts.py compare --manifest-dir default-engine-contracts \
+            --suite '公共/基础/默认引擎' \
+            --expected-group gcc-14 ubuntu-24.04 debug \
+            --expected-group gcc-14 ubuntu-24.04 release \
+            --expected-group clang-18 ubuntu-24.04 debug \
+            --expected-group clang-18 ubuntu-24.04 release \
+            --expected-group msvc windows-2025 debug \
+            --expected-group msvc windows-2025 release \
+            --standard-pair-group gcc-14 ubuntu-24.04 debug \
+            --standard-pair-group gcc-14 ubuntu-24.04 release \
+            --standard-pair-group clang-18 ubuntu-24.04 debug \
+            --standard-pair-group clang-18 ubuntu-24.04 release \
+            --standard-pair-group msvc windows-2025 debug \
+            --standard-pair-group msvc windows-2025 release
+
   entropy-test-contracts:
     needs: [gcc, clang, msvc, entropy-macos]
     runs-on: ubuntu-24.04
@@ -879,6 +1110,7 @@ jobs:
       - name: Compare entropy suite manifests across platforms and standards
         run: |
           python3 tools/check_test_contracts.py compare --manifest-dir entropy-contracts \
+            --suite '公共/基础/默认引擎' \
             --suite '公共/基础/安全熵源故障' --suite '内部/熵源' \
             --expected-group gcc-14 ubuntu-24.04 debug \
             --expected-group gcc-14 ubuntu-24.04 release \

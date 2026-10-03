@@ -16,6 +16,14 @@
       "min_time": "0.5s",
       "tolerance": 0.25
     },
+    "default_cpp17": {
+      "kind": "general",
+      "standard": 17,
+      "target": "benchmark_gbench_default_cpp17",
+      "repetitions": 5,
+      "min_time": "0.5s",
+      "tolerance": 0.25
+    },
     "sampling_cpp17": {
       "kind": "sampling",
       "standard": 17,

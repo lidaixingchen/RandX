@@ -16,7 +16,8 @@ from typing import Any, Iterable, Mapping, Sequence
 
 
 FORMAT_VERSION: int = 1
-GROUP_NAMES: tuple[str, ...] = ("general", "sampling_cpp17", "sampling_cpp23")
+GENERAL_GROUP_NAMES: tuple[str, ...] = ("general", "default_cpp17")
+GROUP_NAMES: tuple[str, ...] = (*GENERAL_GROUP_NAMES, "sampling_cpp17", "sampling_cpp23")
 SUCCESS_OUTCOME: str = "success"
 CANCELLED_PLATFORM_STATE: str = "cancelled"
 ISSUE_EVENTS: frozenset[str] = frozenset(("push", "pull_request", "workflow_dispatch"))
@@ -144,7 +145,7 @@ def _parse_policy(value: Any) -> GatePolicy:
         if not _is_mapping(group_data):
             raise GateInputError(f"policy.groups.{name} 必须是 JSON 对象")
         kind: Any = group_data.get("kind")
-        if kind != ("general" if name == "general" else "sampling"):
+        if kind != ("general" if name in GENERAL_GROUP_NAMES else "sampling"):
             raise GateInputError(f"policy.groups.{name}.kind 配置无效")
         standard: Any = group_data.get("standard")
         if not _integer(standard) or standard < 0:
@@ -153,6 +154,8 @@ def _parse_policy(value: Any) -> GatePolicy:
             raise GateInputError("sampling_cpp17.standard 必须为 17")
         if name == "sampling_cpp23" and standard != 23:
             raise GateInputError("sampling_cpp23.standard 必须为 23")
+        if name == "default_cpp17" and standard != 17:
+            raise GateInputError("default_cpp17.standard 必须为 17")
         target: Any = group_data.get("target")
         repetitions: Any = group_data.get("repetitions")
         min_time: Any = group_data.get("min_time")
@@ -810,8 +813,22 @@ def _validate_group_metadata(
                 ))
     if not _is_mapping(metadata.get("expected")):
         errors.append(ErrorRecord(GateStatus.DATA_ERROR, "group.json.expected 必须是对象", group_name))
-    if not _is_mapping(metadata.get("environment")):
+    environment: Any = metadata.get("environment")
+    if not _is_mapping(environment):
         errors.append(ErrorRecord(GateStatus.DATA_ERROR, "group.json.environment 必须是对象", group_name))
+    elif group_name == "default_cpp17":
+        expected_commits: dict[str, Any] = {
+            "benchmark_source_commit": context.get("candidate_commit"),
+            "candidate_header_source_commit": context.get("candidate_commit"),
+            "baseline_header_source_commit": expected_baseline_commit,
+        }
+        for field, expected_commit in expected_commits.items():
+            if environment.get(field) != expected_commit:
+                errors.append(ErrorRecord(
+                    GateStatus.DATA_ERROR,
+                    f"default_cpp17 environment.{field} 与计划不匹配",
+                    group_name,
+                ))
     return errors
 
 
@@ -839,7 +856,7 @@ def _evaluate_general(
     for name, entry in candidate.items():
         if entry.get("repetitions") != group_policy.repetitions:
             raise GateInputError(f"{group_name} candidate.json 的 {name} repetitions 与策略不一致")
-    if mode == PlanMode.REFRESH.value:
+    if mode == PlanMode.REFRESH.value and group_name == "general":
         if not isinstance(expected.get("baseline"), list) or expected.get("baseline") != []:
             raise GateInputError(f"{group_name} REFRESH 的 expected.baseline 必须为空列表")
         detail: dict[str, Any] = {
@@ -854,6 +871,8 @@ def _evaluate_general(
         }
         return detail, errors
     baseline_expected: list[str] = _stringify_expected(expected, "baseline", group_name)
+    if group_name == "default_cpp17" and set(candidate_expected) != set(baseline_expected):
+        raise GateInputError("default_cpp17 双边预期用例集合必须相同")
     missing_candidate: list[str] = sorted(set(baseline_expected) - set(candidate_expected))
     if missing_candidate:
         raise GateInputError(f"{group_name} candidate 预期清单缺少基线项：{', '.join(missing_candidate)}")
@@ -1275,7 +1294,7 @@ def evaluate_run(
                 try:
                     if any(error.status == GateStatus.DATA_ERROR for error in group_errors):
                         raise GateInputError("组身份或输入元数据无效，无法建立有效比较")
-                    if group_name == "general":
+                    if group_name in GENERAL_GROUP_NAMES:
                         detail, measure_errors = _evaluate_general(
                             group_name, metadata, files, plan, parsed_policy.groups[group_name],
                         )
@@ -1478,9 +1497,9 @@ def _load_group_files(groups_dir: Path, plan: Mapping[str, Any]) -> dict[str, An
         group_config: Any = policy_groups.get(group_name, {}) if _is_mapping(policy_groups) else {}
         kind: str = str(group_config.get("kind", "general")) if _is_mapping(group_config) else "general"
         file_names: list[str] = []
-        if group_name == "general":
+        if kind == "general":
             file_names = ["candidate.json"]
-            if mode == PlanMode.COMPARE.value:
+            if mode == PlanMode.COMPARE.value or group_name != "general":
                 file_names.append("baseline.json")
         elif kind == "sampling":
             file_names = [
@@ -1501,7 +1520,7 @@ def _load_group_files(groups_dir: Path, plan: Mapping[str, Any]) -> dict[str, An
                 load_errors.append({"status": GateStatus.EXECUTION_ERROR.value, "message": f"无法读取 {file_name}：{error}"})
             except json.JSONDecodeError as error:
                 load_errors.append({"status": GateStatus.DATA_ERROR.value, "message": f"{file_name} 不是有效 JSON：{error}"})
-        if group_name != "general" and _is_mapping(files.get("confirmation/metadata.json")):
+        if kind == "sampling" and _is_mapping(files.get("confirmation/metadata.json")):
             confirmation_cases: Any = files["confirmation/metadata.json"].get("cases")
             confirmation_repetitions: Any = group_config.get("confirmation_repetitions", 0) if _is_mapping(group_config) else 0
             if isinstance(confirmation_cases, list) and confirmation_cases:
