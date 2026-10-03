@@ -485,7 +485,7 @@
 	{
 		// @randx-include ../common/sampling/sample_bitmap_and_lifetime.inc
 
-		// 内核在公开适配层展开，保留局部迭代器与静态获取器的优化信息。
+		// 公开适配层展开边界和策略选择，操作内核持有分配与遍历。
 #if defined(_MSC_VER)
 #define RANDX_DETAIL_SAMPLE_INLINE __forceinline
 #elif defined(__GNUC__) || defined(__clang__)

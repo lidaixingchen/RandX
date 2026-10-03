@@ -70,3 +70,4 @@
 		};
 
 		// @randx-include sample_linear_indices.inc
+	// @randx-include sample_random_access_operations.inc
