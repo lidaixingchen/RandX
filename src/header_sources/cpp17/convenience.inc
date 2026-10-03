@@ -501,6 +501,8 @@
 		template <class T, class Diff, SampleDistributionLifetime Lifetime = SampleDistributionLifetime::Selection, class It, class Sentinel, class GetEngine>
 		RANDX_DETAIL_SAMPLE_INLINE std::vector<T> SampleReservoir(It& first, Sentinel& last, Diff n, GetEngine&& getEngine)
 		// @randx-include ../common/sampling/sample_reservoir_body.inc
+
+		// @randx-include ../common/sampling/sample_container_definition.inc
 	}
 
 	// 路径 1：随机访问迭代器（hash-set / 索引数组双分支）
@@ -574,11 +576,12 @@
 	inline auto RandSample(const Container& c, std::size_t n)
 	{
 		using T = typename std::iterator_traits<decltype(std::begin(c))>::value_type;
+		using Diff = typename std::iterator_traits<decltype(std::begin(c))>::difference_type;
 		if (n == 0) return std::vector<T>{};
 		const auto first = std::begin(c);
 		const auto last = std::end(c);
-		if (first == last) return std::vector<T>{};
-		return RandSample(DefaultEngine(), c, n);
+		const Diff size = std::distance(first, last);
+		return detail::SampleContainer<T, Diff>(first, size, n, []() -> Xoshiro256StarStar& { return DefaultEngine(); });
 	}
 
 	/// @brief 无放回抽样：从容器中随机抽取 n 个元素（指定引擎重载）
@@ -592,27 +595,12 @@
 	inline auto RandSample(Engine& engine, const Container& c, std::size_t n)
 	{
 		using T = typename std::iterator_traits<decltype(std::begin(c))>::value_type;
-		if (n == 0) return std::vector<T>{};
 		using Diff = typename std::iterator_traits<decltype(std::begin(c))>::difference_type;
-		Diff count;
-		if constexpr (std::numeric_limits<Diff>::digits < std::numeric_limits<std::size_t>::digits)
-		{
-			constexpr auto maxCount = static_cast<std::size_t>((std::numeric_limits<Diff>::max)());
-			count = static_cast<Diff>((std::min)(n, maxCount));
-		}
-		else
-		{
-			count = static_cast<Diff>(n);
-		}
+		if (n == 0) return std::vector<T>{};
 		const auto first = std::begin(c);
 		const auto last = std::end(c);
 		const Diff size = std::distance(first, last);
-		if (size <= 0) return std::vector<T>{};
-		detail::ValidateSampleSize(size);
-		const auto sizeU = static_cast<std::uint64_t>(size);
-		if (n > (sizeU - 1) / detail::SampleBitmapThresholdK && n <= sizeU / detail::SampleBitmapDensityDivisor)
-			return detail::SampleBitmap<T, Diff>(engine, first, sizeU, n);
-		return RandSample(engine, first, last, count);
+		return detail::SampleContainer<T, Diff>(first, size, n, [&engine]() -> Engine& { return engine; });
 	}
 #undef RANDX_DETAIL_SAMPLE_INLINE
 

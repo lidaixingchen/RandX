@@ -6,10 +6,12 @@
 #include <cerrno>
 #include <cstddef>
 #include <cstdint>
+#include <future>
 #include <limits>
 #include <stdexcept>
 #include <type_traits>
 #include <utility>
+#include <vector>
 
 #include "../fixtures/entropy_sources.hpp"
 
@@ -30,6 +32,37 @@ constexpr int kNativeNonInterruptedError = EIO;
 
 TEST_SUITE("内部/熵源")
 {
+    TEST_CASE("新线程空容器抽样保留默认引擎的首次熵读取")
+    {
+        using namespace RandXTest::EntropyFixtures;
+        struct Observation
+        {
+            bool empty;
+            std::size_t readsBeforeInitialization;
+            std::size_t readsAfterInitialization;
+            std::size_t unexpectedCalls;
+        };
+        const auto observe = []
+        {
+            ScriptedEntropyReader reader;
+            reader.AddProgress();
+            EntropyHookGuard hook(reader);
+            const std::vector<int> population;
+            constexpr std::size_t request = 1;
+            const bool empty = RandX::RandSample(population, request).empty();
+            const auto readsBeforeInitialization = reader.hookFillCalls();
+            (void)RandX::DefaultEngine();
+            return Observation{empty, readsBeforeInitialization,
+                               reader.hookFillCalls(), reader.unexpectedCalls()};
+        };
+        auto worker = std::async(std::launch::async, observe);
+        const auto observation = worker.get();
+        CHECK(observation.empty);
+        CHECK(observation.readsBeforeInitialization == kNoCalls);
+        CHECK(observation.readsAfterInitialization == kOneCall);
+        CHECK(observation.unexpectedCalls == kNoCalls);
+    }
+
     TEST_CASE("FillOsEntropy 处理零长度全零短读中断和失败")
     {
         using namespace RandXTest::EntropyFixtures;

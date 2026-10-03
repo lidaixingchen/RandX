@@ -2963,6 +2963,29 @@ namespace RandX
 			}
 			return reservoir;
 		}
+
+		template <class T, class Diff, class It, class GetEngine>
+		RANDX_DETAIL_SAMPLE_INLINE std::vector<T> SampleContainer(It first, Diff size, std::size_t n, GetEngine&& getEngine)
+		{
+			if (size <= 0) return {};
+			auto& engine = getEngine();
+			ValidateSampleSize(size);
+			Diff count;
+			if constexpr (std::numeric_limits<Diff>::digits < std::numeric_limits<std::size_t>::digits)
+			{
+				constexpr auto maxCount = static_cast<std::size_t>((std::numeric_limits<Diff>::max)());
+				count = static_cast<Diff>((std::min)(n, maxCount));
+			}
+			else
+			{
+				count = static_cast<Diff>(n);
+			}
+			const auto sizeU = static_cast<std::uint64_t>(size);
+			if (n > (sizeU - 1) / SampleBitmapThresholdK && n <= sizeU / SampleBitmapDensityDivisor)
+				return SampleBitmap<T, Diff>(engine, first, sizeU, n);
+			return SampleRandomAccess<T, Diff, SampleDistributionLifetime::Draw>(
+				first, size, count, [&engine]() -> auto& { return engine; });
+		}
 	}
 
 	/// @brief 无放回抽样（随机访问迭代器版，hash-set / 索引数组双分支）
@@ -2995,11 +3018,13 @@ namespace RandX
 	[[nodiscard]]
 	inline auto RandSample(const Container& c, std::size_t n)
 	{
-		if (n == 0) return std::vector<std::ranges::range_value_t<Container>>{};
+		using T = std::ranges::range_value_t<Container>;
+		using Diff = std::ranges::range_difference_t<const Container>;
+		if (n == 0) return std::vector<T>{};
 		const auto first = std::ranges::begin(c);
 		const auto last = std::ranges::end(c);
-		if (first == last) return std::vector<std::ranges::range_value_t<Container>>{};
-		return RandSample(DefaultEngine(), c, n);
+		const Diff size = std::ranges::distance(first, last);
+		return detail::SampleContainer<T, Diff>(first, size, n, []() -> Xoshiro256StarStar& { return DefaultEngine(); });
 	}
 
 	/// @brief 无放回抽样（输入迭代器版，reservoir sampling Algorithm R）
@@ -3069,27 +3094,13 @@ namespace RandX
 	[[nodiscard]]
 	inline auto RandSample(Engine& engine, const Container& c, std::size_t n)
 	{
-		if (n == 0) return std::vector<std::ranges::range_value_t<Container>>{};
+		using T = std::ranges::range_value_t<Container>;
 		using Diff = std::ranges::range_difference_t<const Container>;
-		Diff count;
-		if constexpr (std::numeric_limits<Diff>::digits < std::numeric_limits<std::size_t>::digits)
-		{
-			constexpr auto maxCount = static_cast<std::size_t>((std::numeric_limits<Diff>::max)());
-			count = static_cast<Diff>((std::min)(n, maxCount));
-		}
-		else
-		{
-			count = static_cast<Diff>(n);
-		}
+		if (n == 0) return std::vector<T>{};
 		const auto first = std::ranges::begin(c);
 		const auto last = std::ranges::end(c);
 		const Diff size = std::ranges::distance(first, last);
-		if (size <= 0) return std::vector<std::ranges::range_value_t<Container>>{};
-		detail::ValidateSampleSize(size);
-		const auto sizeU = static_cast<std::uint64_t>(size);
-		if (n > (sizeU - 1) / detail::SampleBitmapThresholdK && n <= sizeU / detail::SampleBitmapDensityDivisor)
-			return detail::SampleBitmap<std::ranges::range_value_t<Container>, Diff>(engine, first, sizeU, n);
-		return RandSample(engine, first, first + size, count);
+		return detail::SampleContainer<T, Diff>(first, size, n, [&engine]() -> Engine& { return engine; });
 	}
 #undef RANDX_DETAIL_SAMPLE_INLINE
 
