@@ -575,6 +575,9 @@
 	{
 		using T = typename std::iterator_traits<decltype(std::begin(c))>::value_type;
 		if (n == 0) return std::vector<T>{};
+		const auto first = std::begin(c);
+		const auto last = std::end(c);
+		if (first == last) return std::vector<T>{};
 		return RandSample(DefaultEngine(), c, n);
 	}
 

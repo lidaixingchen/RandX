@@ -525,6 +525,13 @@ TEST_SUITE("公共/基础/抽样")
         CHECK(RandX::RandSample(population, std::size_t{0}).empty());
         CHECK(RandX::DefaultEngine() == containerInitialState);
 
+        const std::vector<int> emptyContainer;
+        CHECK(RandX::RandSample(emptyContainer, std::size_t{1}).empty());
+        CHECK(RandX::DefaultEngine() == containerInitialState);
+        CHECK(RandX::RandSample(
+            emptyContainer, (std::numeric_limits<std::size_t>::max)()).empty());
+        CHECK(RandX::DefaultEngine() == containerInitialState);
+
         const std::vector<int> singlePopulation{43};
         RandXTest::SamplingContractFixtures::CountingEngine singleEngine;
         const auto singleElement = RandX::RandSample(

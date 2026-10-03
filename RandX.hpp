@@ -2996,6 +2996,9 @@ namespace RandX
 	inline auto RandSample(const Container& c, std::size_t n)
 	{
 		if (n == 0) return std::vector<std::ranges::range_value_t<Container>>{};
+		const auto first = std::ranges::begin(c);
+		const auto last = std::ranges::end(c);
+		if (first == last) return std::vector<std::ranges::range_value_t<Container>>{};
 		return RandSample(DefaultEngine(), c, n);
 	}
 
