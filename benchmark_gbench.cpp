@@ -281,9 +281,9 @@ static void BM_RandSampleIteratorDefault(benchmark::State& state)
     auto values = MakeSamplingVector(rangeSize);
     PrepareDefaultSamplingEngine();
 
+    benchmark::DoNotOptimize(request);
     for (auto _ : state)
     {
-        benchmark::DoNotOptimize(request);
         auto result = RandX::RandSample(values.cbegin(), values.cend(), request);
         ObserveSamplingResult(result);
     }
@@ -300,9 +300,9 @@ static void BM_RandSampleIteratorExplicit(benchmark::State& state)
     auto values = MakeSamplingVector(rangeSize);
     Engine engine{kSamplingSeed};
 
+    benchmark::DoNotOptimize(request);
     for (auto _ : state)
     {
-        benchmark::DoNotOptimize(request);
         auto result = RandX::RandSample(engine, values.cbegin(), values.cend(), request);
         ObserveSamplingResult(result);
     }
@@ -321,9 +321,9 @@ static void BM_RandSampleContainerDefault(benchmark::State& state)
     auto values = MakeSamplingVector(rangeSize);
     PrepareDefaultSamplingEngine();
 
+    benchmark::DoNotOptimize(request);
     for (auto _ : state)
     {
-        benchmark::DoNotOptimize(request);
         auto result = RandX::RandSample(values, request);
         ObserveSamplingResult(result);
     }
@@ -340,9 +340,9 @@ static void BM_RandSampleContainerExplicit(benchmark::State& state)
     auto values = MakeSamplingVector(rangeSize);
     Engine engine{kSamplingSeed};
 
+    benchmark::DoNotOptimize(request);
     for (auto _ : state)
     {
-        benchmark::DoNotOptimize(request);
         auto result = RandX::RandSample(engine, values, request);
         ObserveSamplingResult(result);
     }
@@ -361,9 +361,9 @@ static void BM_RandSampleReservoirDefault(benchmark::State& state)
     auto values = MakeSamplingList(rangeSize);
     PrepareDefaultSamplingEngine();
 
+    benchmark::DoNotOptimize(request);
     for (auto _ : state)
     {
-        benchmark::DoNotOptimize(request);
         auto first = values.cbegin();
         auto last = values.cend();
         auto result = RandX::RandSample(first, last, request);
@@ -382,9 +382,9 @@ static void BM_RandSampleReservoirExplicit(benchmark::State& state)
     auto values = MakeSamplingList(rangeSize);
     Engine engine{kSamplingSeed};
 
+    benchmark::DoNotOptimize(request);
     for (auto _ : state)
     {
-        benchmark::DoNotOptimize(request);
         auto first = values.cbegin();
         auto last = values.cend();
         auto result = RandX::RandSample(engine, first, last, request);
