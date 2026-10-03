@@ -3004,7 +3004,7 @@ namespace RandX
 	// 路径 1：随机访问迭代器（hash-set / 索引数组双分支）
 	template <std::random_access_iterator It, std::sentinel_for<It> Sentinel>
 	[[nodiscard]]
-	inline std::vector<std::iter_value_t<It>>
+	RANDX_DETAIL_SAMPLE_INLINE std::vector<std::iter_value_t<It>>
 	RandSample(It first, Sentinel last, std::iter_difference_t<It> n)
 	{
 		using Diff = std::iter_difference_t<It>;
@@ -3077,7 +3077,7 @@ namespace RandX
 	// 引擎重载 —— 随机访问迭代器
 	template <std::random_access_iterator It, std::sentinel_for<It> Sentinel, detail::RandomEngine Engine>
 	[[nodiscard]]
-	inline std::vector<std::iter_value_t<It>>
+	RANDX_DETAIL_SAMPLE_INLINE std::vector<std::iter_value_t<It>>
 	RandSample(Engine& engine, It first, Sentinel last, std::iter_difference_t<It> n)
 	{
 		using Diff = std::iter_difference_t<It>;
@@ -3116,7 +3116,7 @@ namespace RandX
 	template <detail::RandomEngine Engine, std::ranges::random_access_range Container>
 		requires std::copy_constructible<std::ranges::range_value_t<Container>>
 	[[nodiscard]]
-	inline auto RandSample(Engine& engine, const Container& c, std::size_t n)
+	RANDX_DETAIL_SAMPLE_INLINE auto RandSample(Engine& engine, const Container& c, std::size_t n)
 	{
 		using T = std::ranges::range_value_t<Container>;
 		using Diff = std::ranges::range_difference_t<const Container>;

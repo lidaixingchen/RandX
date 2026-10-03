@@ -3083,7 +3083,7 @@ namespace RandX
 	template <class It,
 		std::enable_if_t<detail::is_random_access_iterator_v<It>>* = nullptr>
 	[[nodiscard]]
-	inline std::vector<typename std::iterator_traits<It>::value_type>
+	RANDX_DETAIL_SAMPLE_INLINE std::vector<typename std::iterator_traits<It>::value_type>
 	RandSample(It first, It last, typename std::iterator_traits<It>::difference_type n)
 	{
 		using Diff = typename std::iterator_traits<It>::difference_type;
@@ -3113,7 +3113,7 @@ namespace RandX
 	template <class It, class Engine,
 		std::enable_if_t<detail::is_random_access_iterator_v<It> && detail::is_random_engine_v<Engine>>* = nullptr>
 	[[nodiscard]]
-	inline std::vector<typename std::iterator_traits<It>::value_type>
+	RANDX_DETAIL_SAMPLE_INLINE std::vector<typename std::iterator_traits<It>::value_type>
 	RandSample(Engine& engine, It first, It last, typename std::iterator_traits<It>::difference_type n)
 	{
 		using Diff = typename std::iterator_traits<It>::difference_type;
@@ -3182,7 +3182,7 @@ namespace RandX
 	template <class Engine, class Container,
 		std::enable_if_t<detail::is_random_engine_v<Engine> && detail::is_random_access_container_v<Container>>* = nullptr>
 	[[nodiscard]]
-	inline auto RandSample(Engine& engine, const Container& c, std::size_t n)
+	RANDX_DETAIL_SAMPLE_INLINE auto RandSample(Engine& engine, const Container& c, std::size_t n)
 	{
 		using T = typename std::iterator_traits<decltype(std::begin(c))>::value_type;
 		using Diff = typename std::iterator_traits<decltype(std::begin(c))>::difference_type;
