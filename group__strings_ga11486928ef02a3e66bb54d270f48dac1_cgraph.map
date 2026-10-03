@@ -1,0 +1,12 @@
+<map id="RandX::RandBits" name="RandX::RandBits">
+<area shape="rect" id="Node000001" title="生成 N 位随机整数" alt="" coords="5,29,136,55"/>
+<area shape="poly" id="edge5_Node000001_Node000001" title=" " alt="" coords="39,31,32,21,35,11,49,5,71,3,97,6,109,15,105,19,95,11,71,8,50,10,39,15,37,20,43,28"/>
+<area shape="rect" id="Node000002" href="$group__engines.html#ga7dba92b95d7c5e6eb2d1db3c6a3b2ddf" title="获取当前线程专属的默认伪随机数生成引擎" alt="" coords="184,29,348,55"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="136,39,170,39,170,45,136,45"/>
+<area shape="rect" id="Node000003" href="$namespaceRandX_1_1detail.html#a9356ec09c67a0c6ad6e56aa6679cd3ea" title=" " alt="" coords="396,22,604,62"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="348,39,382,39,382,45,348,45"/>
+<area shape="rect" id="Node000004" href="$group__engines.html#gaa82567759ff174faf923397ea9b0c71f" title="生成非确定性的 64 位种子" alt="" coords="652,29,811,55"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="604,39,638,39,638,45,604,45"/>
+<area shape="rect" id="Node000005" href="$namespaceRandX_1_1detail.html#a483477380db6686914887e45ac9610e4" title=" " alt="" coords="859,22,1061,62"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="811,39,845,39,845,45,811,45"/>
+</map>

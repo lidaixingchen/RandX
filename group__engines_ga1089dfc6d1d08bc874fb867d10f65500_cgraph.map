@@ -1,0 +1,5 @@
+<map id="RandX::SplitMix64::generateSeedSequence" name="RandX::SplitMix64::generateSeedSequence">
+<area shape="rect" id="Node000001" title="生成 N 个高质量的 64 位种子序列" alt="" coords="5,5,180,45"/>
+<area shape="rect" id="Node000002" href="$group__engines.html#ga4da87e9fe812fbb47b35614daa59c464" title="生成下一个 64 位随机数" alt="" coords="228,5,377,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="180,23,214,23,214,28,180,28"/>
+</map>
