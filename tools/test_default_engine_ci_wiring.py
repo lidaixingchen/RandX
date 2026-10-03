@@ -56,6 +56,22 @@ class DefaultEngineCiWiringTests(unittest.TestCase):
     def setUpClass(cls) -> None:
         cls.workflow: str = WORKFLOW_PATH.read_text(encoding="utf-8")
 
+    def test_coverage_trace_commands_share_consistency_policy(self) -> None:
+        job: str = _job_section(self.workflow, "coverage")
+        logical_commands: str = re.sub(r"\\\n\s*", " ", job)
+        trace_commands: list[str] = [
+            line for line in logical_commands.splitlines()
+            if re.search(r"\blcov\s+.*--(?:capture|list|summary|add-tracefile)\b", line)
+        ]
+        self.assertTrue(trace_commands)
+        for command in trace_commands:
+            with self.subTest(command=command):
+                self.assertIn("--ignore-errors inconsistent", command)
+                self.assertIn("--branch-coverage", command)
+        threshold_step: str = _step_section(job, "Check coverage threshold")
+        self.assertIn("coverage-production/coverage.info", threshold_step)
+        self.assertIn("${COVERAGE} >= 80", threshold_step)
+
     def test_each_compiler_matrix_compares_built_binaries_per_build_mode(self) -> None:
         compiler_invocations: dict[str, str] = {
             "gcc": "g++-14 -std='${{ matrix.std }}'",

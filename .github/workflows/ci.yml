@@ -985,16 +985,16 @@ jobs:
       - name: Generate independent coverage reports
         run: |
           # 使用 gcov-14 以匹配 g++-14 生成的 .gcda 格式（B43*），避免与系统 gcov-13（B33*）冲突
-          lcov --capture --directory coverage-production \
+          lcov --ignore-errors inconsistent --capture --directory coverage-production \
             --output-file coverage-production/coverage.info --gcov-tool gcov-14 --branch-coverage \
             --include "$PWD/RandX.hpp" --include "$PWD/RandX_Cpp17.hpp"
-          lcov --list coverage-production/coverage.info --branch-coverage
-          lcov --summary coverage-production/coverage.info --branch-coverage
-          lcov --capture --directory coverage-entropy \
+          lcov --ignore-errors inconsistent --list coverage-production/coverage.info --branch-coverage
+          lcov --ignore-errors inconsistent --summary coverage-production/coverage.info --branch-coverage
+          lcov --ignore-errors inconsistent --capture --directory coverage-entropy \
             --output-file coverage-entropy/coverage.info --gcov-tool gcov-14 --branch-coverage \
             --include "$PWD/RandX.hpp" --include "$PWD/RandX_Cpp17.hpp"
-          lcov --list coverage-entropy/coverage.info --branch-coverage
-          lcov --summary coverage-entropy/coverage.info --branch-coverage
+          lcov --ignore-errors inconsistent --list coverage-entropy/coverage.info --branch-coverage
+          lcov --ignore-errors inconsistent --summary coverage-entropy/coverage.info --branch-coverage
       - name: Report entropy branches and trace compatibility
         shell: bash
         run: |
@@ -1007,10 +1007,10 @@ jobs:
           compatibility_status=$?
           set -e
           if [[ "$compatibility_status" -eq 0 ]]; then
-            lcov --add-tracefile coverage-production/coverage.info \
+            lcov --ignore-errors inconsistent --add-tracefile coverage-production/coverage.info \
               --add-tracefile coverage-entropy/coverage.info \
               --output-file coverage-evidence/coverage-combined.info --branch-coverage
-            lcov --list coverage-evidence/coverage-combined.info --branch-coverage
+            lcov --ignore-errors inconsistent --list coverage-evidence/coverage-combined.info --branch-coverage
           elif [[ "$compatibility_status" -eq 3 ]]; then
             echo "Coverage layouts differ; separate production and fault reports remain authoritative."
           else
@@ -1018,7 +1018,7 @@ jobs:
           fi
       - name: Check coverage threshold
         run: |
-          COVERAGE=$(lcov --summary coverage-production/coverage.info --branch-coverage | grep -oP 'lines\.*:\s*\K[0-9.]+')
+          COVERAGE=$(lcov --ignore-errors inconsistent --summary coverage-production/coverage.info --branch-coverage | grep -oP 'lines\.*:\s*\K[0-9.]+')
           echo "Line coverage: ${COVERAGE}%"
           awk "BEGIN { exit !(${COVERAGE} >= 80) }" || (echo "Coverage ${COVERAGE}% < 80%" && exit 1)
       - name: Upload production coverage
