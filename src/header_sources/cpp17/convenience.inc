@@ -501,8 +501,6 @@
 		template <class T, class Diff, SampleDistributionLifetime Lifetime = SampleDistributionLifetime::Selection, class It, class Sentinel, class GetEngine>
 		RANDX_DETAIL_SAMPLE_INLINE std::vector<T> SampleReservoir(It& first, Sentinel& last, Diff n, GetEngine&& getEngine)
 		// @randx-include ../common/sampling/sample_reservoir_body.inc
-
-		// @randx-include ../common/sampling/sample_container_declaration.inc
 	}
 
 	// 路径 1：随机访问迭代器（hash-set / 索引数组双分支）
@@ -578,10 +576,14 @@
 		using T = typename std::iterator_traits<decltype(std::begin(c))>::value_type;
 		using Diff = typename std::iterator_traits<decltype(std::begin(c))>::difference_type;
 		if (n == 0) return std::vector<T>{};
+		// @randx-include ../common/sampling/sample_container_count.inc
 		const auto first = std::begin(c);
 		const auto last = std::end(c);
 		const Diff size = std::distance(first, last);
-		return detail::SampleContainer<T, Diff>(first, size, n, detail::DefaultSampleEngineGetter{}, detail::SampleEndGetter<decltype(last)>{last});
+		if (size <= 0) return std::vector<T>{};
+		auto& engine = DefaultEngine();
+		// @randx-include ../common/sampling/sample_container_bitmap.inc
+		return RandSample(engine, first, last, count);
 	}
 
 	/// @brief 无放回抽样：从容器中随机抽取 n 个元素（指定引擎重载）
@@ -592,19 +594,18 @@
 	template <class Engine, class Container,
 		std::enable_if_t<detail::is_random_engine_v<Engine> && detail::is_random_access_container_v<Container>>* = nullptr>
 	[[nodiscard]]
-	RANDX_DETAIL_SAMPLE_INLINE auto RandSample(Engine& engine, const Container& c, std::size_t n)
+	inline auto RandSample(Engine& engine, const Container& c, std::size_t n)
 	{
 		using T = typename std::iterator_traits<decltype(std::begin(c))>::value_type;
 		using Diff = typename std::iterator_traits<decltype(std::begin(c))>::difference_type;
 		if (n == 0) return std::vector<T>{};
+		// @randx-include ../common/sampling/sample_container_count.inc
 		const auto first = std::begin(c);
 		const auto last = std::end(c);
 		const Diff size = std::distance(first, last);
-		return detail::SampleContainer<T, Diff>(first, size, n, [&engine]() -> Engine& { return engine; }, detail::SampleEndGetter<decltype(last)>{last});
-	}
-	namespace detail
-	{
-		// @randx-include ../common/sampling/sample_container_definition.inc
+		if (size <= 0) return std::vector<T>{};
+		// @randx-include ../common/sampling/sample_container_bitmap.inc
+		return RandSample(engine, first, last, count);
 	}
 #undef RANDX_DETAIL_SAMPLE_INLINE
 
