@@ -292,10 +292,10 @@
 
 	namespace detail
 	{
-		// 标准库洗牌在独立操作内核中展开，调用方持有迭代器适配和引擎获取。
+		// 洗牌在调用点展开，以便编译器保留循环中的引擎状态。
 		template <class It, class Engine>
 #if defined(__GNUC__) || defined(__clang__)
-		__attribute__((noinline, flatten))
+		__attribute__((always_inline, flatten))
 #endif
 		inline void ShuffleRange(It first, It last, Engine& engine)
 		{
@@ -308,6 +308,9 @@
 	template <class Container,
 		std::enable_if_t<detail::is_random_access_container_v<Container>
 			&& !std::is_const_v<std::remove_reference_t<Container>>>* = nullptr>
+#if defined(__GNUC__) || defined(__clang__)
+	__attribute__((always_inline, flatten))
+#endif
 	inline void RandShuffle(Container&& c)
 	{
 		detail::ShuffleRange(c.begin(), c.end(), DefaultEngine());

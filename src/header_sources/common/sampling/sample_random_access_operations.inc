@@ -6,7 +6,7 @@
 #define RANDX_DETAIL_SAMPLE_OPERATION_BOUNDARY inline
 #endif
 
-		// 操作内核持有分配与遍历，公开适配层仅展开边界与策略选择。
+		// 批量复制与稀疏抽样持有独立的分配和遍历边界。
 		template <class T, class Diff, class It>
 		RANDX_DETAIL_SAMPLE_OPERATION_BOUNDARY std::vector<T> CopySamplePopulation(It& first, Diff size)
 		{
@@ -42,7 +42,7 @@
 		}
 
 		template <class T, class Diff, SampleDistributionLifetime Lifetime, class It, class Engine>
-		RANDX_DETAIL_SAMPLE_OPERATION_BOUNDARY std::vector<T> SampleDenseIndices(Engine& engine, It& first, Diff size, std::size_t count)
+		RANDX_DETAIL_SAMPLE_INLINE std::vector<T> SampleDenseIndices(Engine& engine, It& first, Diff size, std::size_t count)
 		{
 			// 索引数组分支：O(N) 内存，O(N) 时间，无碰撞
 			const std::size_t sz = static_cast<std::size_t>(size);

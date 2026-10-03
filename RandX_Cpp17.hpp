@@ -2423,10 +2423,10 @@ namespace RandX
 
 	namespace detail
 	{
-		// 标准库洗牌在独立操作内核中展开，调用方持有迭代器适配和引擎获取。
+		// 洗牌在调用点展开，以便编译器保留循环中的引擎状态。
 		template <class It, class Engine>
 #if defined(__GNUC__) || defined(__clang__)
-		__attribute__((noinline, flatten))
+		__attribute__((always_inline, flatten))
 #endif
 		inline void ShuffleRange(It first, It last, Engine& engine)
 		{
@@ -2439,6 +2439,9 @@ namespace RandX
 	template <class Container,
 		std::enable_if_t<detail::is_random_access_container_v<Container>
 			&& !std::is_const_v<std::remove_reference_t<Container>>>* = nullptr>
+#if defined(__GNUC__) || defined(__clang__)
+	__attribute__((always_inline, flatten))
+#endif
 	inline void RandShuffle(Container&& c)
 	{
 		detail::ShuffleRange(c.begin(), c.end(), DefaultEngine());
@@ -2915,14 +2918,9 @@ namespace RandX
 		inline constexpr std::uint64_t SampleBitmapThresholdK = HashSetThresholdK * SampleBitmapWordBits;
 		inline constexpr std::uint64_t SampleBitmapDensityDivisor = 2;
 
-		// 空请求的直接返回路径优先保留在调用点。
 		RANDX_DETAIL_SAMPLE_INLINE bool IsEmptySampleRequest(std::size_t count) noexcept
 		{
-#if defined(__GNUC__) || defined(__clang__)
-			return __builtin_expect(count == 0, true);
-#else
 			return count == 0;
-#endif
 		}
 
 		// 完整同宽引擎的区间映射在抽取点展开，保留标准库的分布算法。
@@ -3043,7 +3041,7 @@ namespace RandX
 #define RANDX_DETAIL_SAMPLE_OPERATION_BOUNDARY inline
 #endif
 
-		// 操作内核持有分配与遍历，公开适配层仅展开边界与策略选择。
+		// 批量复制与稀疏抽样持有独立的分配和遍历边界。
 		template <class T, class Diff, class It>
 		RANDX_DETAIL_SAMPLE_OPERATION_BOUNDARY std::vector<T> CopySamplePopulation(It& first, Diff size)
 		{
@@ -3079,7 +3077,7 @@ namespace RandX
 		}
 
 		template <class T, class Diff, SampleDistributionLifetime Lifetime, class It, class Engine>
-		RANDX_DETAIL_SAMPLE_OPERATION_BOUNDARY std::vector<T> SampleDenseIndices(Engine& engine, It& first, Diff size, std::size_t count)
+		RANDX_DETAIL_SAMPLE_INLINE std::vector<T> SampleDenseIndices(Engine& engine, It& first, Diff size, std::size_t count)
 		{
 			// 索引数组分支：O(N) 内存，O(N) 时间，无碰撞
 			const std::size_t sz = static_cast<std::size_t>(size);

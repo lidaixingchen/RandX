@@ -252,10 +252,10 @@
 
 	namespace detail
 	{
-		// 标准库洗牌在独立操作内核中展开，调用方持有容器适配和引擎获取。
+		// 洗牌在调用点展开，以便编译器保留循环中的引擎状态。
 		template <class Container, class Engine>
 #if defined(__GNUC__) || defined(__clang__)
-		__attribute__((noinline, flatten))
+		__attribute__((always_inline, flatten))
 #endif
 		inline void ShuffleContainer(Container& c, Engine& engine)
 		{
@@ -267,6 +267,9 @@
 	/// @param c 待打乱的容器
 	template <std::ranges::random_access_range Container>
 		requires std::permutable<std::ranges::iterator_t<Container>>
+#if defined(__GNUC__) || defined(__clang__)
+	__attribute__((always_inline, flatten))
+#endif
 	inline void RandShuffle(Container&& c)
 	{
 		detail::ShuffleContainer(c, DefaultEngine());

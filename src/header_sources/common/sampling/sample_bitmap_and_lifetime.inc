@@ -15,14 +15,9 @@
 		inline constexpr std::uint64_t SampleBitmapThresholdK = HashSetThresholdK * SampleBitmapWordBits;
 		inline constexpr std::uint64_t SampleBitmapDensityDivisor = 2;
 
-		// 空请求的直接返回路径优先保留在调用点。
 		RANDX_DETAIL_SAMPLE_INLINE bool IsEmptySampleRequest(std::size_t count) noexcept
 		{
-#if defined(__GNUC__) || defined(__clang__)
-			return __builtin_expect(count == 0, true);
-#else
 			return count == 0;
-#endif
 		}
 
 		// 完整同宽引擎的区间映射在抽取点展开，保留标准库的分布算法。
