@@ -268,8 +268,9 @@ static void PrepareDefaultSamplingEngine()
 template <class T>
 static inline void ObserveSamplingResult(std::vector<T>& result)
 {
-    benchmark::DoNotOptimize(result);
+    auto resultSize = result.size();
     auto data = result.data();
+    benchmark::DoNotOptimize(resultSize);
     benchmark::DoNotOptimize(data);
     if (!result.empty()) benchmark::ClobberMemory();
 }
