@@ -254,10 +254,6 @@
 	/// @param c 待打乱的容器
 	template <std::ranges::random_access_range Container>
 		requires std::permutable<std::ranges::iterator_t<Container>>
-#if defined(__GNUC__) || defined(__clang__)
-	// 在洗牌函数内展开标准库循环，使引擎状态对编译器可见。
-	__attribute__((flatten))
-#endif
 	inline void RandShuffle(Container&& c)
 	{
 		std::ranges::shuffle(c, DefaultEngine());

@@ -2426,10 +2426,6 @@ namespace RandX
 	template <class Container,
 		std::enable_if_t<detail::is_random_access_container_v<Container>
 			&& !std::is_const_v<std::remove_reference_t<Container>>>* = nullptr>
-#if defined(__GNUC__) || defined(__clang__)
-	// 在洗牌函数内展开标准库循环，使引擎状态对编译器可见。
-	__attribute__((flatten))
-#endif
 	inline void RandShuffle(Container&& c)
 	{
 		std::shuffle(c.begin(), c.end(), DefaultEngine());
