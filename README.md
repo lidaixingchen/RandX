@@ -35,9 +35,10 @@
 
 **便捷 API**
 
-- 基础生成 / 16 种统计分布 / 容器操作 / 字符串与 UUID / ranges 风格（仅 C++23）
+- 基础生成 / 17 种统计分布 / 容器操作 / 字符串与 UUID / ranges 风格（仅 C++23）
 - 线程局部默认引擎 `DefaultEngine()`，零配置即用；也支持传入自定义引擎
 - `RandCanonical<T>` 提供 `[0,1)` 浮点采样；float／double 对满位宽引擎使用直通位提取，`RandReal(0,1)` 复用该路径
+- `RandTriangular(min, peak, max)` 按最小值、众数和最大值采样三角分布，支持显式引擎重载
 
 **编译期**
 
@@ -125,7 +126,7 @@ int main()
 }
 ```
 
-更多示例见 [examples/](examples/) 目录（引擎管理、编译期随机、多流并行、ChaCha20、按权重选取）。
+更多示例见 [examples/](examples/) 目录（引擎管理、编译期随机、多流并行、三角分布场景模拟、ChaCha20、按权重选取）。
 
 ## API 速查
 
@@ -137,7 +138,7 @@ int main()
 | | `RandBool(p)` | 概率 p 为 true |
 | | `RandChar(min, max)` / `RandChar(CharSet)` | 随机字符 / 预设字符集 |
 | | `RandBits<N>()` | N 位随机整数 |
-| 分布 | `RandNormal` `RandExp` `RandPoisson` `RandGamma` `RandBeta` `RandBinomial` `RandBernoulli` `RandLogNormal` `RandGeometric` `RandCauchy` `RandWeibull` `RandExtremeValue` `RandChiSquared` `RandStudentT` `RandFisherF` `RandWeighted` | 16 种标准统计分布 |
+| 分布 | `RandNormal` `RandExp` `RandPoisson` `RandGamma` `RandBeta` `RandBinomial` `RandBernoulli` `RandLogNormal` `RandGeometric` `RandCauchy` `RandWeibull` `RandExtremeValue` `RandChiSquared` `RandStudentT` `RandFisherF` `RandWeighted` `RandTriangular` | 17 种统计分布与权重选取 |
 | 容器 | `RandElement` / `RandSample` / `RandShuffle` / `RandPermutation` / `RandFill` / `RandVector` | 容器版 + 迭代器版 |
 | ranges | `ranges::RandElement` / `RandSample` / `RandShuffle` / `RandFill` | 仅 C++23 |
 | 字符串 | `RandString(len, charset)` / `RandUUID()` | 随机字符串 / UUID v4 |
@@ -149,6 +150,8 @@ int main()
 
 > CharSet 枚举：`Alphanumeric` / `Alpha` / `Lower` / `Upper` / `Digit` / `Hex` / `Printable` / `Base64` / `Base64UrlSafe`。
 > 普通运行时采样的默认重载使用线程局部 `Xoshiro256StarStar`，也提供显式引擎重载，例如 `RandInt(rng, min, max)`。安全接口直接使用 OS 熵；编译期随机使用模板种子。
+
+`RandTriangular(min, peak, max)` 将 `peak` 作为众数，要求三个有限参数满足 `min <= peak <= max`。非退化结果位于 `[min, max)`；三个参数相等时原样返回且不消耗引擎。完整参数边界、浮点条件及构建配置见 [API 参考](docs/API.md)。
 
 完整签名与参数说明见 [Doxygen API 参考](https://lidaixingchen.github.io/RandX/)。
 

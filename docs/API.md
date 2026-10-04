@@ -93,7 +93,7 @@ T 须为整数类型且不为 bool，N 还须不超过 `std::numeric_limits<T>::
 
 ---
 
-## 统计分布（16 种）
+## 统计分布（17 种）
 
 每个分布均有默认引擎版和指定引擎版（`Engine&` 重载）。
 
@@ -113,12 +113,31 @@ T 须为整数类型且不为 bool，N 还须不超过 `std::numeric_limits<T>::
 | `RandStudentT` | `T RandStudentT(T n)` | n=1 | 学生 t 分布 |
 | `RandFisherF` | `T RandFisherF(T m, T n)` | m=1, n=1 | Fisher F 分布 |
 | `RandBeta` | `T RandBeta(T a, T b)` | a=1, b=1 | Beta 分布（自实现） |
+| `RandTriangular` | `T RandTriangular(T min, T peak, T max)` | 无 | 以 peak 为众数的三角分布 |
 | `RandBernoulli` | `bool RandBernoulli(double p)` | p=0.5 | 伯努利（RandBool 别名） |
 | `RandWeighted` | `size_type RandWeighted(const WeightContainer& weights)` | 无 | 按权重选取索引 |
 
 浮点分布模板参数为 `std::floating_point T = double`，整数分布为 `std::integral T = int`。
 
 指定引擎重载模式：`T RandNormal(Engine& engine, T mean = T{0}, T stddev = T{1})`。
+
+### RandTriangular
+
+```cpp
+template <typename T>
+[[nodiscard]] T RandTriangular(T min, T peak, T max);
+
+template <typename Engine, typename T>
+[[nodiscard]] T RandTriangular(Engine& engine, T min, T peak, T max);
+```
+
+三个参数须为同一种 `float`、`double` 或 `long double` 类型。`peak` 是众数，可以等于任一端点。所有参数都须有限并满足 `min <= peak <= max`；参数无效，或非退化区间的宽度在 T 中溢出时，抛出 `std::invalid_argument`，且不调用引擎。默认重载先检查参数和退化条件，仅在有效非退化输入时获取线程局部默认引擎。
+
+有效的非退化输入返回有限的 `[min, max)` 值，正常采样调用一次 `RandCanonical<T>`。退化输入 `min == peak == max` 原样返回该值且不消耗引擎。浮点舍入可能使结果等于下界；相邻端点之间若没有其他可表示值，结果为下界。底层引擎输出次数遵循 `RandCanonical<T>` 的位宽规则：满位宽 64 位引擎生成 float 或 double 各调用一次，满位宽 32 位引擎生成 float 调用一次、double 调用两次；long double 依照其既有 canonical 精度规则。
+
+数值精度契约假定舍入到最近值并启用渐进下溢；使用 GCC／Clang 的标准浮点选项或 MSVC `/fp:precise`。`fast-math`、FTZ／DAZ 与其他舍入模式不在本次精度保证内，函数不会修改调用方的浮点控制状态。
+
+底层引擎异常直接传播；数值转换无法形成有限区间内结果时抛出 `std::runtime_error`。这些异常可能发生在本次均匀采样已消耗引擎输出之后。
 
 `RandGeometric` 生成首次成功前的失败次数，将结果分为块编号与块内整数余数：块编号采用稳定的逆变换，块内余数采用整数拒绝采样，以保留大整数的低位随机性。`p=1` 返回零且不消耗引擎输出；参数无效或过小时抛出 `std::invalid_argument`，抽样值超出返回类型范围时抛出 `std::overflow_error`。抽样超限时，引擎已消耗本次抽样所需的输出。
 

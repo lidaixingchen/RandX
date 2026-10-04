@@ -22,6 +22,8 @@
 #include "doctest.h"
 #include "fixtures.hpp"
 
+#include "triangular_statistical_contracts.hpp"
+
 TEST_SUITE("公共/基础/统计")
 {
     TEST_CASE("RandChar(CharSet::Hex) 均匀性 ±3σ")

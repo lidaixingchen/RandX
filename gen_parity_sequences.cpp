@@ -18,14 +18,91 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
+#include <cfloat>
 #include <list>
 #include <limits>
 #include <string>
+#include <type_traits>
 #include <vector>
 
 namespace
 {
 	constexpr std::uint64_t kSeed = 12345;
+	constexpr int kTriangularSampleCount = 8;
+	constexpr double kTriangularMinimum = -2.0;
+	constexpr double kTriangularSymmetricPeak = 1.5;
+	constexpr double kTriangularMaximum = 5.0;
+	constexpr double kTriangularLeftSkewedPeak = -1.25;
+	constexpr double kTriangularRightSkewedPeak = 4.25;
+	constexpr double kTriangularDegenerateValue = 7.0;
+
+	template <class T>
+	void DumpFloatingBits(const T value)
+	{
+		if constexpr (std::is_same_v<T, long double>)
+		{
+			std::printf("  %.*La\n", (LDBL_MANT_DIG + 3) / 4, value);
+		}
+		else if constexpr (sizeof(T) == sizeof(std::uint32_t))
+		{
+			std::uint32_t bits{};
+			std::memcpy(&bits, &value, sizeof(value));
+			std::printf("  %08" PRIx32 "\n", bits);
+		}
+		else
+		{
+			static_assert(sizeof(T) == sizeof(std::uint64_t), "parity observation supports float and double");
+			std::uint64_t bits{};
+			std::memcpy(&bits, &value, sizeof(value));
+			std::printf("  %016" PRIx64 "\n", bits);
+		}
+	}
+
+	template <class Engine, class T>
+	void DumpTriangularObservations(const char* engineName, const char* typeName)
+	{
+		struct Parameters
+		{
+			const char* name;
+			T minimum;
+			T peak;
+			T maximum;
+		};
+
+		const Parameters cases[] = {
+			{"symmetric", static_cast<T>(kTriangularMinimum), static_cast<T>(kTriangularSymmetricPeak), static_cast<T>(kTriangularMaximum)},
+			{"left_skewed", static_cast<T>(kTriangularMinimum), static_cast<T>(kTriangularLeftSkewedPeak), static_cast<T>(kTriangularMaximum)},
+			{"right_skewed", static_cast<T>(kTriangularMinimum), static_cast<T>(kTriangularRightSkewedPeak), static_cast<T>(kTriangularMaximum)},
+			{"minimum_endpoint", static_cast<T>(kTriangularMinimum), static_cast<T>(kTriangularMinimum), static_cast<T>(kTriangularMaximum)},
+			{"maximum_endpoint", static_cast<T>(kTriangularMinimum), static_cast<T>(kTriangularMaximum), static_cast<T>(kTriangularMaximum)},
+			{"degenerate", static_cast<T>(kTriangularDegenerateValue), static_cast<T>(kTriangularDegenerateValue), static_cast<T>(kTriangularDegenerateValue)}
+		};
+
+		for (const Parameters& parameters : cases)
+		{
+			Engine engine{kSeed};
+			std::printf("[api] RandTriangular<%s>(%s, %s)\n", typeName, engineName, parameters.name);
+			for (int sample = 0; sample < kTriangularSampleCount; ++sample)
+				DumpFloatingBits(RandX::RandTriangular(engine, parameters.minimum, parameters.peak, parameters.maximum));
+
+			const auto state = engine.serialize();
+			std::printf("  state:");
+			for (const auto word : state)
+				std::printf(" %llu", static_cast<unsigned long long>(word));
+			std::printf("\n");
+		}
+	}
+
+	void DumpTriangularObservations()
+	{
+		DumpTriangularObservations<RandX::Xoshiro128StarStar, float>("Xoshiro128StarStar", "float");
+		DumpTriangularObservations<RandX::Xoshiro128StarStar, double>("Xoshiro128StarStar", "double");
+		DumpTriangularObservations<RandX::Xoshiro256StarStar, float>("Xoshiro256StarStar", "float");
+		DumpTriangularObservations<RandX::Xoshiro256StarStar, double>("Xoshiro256StarStar", "double");
+		std::printf("[format] long double digits=%d max_exp=%d\n", LDBL_MANT_DIG, LDBL_MAX_EXP);
+		DumpTriangularObservations<RandX::Xoshiro128StarStar, long double>("Xoshiro128StarStar", "long double");
+		DumpTriangularObservations<RandX::Xoshiro256StarStar, long double>("Xoshiro256StarStar", "long double");
+	}
 
 	// 原始输出序列：固定种子，打印前 count 个输出
 	template <class Engine>
@@ -408,6 +485,11 @@ namespace
 
 int main(int argc, char** argv)
 {
+	if (argc == 2 && std::strcmp(argv[1], "--triangular-only") == 0)
+	{
+		DumpTriangularObservations();
+		return 0;
+	}
 	if (argc == 2 && std::strcmp(argv[1], "--sampling-only") == 0)
 	{
 		SamplingObservations::RunSamplingOnly();
@@ -415,7 +497,7 @@ int main(int argc, char** argv)
 	}
 	if (argc != 1)
 	{
-		std::fprintf(stderr, "usage: gen_parity_sequences [--sampling-only]\n");
+		std::fprintf(stderr, "usage: gen_parity_sequences [--sampling-only|--triangular-only]\n");
 		return 2;
 	}
 
@@ -445,6 +527,7 @@ int main(int argc, char** argv)
 	// 便捷 API（显式引擎 + 默认引擎两条路径）
 	DumpConvenienceApis();
 	DumpDefaultEngineApis();
+	DumpTriangularObservations();
 	SamplingObservations::RunDefaultCases();
 	return 0;
 }

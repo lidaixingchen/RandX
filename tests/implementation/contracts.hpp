@@ -17,10 +17,13 @@
 #include <stdexcept>
 #include <string>
 #include <type_traits>
+#include <tuple>
 #include <utility>
 #include <vector>
 #include "doctest.h"
 #include "../common/fixtures.hpp"
+
+#include "triangular_contracts.hpp"
 
 TEST_SUITE("内部/分布辅助计算")
 {

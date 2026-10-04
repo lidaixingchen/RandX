@@ -456,6 +456,33 @@
 	[[nodiscard]] inline constexpr T RandCanonical(Engine& engine)
 // @randx-include ../common/distributions/rand_canonical_engine_body.inc
 
+	namespace detail
+	{
+		// @randx-include ../common/distributions/triangular_kernel.inc
+	}
+
+	/// @brief 生成三角分布随机数
+	/// @param min 下界（含）
+	/// @param peak 众数
+	/// @param max 上界（不含）
+	/// @return 服从以 peak 为众数的 [min, max) 三角分布随机数
+	template <class T = double, std::enable_if_t<std::is_floating_point_v<T>>* = nullptr>
+	[[nodiscard]]
+	inline T RandTriangular(T min, T peak, T max)
+// @randx-include ../common/distributions/rand_triangular_default_body.inc
+
+	/// @brief 生成三角分布随机数（指定引擎重载）
+	/// @param engine 自定义随机数引擎
+	/// @param min 下界（含）
+	/// @param peak 众数
+	/// @param max 上界（不含）
+	/// @return 服从以 peak 为众数的 [min, max) 三角分布随机数
+	template <class Engine, class T = double,
+		std::enable_if_t<detail::is_random_engine_v<Engine> && std::is_floating_point_v<T>>* = nullptr>
+	[[nodiscard]]
+	inline T RandTriangular(Engine& engine, T min, T peak, T max)
+// @randx-include ../common/distributions/rand_triangular_body.inc
+
 	/// @brief 生成 [min, max) 范围内的随机浮点数（指定引擎重载）
 	/// @param engine 自定义随机数引擎
 	/// @param min 下界（含，默认 0）

@@ -22,6 +22,8 @@
 #include "doctest.h"
 #include "fixtures.hpp"
 
+#include "triangular_distribution_contracts.hpp"
+
 TEST_SUITE("公共/基础/分布")
 {
     TEST_CASE("RandBernoulli 与 RandBool 引擎重载等价")
