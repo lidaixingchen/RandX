@@ -54,6 +54,31 @@ class RangeTests(unittest.TestCase):
             {"kind": "clang", "target": "x86_64-w64-mingw32"}, "").status, audit.Status.UNDETERMINED)
         self.assertEqual(audit.audit_disassembly("unsupported format").status, audit.Status.UNDETERMINED)
 
+    def test_registered_mingw_gcc_versions_are_explicit(self):
+        info: dict[str, object] = {
+            "kind": "gcc",
+            "target": "x86_64-w64-mingw32",
+            "version": "",
+        }
+        passed: audit.CaseResult = audit.CaseResult(audit.Status.PASS, [], {})
+        for version in ("16.1.0", "16.2.0"):
+            with self.subTest(version=version), patch.object(
+                audit, "audit_disassembly", return_value=passed
+            ) as recognize:
+                info["version"] = f"g++.exe (Rev4, Built by MSYS2 project) {version}"
+                result: audit.CaseResult = audit._audit_registered_configuration(
+                    info, "machine code", "unwind data", False, "DWARF data"
+                )
+                self.assertIs(result, passed)
+                recognize.assert_called_once_with("machine code", "unwind data", False, "DWARF data")
+
+        for version in ("16.2.1", "16.3.0", "17.1.0"):
+            with self.subTest(version=version), patch.object(audit, "audit_disassembly") as recognize:
+                info["version"] = f"g++.exe (Rev4, Built by MSYS2 project) {version}"
+                result: audit.CaseResult = audit._audit_registered_configuration(info, "machine code")
+                self.assertEqual(result.status, audit.Status.UNDETERMINED)
+                recognize.assert_not_called()
+
     def test_unrolled_loop_requires_every_byte_in_the_stride(self):
         code = function_code([("lea", "0x20(%rsp),%rax"), ("lea", "0x60(%rsp),%rdx"),
             ("movb", "$0x0,(%rax)"), ("add", "$0x2,%rax"),
@@ -192,6 +217,32 @@ class MutationTests(unittest.TestCase):
             result = audit.main(["--standard", "cpp23", "--optimization", "release", "--backend", "native",
                 "--output-dir", directory, "--verify-mutations"])
         self.assertEqual(result, audit.EXIT_FAIL)
+
+    def test_console_encoding_failure_keeps_report_and_exit_status(self):
+        class Cp1252Stream(io.StringIO):
+            def write(self, text: str) -> int:
+                text.encode("cp1252")
+                return super().write(text)
+
+        result: audit.CaseResult = audit.CaseResult(
+            audit.Status.UNDETERMINED,
+            ["GCC/MinGW 版本不在已验证规则集中"],
+            {"audit_completed": False},
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            console: Cp1252Stream = Cp1252Stream()
+            with redirect_stdout(console), patch.object(audit, "_find_tool", return_value=Path("compiler")), patch.object(
+                audit, "run_case", return_value=result
+            ):
+                exit_code: int = audit.main([
+                    "--standard", "cpp23", "--optimization", "release", "--backend", "native",
+                    "--output-dir", directory,
+                ])
+
+            report: str = (Path(directory) / "report.json").read_text(encoding="utf-8")
+            self.assertEqual(exit_code, audit.EXIT_UNDETERMINED)
+            self.assertIn("GCC/MinGW 版本不在已验证规则集中", report)
+            self.assertIn(r"\u", console.getvalue())
 
 
 if __name__ == "__main__":

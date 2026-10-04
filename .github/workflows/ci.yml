@@ -992,8 +992,10 @@ jobs:
         shell: msys2 {0}
         env:
           AUDIT_PYTHON: ${{ steps.audit-python.outputs.python-path }}
+          PYTHONUTF8: "1"
+          PYTHONIOENCODING: "utf-8"
         run: |
-          "$(cygpath -u "$AUDIT_PYTHON")" tools/check_secure_wipe_codegen.py \
+          "$(cygpath -u "$AUDIT_PYTHON")" -X utf8 tools/check_secure_wipe_codegen.py \
             --compiler "$(cygpath -w "$(command -v g++)")" \
             --disassembler "$(cygpath -w "$(command -v objdump)")" \
             --standard both --optimization both --backend both --verify-mutations \

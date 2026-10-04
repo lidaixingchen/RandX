@@ -20,6 +20,7 @@ from collections.abc import Iterable, Sequence
 EXIT_PASS = 0
 EXIT_FAIL = 1
 EXIT_UNDETERMINED = 2
+SUPPORTED_MINGW_GCC_VERSIONS: tuple[str, ...] = ("16.1.0", "16.2.0")
 CHACHA_STATE_BYTES = 12 * 4
 CHACHA_BLOCK_BYTES = 16 * 4
 CHACHA_SEED_BYTES = 32 + 12
@@ -1347,7 +1348,11 @@ def _audit_registered_configuration(info: dict[str, object], disassembly: str, u
     version = str(info.get("version", ""))
     if kind != "gcc" or not target.startswith("x86_64-w64-mingw32"):
         return CaseResult(Status.UNDETERMINED, ["当前没有为该编译器/ABI登记并完成变异确认的机器码规则"], {})
-    if not re.search(r"\b16\.1\.0\b", version):
+    supported_version = any(
+        re.search(rf"(?<![\w.-]){re.escape(candidate)}(?![\w.-])", version)
+        for candidate in SUPPORTED_MINGW_GCC_VERSIONS
+    )
+    if not supported_version:
         return CaseResult(Status.UNDETERMINED, ["GCC/MinGW 版本不在已验证规则集中"], {"compiler": info})
     return audit_disassembly(disassembly, unwind_text, triangular, debug_text)
 
@@ -1455,10 +1460,17 @@ def mutation_detected(result: CaseResult, mutation: str) -> bool:
         for name in MUTATION_FAILURE_CHECKS[mutation])
 
 
+def _print_line(text: str) -> None:
+    try:
+        print(text)
+    except UnicodeEncodeError:
+        print(text.encode("ascii", errors="backslashreplace").decode("ascii"))
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     args = _parse_args(argv or sys.argv[1:])
     if args.list_mutations:
-        print("\n".join(MUTATION_NAMES))
+        _print_line("\n".join(MUTATION_NAMES))
         return EXIT_PASS
 
     root = pathlib.Path(__file__).resolve().parent.parent
@@ -1510,9 +1522,6 @@ def main(argv: Sequence[str] | None = None) -> int:
     overall = Status.PASS
     report_cases: list[dict[str, object]] = []
     for label, mutation, result in results:
-        print(f"{result.status.value.upper():14} {label:32} mutation={mutation or 'none'}")
-        for reason in result.reasons:
-            print(f"  {reason}")
         report_cases.append({"case": label, "mutation": mutation or "none", "status": result.status.value, "reasons": result.reasons, "evidence": result.evidence})
         if result.status is Status.FAIL:
             overall = Status.FAIL
@@ -1523,7 +1532,13 @@ def main(argv: Sequence[str] | None = None) -> int:
         json.dumps({"status": overall.value, "cases": report_cases}, ensure_ascii=False, indent=2),
         encoding="utf-8",
     )
-    print(f"Overall: {overall.value.upper()} | evidence: {output_dir / 'report.json'}")
+    for case in report_cases:
+        _print_line(
+            f"{str(case['status']).upper():14} {case['case']:32} mutation={case['mutation']}"
+        )
+        for reason in case["reasons"]:
+            _print_line(f"  {reason}")
+    _print_line(f"Overall: {overall.value.upper()} | evidence: {output_dir / 'report.json'}")
     return {Status.PASS: EXIT_PASS, Status.FAIL: EXIT_FAIL, Status.UNDETERMINED: EXIT_UNDETERMINED}[overall]
 
 
