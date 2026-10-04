@@ -8,7 +8,8 @@
 
 	namespace detail
 	{
-		// 安全擦除内存（volatile 防止编译器死存储消除）
+		// 安全擦除后端及兼容实现
+// @randx-include ../common/security/secure_wipe_portable.inc
 // @randx-include ../common/security/secure_wipe_definition.inc
 
 		// RAII 敏感内存擦除守卫（覆盖异常展开路径）

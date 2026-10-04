@@ -253,6 +253,33 @@ TEST_SUITE("内部/熵源")
         CHECK(AllBytesEqual(exceptionalBytes, kZeroEntropyByte));
     }
 
+    TEST_CASE("SecureWipe 与兼容擦除只清零指定范围")
+    {
+        using WipeFunction = void (*)(void*, std::size_t) noexcept;
+        const auto checkRange = [](WipeFunction wipe)
+        {
+            constexpr std::size_t kBufferSize = 17;
+            constexpr std::size_t kWipeOffset = 3;
+            constexpr std::size_t kWipeLength = 9;
+            constexpr std::size_t kZeroLength = 0;
+            constexpr std::uint8_t kZeroByte = 0;
+            constexpr std::uint8_t kSentinelByte = 0xA5;
+            std::array<std::uint8_t, kBufferSize> bytes{};
+            bytes.fill(kSentinelByte);
+            wipe(nullptr, kZeroLength);
+            wipe(bytes.data() + kWipeOffset, kWipeLength);
+
+            for (std::size_t index = 0; index < bytes.size(); ++index)
+            {
+                const bool isWiped = index >= kWipeOffset && index < kWipeOffset + kWipeLength;
+                CHECK(bytes[index] == (isWiped ? kZeroByte : kSentinelByte));
+            }
+        };
+
+        checkRange(&RandX::detail::SecureWipe);
+        checkRange(&RandX::detail::SecureWipePortable);
+    }
+
     TEST_CASE("RandomSeedWithSources 按优先级短路并在随机设备异常后回退")
     {
         using namespace RandXTest::EntropyFixtures;

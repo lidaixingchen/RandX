@@ -97,9 +97,13 @@
 # include <ios>       // std::ios_base::failbit（operator>> 所需）
 # include <istream>   // std::basic_istream（operator>> 所需完整类型）
 # include <ostream>   // std::basic_ostream（operator<< 所需完整类型）
+# include <stdint.h>
+# include <string.h>
+# if defined(_MSC_VER)
+#	include <intrin.h>
+# endif
 # if defined(_MSC_VER) && (defined(__x86_64__) || defined(_M_X64))
 #	include <immintrin.h>
-#	include <intrin.h>
 # endif
 // ── A3 跨平台 OS 熵源头文件（条件包含） ──
 # if defined(_WIN32) && __has_include(<bcrypt.h>)
@@ -119,6 +123,7 @@
 #		undef max
 #	endif
 #	include <bcrypt.h>
+#	define RANDX_DETAIL_WINDOWS_SDK_HEADERS_AVAILABLE 1
 #	if defined(_MSC_VER)
 #		pragma comment(lib, "bcrypt.lib")  // 仅 MSVC 生效
 #	endif
