@@ -2252,26 +2252,17 @@ namespace RandX
 		return dist(engine);
 	}
 
-	namespace detail
-	{
-		template <class Container, class Engine>
-		inline void ShuffleContainer(Container& c, Engine& engine)
-		{
-			std::ranges::shuffle(c, engine);
-		}
-	}
-
 	/// @brief 随机打乱容器
 	/// @param c 待打乱的容器
-	// 公开入口在调用点展开，以便编译器保留循环中的引擎状态。
 	template <std::ranges::random_access_range Container>
 		requires std::permutable<std::ranges::iterator_t<Container>>
 #if defined(__GNUC__) || defined(__clang__)
-	__attribute__((always_inline, flatten))
+	// 在洗牌函数内展开标准库循环，使引擎状态对编译器可见。
+	__attribute__((flatten))
 #endif
 	inline void RandShuffle(Container&& c)
 	{
-		detail::ShuffleContainer(c, DefaultEngine());
+		std::ranges::shuffle(c, DefaultEngine());
 	}
 
 	/// @brief 用 [min, max] 范围的随机整数填充迭代器区间

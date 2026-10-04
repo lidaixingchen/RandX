@@ -290,27 +290,18 @@
 	inline T RandNormal(Engine& engine, T mean = T{0}, T stddev = T{1})
 // @randx-include ../common/distributions/rand_normal_02_body.inc
 
-	namespace detail
-	{
-		template <class It, class Engine>
-		inline void ShuffleRange(It first, It last, Engine& engine)
-		{
-			std::shuffle(first, last, engine);
-		}
-	}
-
 	/// @brief 随机打乱容器
 	/// @param c 待打乱的容器
-	// 公开入口在调用点展开，以便编译器保留循环中的引擎状态。
 	template <class Container,
 		std::enable_if_t<detail::is_random_access_container_v<Container>
 			&& !std::is_const_v<std::remove_reference_t<Container>>>* = nullptr>
 #if defined(__GNUC__) || defined(__clang__)
-	__attribute__((always_inline, flatten))
+	// 在洗牌函数内展开标准库循环，使引擎状态对编译器可见。
+	__attribute__((flatten))
 #endif
 	inline void RandShuffle(Container&& c)
 	{
-		detail::ShuffleRange(c.begin(), c.end(), DefaultEngine());
+		std::shuffle(c.begin(), c.end(), DefaultEngine());
 	}
 
 	/// @brief 用 [min, max] 范围的随机整数填充迭代器区间
