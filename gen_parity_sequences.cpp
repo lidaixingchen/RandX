@@ -28,6 +28,7 @@
 namespace
 {
 	constexpr std::uint64_t kSeed = 12345;
+#ifndef RANDX_PARITY_HISTORICAL_API_SET
 	constexpr int kTriangularSampleCount = 8;
 	constexpr double kTriangularMinimum = -2.0;
 	constexpr double kTriangularSymmetricPeak = 1.5;
@@ -103,6 +104,7 @@ namespace
 		DumpTriangularObservations<RandX::Xoshiro128StarStar, long double>("Xoshiro128StarStar", "long double");
 		DumpTriangularObservations<RandX::Xoshiro256StarStar, long double>("Xoshiro256StarStar", "long double");
 	}
+#endif
 
 	// 原始输出序列：固定种子，打印前 count 个输出
 	template <class Engine>
@@ -485,11 +487,13 @@ namespace
 
 int main(int argc, char** argv)
 {
+#ifndef RANDX_PARITY_HISTORICAL_API_SET
 	if (argc == 2 && std::strcmp(argv[1], "--triangular-only") == 0)
 	{
 		DumpTriangularObservations();
 		return 0;
 	}
+#endif
 	if (argc == 2 && std::strcmp(argv[1], "--sampling-only") == 0)
 	{
 		SamplingObservations::RunSamplingOnly();
@@ -497,7 +501,11 @@ int main(int argc, char** argv)
 	}
 	if (argc != 1)
 	{
+#ifdef RANDX_PARITY_HISTORICAL_API_SET
+		std::fprintf(stderr, "usage: gen_parity_sequences --sampling-only\n");
+#else
 		std::fprintf(stderr, "usage: gen_parity_sequences [--sampling-only|--triangular-only]\n");
+#endif
 		return 2;
 	}
 
@@ -527,7 +535,9 @@ int main(int argc, char** argv)
 	// 便捷 API（显式引擎 + 默认引擎两条路径）
 	DumpConvenienceApis();
 	DumpDefaultEngineApis();
+#ifndef RANDX_PARITY_HISTORICAL_API_SET
 	DumpTriangularObservations();
+#endif
 	SamplingObservations::RunDefaultCases();
 	return 0;
 }

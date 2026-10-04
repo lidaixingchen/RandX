@@ -259,6 +259,21 @@ class CompilerCommandTests(unittest.TestCase):
         self.assertIn("/DNDEBUG", command)
         self.assertFalse(any("RANDX_PARITY_CPP17" in argument for argument in command))
 
+    def test_msvc_selects_the_historical_api_set(self) -> None:
+        command: list[str] = build_command(
+            compiler=Path("C:/VS/VC/Tools/MSVC/cl.exe"),
+            compiler_family="msvc",
+            standard="c++23",
+            build_mode="debug",
+            source=Path("C:/work/public_source/gen_parity_sequences.cpp"),
+            header_directory=Path("C:/work/baseline_headers"),
+            shared_source_directory=Path("C:/work/public_source"),
+            executable=Path("C:/work/baseline_build/sampling.exe"),
+            historical_api_set=True,
+        )
+
+        self.assertIn("/DRANDX_PARITY_HISTORICAL_API_SET", command)
+
     def test_clang_links_security_framework_on_macos(self) -> None:
         command: list[str] = build_command(
             compiler=Path("/usr/bin/clang++"),
@@ -398,6 +413,8 @@ class CompareCommandTests(unittest.TestCase):
         candidate_command: list[str] = metadata["builds"]["candidate"]["command"]
         self.assertIn(str(baseline_headers.resolve()), baseline_command)
         self.assertIn(str(candidate_headers.resolve()), candidate_command)
+        self.assertIn("-DRANDX_PARITY_HISTORICAL_API_SET", baseline_command)
+        self.assertNotIn("-DRANDX_PARITY_HISTORICAL_API_SET", candidate_command)
 
     def test_difference_and_child_process_failure_use_distinct_status(self) -> None:
         difference_runner: Any = self._run_command_factory(

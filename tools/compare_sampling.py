@@ -134,6 +134,7 @@ def build_command(
     shared_source_directory: Path,
     executable: Path,
     platform_name: str | None = None,
+    historical_api_set: bool = False,
 ) -> list[str]:
     family: str = compiler_family.lower()
     system_name: str = platform_name or platform.system()
@@ -158,6 +159,8 @@ def build_command(
         ]
         if compatibility_define:
             command.append("/DRANDX_PARITY_CPP17")
+        if historical_api_set:
+            command.append("/DRANDX_PARITY_HISTORICAL_API_SET")
         command.extend(f"/I{directory}" for directory in include_directories)
         command.extend((f"/Fe:{executable}", str(source)))
         return command
@@ -178,6 +181,8 @@ def build_command(
     ]
     if compatibility_define:
         command.append("-DRANDX_PARITY_CPP17")
+    if historical_api_set:
+        command.append("-DRANDX_PARITY_HISTORICAL_API_SET")
     for directory in include_directories:
         command.extend(("-I", str(directory)))
     command.extend(("-o", str(executable), str(source)))
@@ -549,6 +554,7 @@ def _build_variant(
         header_directory=header_directory,
         shared_source_directory=source_path.parent,
         executable=executable_path,
+        historical_api_set=variant == "baseline",
     )
     build_started: float = time.perf_counter()
     result: subprocess.CompletedProcess[bytes] = run_command(command, build_directory)
