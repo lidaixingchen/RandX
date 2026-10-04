@@ -536,7 +536,7 @@ if(RANDX_BUILD_BENCHMARK)
 endif()
 
 if(RANDX_BUILD_EXAMPLES)
-    # examples/ 全部示例 + PractRand 序列生成器（均基于 RandX.hpp，需 C++23）
+    # C++23 示例与 PractRand 序列生成器使用 RandX.hpp。
     set(RANDX_EXAMPLE_SOURCES
         examples/chacha20_csprng.cpp
         examples/compile_time.cpp
@@ -551,6 +551,23 @@ if(RANDX_BUILD_EXAMPLES)
         add_executable(example_${example_name} ${example_source})
         target_compile_features(example_${example_name} PRIVATE cxx_std_23)
         target_link_libraries(example_${example_name} PRIVATE RandX)
+    endforeach()
+
+    # 分布复用示例使用同一来源分别编译两份发布头文件。
+    foreach(distribution_standard IN ITEMS 17 23)
+        set(distribution_target example_distribution_generation_cpp${distribution_standard})
+        add_executable(${distribution_target} examples/distribution_generation.cpp)
+        target_compile_features(${distribution_target} PRIVATE cxx_std_${distribution_standard})
+        target_link_libraries(${distribution_target} PRIVATE RandX_Cpp${distribution_standard})
+        if(distribution_standard EQUAL 17)
+            target_compile_definitions(${distribution_target} PRIVATE RANDX_DISTRIBUTION_EXAMPLE_CPP17)
+        endif()
+        if(MSVC)
+            target_compile_options(${distribution_target} PRIVATE /utf-8)
+            if(distribution_standard EQUAL 23)
+                target_compile_options(${distribution_target} PRIVATE /std:c++23preview)
+            endif()
+        endif()
     endforeach()
 
     # 下游消费者工程构建验证（基于 find_package(RandX CONFIG)）

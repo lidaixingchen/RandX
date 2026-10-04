@@ -145,6 +145,38 @@ template <typename Engine, typename T>
 
 ---
 
+## 分布复用与标准库批量生成
+
+同一组参数用于重复采样时，可由调用方持有标准库分布对象并直接调用 `dist(engine)`。使用 `std::generate_n` 时，通过引用捕获保留原分布和引擎的身份；生成器自身按值传递不会复制被引用的分布。
+
+```cpp
+constexpr std::uint64_t SimulationSeed = 20261004;
+constexpr double SampleMean = 0.0;
+constexpr double SampleStddev = 1.0;
+constexpr std::size_t SampleCount = 32;
+
+RandX::Xoshiro256StarStar engine{SimulationSeed};
+std::normal_distribution<double> normal{SampleMean, SampleStddev};
+std::vector<double> samples;
+samples.reserve(SampleCount);
+std::generate_n(std::back_inserter(samples), SampleCount,
+                [&normal, &engine]() { return normal(engine); });
+```
+
+此片段需要 `<algorithm>`、`<cstddef>`、`<cstdint>`、`<iterator>`、`<random>`、`<vector>` 和对应版本的 RandX 头文件。完整双版本来源见[分布复用示例](../examples/distribution_generation.cpp)。
+
+- 标准分布的构造和参数有效性由调用方负责。例如 `std::normal_distribution` 要求标准差为正；直接调用标准分布遵循标准库前置条件。RandX 具名分布函数的参数检查及异常规则见各自接口。
+- 缓存属于分布对象。重播种引擎后，要从起点重现序列还须重置或重建分布；要从中途恢复序列，须恢复当时的引擎和分布状态。
+- 单次采样所需的引擎输出次数由分布决定，分布缓存可以使某次采样不读取引擎。标准分布算法由标准库实现决定，跨工具链的样本序列可能不同。
+- `std::generate_n` 成功完成时，执行请求数量的生成和赋值，返回推进后的输出位置。有限范围须有足够的可写元素；`std::back_inserter` 用于追加，`std::inserter` 遵循容器插入规则，set 合并重复样本后元素数量可以小于生成数量。
+- 生成器、输出操作或迭代器操作抛出异常时，异常向调用方传播，已经发生的对象状态变化按参与类型自身的保证保留；算法异常路径没有返回的输出位置。事务性输出由调用方管理。
+- 将 `DefaultEngine()` 放在生成器内部，零数量调用不会执行生成器。要在批次内复用一次取得的默认引擎引用，应先确认数量为正，再获取引用并按引用捕获。
+- 线程中的分布、引擎和输出目标须具有合适的生命周期；共享分布或输出容器的并发访问由调用方同步。
+
+`RandBeta`、`RandTriangular` 等具名函数可在生成器中直接调用，保留相应函数的参数校验和数值契约。
+
+---
+
 ## 容器操作
 
 ### RandElement

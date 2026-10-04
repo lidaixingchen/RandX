@@ -1039,8 +1039,7 @@ jobs:
             seq_cpp23.txt
             seq_cpp17.txt
 
-  # 示例编译冒烟检查：以 -DRANDX_BUILD_EXAMPLES=ON 构建 examples/ 全部示例
-  # 与 gen_sequences.cpp，仅验证可编译，不运行
+  # 示例构建覆盖 examples/ 和 gen_sequences.cpp，并运行双版本分布复用示例。
   examples:
     needs: [header-generation-ubuntu, header-generation-windows]
     runs-on: ubuntu-24.04
@@ -1055,6 +1054,10 @@ jobs:
             -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_CXX_COMPILER=g++-14
           cmake --build build
+      - name: Run distribution generation examples
+        run: |
+          build/example_distribution_generation_cpp17
+          build/example_distribution_generation_cpp23
 
   coverage:
     needs: [header-generation-ubuntu, header-generation-windows]
