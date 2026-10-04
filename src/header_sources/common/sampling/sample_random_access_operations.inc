@@ -46,15 +46,6 @@
 		{
 			// 索引数组分支：O(N) 内存，O(N) 时间，无碰撞
 			const std::size_t sz = static_cast<std::size_t>(size);
-			// 整数差值在公开适配中限定请求数量，循环中的分布上下界始终有序。
-			if constexpr (std::is_integral_v<Diff>)
-			{
-#if defined(_MSC_VER)
-				__assume(count <= sz);
-#elif defined(__GNUC__) || defined(__clang__)
-				if (count > sz) __builtin_unreachable();
-#endif
-			}
 			std::vector<std::size_t> indices(sz);
 			for (std::size_t i = 0; i < sz; ++i)
 				indices[i] = i;
