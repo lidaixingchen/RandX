@@ -2254,11 +2254,7 @@ namespace RandX
 
 	namespace detail
 	{
-		// 洗牌在调用点展开，以便编译器保留循环中的引擎状态。
 		template <class Container, class Engine>
-#if defined(__GNUC__) || defined(__clang__)
-		__attribute__((always_inline, flatten))
-#endif
 		inline void ShuffleContainer(Container& c, Engine& engine)
 		{
 			std::ranges::shuffle(c, engine);
@@ -2267,6 +2263,7 @@ namespace RandX
 
 	/// @brief 随机打乱容器
 	/// @param c 待打乱的容器
+	// 公开入口在调用点展开，以便编译器保留循环中的引擎状态。
 	template <std::ranges::random_access_range Container>
 		requires std::permutable<std::ranges::iterator_t<Container>>
 #if defined(__GNUC__) || defined(__clang__)

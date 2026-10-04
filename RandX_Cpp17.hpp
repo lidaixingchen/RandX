@@ -2423,11 +2423,7 @@ namespace RandX
 
 	namespace detail
 	{
-		// 洗牌在调用点展开，以便编译器保留循环中的引擎状态。
 		template <class It, class Engine>
-#if defined(__GNUC__) || defined(__clang__)
-		__attribute__((always_inline, flatten))
-#endif
 		inline void ShuffleRange(It first, It last, Engine& engine)
 		{
 			std::shuffle(first, last, engine);
@@ -2436,6 +2432,7 @@ namespace RandX
 
 	/// @brief 随机打乱容器
 	/// @param c 待打乱的容器
+	// 公开入口在调用点展开，以便编译器保留循环中的引擎状态。
 	template <class Container,
 		std::enable_if_t<detail::is_random_access_container_v<Container>
 			&& !std::is_const_v<std::remove_reference_t<Container>>>* = nullptr>
