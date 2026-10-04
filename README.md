@@ -169,6 +169,8 @@ int main()
 
 ChaCha20 默认构造启用自动重播种，阈值为输出 2^20 字节；显式种子和直接 key／nonce 构造关闭自动重播种。`reseed()` 从 OS 熵更新密钥和 nonce，保持实例原有的自动重播种设置。默认 `RandString()`、`RandUUID()` 使用普通 PRNG，安全场景传入可信初始化的 ChaCha20。
 
+ChaCha20 生命周期中的敏感材料擦除由头文件后端处理。CMake 的 `RANDX_USE_PORTABLE_SECURE_WIPE` 与 `RANDX_USE_APPLE_MEMSET_S` 默认为 `OFF`；启用后选项定义随对应 RandX INTERFACE 目标传播。一个程序内所有包含 RandX 的翻译单元必须使用相同设置；Apple 的 `memset_s` 选项还统一定义 `__STDC_WANT_LIB_EXT1__=1`。直接包含头文件时应在整个程序的构建配置中一致设置这些宏，详细说明见 [API 参考](docs/API.md)。
+
 ## 安装与集成
 
 ### CMake FetchContent

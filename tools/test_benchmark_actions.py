@@ -393,7 +393,7 @@ class WorkflowContractTests(unittest.TestCase):
             self.assertEqual(benchmark_workflow.count(f"      - '{path}'"), 2)
         self.assertEqual(ci_workflow.count("      - 'tools/**'"), 2)
 
-    def test_workflow_has_seven_jobs_and_ci_runs_issue_tests(self) -> None:
+    def test_workflow_registers_gate_and_observation_jobs_and_ci_runs_issue_tests(self) -> None:
         root: Path = Path(__file__).resolve().parents[1]
         benchmark_workflow: str = (root / ".github" / "workflows" / "benchmark.yml").read_text(encoding="utf-8")
         ci_workflow: str = (root / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
@@ -403,6 +403,7 @@ class WorkflowContractTests(unittest.TestCase):
         self.assertEqual(
             job_ids,
             [
+                "measure_triangular",
                 "benchmark_plan",
                 "measure_general",
                 "measure_default_cpp17",

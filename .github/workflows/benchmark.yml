@@ -32,6 +32,8 @@ on:
       - 'tools/test_run_benchmark_group.py'
       - 'tools/run_integer_benchmark_pair.py'
       - 'tools/test_run_integer_benchmark_pair.py'
+      - 'tools/check_triangular_benchmark.py'
+      - 'tools/test_check_triangular_benchmark.py'
       - '.github/workflows/benchmark.yml'
   pull_request:
     branches: [master]
@@ -64,6 +66,8 @@ on:
       - 'tools/test_run_benchmark_group.py'
       - 'tools/run_integer_benchmark_pair.py'
       - 'tools/test_run_integer_benchmark_pair.py'
+      - 'tools/check_triangular_benchmark.py'
+      - 'tools/test_check_triangular_benchmark.py'
       - '.github/workflows/benchmark.yml'
   workflow_dispatch:
     inputs:
@@ -83,6 +87,56 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  measure_triangular:
+    name: Observe triangular distribution performance
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Read observation protocol
+        id: protocol
+        run: |
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          protocol = json.loads(Path('tools/benchmark_policy.json').read_text())['groups']['general']
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
+              print(f"min_time={protocol['min_time']}", file=output)
+              print(f"repetitions={protocol['repetitions']}", file=output)
+          PY
+      - name: Configure triangular observation targets
+        run: |
+          cmake -S . -B build/triangular -DRANDX_BUILD_BENCHMARK=ON \
+            -DRANDX_BUILD_TESTS=OFF -DRANDX_BUILD_EXAMPLES=OFF \
+            -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=g++-14 \
+            -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+          g++-14 --version > build/triangular/compiler.txt
+          lscpu > build/triangular/cpu.txt
+      - name: Build triangular observation targets
+        run: cmake --build build/triangular --target benchmark_gbench_triangular_cpp17 benchmark_gbench_triangular_cpp23 --parallel 1
+      - name: Measure triangular observations
+        run: |
+          for standard in cpp17 cpp23; do
+            build/triangular/benchmark_gbench_triangular_${standard} \
+              --benchmark_min_time='${{ steps.protocol.outputs.min_time }}' \
+              --benchmark_repetitions='${{ steps.protocol.outputs.repetitions }}' \
+              --benchmark_out="build/triangular/${standard}.json" --benchmark_out_format=json
+              python tools/check_triangular_benchmark.py "build/triangular/${standard}.json" \
+                --repetitions='${{ steps.protocol.outputs.repetitions }}'
+          done
+      - name: Upload triangular observations and compiler diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: triangular-performance-observations
+          path: |
+            build/triangular/*.json
+            build/triangular/*.txt
+            build/triangular/compile_commands.json
+
   benchmark_plan:
     name: Plan benchmark run
     runs-on: ubuntu-24.04

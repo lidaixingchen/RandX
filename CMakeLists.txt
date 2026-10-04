@@ -84,7 +84,21 @@ option(RANDX_BUILD_BENCHMARK "Build benchmark" OFF)
 option(RANDX_BUILD_EXAMPLES "Build examples" OFF)
 option(RANDX_ENABLE_COVERAGE "Enable code coverage (GCC/Clang)" OFF)
 option(RANDX_ENABLE_HEADER_TOOLS "启用头文件生成维护目标" OFF)
+option(RANDX_USE_PORTABLE_SECURE_WIPE "Use the portable secure wipe backend" OFF)
+option(RANDX_USE_APPLE_MEMSET_S "Use the Apple memset_s secure wipe backend" OFF)
 set(RANDX_SAMPLING_HEADER_DIR "" CACHE PATH "Optional header directory used by benchmark targets")
+
+foreach(randx_target IN ITEMS RandX RandX_Cpp17 RandX_Cpp23)
+    if(RANDX_USE_PORTABLE_SECURE_WIPE)
+        target_compile_definitions(${randx_target} INTERFACE RANDX_USE_PORTABLE_SECURE_WIPE=1)
+    endif()
+    if(APPLE AND RANDX_USE_APPLE_MEMSET_S)
+        target_compile_definitions(${randx_target} INTERFACE
+            RANDX_USE_APPLE_MEMSET_S=1
+            __STDC_WANT_LIB_EXT1__=1
+        )
+    endif()
+endforeach()
 
 if(RANDX_ENABLE_HEADER_TOOLS)
     find_package(Python3 3.12 REQUIRED COMPONENTS Interpreter)
@@ -135,6 +149,108 @@ if(RANDX_BUILD_TESTS)
     add_test(NAME test_randx_cpp17 COMMAND test_randx_cpp17)
 
     find_package(Threads REQUIRED)
+
+    foreach(triangular_standard IN ITEMS 17 23)
+        set(triangular_target test_triangular_cpp${triangular_standard})
+        add_executable(${triangular_target} tests/triangular/test_triangular.cpp)
+        set_target_properties(${triangular_target} PROPERTIES
+            CXX_STANDARD ${triangular_standard} CXX_STANDARD_REQUIRED ON CXX_EXTENSIONS OFF)
+        target_include_directories(${triangular_target} PRIVATE ${DOCTEST_INCLUDE_DIR})
+        target_link_libraries(${triangular_target} PRIVATE RandX_Cpp${triangular_standard})
+        if(triangular_standard EQUAL 17)
+            target_compile_definitions(${triangular_target} PRIVATE RANDX_TRIANGULAR_CPP17=1)
+        endif()
+        if(MSVC)
+            target_compile_options(${triangular_target} PRIVATE /utf-8 /fp:precise)
+        endif()
+        add_test(NAME ${triangular_target} COMMAND ${triangular_target})
+        set(triangular_parity_target gen_triangular_cpp${triangular_standard})
+        add_executable(${triangular_parity_target} gen_parity_sequences.cpp)
+        set_target_properties(${triangular_parity_target} PROPERTIES
+            CXX_STANDARD ${triangular_standard} CXX_STANDARD_REQUIRED ON CXX_EXTENSIONS OFF)
+        target_link_libraries(${triangular_parity_target} PRIVATE RandX_Cpp${triangular_standard})
+        if(triangular_standard EQUAL 17)
+            target_compile_definitions(${triangular_parity_target} PRIVATE RANDX_PARITY_CPP17=1)
+        endif()
+        if(MSVC)
+            target_compile_options(${triangular_parity_target} PRIVATE /utf-8 /fp:precise)
+        endif()
+    endforeach()
+
+    set(RANDX_SECURE_WIPE_CAPABILITY_TARGETS)
+    set_source_files_properties(
+        tests/security/secure_wipe_cross_translation_unit.cpp
+        PROPERTIES COMPILE_DEFINITIONS RANDX_SECURITY_PREINCLUDE_SYSTEM_HEADERS=1
+    )
+    function(randx_add_secure_wipe_capability target_name standard backend)
+        add_executable(
+            ${target_name}
+            tests/security/secure_wipe_capabilities.cpp
+            tests/security/secure_wipe_cross_translation_unit.cpp
+        )
+        set_target_properties(${target_name} PROPERTIES
+            CXX_STANDARD ${standard}
+            CXX_STANDARD_REQUIRED ON
+            CXX_EXTENSIONS OFF
+        )
+        target_compile_features(${target_name} PRIVATE cxx_std_${standard})
+        target_include_directories(${target_name} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+        if("${standard}" STREQUAL "17")
+            target_compile_definitions(${target_name} PRIVATE RANDX_SECURITY_CPP17=1)
+        endif()
+        if("${backend}" STREQUAL "portable")
+            target_compile_definitions(${target_name} PRIVATE RANDX_USE_PORTABLE_SECURE_WIPE=1)
+        elseif("${backend}" STREQUAL "apple_optin")
+            target_compile_definitions(${target_name} PRIVATE
+                RANDX_USE_APPLE_MEMSET_S=1
+                __STDC_WANT_LIB_EXT1__=1
+            )
+        elseif("${backend}" STREQUAL "apple_default")
+            target_compile_definitions(${target_name} PRIVATE RANDX_USE_APPLE_MEMSET_S=0)
+        elseif(UNIX AND NOT APPLE)
+            target_compile_definitions(${target_name} PRIVATE _DEFAULT_SOURCE=1)
+        endif()
+
+        if(WIN32)
+            target_link_libraries(${target_name} PRIVATE bcrypt)
+        elseif(APPLE)
+            target_link_libraries(${target_name} PRIVATE "-framework Security")
+        endif()
+        if(MSVC)
+            target_compile_options(${target_name} PRIVATE /utf-8)
+        endif()
+        add_test(NAME ${target_name} COMMAND ${target_name})
+        set(RANDX_SECURE_WIPE_CAPABILITY_TARGETS
+            ${RANDX_SECURE_WIPE_CAPABILITY_TARGETS} ${target_name}
+            PARENT_SCOPE
+        )
+    endfunction()
+
+    foreach(secure_wipe_standard IN ITEMS 17 23)
+        if(APPLE)
+            randx_add_secure_wipe_capability(
+                test_secure_wipe_capabilities_cpp${secure_wipe_standard}_apple_default
+                ${secure_wipe_standard}
+                apple_default
+            )
+            randx_add_secure_wipe_capability(
+                test_secure_wipe_capabilities_cpp${secure_wipe_standard}_apple_optin
+                ${secure_wipe_standard}
+                apple_optin
+            )
+        else()
+            randx_add_secure_wipe_capability(
+                test_secure_wipe_capabilities_cpp${secure_wipe_standard}_native
+                ${secure_wipe_standard}
+                native
+            )
+        endif()
+        randx_add_secure_wipe_capability(
+            test_secure_wipe_capabilities_cpp${secure_wipe_standard}_portable
+            ${secure_wipe_standard}
+            portable
+        )
+    endforeach()
 
     add_executable(
         test_default_engine_cpp17
@@ -218,6 +334,11 @@ if(RANDX_BUILD_TESTS)
 
     # 固定 doctest 用例排序种子，仅用于重排测试，不用于 RandX 引擎播种。
     set(RANDX_DOCTEST_ORDER_SEED "20261001")
+    foreach(triangular_standard IN ITEMS 17 23)
+        add_test(NAME test_triangular_cpp${triangular_standard}_randomized_order
+            COMMAND test_triangular_cpp${triangular_standard}
+                --order-by=rand --rand-seed=${RANDX_DOCTEST_ORDER_SEED})
+    endforeach()
     add_test(
         NAME test_randx_randomized_order
         COMMAND test_randx --order-by=rand --rand-seed=${RANDX_DOCTEST_ORDER_SEED}
@@ -246,6 +367,17 @@ if(RANDX_BUILD_TESTS)
     # Python 标准库工具直接检查现有两个目标，不额外构建注册清单程序。
     find_package(Python3 3.10 COMPONENTS Interpreter QUIET)
     if(Python3_Interpreter_FOUND)
+        add_test(NAME test_triangular_parity
+            COMMAND "${Python3_EXECUTABLE}" -X utf8
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/check_triangular_parity.py"
+                --cpp17 "$<TARGET_FILE:gen_triangular_cpp17>"
+                --cpp23 "$<TARGET_FILE:gen_triangular_cpp23>"
+                --output-dir "${CMAKE_CURRENT_BINARY_DIR}/triangular-parity")
+        add_test(NAME test_triangular_contract_registry
+            COMMAND "${Python3_EXECUTABLE}" -X utf8
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/check_test_contracts.py" compare-binaries
+                --cpp17-binary "$<TARGET_FILE:test_triangular_cpp17>"
+                --cpp23-binary "$<TARGET_FILE:test_triangular_cpp23>")
         add_test(
             NAME test_contract_registry
             COMMAND "${Python3_EXECUTABLE}"
@@ -307,6 +439,10 @@ if(RANDX_BUILD_TESTS)
         target_link_options(test_entropy_cpp17 PRIVATE --coverage)
         target_compile_options(test_entropy_cpp23 PRIVATE --coverage -O0 -g)
         target_link_options(test_entropy_cpp23 PRIVATE --coverage)
+        foreach(secure_wipe_target IN LISTS RANDX_SECURE_WIPE_CAPABILITY_TARGETS)
+            target_compile_options(${secure_wipe_target} PRIVATE --coverage -O0 -g)
+            target_link_options(${secure_wipe_target} PRIVATE --coverage)
+        endforeach()
     endif()
 endif()
 
@@ -381,6 +517,22 @@ if(RANDX_BUILD_BENCHMARK)
     randx_add_initialization_observation(benchmark_gbench_initialization_cpp17 17 RandX_Cpp17)
     target_compile_definitions(benchmark_gbench_initialization_cpp17 PRIVATE RANDX_BENCHMARK_CPP17)
     randx_add_initialization_observation(benchmark_gbench_initialization_cpp23 23 RandX_Cpp23)
+
+    function(randx_add_triangular_benchmark target_name standard library_target)
+        add_executable(${target_name} benchmarks/triangular_distribution_benchmarks.cpp)
+        target_link_libraries(${target_name} PRIVATE benchmark::benchmark ${library_target})
+        target_compile_features(${target_name} PRIVATE cxx_std_${standard})
+        set_target_properties(${target_name} PROPERTIES
+            CXX_STANDARD ${standard}
+            CXX_STANDARD_REQUIRED ON
+            CXX_EXTENSIONS OFF
+        )
+        if("${standard}" STREQUAL "17")
+            target_compile_definitions(${target_name} PRIVATE RANDX_BENCHMARK_CPP17)
+        endif()
+    endfunction()
+    randx_add_triangular_benchmark(benchmark_gbench_triangular_cpp17 17 RandX_Cpp17)
+    randx_add_triangular_benchmark(benchmark_gbench_triangular_cpp23 23 RandX_Cpp23)
 endif()
 
 if(RANDX_BUILD_EXAMPLES)
@@ -390,6 +542,7 @@ if(RANDX_BUILD_EXAMPLES)
         examples/compile_time.cpp
         examples/engine_management.cpp
         examples/multi_stream.cpp
+        examples/triangular_service_simulation.cpp
         examples/weighted_select.cpp
         gen_sequences.cpp
     )

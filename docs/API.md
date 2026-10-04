@@ -451,6 +451,12 @@ inline void SecureRandomBytes(void* buf, std::size_t n);
 
 查询目标平台及头文件环境是否支持 BCryptGenRandom／getrandom／SecRandomCopyBytes。true 表示编译期能力具备，false 表示缺少支持的 OS 密码学接口；运行时读取失败仍由安全接口抛异常。
 
+### 敏感材料擦除后端配置
+
+ChaCha20 生命周期使用头文件内的安全擦除实现。CMake 提供 `RANDX_USE_PORTABLE_SECURE_WIPE` 和 `RANDX_USE_APPLE_MEMSET_S` 两个布尔选项，默认均为 `OFF`。启用兼容后端时，`RANDX_USE_PORTABLE_SECURE_WIPE=1` 随 `RandX`、`RandX::Cpp17` 与 `RandX::Cpp23` INTERFACE 目标传播；Apple 的 `RANDX_USE_APPLE_MEMSET_S=1` 同时传播 `__STDC_WANT_LIB_EXT1__=1`。
+
+这类宏会影响头文件内联函数的定义，应用程序的所有翻译单元、静态库和预编译头须使用相同后端及扩展声明配置。直接包含头文件的构建应在目标级或全局编译选项中统一定义所需宏；Apple 扩展宏须在包含系统头文件前生效。混用不同后端的翻译单元不符合配置契约。
+
 ---
 
 ## 引擎控制

@@ -6,6 +6,8 @@ on:
     paths:
       - 'RandX.hpp'
       - 'RandX_Cpp17.hpp'
+      - 'README.md'
+      - 'docs/**'
       - 'test_randx.cpp'
       - 'test_randx_cpp17.cpp'
       - 'gen_parity_sequences.cpp'
@@ -32,6 +34,8 @@ on:
     paths:
       - 'RandX.hpp'
       - 'RandX_Cpp17.hpp'
+      - 'README.md'
+      - 'docs/**'
       - 'test_randx.cpp'
       - 'test_randx_cpp17.cpp'
       - 'gen_parity_sequences.cpp'
@@ -133,6 +137,14 @@ jobs:
         run: node --test tools/test_benchmark_issue.cjs
       - name: Run benchmark group runner unit tests
         run: python3 -m unittest discover -s tools -p 'test_run_benchmark_group.py' -v
+      - name: Run secure wipe code audit tool unit tests
+        run: python3 -m unittest discover -s tools -p 'test_check_secure_wipe_codegen.py' -v
+      - name: Run triangular reference generator tests
+        run: |
+          python3 -m unittest discover -s tools -p 'test_generate_triangular_reference.py' -v
+          python3 tools/generate_triangular_reference.py --check
+      - name: Run triangular benchmark record tests
+        run: python3 -m unittest discover -s tools -p 'test_check_triangular_benchmark.py' -v
 
   gcc:
     needs: [header-generation-ubuntu, header-generation-windows]
@@ -867,6 +879,132 @@ jobs:
               --test-case "ChaCha20 默认构造成功初始化（OS 熵可用时）"
           done
 
+  secure-wipe-capabilities:
+    name: Secure wipe capabilities (${{ matrix.label }})
+    runs-on: ${{ matrix.runner }}
+    needs: [header-generation-ubuntu, header-generation-windows]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-24.04
+            compiler: gcc
+            label: GCC
+          - runner: ubuntu-24.04
+            compiler: clang
+            label: Clang
+          - runner: macos-15
+            compiler: apple-clang
+            label: Apple Clang
+          - runner: windows-2025
+            compiler: msvc
+            label: MSVC
+          - runner: windows-2025
+            compiler: mingw
+            label: MinGW GCC
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up MinGW GCC
+        if: matrix.compiler == 'mingw'
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: true
+          install: mingw-w64-x86_64-cmake mingw-w64-x86_64-gcc mingw-w64-x86_64-ninja
+      - name: Configure capability targets
+        if: matrix.compiler == 'gcc'
+        shell: bash
+        run: |
+          cmake -S . -B build/secure-wipe -DRANDX_BUILD_TESTS=ON \
+            -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=g++-14
+      - name: Configure capability targets
+        if: matrix.compiler == 'apple-clang'
+        shell: bash
+        run: cmake -S . -B build/secure-wipe -DRANDX_BUILD_TESTS=ON -DCMAKE_BUILD_TYPE=Release
+      - name: Configure capability targets with Clang
+        if: matrix.compiler == 'clang'
+        run: cmake -S . -B build/secure-wipe -DRANDX_BUILD_TESTS=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=clang++-18
+      - name: Configure capability targets with MSVC
+        if: matrix.compiler == 'msvc'
+        run: cmake -S . -B build/secure-wipe -DRANDX_BUILD_TESTS=ON -DCMAKE_BUILD_TYPE=Release
+      - name: Configure capability targets with MinGW
+        if: matrix.compiler == 'mingw'
+        shell: msys2 {0}
+        run: cmake -S . -B build/secure-wipe -G Ninja -DRANDX_BUILD_TESTS=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=g++
+      - name: Build GCC, MSVC and MinGW capability targets
+        if: matrix.compiler == 'gcc' || matrix.compiler == 'clang' || matrix.compiler == 'msvc'
+        run: cmake --build build/secure-wipe --config Release --target test_secure_wipe_capabilities_cpp17_native test_secure_wipe_capabilities_cpp17_portable test_secure_wipe_capabilities_cpp23_native test_secure_wipe_capabilities_cpp23_portable
+      - name: Build MinGW capability targets
+        if: matrix.compiler == 'mingw'
+        shell: msys2 {0}
+        run: cmake --build build/secure-wipe --config Release --target test_secure_wipe_capabilities_cpp17_native test_secure_wipe_capabilities_cpp17_portable test_secure_wipe_capabilities_cpp23_native test_secure_wipe_capabilities_cpp23_portable
+      - name: Build Apple default, opt-in and portable capability targets
+        if: matrix.compiler == 'apple-clang'
+        shell: bash
+        run: cmake --build build/secure-wipe --config Release --target test_secure_wipe_capabilities_cpp17_apple_default test_secure_wipe_capabilities_cpp17_apple_optin test_secure_wipe_capabilities_cpp17_portable test_secure_wipe_capabilities_cpp23_apple_default test_secure_wipe_capabilities_cpp23_apple_optin test_secure_wipe_capabilities_cpp23_portable
+      - name: Run capability tests
+        if: matrix.compiler != 'mingw'
+        run: ctest --test-dir build/secure-wipe -C Release -R '^test_secure_wipe_capabilities_' --output-on-failure
+      - name: Run MinGW capability tests
+        if: matrix.compiler == 'mingw'
+        shell: msys2 {0}
+        run: ctest --test-dir build/secure-wipe -C Release -R '^test_secure_wipe_capabilities_' --output-on-failure
+      - name: Build triangular contracts and observations
+        if: matrix.compiler != 'mingw'
+        run: cmake --build build/secure-wipe --config Release --target test_triangular_cpp17 test_triangular_cpp23 gen_triangular_cpp17 gen_triangular_cpp23 --parallel 1
+      - name: Build MinGW triangular contracts and observations
+        if: matrix.compiler == 'mingw'
+        shell: msys2 {0}
+        run: cmake --build build/secure-wipe --config Release --target test_triangular_cpp17 test_triangular_cpp23 gen_triangular_cpp17 gen_triangular_cpp23 --parallel 1
+      - name: Run triangular contracts and observations
+        if: matrix.compiler != 'mingw'
+        run: ctest --test-dir build/secure-wipe -C Release -R '^test_triangular_' --output-on-failure
+      - name: Run MinGW triangular contracts and observations
+        if: matrix.compiler == 'mingw'
+        shell: msys2 {0}
+        run: ctest --test-dir build/secure-wipe -C Release -R '^test_triangular_' --output-on-failure
+      - name: Upload capability and triangular binaries and logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: secure-wipe-capabilities-${{ matrix.compiler }}
+          path: build/secure-wipe/
+          if-no-files-found: ignore
+
+  secure-wipe-codegen:
+    name: Secure wipe final binary audit (MinGW GCC)
+    runs-on: windows-2025
+    needs: [header-generation-ubuntu, header-generation-windows]
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        id: audit-python
+        with:
+          python-version: '3.12'
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: true
+          install: mingw-w64-x86_64-gcc mingw-w64-x86_64-binutils
+      - name: Audit final linked binaries and all wipe mutations
+        shell: msys2 {0}
+        env:
+          AUDIT_PYTHON: ${{ steps.audit-python.outputs.python-path }}
+        run: |
+          "$(cygpath -u "$AUDIT_PYTHON")" tools/check_secure_wipe_codegen.py \
+            --compiler "$(cygpath -w "$(command -v g++)")" \
+            --disassembler "$(cygpath -w "$(command -v objdump)")" \
+            --standard both --optimization both --backend both --verify-mutations \
+            --output-dir build/secure-wipe-audit
+      - name: Upload machine code evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: secure-wipe-final-binary-evidence
+          path: build/secure-wipe-audit/
+
   # 跨标准序列一致性检查：同一生成器分别以 C++23（RandX.hpp）与
   # C++17（RandX_Cpp17.hpp）编译，固定种子输出各引擎与便捷 API 序列后逐字节比对，
   # 机械保证「双头文件输出序列完全一致」不变量（KAT 测试保持不变，独立于本 job）
@@ -982,6 +1120,23 @@ jobs:
           ./coverage-production/test_default_engine_cpp17
           ./coverage-entropy/test_entropy_cpp23
           ./coverage-entropy/test_entropy_cpp17
+      - name: Build and run secure wipe capability coverage
+        run: |
+          cmake -S . -B coverage-security -DRANDX_BUILD_TESTS=ON \
+            -DRANDX_ENABLE_COVERAGE=ON -DCMAKE_BUILD_TYPE=Debug \
+            -DCMAKE_CXX_COMPILER=g++-14
+          cmake --build coverage-security --target \
+            test_secure_wipe_capabilities_cpp17_native \
+            test_secure_wipe_capabilities_cpp17_portable \
+            test_secure_wipe_capabilities_cpp23_native \
+            test_secure_wipe_capabilities_cpp23_portable
+          ctest --test-dir coverage-security \
+            -R '^test_secure_wipe_capabilities_' --output-on-failure
+          lcov --ignore-errors inconsistent --capture --directory coverage-security \
+            --output-file coverage-security/coverage.info --gcov-tool gcov-14 --branch-coverage \
+            --include "$PWD/RandX.hpp" --include "$PWD/RandX_Cpp17.hpp"
+          lcov --ignore-errors inconsistent --list coverage-security/coverage.info --branch-coverage
+          lcov --ignore-errors inconsistent --summary coverage-security/coverage.info --branch-coverage
       - name: Generate independent coverage reports
         run: |
           # 使用 gcov-14 以匹配 g++-14 生成的 .gcda 格式（B43*），避免与系统 gcov-13（B33*）冲突
@@ -1033,6 +1188,13 @@ jobs:
           path: |
             coverage-entropy/coverage.info
             coverage-entropy/entropy-branches.txt
+      - name: Upload secure wipe coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-secure-wipe-report
+          path: coverage-security/coverage.info
+          if-no-files-found: ignore
       - name: Upload preprocessor and compatibility evidence
         if: always()
         uses: actions/upload-artifact@v4
