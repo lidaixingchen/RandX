@@ -339,6 +339,24 @@ if(RANDX_BUILD_TESTS)
             COMMAND test_triangular_cpp${triangular_standard}
                 --order-by=rand --rand-seed=${RANDX_DOCTEST_ORDER_SEED})
     endforeach()
+
+    if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+        foreach(integer_probe_standard IN ITEMS 17 23)
+            set(integer_probe_target test_integer_distribution_type_probe_cpp${integer_probe_standard})
+            add_executable(
+                ${integer_probe_target}
+                tests/distributions/integer_distribution_type_probe.cpp
+            )
+            target_link_libraries(${integer_probe_target} PRIVATE RandX_Cpp${integer_probe_standard})
+            target_compile_features(${integer_probe_target} PRIVATE cxx_std_${integer_probe_standard})
+            set_target_properties(${integer_probe_target} PROPERTIES
+                CXX_STANDARD ${integer_probe_standard}
+                CXX_STANDARD_REQUIRED ON
+                CXX_EXTENSIONS ON
+            )
+            add_test(NAME ${integer_probe_target} COMMAND ${integer_probe_target})
+        endforeach()
+    endif()
     add_test(
         NAME test_randx_randomized_order
         COMMAND test_randx --order-by=rand --rand-seed=${RANDX_DOCTEST_ORDER_SEED}

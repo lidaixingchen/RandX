@@ -117,9 +117,20 @@ T 须为整数类型且不为 bool，N 还须不超过 `std::numeric_limits<T>::
 | `RandBernoulli` | `bool RandBernoulli(double p)` | p=0.5 | 伯努利（RandBool 别名） |
 | `RandWeighted` | `size_type RandWeighted(const WeightContainer& weights)` | 无 | 按权重选取索引 |
 
-浮点分布模板参数为 `std::floating_point T = double`，整数分布为 `std::integral T = int`。
+浮点分布模板参数为 `std::floating_point T = double`。
 
 指定引擎重载模式：`T RandNormal(Engine& engine, T mean = T{0}, T stddev = T{1})`。
+
+### 整数分布类型契约
+
+三个整数分布默认返回 `int`，默认与显式引擎重载采用相同的类型政策：
+
+| 接口 | 返回类型候选 |
+| --- | --- |
+| `RandPoisson`、`RandBinomial` | cv 未限定的 `short`、`int`、`long`、`long long` 及其对应 unsigned 类型 |
+| `RandGeometric` | cv 未限定的 integral 类型，排除 `bool`，且 `std::numeric_limits<T>::digits <= std::numeric_limits<std::uint64_t>::digits`；满足该位宽的字符类型依语言标准支持保留 |
+
+标准计数分布调用使用上述八种整型；需要字符结果时，先获得支持的计数类型，再由调用方检查范围后转换。几何分布使用有效位数满足上限的类型。移除 cv 限定可保留对应值类型；布尔随机用途使用 `RandBool` 或 `RandBernoulli`，由调用方确认概率模型。候选集收紧属于破坏性变更，发布按主版本管理；支持类型的算法、状态和输出序列保持原有契约。
 
 ### RandTriangular
 
@@ -139,7 +150,11 @@ template <typename Engine, typename T>
 
 底层引擎异常直接传播；数值转换无法形成有限区间内结果时抛出 `std::runtime_error`。这些异常可能发生在本次均匀采样已消耗引擎输出之后。
 
+### RandGeometric
+
 `RandGeometric` 生成首次成功前的失败次数，将结果分为块编号与块内整数余数：块编号采用稳定的逆变换，块内余数采用整数拒绝采样，以保留大整数的低位随机性。`p=1` 返回零且不消耗引擎输出；参数无效或过小时抛出 `std::invalid_argument`，抽样值超出返回类型范围时抛出 `std::overflow_error`。抽样超限时，引擎已消耗本次抽样所需的输出。
+
+### RandBeta
 
 `RandBeta` 校验有限且为正的形状参数，普通参数路径稳定归一化两个 Gamma 样本，极端参数路径使用对数域采样与归一化。无效参数抛出 `std::invalid_argument`；无法形成有效样本时按数值契约抛出 `std::domain_error`。
 

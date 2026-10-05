@@ -2882,7 +2882,7 @@ namespace RandX
 		return prepared.active_indices[dist(engine)];
 	}
 
-	/// @brief 按预构建权重分布随机选取索引（支持高频抽取复用，O(1) 复杂度）
+	/// @brief 按预构建权重分布随机选取索引；支持分布对象复用，查找复杂度取决于标准库实现
 	/// @param dist 预构建的 std::discrete_distribution 对象
 	/// @return 按权重概率选中的索引值
 	template <class IntType>
@@ -2892,7 +2892,7 @@ namespace RandX
 		return dist(DefaultEngine());
 	}
 
-	/// @brief 按预构建权重分布随机选取索引（指定引擎，支持高频抽取复用，O(1) 复杂度）
+	/// @brief 按预构建权重分布随机选取索引（指定引擎）；支持分布对象复用，查找复杂度取决于标准库实现
 	/// @param engine 自定义随机数引擎
 	/// @param dist 预构建的 std::discrete_distribution 对象
 	/// @return 按权重概率选中的索引值
@@ -3761,10 +3761,36 @@ namespace RandX
 		return dist(engine);
 	}
 
+	namespace detail
+	{
+		template <class T>
+		struct IsStandardIntegerDistributionType : std::bool_constant<
+			std::is_same_v<T, short> ||
+			std::is_same_v<T, unsigned short> ||
+			std::is_same_v<T, int> ||
+			std::is_same_v<T, unsigned int> ||
+			std::is_same_v<T, long> ||
+			std::is_same_v<T, unsigned long> ||
+			std::is_same_v<T, long long> ||
+			std::is_same_v<T, unsigned long long>>
+		{
+		};
+
+		template <class T>
+		struct IsGeometricDistributionType : std::bool_constant<
+			std::is_integral_v<T> &&
+			std::is_same_v<T, std::remove_cv_t<T>> &&
+			!std::is_same_v<T, bool> &&
+			(std::numeric_limits<T>::digits <= std::numeric_limits<std::uint64_t>::digits)>
+		{
+		};
+	}
+
 	/// @brief 生成泊松分布随机数
+	/// @tparam T 返回类型为 short、int、long、long long 或其对应的无符号类型
 	/// @param mean 均值参数（默认 1.0）
 	/// @return 服从 Poisson(mean) 的随机整数
-	template <class T = int, std::enable_if_t<std::is_integral_v<T>>* = nullptr>
+	template <class T = int, std::enable_if_t<detail::IsStandardIntegerDistributionType<T>::value>* = nullptr>
 	[[nodiscard]]
 	inline T RandPoisson(double mean = 1.0)
 	{
@@ -3778,11 +3804,12 @@ namespace RandX
 	}
 
 	/// @brief 生成泊松分布随机数（指定引擎重载）
+	/// @tparam T 返回类型为 short、int、long、long long 或其对应的无符号类型
 	/// @param engine 自定义随机数引擎
 	/// @param mean 均值参数（默认 1.0）
 	/// @return 服从 Poisson(mean) 的随机整数
 	template <class Engine, class T = int,
-		std::enable_if_t<detail::is_random_engine_v<Engine> && std::is_integral_v<T>>* = nullptr>
+		std::enable_if_t<detail::is_random_engine_v<Engine> && detail::IsStandardIntegerDistributionType<T>::value>* = nullptr>
 	[[nodiscard]]
 	inline T RandPoisson(Engine& engine, double mean = 1.0)
 	{
@@ -3826,10 +3853,11 @@ namespace RandX
 	}
 
 	/// @brief 生成二项分布随机数
+	/// @tparam T 返回类型为 short、int、long、long long 或其对应的无符号类型
 	/// @param t 试验次数（默认 1）
 	/// @param p 每次成功概率（默认 0.5）
 	/// @return 服从 B(t, p) 的随机整数
-	template <class T = int, std::enable_if_t<std::is_integral_v<T>>* = nullptr>
+	template <class T = int, std::enable_if_t<detail::IsStandardIntegerDistributionType<T>::value>* = nullptr>
 	[[nodiscard]]
 	inline T RandBinomial(T t = 1, double p = 0.5)
 	{
@@ -3840,12 +3868,13 @@ namespace RandX
 	}
 
 	/// @brief 生成二项分布随机数（指定引擎重载）
+	/// @tparam T 返回类型为 short、int、long、long long 或其对应的无符号类型
 	/// @param engine 自定义随机数引擎
 	/// @param t 试验次数（默认 1）
 	/// @param p 每次成功概率（默认 0.5）
 	/// @return 服从 B(t, p) 的随机整数
 	template <class Engine, class T = int,
-		std::enable_if_t<detail::is_random_engine_v<Engine> && std::is_integral_v<T>>* = nullptr>
+		std::enable_if_t<detail::is_random_engine_v<Engine> && detail::IsStandardIntegerDistributionType<T>::value>* = nullptr>
 	[[nodiscard]]
 	inline T RandBinomial(Engine& engine, T t = 1, double p = 0.5)
 	{
@@ -3886,10 +3915,11 @@ namespace RandX
 	}
 
 	/// @brief 生成几何分布随机数（首次成功前的失败次数）
+	/// @tparam T bool 以外的 cv 未限定整数类型，数值位数不超过 std::uint64_t 位宽；该范围内字符类型也受支持
 	/// @param p 每次成功概率（默认 0.5）
 	/// @return 服从 Geometric(p) 的随机整数
 	/// @throw std::overflow_error 抽样值超出返回类型范围时抛出
-	template <class T = int, std::enable_if_t<std::is_integral_v<T>>* = nullptr>
+	template <class T = int, std::enable_if_t<detail::IsGeometricDistributionType<T>::value>* = nullptr>
 	[[nodiscard]]
 	inline T RandGeometric(double p = 0.5)
 	{
@@ -3897,12 +3927,13 @@ namespace RandX
 	}
 
 	/// @brief 生成几何分布随机数（指定引擎重载）
+	/// @tparam T bool 以外的 cv 未限定整数类型，数值位数不超过 std::uint64_t 位宽；该范围内字符类型也受支持
 	/// @param engine 自定义随机数引擎
 	/// @param p 每次成功概率（默认 0.5）
 	/// @return 服从 Geometric(p) 的随机整数
 	/// @throw std::overflow_error 抽样值超出返回类型范围时抛出
 	template <class Engine, class T = int,
-		std::enable_if_t<detail::is_random_engine_v<Engine> && std::is_integral_v<T>>* = nullptr>
+		std::enable_if_t<detail::is_random_engine_v<Engine> && detail::IsGeometricDistributionType<T>::value>* = nullptr>
 	[[nodiscard]]
 	inline T RandGeometric(Engine& engine, double p = 0.5)
 	{

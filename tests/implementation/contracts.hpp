@@ -24,6 +24,7 @@
 #include "../common/fixtures.hpp"
 
 #include "triangular_contracts.hpp"
+#include "integer_distribution_traits_contracts.hpp"
 
 TEST_SUITE("内部/分布辅助计算")
 {

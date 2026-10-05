@@ -22,6 +22,7 @@
 #include "doctest.h"
 #include "fixtures.hpp"
 
+#include "integer_distribution_type_contracts.hpp"
 #include "triangular_distribution_contracts.hpp"
 
 TEST_SUITE("公共/基础/分布")
