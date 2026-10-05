@@ -52,7 +52,7 @@ class TestPractRandWorkflow(unittest.TestCase):
         self.assertIn("--timeout", self.runner)
         self.assertIn("compare_identity", self.summarizer)
 
-    def test_scheduled_and_manual_runs_select_initially_unverified_profiles(self) -> None:
+    def test_scheduled_and_manual_runs_select_runner_verified_profiles(self) -> None:
         self.assertIn("if [ \"$EVENT_NAME\" = \"schedule\" ]; then PROFILE=nightly; fi", self.workflow)
         self.assertIn("default: quick", self.workflow)
         policy: dict[str, object] = __import__("json").loads(
@@ -60,8 +60,8 @@ class TestPractRandWorkflow(unittest.TestCase):
         )
         profiles: dict[str, dict[str, object]] = policy["profiles"]  # type: ignore[assignment]
         self.assertEqual(policy["default_profile"], "nightly")
-        self.assertEqual(profiles["quick"]["acceptance_status"], "initial_unverified")
-        self.assertEqual(profiles["nightly"]["acceptance_status"], "initial_unverified")
+        self.assertEqual(profiles["quick"]["acceptance_status"], "runner_verified")
+        self.assertEqual(profiles["nightly"]["acceptance_status"], "runner_verified")
         for profile_name, profile in profiles.items():
             target_lengths: dict[str, str] = profile["target_lengths"]  # type: ignore[assignment]
             with self.subTest(profile=profile_name):

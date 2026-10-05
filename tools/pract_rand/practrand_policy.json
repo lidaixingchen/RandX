@@ -18,7 +18,7 @@
   ],
   "profiles": {
     "quick": {
-      "acceptance_status": "initial_unverified",
+      "acceptance_status": "runner_verified",
       "checkpoint_min": "1MB",
       "timeout_seconds": 1800,
       "target_lengths": {
@@ -27,7 +27,7 @@
       }
     },
     "nightly": {
-      "acceptance_status": "initial_unverified",
+      "acceptance_status": "runner_verified",
       "checkpoint_min": "1MB",
       "timeout_seconds": 18000,
       "target_lengths": {

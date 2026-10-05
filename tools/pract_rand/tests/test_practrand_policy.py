@@ -36,14 +36,14 @@ class TestPractRandPolicy(unittest.TestCase):
         options.update(overrides)
         return build_practrand_plan(**options)  # type: ignore[arg-type]
 
-    def test_initial_profiles_plan_all_eight_engines_at_four_gibibytes(self) -> None:
+    def test_verified_profiles_plan_all_eight_engines_at_four_gibibytes(self) -> None:
         for profile_name in ("quick", "nightly"):
             with self.subTest(profile=profile_name):
                 plan: dict[str, object] = self.build_plan(profile_name=profile_name)
                 items: list[dict[str, object]] = plan["items"]  # type: ignore[assignment]
                 self.assertEqual(len(items), 8)
                 self.assertEqual({int(item["target_bytes"]) for item in items}, {parse_length_to_bytes("4GB")})
-                self.assertEqual(plan["profile_acceptance_status"], "initial_unverified")
+                self.assertEqual(plan["profile_acceptance_status"], "runner_verified")
                 self.assertEqual(items[0]["test_parameters"], ["stdin64", "-tlmin", "1M", "-tlmax", "4G", "-te", "1"])
                 self.assertEqual(items[2]["test_parameters"][0], "stdin32")
 
@@ -99,7 +99,7 @@ class TestPractRandPolicy(unittest.TestCase):
         self.assertEqual(loaded["seed_value"], self.policy["fixed_seed"])
         matrix: dict[str, object] = json.loads(output.splitlines()[0].partition("=")[2])
         self.assertEqual(matrix, {"include": [{"engine": "sfc64"}]})
-        self.assertIn("acceptance_status=initial_unverified", output)
+        self.assertIn("acceptance_status=runner_verified", output)
         self.assertIn("job_timeout_minutes=360", output)
 
     def test_policy_rejects_duplicate_engines_and_bad_lengths(self) -> None:
