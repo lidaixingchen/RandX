@@ -87,6 +87,7 @@ jobs:
       - name: Build and run consumers against the vcpkg installation
         shell: pwsh
         run: |
+          $env:VCPKG_ROOT = $env:RUNVCPKG_VCPKG_ROOT
           $prefix = "$env:VCPKG_ROOT/installed/x64-windows"
           python -X utf8 tools/validate_installed_consumers.py `
             --consumer-source-dir examples/consumer_validation `
