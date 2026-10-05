@@ -82,6 +82,8 @@ jobs:
             Write-Host "OK: $h installed"
           }
 
+      - uses: ilammy/msvc-dev-cmd@0b201ec74fa43914dc39ae48a89fd1d8cb592756  # v1
+
       - name: Build and run consumers against the vcpkg installation
         shell: pwsh
         run: |
@@ -91,8 +93,8 @@ jobs:
             --work-dir "$env:RUNNER_TEMP/randx-vcpkg-consumers" `
             --prefix $prefix `
             --include-root $prefix `
-            --generator "Visual Studio 17 2022" `
-            --generator-platform x64 `
+            --generator Ninja `
+            --compiler cl `
             --toolchain-file "$env:VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake" `
             --configuration Release `
             --decoy-prefix "$env:RUNNER_TEMP/randx-build-tree"
