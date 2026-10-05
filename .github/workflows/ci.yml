@@ -151,6 +151,8 @@ jobs:
         run: |
           python3 -m unittest discover -s tools -p 'test_generate_stream_jump_powers.py' -v
           python3 tools/generate_stream_jump_powers.py --check
+      - name: Run installed consumer validation tool tests
+        run: python3 -m unittest discover -s tools -p 'test_validate_installed_consumers.py' -v
       - name: Run stream observation record tests
         run: python3 -m unittest discover -s tools -p 'test_observe_stream_initialization.py' -v
 
@@ -1066,6 +1068,36 @@ jobs:
         run: |
           build/example_distribution_generation_cpp17
           build/example_distribution_generation_cpp23
+
+  installed-consumer-validation:
+    name: Installed consumers (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-2025, macos-15]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Configure RandX tests and consumer checks
+        run: cmake -S . -B build/consumer-validation -DCMAKE_BUILD_TYPE=Release -DRANDX_BUILD_TESTS=ON
+      - name: Build GNU integer distribution extension probes
+        if: runner.os == 'Linux'
+        run: |
+          cmake --build build/consumer-validation --target \
+            test_integer_distribution_type_probe_cpp17 \
+            test_integer_distribution_type_probe_cpp23
+          ctest --test-dir build/consumer-validation \
+            -R '^test_integer_distribution_type_probe_cpp(17|23)$' --output-on-failure
+      - name: Validate consumers on Unix
+        if: runner.os != 'Windows'
+        run: ctest --test-dir build/consumer-validation -R '^test_(build_tree|installed)_consumers$' --output-on-failure
+      - name: Validate consumers on Windows
+        if: runner.os == 'Windows'
+        run: ctest --test-dir build/consumer-validation -C Release -R '^test_(build_tree|installed)_consumers$' --output-on-failure
 
   coverage:
     needs: [header-generation-ubuntu, header-generation-windows]

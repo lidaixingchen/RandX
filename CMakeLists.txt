@@ -385,6 +385,71 @@ if(RANDX_BUILD_TESTS)
     # Python 标准库工具直接检查现有两个目标，不额外构建注册清单程序。
     find_package(Python3 3.10 COMPONENTS Interpreter QUIET)
     if(Python3_Interpreter_FOUND)
+        set(RANDX_CONSUMER_VALIDATION_COMMON_ARGS
+            --cmake "${CMAKE_COMMAND}"
+            --ctest "${CMAKE_CTEST_COMMAND}"
+            --consumer-source-dir "${CMAKE_CURRENT_SOURCE_DIR}/examples/consumer_validation"
+            --generator "${CMAKE_GENERATOR}"
+        )
+        if(CMAKE_CROSSCOMPILING_EMULATOR)
+            string(REPLACE ";" "\\;" RANDX_CROSSCOMPILING_EMULATOR_ARGUMENT
+                "${CMAKE_CROSSCOMPILING_EMULATOR}")
+            list(APPEND RANDX_CONSUMER_VALIDATION_COMMON_ARGS
+                --crosscompiling-emulator "${RANDX_CROSSCOMPILING_EMULATOR_ARGUMENT}")
+        endif()
+        if(CMAKE_GENERATOR_PLATFORM)
+            list(APPEND RANDX_CONSUMER_VALIDATION_COMMON_ARGS --generator-platform "${CMAKE_GENERATOR_PLATFORM}")
+        endif()
+        if(CMAKE_GENERATOR_TOOLSET)
+            list(APPEND RANDX_CONSUMER_VALIDATION_COMMON_ARGS --generator-toolset "${CMAKE_GENERATOR_TOOLSET}")
+        endif()
+        if(CMAKE_CXX_COMPILER)
+            list(APPEND RANDX_CONSUMER_VALIDATION_COMMON_ARGS --compiler "${CMAKE_CXX_COMPILER}")
+        endif()
+        if(CMAKE_MAKE_PROGRAM)
+            list(APPEND RANDX_CONSUMER_VALIDATION_COMMON_ARGS --make-program "${CMAKE_MAKE_PROGRAM}")
+        endif()
+        if(CMAKE_RC_COMPILER)
+            list(APPEND RANDX_CONSUMER_VALIDATION_COMMON_ARGS --resource-compiler "${CMAKE_RC_COMPILER}")
+        endif()
+        if(CMAKE_MT)
+            list(APPEND RANDX_CONSUMER_VALIDATION_COMMON_ARGS --manifest-tool "${CMAKE_MT}")
+        endif()
+        if(CMAKE_TOOLCHAIN_FILE)
+            list(APPEND RANDX_CONSUMER_VALIDATION_COMMON_ARGS --toolchain-file "${CMAKE_TOOLCHAIN_FILE}")
+        endif()
+        if(CMAKE_BUILD_TYPE)
+            list(APPEND RANDX_CONSUMER_VALIDATION_COMMON_ARGS --build-type "${CMAKE_BUILD_TYPE}")
+        endif()
+        if(CMAKE_CONFIGURATION_TYPES)
+            list(APPEND RANDX_CONSUMER_VALIDATION_COMMON_ARGS --configuration "$<CONFIG>")
+        elseif(CMAKE_BUILD_TYPE)
+            list(APPEND RANDX_CONSUMER_VALIDATION_COMMON_ARGS --configuration "$<CONFIG>")
+        endif()
+
+        add_test(
+            NAME test_build_tree_consumers
+            COMMAND "${Python3_EXECUTABLE}" -X utf8
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/validate_installed_consumers.py"
+                ${RANDX_CONSUMER_VALIDATION_COMMON_ARGS}
+                --work-dir "${CMAKE_CURRENT_BINARY_DIR}/consumer-build"
+                --prefix "${CMAKE_CURRENT_BINARY_DIR}"
+                --config-dir "${CMAKE_CURRENT_BINARY_DIR}"
+                --include-root "${CMAKE_CURRENT_SOURCE_DIR}"
+        )
+        add_test(
+            NAME test_installed_consumers
+            COMMAND "${Python3_EXECUTABLE}" -X utf8
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/validate_installed_consumers.py"
+                ${RANDX_CONSUMER_VALIDATION_COMMON_ARGS}
+                --work-dir "${CMAKE_CURRENT_BINARY_DIR}/consumer-install"
+                --prefix "${CMAKE_CURRENT_BINARY_DIR}/consumer-prefix"
+                --install-build-dir "${CMAKE_CURRENT_BINARY_DIR}"
+                --include-root "${CMAKE_CURRENT_BINARY_DIR}/consumer-prefix"
+                --decoy-prefix "${CMAKE_CURRENT_BINARY_DIR}"
+        )
+        set_tests_properties(test_build_tree_consumers test_installed_consumers PROPERTIES LABELS "consumers")
+
         add_test(NAME test_triangular_parity
             COMMAND "${Python3_EXECUTABLE}" -X utf8
                 "${CMAKE_CURRENT_SOURCE_DIR}/tools/check_triangular_parity.py"
@@ -596,6 +661,9 @@ if(RANDX_BUILD_EXAMPLES)
     foreach(example_source IN LISTS RANDX_EXAMPLE_SOURCES)
         get_filename_component(example_name ${example_source} NAME_WE)
         add_executable(example_${example_name} ${example_source})
+        if(MSVC)
+            target_compile_options(example_${example_name} PRIVATE /utf-8)
+        endif()
         target_compile_features(example_${example_name} PRIVATE cxx_std_23)
         target_link_libraries(example_${example_name} PRIVATE RandX)
     endforeach()
@@ -637,14 +705,33 @@ if(RANDX_BUILD_EXAMPLES)
     if(CMAKE_GENERATOR_TOOLSET)
         list(APPEND CONSUMER_CMAKE_ARGS "-T" "${CMAKE_GENERATOR_TOOLSET}")
     endif()
+    if(CMAKE_TOOLCHAIN_FILE)
+        list(APPEND CONSUMER_CMAKE_ARGS "-DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}")
+    endif()
+    if(CMAKE_RC_COMPILER)
+        list(APPEND CONSUMER_CMAKE_ARGS "-DCMAKE_RC_COMPILER=${CMAKE_RC_COMPILER}")
+    endif()
+    if(CMAKE_MT)
+        list(APPEND CONSUMER_CMAKE_ARGS "-DCMAKE_MT=${CMAKE_MT}")
+    endif()
 
+    foreach(consumer_standard IN ITEMS 17 23)
+        set(consumer_target consumer_validation_cpp${consumer_standard})
+        set(consumer_standard_build_dir "${CONSUMER_BUILD_DIR}/cpp${consumer_standard}")
+        add_custom_target(${consumer_target}
+            COMMAND ${CMAKE_COMMAND} -B "${consumer_standard_build_dir}"
+                                     -S "${CMAKE_CURRENT_SOURCE_DIR}/examples/consumer_validation"
+                                     -G "${CMAKE_GENERATOR}"
+                                     ${CONSUMER_CMAKE_ARGS}
+                                     "-DRANDX_CONSUMER_STANDARD=${consumer_standard}"
+                                     "-DRANDX_EXPECTED_CONFIG_DIR=${CMAKE_CURRENT_BINARY_DIR}"
+                                     "-DRANDX_EXPECTED_INCLUDE_ROOT=${CMAKE_CURRENT_SOURCE_DIR}"
+            COMMAND ${CMAKE_COMMAND} --build "${consumer_standard_build_dir}"
+                $<$<BOOL:$<CONFIG>>:--config> $<$<BOOL:$<CONFIG>>:$<CONFIG>>
+            COMMENT "构建 C++${consumer_standard} 下游消费者工程"
+            VERBATIM
+        )
+    endforeach()
     add_custom_target(consumer_validation ALL
-        COMMAND ${CMAKE_COMMAND} -E make_directory "${CONSUMER_BUILD_DIR}"
-        COMMAND ${CMAKE_COMMAND} -B "${CONSUMER_BUILD_DIR}"
-                                 -S "${CMAKE_CURRENT_SOURCE_DIR}/examples/consumer_validation"
-                                 -G "${CMAKE_GENERATOR}"
-                                 ${CONSUMER_CMAKE_ARGS}
-        COMMAND ${CMAKE_COMMAND} --build "${CONSUMER_BUILD_DIR}" $<$<BOOL:$<CONFIG>>:--config> $<$<BOOL:$<CONFIG>>:$<CONFIG>>
-        COMMENT "构建下游消费者工程验证用例 (find_package(RandX CONFIG))"
-    )
+        DEPENDS consumer_validation_cpp17 consumer_validation_cpp23)
 endif()

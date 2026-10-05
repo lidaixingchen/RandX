@@ -4,8 +4,8 @@ name: Packaging Validation
 # 原因：git archive 内嵌 commit hash，移动 tag 后 tarball SHA 必变，
 # tag 触发的 CI checkout 到 tag 本身，portfile 中 SHA 永远滞后一步（循环依赖）。
 # workflow_dispatch checkout 默认分支（master），portfile SHA 已更新，可正常验证。
-# vcpkg 官方 ports / xmake-repo 都不接受 CI 自动推送，本工作流仅做本地预演，
-# 验证 port 能在新版本上正常构建，提示维护者手动提交 PR。
+# 上游 registry 变更由维护者提交，本工作流仅做本地预演，
+# 验证发布包能在新版本上安装并被两标准消费者编译、链接和运行。
 on:
   workflow_dispatch:
     inputs:
@@ -23,6 +23,10 @@ jobs:
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
 
       - name: Resolve version
         id: ver
@@ -54,6 +58,10 @@ jobs:
         with:
           vcpkgGitCommitId: "d99b2e01ef73a34daa2e6ef7983c70a890d9f31b"
 
+      - name: Configure an alternate RandX build tree
+        shell: pwsh
+        run: cmake -S . -B "$env:RUNNER_TEMP/randx-build-tree"
+
       - name: Install randx via overlay port
         # --classic: 项目根 vcpkg.json 会让 vcpkg 进入 manifest mode，
         # classic mode 强制按命令行参数安装
@@ -73,6 +81,21 @@ jobs:
             }
             Write-Host "OK: $h installed"
           }
+
+      - name: Build and run consumers against the vcpkg installation
+        shell: pwsh
+        run: |
+          $prefix = "$env:VCPKG_ROOT/installed/x64-windows"
+          python -X utf8 tools/validate_installed_consumers.py `
+            --consumer-source-dir examples/consumer_validation `
+            --work-dir "$env:RUNNER_TEMP/randx-vcpkg-consumers" `
+            --prefix $prefix `
+            --include-root $prefix `
+            --generator "Visual Studio 17 2022" `
+            --generator-platform x64 `
+            --toolchain-file "$env:VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake" `
+            --configuration Release `
+            --decoy-prefix "$env:RUNNER_TEMP/randx-build-tree"
 
   xrepo-validate:
     name: xmake-repo port
@@ -128,6 +151,17 @@ jobs:
         run: |
           xrepo install -y "local-randx@randx $PACKAGE_VERSION"
 
+      - name: Build and run consumers through the xmake package dependency
+        env:
+          CC: gcc-14
+          CXX: g++-14
+          RANDX_PACKAGE_VERSION: ${{ steps.ver.outputs.version }}
+        run: |
+          cd examples/consumer_validation
+          xmake build -y randx_consumer_cpp17 randx_consumer_cpp23
+          xmake run randx_consumer_cpp17
+          xmake run randx_consumer_cpp23
+
       - name: Verify headers installed
         env:
           PACKAGE_VERSION: ${{ steps.ver.outputs.version }}
@@ -166,6 +200,5 @@ jobs:
           echo "| vcpkg port     | ${{ needs.vcpkg-validate.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| xmake-repo port | ${{ needs.xrepo-validate.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "If both jobs succeeded, please manually submit PRs to:" >> $GITHUB_STEP_SUMMARY
-          echo "- https://github.com/microsoft/vcpkg (copy \`ports/randx/\` and run \`vcpkg x-add-version randx\`)" >> $GITHUB_STEP_SUMMARY
-          echo "- https://github.com/xmake-io/xmake-repo (copy \`packaging/xmake-repo/packages/r/randx/\`)" >> $GITHUB_STEP_SUMMARY
+          echo "The jobs validate the selected package version through its actual package manager and run both C++17 and C++23 consumers." >> $GITHUB_STEP_SUMMARY
+          echo "Review docs/RELEASING.md for the current upstream registry state before preparing any registry change." >> $GITHUB_STEP_SUMMARY
