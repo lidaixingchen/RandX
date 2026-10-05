@@ -1,6 +1,6 @@
 # RandX 项目演进与改进路线图
 
-本文记录 RandX 的已完成能力、近期实施工作与需要先验证需求的扩展方向。近期安全与数值工作涵盖敏感内存擦除和三角分布；包管理、安装消费者与 PractRand 自动化已具备本地实现和 CI 接线，远端工作流的实测结果另行登记。分布对象复用及按数量输出通过[标准库组合方案](分布扩展与批量生成改进方案.md)交付双版本示例和使用材料；公共接口扩展、SIMD 批量生成、并行流管理和类型体系依据实际使用场景进入独立设计。
+本文记录 RandX 的已完成能力、近期实施工作与需要先验证需求的扩展方向。近期安全与数值工作涵盖敏感内存擦除和三角分布；包管理、跨平台安装消费者与 PractRand 自动化已通过远端实测，性能证据见[项目功能改进方案](项目功能改进方案.md#114-远端验收)。分布对象复用及按数量输出通过[标准库组合方案](分布扩展与批量生成改进方案.md)交付双版本示例和使用材料；公共接口扩展、SIMD 批量生成、并行流管理和类型体系依据实际使用场景进入独立设计。
 
 > **维护约定**：本路线图每次版本发布后须与代码库对账修订；每个特性条目须标注
 > **C++17 同步策略**（同步 / 降级 / 仅 C++23）、**破坏性**（是 / 否）与**验收标准**。
@@ -149,10 +149,10 @@ RandX 保持纯头文件、消费者零外部依赖、C++23 Concepts 与 C++17 S
 | 双头文件共同实现来源 | `src/header_sources/`、`tools/generate_headers.py`；[迁移清单](共同源码迁移清单.md) | 已完成 |
 | 性能门禁策略集中 | `tools/benchmark_gate.py`、`tools/benchmark_policy.json`；[验收结果](性能门禁策略集中验收结果.md) | 已验收 |
 | 熵源失败测试 | 共同 OS 熵源读取器、测试注入及 `tests/entropy/`；[验收结果](熵源失败测试验收结果.md) | 已验收 |
-| PractRand profile 与运行结果交付工具 | `tools/pract_rand/`、`.github/workflows/practrand-nightly.yml` | 本地工具测试通过；quick 与默认 nightly 初始目标均为 4 GiB，状态 `initial_unverified`；远端完整 profile 尚未验收 |
-| 整数分布类型契约 | 共同类型特征、双版本声明、公共实例化和 GNU 扩展整数探针 | 两标准 MinGW Debug／Release 通过；候选集收紧按破坏性变更管理，发布版本与远端矩阵待验收 |
+| PractRand profile 与运行结果交付工具 | `tools/pract_rand/`、`.github/workflows/practrand-nightly.yml` | quick 与默认 nightly 均通过八引擎各 4 GiB 完整运行，状态 `runner_verified`；验收范围及可疑证据见[远端验收](项目功能改进方案.md#114-远端验收) |
+| 整数分布类型契约 | 共同类型特征、双版本声明、公共实例化和 GNU 扩展整数探针 | 本地双标准及远端 GCC／Clang／MSVC C++17／20／23 矩阵通过；候选集收紧按破坏性变更管理，发布版本单独授权 |
 | 内置引擎快速流定位 | 共同跳跃幂材料、生成参考、公开契约与独立基准 | 默认 constexpr 预算、大编号参考和原映射状态对照通过；性能与跨平台结果见[项目功能改进方案](项目功能改进方案.md#11-实施结果) |
-| 安装树双标准消费者 | `tools/validate_installed_consumers.py`、`examples/consumer_validation/`、CTest | 已接入构建树、安装树和打包预演；跨平台 CI 与发布包远端预演结果待记录 |
+| 安装树双标准消费者 | `tools/validate_installed_consumers.py`、`examples/consumer_validation/`、CTest | Windows／Linux／macOS 安装消费者通过；v1.5.0 的 vcpkg 与 xmake 双标准消费者预演通过 |
 
 ---
 
@@ -181,7 +181,7 @@ RandX 保持纯头文件、消费者零外部依赖、C++23 Concepts 与 C++17 S
 
 ### 阶段二：v1.7 生态补全
 
-- [ ] 运行候选安装树跨平台矩阵与发布包消费者预演；本地接线完成不等同于远端验证完成。
+- [x] 候选安装树三平台矩阵及 v1.5.0 发布包 vcpkg／xmake 消费者预演通过；结果见[远端验收](项目功能改进方案.md#114-远端验收)。
 - [ ] 按当前登记状态更新 vcpkg 1.5.0 port 与 xmake-repo 1.5.0 配方，并记录新 PR 的审核结果；Conan Center 独立评估。
 - [ ] 复用集中门禁报告建立性能趋势看板，保持配置可追溯与架构独立比较。
 
