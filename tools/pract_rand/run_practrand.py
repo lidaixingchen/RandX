@@ -2,7 +2,7 @@
 """RandX PractRand 统计质量验证驱动.
 
 用法:
-    python3 run_practrand.py                    # 默认验证全部 8 引擎（统计 PRNG 1TB / ChaCha20 256GB）
+    python3 run_practrand.py                    # 使用策略中的默认 profile 验证全部 8 引擎
     python3 run_practrand.py --engine sfc64     # 只测一个引擎
     python3 run_practrand.py --length 4GB      # 自定义测试长度
     python3 run_practrand.py --keep-going       # 失败仍继续后续引擎
@@ -25,18 +25,17 @@ import json
 import os
 import re
 import shutil
+import signal
 import subprocess
 import sys
 import time
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
+from typing import Callable
 
 # ============================================================================
 # 常量与配置
 # ============================================================================
-
-STATISTICAL_PRNG_LENGTH = "1TB"
-CSPRNG_LENGTH = "256GB"
 
 # 64位引擎与32位引擎分类（决定输入流模式：stdin64 或 stdin32）
 ENGINES_64BIT = {
@@ -116,6 +115,8 @@ EXIT_SIGPIPE_SHELL = 141
 WINDOWS_TERMINATE_PROCESS_EXIT_CODE = 1
 POSIX_SIGNAL_OFFSET = 128
 DEFAULT_TEST_TIMEOUT_SECONDS = 14400
+DEFAULT_PRNG_SEED = 0x9E3779B97F4A7C15
+CANCELLATION_REQUESTED = False
 
 SUPERVISOR_ACCEPTABLE_EXIT_CODES = {0, POSIX_SIGPIPE, EXIT_SIGPIPE_SHELL, POSIX_SIGTERM, POSIX_SIGKILL}
 if os.name == "nt":
@@ -132,6 +133,7 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 REPO_ROOT = SCRIPT_DIR.parent.parent
 PRACTRAND_BUILD_DIR = SCRIPT_DIR / "PractRand_build"
 PRACTRAND_LOCK_FILE = SCRIPT_DIR / "practrand.lock"
+PRACTRAND_POLICY_FILE = SCRIPT_DIR / "practrand_policy.json"
 LOGS_DIR = SCRIPT_DIR / "logs"
 
 
@@ -146,7 +148,9 @@ class Checkpoint:
     suspicious_count: int = 0
     has_failure: bool = False
     is_complete: bool = False
+    start_line: int = 0
     lines: list[str] = field(default_factory=list)
+    suspicious_markers: list[dict[str, str | int]] = field(default_factory=list)
 
 
 class ClassificationOutput(tuple):
@@ -213,6 +217,18 @@ class TestResult:
     generator_log_file: str = ""
     generator: dict = field(default_factory=dict)
     tester: dict = field(default_factory=dict)
+    profile: str = ""
+    profile_acceptance_status: str = ""
+    input_width_bits: int = 0
+    seed_strategy: str = ""
+    seed_value: int | None = None
+    checkpoint_min_bytes: int = 0
+    timeout_seconds: int = 0
+    test_parameters: list[str] = field(default_factory=list)
+    phase: str = "final"
+    checkpoints: list[dict[str, object]] = field(default_factory=list)
+    run_suspicious_count: int = 0
+    suspicious_markers: list[dict[str, str | int]] = field(default_factory=list)
 
 
 # ============================================================================
@@ -270,6 +286,210 @@ def format_bytes_for_practrand(target_bytes: int) -> str:
     return f"{target_bytes}B"
 
 
+def load_practrand_policy(policy_path: Path | str = PRACTRAND_POLICY_FILE) -> dict[str, object]:
+    """读取并校验策略文件中的 profile、引擎和 runner 预算."""
+    path: Path = Path(policy_path)
+    with path.open("r", encoding="utf-8") as policy_file:
+        policy: dict[str, object] = json.load(policy_file)
+
+    profiles: object = policy.get("profiles")
+    engines: object = policy.get("engines")
+    runner_budget: object = policy.get("runner_budget")
+    if not isinstance(profiles, dict) or not profiles:
+        raise ValueError("策略必须包含至少一个 profile")
+    if not isinstance(engines, list) or not engines:
+        raise ValueError("策略必须包含至少一个引擎")
+    if not isinstance(runner_budget, dict):
+        raise ValueError("策略必须包含 runner_budget")
+
+    engine_names: list[str] = []
+    for engine in engines:
+        if not isinstance(engine, dict):
+            raise ValueError("引擎策略必须为对象")
+        name: object = engine.get("name")
+        width: object = engine.get("input_width_bits")
+        seed_strategy: object = engine.get("seed_strategy")
+        if not isinstance(name, str) or width not in (32, 64):
+            raise ValueError("引擎策略缺少有效名称或输入位宽")
+        if seed_strategy not in ("fixed", "os_entropy"):
+            raise ValueError(f"引擎 {name} 的 seed_strategy 无效")
+        engine_names.append(name)
+    if len(engine_names) != len(set(engine_names)):
+        raise ValueError("策略中的引擎名称不能重复")
+
+    default_profile: object = policy.get("default_profile")
+    if not isinstance(default_profile, str) or default_profile not in profiles:
+        raise ValueError("default_profile 必须引用已定义的 profile")
+
+    for profile_name, profile_value in profiles.items():
+        if not isinstance(profile_name, str) or not isinstance(profile_value, dict):
+            raise ValueError("profile 配置必须为对象")
+        target_lengths: object = profile_value.get("target_lengths")
+        checkpoint_min: object = profile_value.get("checkpoint_min")
+        timeout: object = profile_value.get("timeout_seconds")
+        acceptance_status: object = profile_value.get("acceptance_status")
+        if not isinstance(target_lengths, dict) or not isinstance(checkpoint_min, str):
+            raise ValueError(f"profile {profile_name} 缺少长度或起始检查点配置")
+        if not isinstance(timeout, int) or timeout <= 0:
+            raise ValueError(f"profile {profile_name} 的 timeout_seconds 必须为正整数")
+        if not isinstance(acceptance_status, str) or not acceptance_status:
+            raise ValueError(f"profile {profile_name} 必须记录 acceptance_status")
+        parse_length_to_bytes(checkpoint_min)
+        for target_length in target_lengths.values():
+            if not isinstance(target_length, str):
+                raise ValueError(f"profile {profile_name} 的目标长度必须是字符串")
+            parse_length_to_bytes(target_length)
+
+    return policy
+
+
+def build_practrand_plan(
+    policy: dict[str, object],
+    profile_name: str,
+    engine_name: str | None = None,
+    length_override: str | None = None,
+    checkpoint_min_override: str | None = None,
+    timeout_override: int | None = None,
+    randx_commit: str = "",
+    practrand_commit: str = "",
+) -> dict[str, object]:
+    """将 profile 和显式覆盖冻结为完整的逐引擎计划."""
+    profiles: dict[str, dict[str, object]] = policy["profiles"]  # type: ignore[assignment]
+    profile: dict[str, object] | None = profiles.get(profile_name)
+    if profile is None:
+        raise ValueError(f"未知 profile: {profile_name}")
+
+    engine_catalog: list[dict[str, object]] = policy["engines"]  # type: ignore[assignment]
+    if engine_name is None:
+        selected_engines: list[dict[str, object]] = engine_catalog
+    else:
+        selected_engines = [engine for engine in engine_catalog if engine["name"] == engine_name]
+        if not selected_engines:
+            raise ValueError(f"未知引擎: {engine_name}")
+
+    runner_budget: dict[str, int] = policy["runner_budget"]  # type: ignore[assignment]
+    available_seconds: int = (
+        runner_budget["job_timeout_minutes"] - runner_budget["reserved_minutes"]
+    ) * 60
+    timeout_seconds: int = timeout_override if timeout_override is not None else int(profile["timeout_seconds"])
+    if timeout_seconds <= 0 or timeout_seconds > available_seconds:
+        raise ValueError(
+            f"单引擎超时 {timeout_seconds}s 必须大于 0 且不超过预留后的 runner 预算 {available_seconds}s"
+        )
+
+    checkpoint_min: str = checkpoint_min_override or str(profile["checkpoint_min"])
+    checkpoint_min_bytes: int = parse_length_to_bytes(checkpoint_min)
+    target_lengths: dict[str, str] = profile["target_lengths"]  # type: ignore[assignment]
+    items: list[dict[str, object]] = []
+    for engine in selected_engines:
+        name: str = str(engine["name"])
+        target_length: str = length_override or target_lengths.get(name, target_lengths.get("default", ""))
+        target_bytes: int = parse_length_to_bytes(target_length)
+        if checkpoint_min_bytes > target_bytes:
+            raise ValueError(f"起始检查点 {checkpoint_min} 大于 {name} 的目标长度 {target_length}")
+
+        width: int = int(engine["input_width_bits"])
+        stream_mode: str = f"stdin{width}"
+        test_parameters: list[str] = [
+            stream_mode,
+            "-tlmin",
+            format_bytes_for_practrand(checkpoint_min_bytes),
+            "-tlmax",
+            format_bytes_for_practrand(target_bytes),
+            "-te",
+            "1",
+        ]
+        seed_strategy: str = str(engine["seed_strategy"])
+        seed_value: int | None = int(policy["fixed_seed"]) if seed_strategy == "fixed" else None
+        items.append(
+            {
+                "engine": name,
+                "randx_commit": randx_commit,
+                "practrand_commit": practrand_commit,
+                "profile": profile_name,
+                "profile_acceptance_status": str(profile["acceptance_status"]),
+                "input_width_bits": width,
+                "seed_strategy": seed_strategy,
+                "seed_value": seed_value,
+                "checkpoint_min_bytes": checkpoint_min_bytes,
+                "target_bytes": target_bytes,
+                "timeout_seconds": timeout_seconds,
+                "test_parameters": test_parameters,
+            }
+        )
+
+    return {
+        "schema_version": "1.0",
+        "profile": profile_name,
+        "profile_acceptance_status": str(profile["acceptance_status"]),
+        "requested_engine": engine_name or "all",
+        "randx_commit": randx_commit,
+        "practrand_commit": practrand_commit,
+        "runner_budget": dict(runner_budget),
+        "items": items,
+    }
+
+
+def validate_plan_item(item: dict[str, object]) -> None:
+    """校验冻结计划中的必需身份字段与实际 PractRand 参数."""
+    required_fields: tuple[str, ...] = (
+        "engine",
+        "randx_commit",
+        "practrand_commit",
+        "profile",
+        "profile_acceptance_status",
+        "input_width_bits",
+        "seed_strategy",
+        "seed_value",
+        "checkpoint_min_bytes",
+        "target_bytes",
+        "timeout_seconds",
+        "test_parameters",
+    )
+    missing_fields: list[str] = [name for name in required_fields if name not in item]
+    if missing_fields:
+        raise ValueError(f"冻结计划缺少必需字段: {', '.join(missing_fields)}")
+
+    engine: str = str(item["engine"])
+    if engine not in ENGINES_64BIT | ENGINES_32BIT:
+        raise ValueError(f"冻结计划包含未知引擎: {engine}")
+    width: int = int(item["input_width_bits"])
+    expected_width: int = 64 if engine in ENGINES_64BIT else 32
+    if width != expected_width:
+        raise ValueError(f"冻结计划的 {engine} 输入位宽与引擎分类不符")
+    minimum: int = int(item["checkpoint_min_bytes"])
+    target: int = int(item["target_bytes"])
+    timeout: int = int(item["timeout_seconds"])
+    if minimum <= 0 or target <= 0 or minimum > target or timeout <= 0:
+        raise ValueError("冻结计划中的长度或超时无效")
+    if item["seed_strategy"] == "fixed" and not isinstance(item["seed_value"], int):
+        raise ValueError("固定 seed 策略必须带整数 seed_value")
+    if item["seed_strategy"] == "os_entropy" and item["seed_value"] is not None:
+        raise ValueError("OS 熵 seed 策略的 seed_value 必须为空")
+
+    expected_parameters: list[str] = [
+        f"stdin{width}",
+        "-tlmin",
+        format_bytes_for_practrand(minimum),
+        "-tlmax",
+        format_bytes_for_practrand(target),
+        "-te",
+        "1",
+    ]
+    if item["test_parameters"] != expected_parameters:
+        raise ValueError("冻结计划中的实际测试参数与身份字段不一致")
+
+
+def read_plan_item(plan_path: Path | str) -> dict[str, object]:
+    """从 matrix 传入的 JSON 读取唯一引擎计划."""
+    with Path(plan_path).open("r", encoding="utf-8") as plan_file:
+        item: dict[str, object] = json.load(plan_file)
+    if not isinstance(item, dict):
+        raise ValueError("单引擎计划必须是 JSON 对象")
+    validate_plan_item(item)
+    return item
+
+
 def get_git_commit(cwd: Path) -> str:
     """获取指定仓库的 HEAD commit 哈希。"""
     try:
@@ -307,6 +527,16 @@ def find_practrand() -> str:
     if candidate_no_ext.exists():
         return str(candidate_no_ext)
     return shutil.which("RNG_test") or ""
+
+
+def load_practrand_build_commit(binary: str | list[str]) -> str:
+    """读取测试二进制所在目录的构建来源记录。"""
+    executable: str = binary[0] if isinstance(binary, list) else binary
+    metadata: Path = Path(executable).resolve().parent / "practrand-commit.txt"
+    try:
+        return metadata.read_text(encoding="utf-8").strip() or "unknown"
+    except OSError:
+        return "unknown"
 
 
 def ensure_generator_built() -> str:
@@ -416,7 +646,7 @@ def parse_checkpoints(output: str) -> list[Checkpoint]:
     checkpoints: list[Checkpoint] = []
     current_cp: Checkpoint | None = None
 
-    for line in output.splitlines(keepends=True):
+    for line_number, line in enumerate(output.splitlines(keepends=True), start=1):
         m_len = LENGTH_BYTES_PATTERN.search(line)
         m_pow2 = POWER_OF_TWO_BYTES_PATTERN.search(line)
         is_checkpoint_start = bool(m_len or (CHECKPOINT_LINE_PATTERN.search(line) and m_pow2))
@@ -424,6 +654,7 @@ def parse_checkpoints(output: str) -> list[Checkpoint]:
             if current_cp is not None:
                 checkpoints.append(current_cp)
             current_cp = Checkpoint()
+            current_cp.start_line = line_number
             current_cp.lines.append(line)
 
             if m_pow2:
@@ -446,11 +677,19 @@ def parse_checkpoints(output: str) -> list[Checkpoint]:
         cp.has_failure = any(p.search(cp_text) for p in FAILURE_PATTERNS)
 
         explicit_eval_count = 0
-        for line in cp.lines:
+        for line_offset, line in enumerate(cp.lines):
+            line_index = cp.start_line + line_offset
             if EXPLICIT_TEST_EVAL_PATTERN.search(line):
                 explicit_eval_count += 1
-            if any(p.search(line) for p in SUSPICIOUS_PATTERNS) and not any(p.search(line) for p in FAILURE_PATTERNS):
-                cp.suspicious_count += 1
+            if any(p.search(line) for p in SUSPICIOUS_PATTERNS):
+                cp.suspicious_markers.append(
+                    {
+                        "test_name": line.strip(),
+                        "line_number": line_index,
+                    }
+                )
+                if not any(p.search(line) for p in FAILURE_PATTERNS):
+                    cp.suspicious_count += 1
 
         for pat in CHECKPOINT_COMPLETE_PATTERNS:
             m_comp = pat.search(cp_text)
@@ -482,6 +721,59 @@ def parse_practrand_output(output: str, target_bytes: int) -> tuple[int, int, bo
     return best_cp.tested_bytes, best_cp.test_count, has_failure, total_suspicious
 
 
+def checkpoint_evidence(output: str, log_file: str) -> tuple[list[dict[str, object]], list[dict[str, str | int]], int]:
+    """生成可重复计算的检查点证据和全程可疑标记位置."""
+    checkpoints: list[Checkpoint] = parse_checkpoints(output)
+    serialized_checkpoints: list[dict[str, object]] = []
+    all_markers: list[dict[str, str | int]] = []
+    for checkpoint_index, checkpoint in enumerate(checkpoints, start=1):
+        markers: list[dict[str, str | int]] = [
+            {
+                "test_name": str(marker["test_name"]),
+                "checkpoint_bytes": checkpoint.tested_bytes,
+                "checkpoint_index": checkpoint_index,
+                "line_number": int(marker["line_number"]),
+                "log_file": log_file,
+            }
+            for marker in checkpoint.suspicious_markers
+        ]
+        all_markers.extend(markers)
+        serialized_checkpoints.append(
+            {
+                "checkpoint_index": checkpoint_index,
+                "tested_bytes": checkpoint.tested_bytes,
+                "completed": checkpoint.is_complete,
+                "test_count": checkpoint.test_count,
+                "suspicious_count": checkpoint.suspicious_count,
+                "has_failure": checkpoint.has_failure,
+                "suspicious_markers": markers,
+            }
+        )
+    return serialized_checkpoints, all_markers, len(all_markers)
+
+
+def update_result_checkpoint_evidence(result: TestResult, output: str) -> None:
+    """按最新完整输出快照替换检查点证据，避免重复读取累计计数."""
+    checkpoints, markers, run_suspicious_count = checkpoint_evidence(output, result.log_file)
+    completed: list[dict[str, object]] = [item for item in checkpoints if item["completed"] is True]
+    best_checkpoint: dict[str, object] | None = max(
+        completed,
+        key=lambda item: int(item["tested_bytes"]),
+        default=None,
+    )
+    result.checkpoints = checkpoints
+    result.suspicious_markers = markers
+    result.run_suspicious_count = run_suspicious_count
+    if best_checkpoint is None:
+        result.reported_tested_bytes = 0
+        result.test_count = 0
+        result.suspicious_count = 0
+    else:
+        result.reported_tested_bytes = int(best_checkpoint["tested_bytes"])
+        result.test_count = int(best_checkpoint["test_count"])
+        result.suspicious_count = int(best_checkpoint["suspicious_count"])
+
+
 def classify_result(
     full_output: str,
     target_bytes: int,
@@ -493,6 +785,7 @@ def classify_result(
     generator_termination_cause: str = "natural_exit",
     tester_termination_cause: str = "natural_exit",
     gen_cleanup_requested: bool = False,
+    cancelled: bool = False,
 ) -> ClassificationOutput:
     """根据 PractRand 报告、退出码与进程终止原因进行两轴判定。"""
     reason_codes: list[str] = []
@@ -526,9 +819,12 @@ def classify_result(
     if timed_out:
         execution_status = "timeout"
         reason_codes.append("TIMEOUT")
+    elif cancelled:
+        execution_status = "cancelled"
+        reason_codes.append("CANCELLED")
 
     if gen_returncode is None and "GENERATOR_UNKNOWN_EXIT" not in reason_codes:
-        if execution_status != "timeout":
+        if execution_status not in ("timeout", "cancelled"):
             execution_status = "unknown"
         reason_codes.append("GENERATOR_UNKNOWN_EXIT")
 
@@ -584,6 +880,9 @@ def classify_result(
     elif execution_status == "timeout":
         status = "inconclusive"
         reason = f"单引擎测试超时 ({timeout_seconds}s)"
+    elif execution_status == "cancelled":
+        status = "inconclusive"
+        reason = "测试运行被取消，已保留可用检查点证据"
     elif statistical_status == "insufficient_evidence":
         if "EMPTY_OUTPUT" in reason_codes:
             status = "environment_error"
@@ -658,44 +957,78 @@ def test_engine(
     practrand: str | list[str],
     engine: str,
     length: str,
-    seed: int = 0x9E3779B97F4A7C15,
-    timeout_seconds: int = 14400,
+    seed: int = DEFAULT_PRNG_SEED,
+    timeout_seconds: int = DEFAULT_TEST_TIMEOUT_SECONDS,
     env: dict[str, str] | None = None,
     generator_env: dict[str, str] | None = None,
     tester_env: dict[str, str] | None = None,
+    checkpoint_min_bytes: int | None = None,
+    plan_item: dict[str, object] | None = None,
+    on_update: Callable[[TestResult], None] | None = None,
 ) -> TestResult:
     """运行单引擎测试，执行进程隔离、超时回收与状态判定。"""
+    global CANCELLATION_REQUESTED
+
+    if plan_item is not None:
+        timeout_seconds = int(plan_item["timeout_seconds"])
     LOGS_DIR.mkdir(parents=True, exist_ok=True)
     timestamp = int(time.time() * 1000)
     tester_log_path = LOGS_DIR / f"{engine}_{timestamp}_tester.log"
     gen_log_path = LOGS_DIR / f"{engine}_{timestamp}_generator.log"
 
-    target_bytes = parse_length_to_bytes(length)
+    target_bytes: int = int(plan_item["target_bytes"]) if plan_item is not None else parse_length_to_bytes(length)
+    minimum_bytes: int = (
+        int(plan_item["checkpoint_min_bytes"])
+        if plan_item is not None
+        else (checkpoint_min_bytes if checkpoint_min_bytes is not None else target_bytes)
+    )
     practrand_len = format_bytes_for_practrand(target_bytes)
-    is_64bit = engine in ENGINES_64BIT
-    stream_mode = "stdin64" if is_64bit else "stdin32"
+    stream_mode = f"stdin{int(plan_item['input_width_bits'])}" if plan_item is not None else (
+        "stdin64" if engine in ENGINES_64BIT else "stdin32"
+    )
 
     gen_base = [generator] if isinstance(generator, str) else list(generator)
     pr_base = [practrand] if isinstance(practrand, str) else list(practrand)
 
+    effective_seed: int = int(plan_item["seed_value"]) if plan_item is not None and plan_item["seed_strategy"] == "fixed" else seed
     gen_cmd = (
         [*gen_base, engine]
         if engine == CSPRNG_ENGINE
-        else [*gen_base, engine, str(seed)]
+        else [*gen_base, engine, str(effective_seed)]
     )
-    pr_cmd = [*pr_base, stream_mode, "-tlmin", practrand_len, "-tlmax", practrand_len, "-te", "1"]
+    test_parameters: list[str] = list(plan_item["test_parameters"]) if plan_item is not None else [
+        stream_mode,
+        "-tlmin",
+        format_bytes_for_practrand(minimum_bytes),
+        "-tlmax",
+        practrand_len,
+        "-te",
+        "1",
+    ]
+    pr_cmd = [*pr_base, *test_parameters]
 
     result = TestResult(
         engine=engine,
+        status="inconclusive",
+        execution_status="unknown",
+        statistical_status="insufficient_evidence",
         randx_commit=get_git_commit(REPO_ROOT),
-        practrand_commit=load_practrand_lock_commit(),
+        practrand_commit=load_practrand_build_commit(practrand),
         command=pr_cmd,
-        seed="os_entropy" if engine == CSPRNG_ENGINE else seed,
+        seed="os_entropy" if engine == CSPRNG_ENGINE else effective_seed,
         target_bytes=target_bytes,
         log_file=str(tester_log_path),
         generator_log_file=str(gen_log_path),
+        profile=str(plan_item.get("profile", "")) if plan_item is not None else "",
+        profile_acceptance_status=str(plan_item.get("profile_acceptance_status", "")) if plan_item is not None else "",
+        input_width_bits=int(plan_item["input_width_bits"]) if plan_item is not None else (64 if engine in ENGINES_64BIT else 32),
+        seed_strategy=str(plan_item["seed_strategy"]) if plan_item is not None else ("os_entropy" if engine == CSPRNG_ENGINE else "fixed"),
+        seed_value=plan_item.get("seed_value") if plan_item is not None else (None if engine == CSPRNG_ENGINE else seed),
+        checkpoint_min_bytes=minimum_bytes,
+        timeout_seconds=timeout_seconds,
+        test_parameters=test_parameters,
+        phase="running",
     )
-
     print(f"\n[test] {engine} (length={length}, mode={stream_mode})", file=sys.stderr)
     print(f"  pipeline: {' '.join(gen_cmd)} | {' '.join(pr_cmd)}", file=sys.stderr)
 
@@ -712,11 +1045,31 @@ def test_engine(
     gen_term_cause = "natural_exit"
     pr_term_cause = "natural_exit"
     timed_out = False
+    cancelled = False
 
     effective_gen_env = generator_env if generator_env is not None else env
     effective_tester_env = tester_env if tester_env is not None else env
 
+    last_checkpoint_snapshot: str = ""
+
+    def update_progress(new_text: str) -> None:
+        nonlocal last_checkpoint_snapshot
+        if not new_text:
+            return
+        current_output: str = tester_log_path.read_text(encoding="utf-8", errors="replace")
+        update_result_checkpoint_evidence(result, current_output)
+        checkpoint_snapshot: str = json.dumps(result.checkpoints, ensure_ascii=False, sort_keys=True)
+        if checkpoint_snapshot != last_checkpoint_snapshot:
+            last_checkpoint_snapshot = checkpoint_snapshot
+            if on_update is not None:
+                on_update(result)
+
     try:
+        if on_update is not None:
+            on_update(result)
+        if CANCELLATION_REQUESTED:
+            raise KeyboardInterrupt
+
         gen_log_f = open(gen_log_path, "w", encoding="utf-8", errors="replace")
         tester_log_f = open(tester_log_path, "w", encoding="utf-8", errors="replace")
 
@@ -735,6 +1088,9 @@ def test_engine(
             result.reason_codes = ["PROCESS_START_FAILURE"]
             result.generator = {"returncode": None, "termination_cause": "start_failure", "cleanup_requested": False}
             result.tester = {"returncode": None, "termination_cause": "not_started"}
+            result.phase = "final"
+            if on_update is not None:
+                on_update(result)
             return result
 
         try:
@@ -758,6 +1114,9 @@ def test_engine(
                 "cleanup_requested": False,
             }
             result.tester = {"returncode": None, "termination_cause": "start_failure"}
+            result.phase = "final"
+            if on_update is not None:
+                on_update(result)
             return result
         finally:
             if gen_proc is not None and gen_proc.stdout is not None:
@@ -768,6 +1127,12 @@ def test_engine(
         gen_early_fail_time = 0.0
 
         while True:
+            if CANCELLATION_REQUESTED:
+                cancelled = True
+                pr_term_cause = "cancelled"
+                gen_term_cause = "cancelled"
+                break
+
             now = time.monotonic()
             if now >= deadline:
                 timed_out = True
@@ -777,8 +1142,11 @@ def test_engine(
 
             new_text = reader_f.read()
             if new_text:
+                update_progress(new_text)
                 sys.stderr.write(new_text)
                 sys.stderr.flush()
+                if CANCELLATION_REQUESTED:
+                    raise KeyboardInterrupt
 
             if pr_proc.poll() is not None:
                 pr_term_cause = "natural_exit" if pr_proc.returncode == 0 else "non_zero_exit"
@@ -796,8 +1164,14 @@ def test_engine(
 
         remaining = reader_f.read()
         if remaining:
+            update_progress(remaining)
             sys.stderr.write(remaining)
             sys.stderr.flush()
+
+        if CANCELLATION_REQUESTED:
+            cancelled = True
+            pr_term_cause = "cancelled"
+            gen_term_cause = "cancelled"
 
         if timed_out:
             _terminate_and_kill(pr_proc, timeout=SUBPROCESS_CLEANUP_TIMEOUT_SECONDS)
@@ -841,6 +1215,14 @@ def test_engine(
             if pr_proc.poll() is not None:
                 pr_term_cause = "natural_exit" if pr_proc.returncode == 0 else ("unexpected_signal" if pr_proc.returncode < 0 else "non_zero_exit")
 
+    except KeyboardInterrupt:
+        CANCELLATION_REQUESTED = True
+        cancelled = True
+        pr_term_cause = "cancelled"
+        gen_term_cause = "cancelled"
+        gen_cleanup_requested = True
+        _terminate_and_kill(pr_proc, timeout=SUBPROCESS_CLEANUP_TIMEOUT_SECONDS)
+        _terminate_and_kill(gen_proc, timeout=SUBPROCESS_CLEANUP_TIMEOUT_SECONDS)
     finally:
         if reader_f is not None and not reader_f.closed:
             reader_f.close()
@@ -852,6 +1234,9 @@ def test_engine(
             _terminate_and_kill(gen_proc, timeout=SUBPROCESS_CLEANUP_TIMEOUT_SECONDS)
         if pr_proc is not None and pr_proc.poll() is None:
             _terminate_and_kill(pr_proc, timeout=SUBPROCESS_CLEANUP_TIMEOUT_SECONDS)
+
+    if CANCELLATION_REQUESTED:
+        cancelled = True
 
     result.duration_seconds = round(time.monotonic() - start_time, 2)
     result.gen_returncode = gen_proc.returncode if gen_proc is not None else None
@@ -872,28 +1257,38 @@ def test_engine(
             full_output = tester_log_path.read_text(encoding="utf-8", errors="replace")
         except Exception:
             pass
+    update_result_checkpoint_evidence(result, full_output)
 
-    classification = classify_result(
-        full_output=full_output,
-        target_bytes=target_bytes,
-        pr_returncode=result.pr_returncode,
-        gen_returncode=result.gen_returncode,
-        timed_out=timed_out,
-        timeout_seconds=timeout_seconds,
-        length=length,
-        generator_termination_cause=gen_term_cause,
-        tester_termination_cause=pr_term_cause,
-        gen_cleanup_requested=gen_cleanup_requested,
-    )
+    def apply_classification(cancelled_value: bool) -> None:
+        classification = classify_result(
+            full_output=full_output,
+            target_bytes=target_bytes,
+            pr_returncode=result.pr_returncode,
+            gen_returncode=result.gen_returncode,
+            timed_out=timed_out,
+            timeout_seconds=timeout_seconds,
+            length=length,
+            generator_termination_cause=gen_term_cause,
+            tester_termination_cause=pr_term_cause,
+            gen_cleanup_requested=gen_cleanup_requested,
+            cancelled=cancelled_value,
+        )
+        result.status = classification.status
+        result.execution_status = classification.execution_status
+        result.statistical_status = classification.statistical_status
+        result.reason = classification.reason
+        result.reason_codes = classification.reason_codes
+        result.reported_tested_bytes = classification.reported_tested_bytes
+        result.test_count = classification.test_count
+        result.suspicious_count = classification.suspicious_count
 
-    result.status = classification.status
-    result.execution_status = classification.execution_status
-    result.statistical_status = classification.statistical_status
-    result.reason = classification.reason
-    result.reason_codes = classification.reason_codes
-    result.reported_tested_bytes = classification.reported_tested_bytes
-    result.test_count = classification.test_count
-    result.suspicious_count = classification.suspicious_count
+    apply_classification(cancelled or CANCELLATION_REQUESTED)
+    result.phase = "final"
+    if on_update is not None:
+        on_update(result)
+        if CANCELLATION_REQUESTED and result.execution_status != "cancelled":
+            apply_classification(True)
+            on_update(result)
 
     return result
 
@@ -902,93 +1297,233 @@ def test_engine(
 # 主入口
 # ============================================================================
 
-def main() -> int:
-    parser = argparse.ArgumentParser(description="RandX PractRand 统计质量验证驱动")
-    parser.add_argument(
-        "--engine",
-        help="只测单个引擎（默认测全部 8 个）",
-        choices=[*STATISTICAL_ENGINES, CSPRNG_ENGINE],
+def environment_error_result(item: dict[str, object], message: str) -> TestResult:
+    """为未能启动的计划项目保留带完整身份的环境错误报告."""
+    result: TestResult = TestResult(
+        engine=str(item["engine"]),
+        status="environment_error",
+        execution_status="failed",
+        statistical_status="insufficient_evidence",
+        reason=message,
+        reason_codes=["PROCESS_START_FAILURE"],
+        randx_commit=str(item["randx_commit"]),
+        practrand_commit=str(item["practrand_commit"]),
+        seed=("os_entropy" if item["seed_strategy"] == "os_entropy" else int(item["seed_value"])),
+        target_bytes=int(item["target_bytes"]),
+        profile=str(item["profile"]),
+        profile_acceptance_status=str(item["profile_acceptance_status"]),
+        input_width_bits=int(item["input_width_bits"]),
+        seed_strategy=str(item["seed_strategy"]),
+        seed_value=item["seed_value"],
+        checkpoint_min_bytes=int(item["checkpoint_min_bytes"]),
+        timeout_seconds=int(item["timeout_seconds"]),
+        test_parameters=list(item["test_parameters"]),
+        phase="final",
     )
-    parser.add_argument(
-        "--length",
-        help="覆盖默认测试长度（如 4GB、512MB、32MB）",
-    )
-    parser.add_argument(
-        "--keep-going",
-        action="store_true",
-        help="单个引擎失败时仍继续后续引擎",
-    )
-    parser.add_argument(
-        "--output-json",
-        help="保存结构化报告结果到 JSON 文件",
-    )
-    args = parser.parse_args()
+    return result
 
-    # 1. 查找 PractRand RNG_test
-    practrand = find_practrand()
-    if not practrand:
-        print(
-            f"错误：找不到 PractRand 的 RNG_test 可执行文件。\n"
-            f"请先运行 {SCRIPT_DIR}/download_practrand.sh 构建，或将 RNG_test 放入 PATH。",
-            file=sys.stderr,
-        )
-        return 2
 
-    # 2. 编译或更新生成器
+def cancelled_before_start_result(item: dict[str, object]) -> TestResult:
+    """为启动前收到取消请求的冻结项目保留终态报告."""
+    return TestResult(
+        engine=str(item["engine"]),
+        status="inconclusive",
+        execution_status="cancelled",
+        statistical_status="insufficient_evidence",
+        reason="项目启动前收到取消请求",
+        reason_codes=["CANCELLED"],
+        randx_commit=str(item["randx_commit"]),
+        practrand_commit=str(item["practrand_commit"]),
+        seed="os_entropy" if item["seed_strategy"] == "os_entropy" else int(item["seed_value"]),
+        target_bytes=int(item["target_bytes"]),
+        profile=str(item["profile"]),
+        profile_acceptance_status=str(item["profile_acceptance_status"]),
+        input_width_bits=int(item["input_width_bits"]),
+        seed_strategy=str(item["seed_strategy"]),
+        seed_value=item["seed_value"],
+        checkpoint_min_bytes=int(item["checkpoint_min_bytes"]),
+        timeout_seconds=int(item["timeout_seconds"]),
+        test_parameters=list(item["test_parameters"]),
+        generator={"returncode": None, "termination_cause": "not_started", "cleanup_requested": False},
+        tester={"returncode": None, "termination_cause": "not_started"},
+        phase="final",
+    )
+
+
+def mark_result_cancelled(result: TestResult) -> None:
+    """将尚未完成的通过结果改为取消终态，同时保留统计证据."""
+    if result.status not in ("statistical_failure", "environment_error") and result.execution_status != "cancelled":
+        result.status = "inconclusive"
+        result.execution_status = "cancelled"
+        result.reason = "测试运行被取消，已保留可用检查点证据"
+        if "CANCELLED" not in result.reason_codes:
+            result.reason_codes.append("CANCELLED")
+
+
+def persist_result_update(
+    results: list[TestResult],
+    result: TestResult,
+    output_json: Path | str | None = None,
+) -> None:
+    """替换同一项目的最新状态，并以既有项目数组格式原子保存."""
+    for result_index, previous in enumerate(results):
+        if previous.engine == result.engine:
+            results[result_index] = result
+            break
+    else:
+        results.append(result)
+    if output_json is not None:
+        atomic_write_json(output_json, [asdict(project) for project in results])
+
+
+def parse_arguments(arguments: list[str] | None = None) -> argparse.Namespace:
+    """解析兼容既有运行参数并支持 profile 与冻结计划入口的命令行."""
+    parser: argparse.ArgumentParser = argparse.ArgumentParser(description="RandX PractRand 统计质量验证驱动")
+    parser.add_argument("--engine", help="只测单个引擎")
+    parser.add_argument("--length", help="覆盖 profile 目标长度（如 4GB、512MB、32MB）")
+    parser.add_argument("--keep-going", action="store_true", help="单个引擎失败时仍继续后续引擎")
+    parser.add_argument("--output-json", help="增量保存项目数组格式的结构化报告")
+    parser.add_argument("--profile", help="使用策略中的 profile")
+    parser.add_argument("--checkpoint-min", help="覆盖最早的 PractRand 检查点")
+    parser.add_argument("--timeout", type=int, help="覆盖单引擎超时秒数")
+    parser.add_argument("--plan-output", help="只生成冻结计划 JSON，不启动测试")
+    parser.add_argument("--plan-item", help="按冻结的单引擎计划运行")
+    parser.add_argument("--github-output", help="向 GitHub Actions 输出矩阵和 profile 验收状态")
+    return parser.parse_args(arguments)
+
+
+def write_github_plan_output(output_path: Path | str, plan: dict[str, object]) -> None:
+    """写入 GitHub Actions matrix 和 profile 状态输出."""
+    items: list[dict[str, object]] = plan["items"]  # type: ignore[assignment]
+    matrix: dict[str, object] = {"include": [{"engine": item["engine"]} for item in items]}
+    output_file: Path = Path(output_path)
+    output_file.parent.mkdir(parents=True, exist_ok=True)
+    with output_file.open("a", encoding="utf-8", newline="\n") as stream:
+        stream.write(f"matrix={json.dumps(matrix, ensure_ascii=False, separators=(',', ':'))}\n")
+        stream.write(f"acceptance_status={plan['profile_acceptance_status']}\n")
+        runner_budget: dict[str, int] = plan["runner_budget"]  # type: ignore[assignment]
+        stream.write(f"job_timeout_minutes={runner_budget['job_timeout_minutes']}\n")
+
+
+def _run_main(arguments: list[str] | None = None) -> int:
+    args: argparse.Namespace = parse_arguments(arguments)
     try:
-        generator = ensure_generator_built()
-    except (FileNotFoundError, RuntimeError) as e:
-        print(f"错误：{e}", file=sys.stderr)
+        policy: dict[str, object] = load_practrand_policy()
+        if args.plan_item:
+            if any((args.engine, args.length, args.profile, args.checkpoint_min, args.timeout is not None, args.plan_output)):
+                raise ValueError("--plan-item 运行不能与 profile 或其 CLI 覆盖项并用")
+            items: list[dict[str, object]] = [read_plan_item(args.plan_item)]
+        else:
+            default_profile: str = str(policy["default_profile"])
+            profile_name: str = args.profile or default_profile
+            randx_commit: str = get_git_commit(REPO_ROOT)
+            practrand_commit: str = load_practrand_lock_commit()
+            if not randx_commit or randx_commit == "unknown":
+                raise ValueError("无法确定 RandX 提交，不能冻结 PractRand 计划")
+            if not practrand_commit or practrand_commit == "unknown":
+                raise ValueError("无法从 practrand.lock 确定 PractRand 提交")
+            plan: dict[str, object] = build_practrand_plan(
+                policy=policy,
+                profile_name=profile_name,
+                engine_name=args.engine,
+                length_override=args.length,
+                checkpoint_min_override=args.checkpoint_min,
+                timeout_override=args.timeout,
+                randx_commit=randx_commit,
+                practrand_commit=practrand_commit,
+            )
+            items = plan["items"]  # type: ignore[assignment]
+            if args.plan_output:
+                atomic_write_json(args.plan_output, plan)
+                if args.github_output:
+                    write_github_plan_output(args.github_output, plan)
+                return 0
+            if args.github_output:
+                raise ValueError("--github-output 只能与 --plan-output 并用")
+    except (OSError, TypeError, ValueError, KeyError, json.JSONDecodeError) as error:
+        print(f"参数或策略错误：{error}", file=sys.stderr)
         return 2
 
-    # 3. 确定测试引擎列表
-    engines = [args.engine] if args.engine else [*STATISTICAL_ENGINES, CSPRNG_ENGINE]
-    if not engines:
-        print("错误：未指定任何测试引擎。", file=sys.stderr)
-        return 2
-
-    # 4. 执行测试
     results: list[TestResult] = []
 
-    for eng in engines:
-        length = (
-            args.length
-            if args.length
-            else (CSPRNG_LENGTH if eng == CSPRNG_ENGINE else STATISTICAL_PRNG_LENGTH)
+    def persist_result(result: TestResult) -> None:
+        persist_result_update(results, result, args.output_json)
+
+    practrand: str = "" if CANCELLATION_REQUESTED else find_practrand()
+    setup_error: str = ""
+    if not practrand and not CANCELLATION_REQUESTED:
+        setup_error = (
+            f"找不到 PractRand 的 RNG_test。请先运行 {SCRIPT_DIR}/download_practrand.sh 构建，"
+            "或将 RNG_test 放入 PATH。"
         )
-        res = test_engine(generator, practrand, eng, length)
-        results.append(res)
+    generator: str = ""
+    if not setup_error and not CANCELLATION_REQUESTED:
+        try:
+            generator = ensure_generator_built()
+        except (FileNotFoundError, RuntimeError, OSError) as error:
+            setup_error = f"生成器构建失败：{error}"
+
+    for item in items:
+        if CANCELLATION_REQUESTED:
+            result: TestResult = cancelled_before_start_result(item)
+            persist_result(result)
+        elif setup_error:
+            result: TestResult = environment_error_result(item, setup_error)
+            persist_result(result)
+        else:
+            result = test_engine(
+                generator=generator,
+                practrand=practrand,
+                engine=str(item["engine"]),
+                length=format_bytes_for_practrand(int(item["target_bytes"])),
+                seed=int(item["seed_value"]) if item["seed_value"] is not None else DEFAULT_PRNG_SEED,
+                timeout_seconds=int(item["timeout_seconds"]),
+                plan_item=item,
+                on_update=persist_result,
+            )
+            if CANCELLATION_REQUESTED:
+                mark_result_cancelled(result)
+                persist_result(result)
 
         print(
-            f"\n[result] {eng}: status={res.status}, tested={res.reported_tested_bytes}/{res.target_bytes} bytes, tests={res.test_count}",
+            f"\n[result] {result.engine}: status={result.status}, tested={result.reported_tested_bytes}/{result.target_bytes} bytes, tests={result.test_count}",
             file=sys.stderr,
         )
-        if res.status != "pass":
-            print(f"  reason: {res.reason}", file=sys.stderr)
-
-        if res.status != "pass" and not args.keep_going:
+        if result.status != "pass":
+            print(f"  reason: {result.reason}", file=sys.stderr)
+        if result.execution_status == "cancelled":
+            continue
+        if result.status != "pass" and not args.keep_going:
             break
 
-    overall_exit_code = compute_overall_exit_code(results)
-
-    # 5. 输出汇总
+    overall_exit_code: int = compute_overall_exit_code(results)
     print("\n" + "=" * 60, file=sys.stderr)
     print("PractRand 统计质量测试汇总：", file=sys.stderr)
-    for r in results:
-        print(
-            f"  - {r.engine:15s} [{r.status.upper():20s}] {r.reason}",
-            file=sys.stderr,
-        )
-
-    if args.output_json:
-        try:
-            atomic_write_json(args.output_json, [asdict(r) for r in results])
-            print(f"\n已写入结构化报告: {args.output_json}", file=sys.stderr)
-        except Exception as e:
-            print(f"写入报告 JSON 失败: {e}", file=sys.stderr)
-            return 2
-
+    for result in results:
+        print(f"  - {result.engine:15s} [{result.status.upper():20s}] {result.reason}", file=sys.stderr)
     return overall_exit_code
+
+
+def _handle_cancellation(signum: int, frame: object) -> None:
+    """记录终止请求，由执行流程在安全边界清理并保存终态证据。"""
+    global CANCELLATION_REQUESTED
+    CANCELLATION_REQUESTED = True
+
+
+def main(arguments: list[str] | None = None) -> int:
+    global CANCELLATION_REQUESTED
+    signals: tuple[int, ...] = (signal.SIGINT, signal.SIGTERM)
+    previous_handlers: dict[int, object] = {}
+    previous_cancellation_request: bool = CANCELLATION_REQUESTED
+    CANCELLATION_REQUESTED = False
+    try:
+        for signum in signals:
+            previous_handlers[signum] = signal.signal(signum, _handle_cancellation)
+        return _run_main(arguments)
+    finally:
+        for signum, handler in previous_handlers.items():
+            signal.signal(signum, handler)
+        CANCELLATION_REQUESTED = previous_cancellation_request
 
 
 if __name__ == "__main__":

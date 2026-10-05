@@ -1,25 +1,25 @@
 name: PractRand Nightly
 
-# 每晚运行 PractRand 统计质量验证（非 push 触发，因耗时长）
-# 8 引擎全覆盖：7 统计 PRNG 各 1TB + ChaCha20 256GB
-# 失败时自动创建 issue 通知维护者
 on:
   schedule:
-    # 每天 16:00 UTC（北京 00:00）
     - cron: '0 16 * * *'
   workflow_dispatch:
     inputs:
-      length:
-        description: '测试长度（默认 1TB/256GB；快速验证可用 4GB）'
-        required: false
-        default: ''
-      engine:
-        description: '只测单个引擎（留空测全部 8 个）'
-        required: false
-        default: ''
+      profile:
+        description: '检验规模 profile'
+        required: true
+        default: quick
         type: choice
         options:
-          - ''
+          - quick
+          - nightly
+      engine:
+        description: '测试全部引擎或选择单个引擎'
+        required: true
+        default: all
+        type: choice
+        options:
+          - all
           - xoshiro256
           - xoroshiro128
           - xoshiro128
@@ -28,6 +28,21 @@ on:
           - sfc64
           - romuduojr
           - chacha20
+      length:
+        description: '覆盖 profile 目标长度，例如 4GB'
+        required: false
+        default: ''
+        type: string
+      checkpoint_min:
+        description: '覆盖最早检查点，例如 1MB'
+        required: false
+        default: ''
+        type: string
+      timeout:
+        description: '覆盖单引擎超时秒数'
+        required: false
+        default: ''
+        type: string
 
 permissions:
   contents: read
@@ -38,9 +53,53 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  practrand:
+  plan:
     runs-on: ubuntu-24.04
-    timeout-minutes: 360  # GitHub 托管运行器硬上限 6 小时
+    outputs:
+      matrix: ${{ steps.create-plan.outputs.matrix }}
+      acceptance_status: ${{ steps.create-plan.outputs.acceptance_status }}
+      job_timeout_minutes: ${{ steps.create-plan.outputs.job_timeout_minutes }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create frozen PractRand plan
+        id: create-plan
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          INPUT_PROFILE: ${{ inputs.profile }}
+          INPUT_ENGINE: ${{ inputs.engine }}
+          INPUT_LENGTH: ${{ inputs.length }}
+          INPUT_CHECKPOINT_MIN: ${{ inputs.checkpoint_min }}
+          INPUT_TIMEOUT: ${{ inputs.timeout }}
+        run: |
+          PROFILE="$INPUT_PROFILE"
+          ENGINE="$INPUT_ENGINE"
+          if [ "$EVENT_NAME" = "schedule" ]; then PROFILE=nightly; fi
+          if [ -z "$PROFILE" ]; then PROFILE=quick; fi
+          if [ -z "$ENGINE" ]; then ENGINE=all; fi
+          ARGS=(--profile "$PROFILE" --plan-output practrand-plan.json --github-output "$GITHUB_OUTPUT")
+          if [ "$ENGINE" != "all" ]; then ARGS+=(--engine "$ENGINE"); fi
+          if [ -n "$INPUT_LENGTH" ]; then ARGS+=(--length "$INPUT_LENGTH"); fi
+          if [ -n "$INPUT_CHECKPOINT_MIN" ]; then ARGS+=(--checkpoint-min "$INPUT_CHECKPOINT_MIN"); fi
+          if [ -n "$INPUT_TIMEOUT" ]; then ARGS+=(--timeout "$INPUT_TIMEOUT"); fi
+          python3 tools/pract_rand/run_practrand.py "${ARGS[@]}"
+
+      - name: Upload frozen plan
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: practrand-plan-${{ github.run_id }}-${{ github.run_attempt }}
+          path: practrand-plan.json
+          if-no-files-found: warn
+
+  practrand:
+    needs: plan
+    if: needs.plan.result == 'success' && needs.plan.outputs.matrix != ''
+    runs-on: ubuntu-24.04
+    timeout-minutes: ${{ fromJSON(needs.plan.outputs.job_timeout_minutes) }}
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
     steps:
       - uses: actions/checkout@v4
 
@@ -61,56 +120,150 @@ jobs:
         working-directory: tools/pract_rand
         run: bash download_practrand.sh
 
-      - name: Run PractRand tests
-        id: tests
-        working-directory: tools/pract_rand
-        env:
-          INPUT_LENGTH: ${{ github.event.inputs.length }}
-          INPUT_ENGINE: ${{ github.event.inputs.engine }}
-        run: |
-          ARGS=()
-          if [ -n "$INPUT_LENGTH" ]; then ARGS+=(--length "$INPUT_LENGTH"); fi
-          if [ -n "$INPUT_ENGINE" ]; then ARGS+=(--engine "$INPUT_ENGINE"); fi
-          # --keep-going 保证全部引擎跑完（便于 issue 中列出所有失败引擎）
-          python3 run_practrand.py --keep-going "${ARGS[@]}"
+      - name: Download matrix frozen plan
+        uses: actions/download-artifact@v4
+        with:
+          name: practrand-plan-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/plan
 
-      - name: Create issue on failure
-        if: failure() && github.event_name == 'schedule'
+      - name: Write frozen matrix item
+        env:
+          ENGINE: ${{ matrix.engine }}
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          plan = json.loads(Path("artifacts/plan/practrand-plan.json").read_text(encoding="utf-8"))
+          item = next(item for item in plan["items"] if item["engine"] == os.environ["ENGINE"])
+          Path("plan-item.json").write_text(json.dumps(item, ensure_ascii=False), encoding="utf-8")
+          PY
+
+      - name: Run PractRand project
+        env:
+          ENGINE: ${{ matrix.engine }}
+        run: |
+          mkdir -p reports
+          python3 tools/pract_rand/run_practrand.py --plan-item plan-item.json --output-json "reports/${ENGINE}.json"
+
+      - name: Upload project logs and report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: practrand-result-${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.engine }}
+          path: |
+            tools/pract_rand/logs/
+            reports/${{ matrix.engine }}.json
+          if-no-files-found: warn
+
+  summarize:
+    needs: [plan, practrand]
+    if: always()
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download frozen plan
+        if: always()
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          name: practrand-plan-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/plan
+
+      - name: Download project reports
+        if: always()
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          pattern: practrand-result-${{ github.run_id }}-${{ github.run_attempt }}-*
+          path: artifacts/results
+          merge-multiple: true
+
+      - name: Summarize expected and actual projects
+        id: summary
+        if: always()
+        continue-on-error: true
+        env:
+          PLAN_RESULT: ${{ needs.plan.result }}
+          MATRIX_RESULT: ${{ needs.practrand.result }}
+        run: >-
+          python3 tools/pract_rand/summarize_practrand.py
+          --plan artifacts/plan/practrand-plan.json
+          --results-dir artifacts/results
+          --plan-result "$PLAN_RESULT"
+          --matrix-result "$MATRIX_RESULT"
+          --output-json practrand-summary.json
+          --github-summary "$GITHUB_STEP_SUMMARY"
+          --github-output "$GITHUB_OUTPUT"
+
+      - name: Upload structured summary
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: practrand-summary-${{ github.run_id }}-${{ github.run_attempt }}
+          path: practrand-summary.json
+          if-no-files-found: warn
+
+      - name: Create issue for scheduled failures
+        if: always() && github.event_name == 'schedule' && steps.summary.outcome != 'success'
         uses: actions/github-script@v7
         with:
           script: |
-            const date = new Date().toISOString().slice(0, 10);
-            const titlePrefix = '[PractRand Nightly 失败]';
-            // 查重：已有未关闭的同类 issue 则跳过
+            const fs = require('fs');
+            let summary;
+            try {
+              summary = JSON.parse(fs.readFileSync('practrand-summary.json', 'utf8'));
+            } catch (error) {
+              summary = {
+                status: 'environment_error',
+                profile: 'unknown',
+                profile_acceptance_status: 'unknown',
+                projects: [],
+                errors: [`结构化汇总无法读取：${error.message}`]
+              };
+            }
+            const statusLabels = {
+              statistical_failure: '统计失败',
+              environment_error: '环境异常',
+              inconclusive: '证据不足'
+            };
+            const category = statusLabels[summary.status] || '环境异常';
+            const titlePrefix = `[PractRand Nightly][${category}]`;
             const { data: issues } = await github.rest.issues.listForRepo({
               owner: context.repo.owner,
               repo: context.repo.repo,
               state: 'open',
               labels: 'nightly',
-              per_page: 20
+              per_page: 100
             });
-            const dup = issues.find(i => i.title.startsWith(titlePrefix));
-            if (dup) {
-              core.info(`已有未关闭 issue #${dup.number}，跳过创建`);
+            const duplicate = issues.find(issue => issue.title.startsWith(titlePrefix));
+            if (duplicate) {
+              core.info(`已有未关闭 issue #${duplicate.number}，跳过创建`);
               return;
             }
             const runUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const projectLines = summary.projects.map(project => {
+              const evidence = (project.evidence || []).filter(Boolean).join(', ');
+              return `- **${project.engine}**: ${project.status} — ${project.reason || '无附加说明'}${evidence ? `（证据：${evidence}）` : ''}`;
+            });
+            const errorLines = (summary.errors || []).map(error => `- ${error}`);
             await github.rest.issues.create({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              title: `${titlePrefix} ${date} 统计质量回归`,
+              title: `${titlePrefix} ${new Date().toISOString().slice(0, 10)}`,
               body: [
-                `PractRand nightly 验证失败，详见 [workflow run](${runUrl})。`,
+                `PractRand nightly 结果为 **${summary.status}**。`,
                 '',
-                '可能原因：',
-                '1. 引擎实现回归（统计质量退化）',
-                '2. PractRand 版本变更（见 `tools/pract_rand/practrand.lock` 与 `download_practrand.sh`）',
-                '3. 编译器优化引入的未定义行为',
+                `详见 [workflow run](${runUrl})。Profile: \`${summary.profile}\` (${summary.profile_acceptance_status})。`,
                 '',
-                '排查建议：',
-                '- 本地复现：`python3 tools/pract_rand/run_practrand.py --engine <name> --length 4GB`',
-                '- 检查最近改动是否触及 RandX.hpp / RandX_Cpp17.hpp 中的引擎实现',
-                '- 查看 CI 日志中各引擎的 PractRand 输出，定位具体失败的测试项',
+                ...projectLines,
+                ...(errorLines.length ? ['', '汇总错误：', ...errorLines] : [])
               ].join('\n'),
               labels: ['bug', 'statistics-quality', 'nightly']
             });
+
+      - name: Fail workflow when summary is not a complete pass
+        if: always() && steps.summary.outcome != 'success'
+        run: exit 1

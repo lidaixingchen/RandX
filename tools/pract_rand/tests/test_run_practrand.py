@@ -3,9 +3,11 @@
 
 import json
 import os
+import signal
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 from dataclasses import asdict
 from pathlib import Path
 
@@ -20,15 +22,19 @@ if str(PRACTRAND_DIR) not in sys.path:
 
 from run_practrand import (
     atomic_write_json,
+    checkpoint_evidence,
     classify_result,
     compute_exit_code,
     compute_overall_exit_code,
     format_bytes_for_practrand,
     parse_length_to_bytes,
     parse_practrand_output,
+    persist_result_update,
     test_engine,
     TestResult,
+    update_result_checkpoint_evidence,
 )
+import run_practrand
 
 
 class TestPractRandLengthParser(unittest.TestCase):
@@ -442,6 +448,149 @@ class TestPractRandTwoAxisCategorization(unittest.TestCase):
 class TestPractRandSubprocessLifecycle(unittest.TestCase):
     """测试真实子进程超时、监控与优雅回收."""
 
+    def test_cancellation_during_initial_report_persists_final_state(self):
+        updates = []
+        cancellation_sent = False
+
+        def run_project(arguments):
+            with tempfile.TemporaryDirectory() as temporary_directory:
+                report_path = Path(temporary_directory) / "report.json"
+                results = []
+
+                def update_report(update):
+                    nonlocal cancellation_sent
+                    updates.append(asdict(update))
+                    if update.phase == "running" and not cancellation_sent:
+                        cancellation_sent = True
+                        run_practrand._handle_cancellation(signal.SIGTERM, None)
+                    persist_result_update(results, update, report_path)
+
+                result = test_engine(
+                    generator=[sys.executable, str(MOCK_RUNNER)],
+                    practrand=[sys.executable, str(MOCK_RUNNER)],
+                    engine="sfc64", length="32MB", timeout_seconds=5.0,
+                    on_update=update_report,
+                )
+                saved_report = json.loads(report_path.read_text(encoding="utf-8"))
+                self.assertEqual(saved_report[0]["phase"], "final")
+                self.assertEqual(saved_report[0]["execution_status"], "cancelled")
+
+            self.assertEqual(result.execution_status, "cancelled")
+            self.assertEqual(result.phase, "final")
+            self.assertEqual(result.generator["termination_cause"], "cancelled")
+            self.assertEqual(result.tester["termination_cause"], "cancelled")
+            return compute_exit_code([result])
+
+        with patch.object(run_practrand, "_run_main", side_effect=run_project):
+            self.assertEqual(run_practrand.main([]), 3)
+
+        self.assertEqual(updates[0]["phase"], "running")
+        self.assertEqual(updates[-1]["phase"], "final")
+        self.assertEqual(updates[-1]["execution_status"], "cancelled")
+        self.assertEqual(updates[-1]["status"], "inconclusive")
+
+    def test_cancellation_during_final_report_persists_cancelled_state(self):
+        updates = []
+        cancellation_sent = False
+
+        def run_project(arguments):
+            with tempfile.TemporaryDirectory() as temporary_directory:
+                report_path = Path(temporary_directory) / "report.json"
+                results = []
+
+                def update_report(update):
+                    nonlocal cancellation_sent
+                    updates.append(asdict(update))
+                    if update.phase == "final" and not cancellation_sent:
+                        cancellation_sent = True
+                        run_practrand._handle_cancellation(signal.SIGTERM, None)
+                    persist_result_update(results, update, report_path)
+
+                result = test_engine(
+                    generator=[sys.executable, str(MOCK_RUNNER)],
+                    practrand=[sys.executable, str(MOCK_RUNNER)],
+                    engine="sfc64", length="32MB", timeout_seconds=5.0,
+                    generator_env=dict(os.environ, MOCK_MODE="generator_infinite"),
+                    tester_env=dict(os.environ, MOCK_MODE="pass_exit_0"),
+                    on_update=update_report,
+                )
+                saved_report = json.loads(report_path.read_text(encoding="utf-8"))
+                self.assertEqual(saved_report[0]["phase"], "final")
+                self.assertEqual(saved_report[0]["execution_status"], "cancelled")
+
+            self.assertEqual(result.execution_status, "cancelled")
+            self.assertEqual(result.statistical_status, "pass")
+            self.assertEqual(result.phase, "final")
+            return compute_exit_code([result])
+
+        with patch.object(run_practrand, "_run_main", side_effect=run_project):
+            self.assertEqual(run_practrand.main([]), 3)
+
+        self.assertEqual(updates[-2]["phase"], "final")
+        self.assertEqual(updates[-2]["status"], "pass")
+        self.assertEqual(updates[-1]["phase"], "final")
+        self.assertEqual(updates[-1]["execution_status"], "cancelled")
+        self.assertEqual(updates[-1]["status"], "inconclusive")
+
+    def test_cancellation_signal_reaps_processes_and_persists_final_report(self):
+        previous_handler = signal.getsignal(signal.SIGTERM)
+        updates = []
+        original_sleep = run_practrand.time.sleep
+        cancellation_requested = False
+
+        def cancel_once(seconds):
+            nonlocal cancellation_requested
+            if not cancellation_requested:
+                cancellation_requested = True
+                signal.getsignal(signal.SIGTERM)(signal.SIGTERM, None)
+            original_sleep(seconds)
+
+        def run_project(arguments):
+            with patch.object(run_practrand.time, "sleep", side_effect=cancel_once):
+                result = test_engine(
+                    generator=[sys.executable, str(MOCK_RUNNER)],
+                    practrand=[sys.executable, str(MOCK_RUNNER)],
+                    engine="sfc64", length="32MB", timeout_seconds=5.0,
+                    generator_env=dict(os.environ, MOCK_MODE="silent"),
+                    tester_env=dict(os.environ, MOCK_MODE="silent"),
+                    on_update=lambda update: updates.append(asdict(update)),
+                )
+            self.assertEqual(result.execution_status, "cancelled")
+            self.assertIsNotNone(result.generator["returncode"])
+            self.assertIsNotNone(result.tester["returncode"])
+            return compute_exit_code([result])
+
+        with patch.object(run_practrand, "_run_main", side_effect=run_project):
+            self.assertEqual(run_practrand.main([]), 3)
+        self.assertEqual(signal.getsignal(signal.SIGTERM), previous_handler)
+        self.assertEqual(updates[-1]["phase"], "final")
+        self.assertEqual(updates[-1]["execution_status"], "cancelled")
+
+    def test_actual_commit_identity_is_preserved_with_frozen_plan(self):
+        plan = run_practrand.build_practrand_plan(
+            policy=run_practrand.load_practrand_policy(), profile_name="quick",
+            engine_name="sfc64", length_override="32MB", timeout_override=5,
+            randx_commit="planned-randx", practrand_commit="planned-practrand",
+        )
+        with patch.object(run_practrand, "get_git_commit", return_value="actual-randx"), \
+             patch.object(run_practrand, "load_practrand_build_commit", return_value="actual-practrand"):
+            result = test_engine(
+                generator=[sys.executable, str(MOCK_RUNNER)],
+                practrand=[sys.executable, str(MOCK_RUNNER)],
+                engine="sfc64", length="32MB", plan_item=plan["items"][0],
+                generator_env=dict(os.environ, MOCK_MODE="generator_infinite"),
+                tester_env=dict(os.environ, MOCK_MODE="pass_exit_0"),
+            )
+        self.assertEqual(result.randx_commit, "actual-randx")
+        self.assertEqual(result.practrand_commit, "actual-practrand")
+
+    def test_binary_commit_comes_from_build_record(self):
+        with tempfile.TemporaryDirectory() as directory:
+            binary = Path(directory) / "RNG_test"
+            self.assertEqual(run_practrand.load_practrand_build_commit(str(binary)), "unknown")
+            (binary.parent / "practrand-commit.txt").write_text("built-commit\n", encoding="utf-8")
+            self.assertEqual(run_practrand.load_practrand_build_commit(str(binary)), "built-commit")
+
     def test_silent_subprocess_timeout_and_cleanup(self):
         res = test_engine(
             generator=[sys.executable, str(MOCK_RUNNER)],
@@ -612,6 +761,25 @@ class TestAtomicJsonWriteAndSchema(unittest.TestCase):
         self.assertEqual(d["tester"]["returncode"], 0)
         self.assertIn("GENERATOR_CRASH", d["reason_codes"])
 
+    def test_running_and_final_project_states_are_atomically_saved_as_one_array_item(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            output_path: Path = Path(temporary_directory) / "report.json"
+            results: list[TestResult] = []
+            running: TestResult = TestResult(engine="sfc64", status="inconclusive", phase="running")
+            persist_result_update(results, running, output_path)
+            running_report = json.loads(output_path.read_text(encoding="utf-8"))
+            self.assertEqual(len(running_report), 1)
+            self.assertEqual(running_report[0]["phase"], "running")
+            self.assertEqual(running_report[0]["status"], "inconclusive")
+
+            final: TestResult = TestResult(engine="sfc64", status="pass", phase="final")
+            persist_result_update(results, final, output_path)
+            final_report = json.loads(output_path.read_text(encoding="utf-8"))
+
+        self.assertEqual(len(final_report), 1)
+        self.assertEqual(final_report[0]["phase"], "final")
+        self.assertEqual(final_report[0]["status"], "pass")
+
 
 class TestOverallExitCodePriority(unittest.TestCase):
     """测试总体退出码优先级：1 (stat failure) > 2 (env error) > 3 (inconclusive) > 0 (pass)."""
@@ -638,6 +806,121 @@ class TestOverallExitCodePriority(unittest.TestCase):
         r1 = TestResult(status="pass")
         r2 = TestResult(status="statistical_failure")
         self.assertEqual(compute_overall_exit_code([r1, r2]), 1)
+
+
+class TestCheckpointEvidenceLifecycle(unittest.TestCase):
+    def test_early_suspicious_checkpoint_is_retained_after_normal_final_checkpoint(self):
+        output = (
+            "RNG_test using PractRand version 0.95\n"
+            "length= 1 megabyte (2^20 bytes), time= 0.1 seconds\n"
+            "  Test Name: BCFN(2+0,13-0,T) ... mildly suspicious\n"
+            "  ...and 125 other test result(s)\n"
+            "length= 2 megabytes (2^21 bytes), time= 0.1 seconds\n"
+            "  no anomalies in 126 test result(s)\n"
+        )
+        result = TestResult(log_file="logs/sfc64.log")
+        update_result_checkpoint_evidence(result, output)
+        update_result_checkpoint_evidence(result, output)
+
+        self.assertEqual(result.reported_tested_bytes, 2 * 1024 * 1024)
+        self.assertEqual(result.test_count, 126)
+        self.assertEqual(result.suspicious_count, 0)
+        self.assertEqual(result.run_suspicious_count, 1)
+        self.assertEqual(result.suspicious_markers[0]["test_name"], "Test Name: BCFN(2+0,13-0,T) ... mildly suspicious")
+        self.assertEqual(result.suspicious_markers[0]["checkpoint_bytes"], 1024 * 1024)
+        self.assertEqual(result.suspicious_markers[0]["line_number"], 3)
+        self.assertEqual(len(result.checkpoints), 2)
+        self.assertTrue(result.checkpoints[0]["completed"])
+        self.assertTrue(result.checkpoints[1]["completed"])
+
+    def test_same_suspicious_name_at_multiple_checkpoints_remains_two_occurrences(self):
+        output = (
+            "RNG_test using PractRand version 0.95\n"
+            "length= 1 megabyte (2^20 bytes)\n"
+            "  Test Name: BCFN repeated ... mildly suspicious\n"
+            "  ...and 125 other test result(s)\n"
+            "length= 2 megabytes (2^21 bytes)\n"
+            "  Test Name: BCFN repeated ... mildly suspicious\n"
+            "  ...and 125 other test result(s)\n"
+        )
+        checkpoints, markers, suspicious_count = checkpoint_evidence(output, "tester.log")
+        self.assertEqual(len(checkpoints), 2)
+        self.assertEqual(suspicious_count, 2)
+        self.assertEqual([marker["checkpoint_bytes"] for marker in markers], [1024 * 1024, 2 * 1024 * 1024])
+        self.assertEqual([marker["line_number"] for marker in markers], [3, 6])
+
+    def test_incomplete_tail_suspicious_marker_is_retained(self):
+        output = (
+            "RNG_test using PractRand version 0.95\n"
+            "length= 1 megabyte (2^20 bytes)\n"
+            "  no anomalies in 126 test result(s)\n"
+            "length= 2 megabytes (2^21 bytes)\n"
+            "  Test Name: BCFN tail ... mildly suspicious\n"
+        )
+        result = TestResult(log_file="tester.log")
+        update_result_checkpoint_evidence(result, output)
+        self.assertEqual(result.reported_tested_bytes, 1024 * 1024)
+        self.assertEqual(result.run_suspicious_count, 1)
+        self.assertFalse(result.checkpoints[-1]["completed"])
+        self.assertEqual(result.suspicious_markers[0]["checkpoint_bytes"], 2 * 1024 * 1024)
+        self.assertEqual(result.suspicious_markers[0]["line_number"], 5)
+
+    def test_live_report_starts_inconclusive_and_finishes_after_checkpoint(self):
+        snapshots = []
+        environment = dict(os.environ, MOCK_MODE="generator_infinite")
+        tester_environment = dict(os.environ, MOCK_MODE="checkpoint_sequence")
+        result = test_engine(
+            generator=[sys.executable, str(MOCK_RUNNER)],
+            practrand=[sys.executable, str(MOCK_RUNNER)],
+            engine="sfc64",
+            length="2MB",
+            checkpoint_min_bytes=1024 * 1024,
+            timeout_seconds=5,
+            generator_env=environment,
+            tester_env=tester_environment,
+            on_update=lambda current: snapshots.append(asdict(current)),
+        )
+        self.assertEqual(snapshots[0]["phase"], "running")
+        self.assertEqual(snapshots[0]["status"], "inconclusive")
+        self.assertEqual(snapshots[-1]["phase"], "final")
+        self.assertEqual(snapshots[-1]["status"], "pass")
+        self.assertEqual(result.test_parameters[2], "1M")
+        self.assertEqual(result.test_parameters[4], "2M")
+        self.assertEqual(result.run_suspicious_count, 1)
+
+    def test_timeout_keeps_partial_checkpoints_and_tail_markers(self):
+        result = test_engine(
+            generator=[sys.executable, str(MOCK_RUNNER)],
+            practrand=[sys.executable, str(MOCK_RUNNER)],
+            engine="sfc64",
+            length="2MB",
+            checkpoint_min_bytes=1024 * 1024,
+            timeout_seconds=0.25,
+            generator_env=dict(os.environ, MOCK_MODE="generator_infinite"),
+            tester_env=dict(os.environ, MOCK_MODE="checkpoint_sequence", MOCK_CHECKPOINT_MODE="tail_suspicious"),
+        )
+        self.assertEqual(result.status, "inconclusive")
+        self.assertEqual(result.execution_status, "timeout")
+        self.assertEqual(result.reported_tested_bytes, 1024 * 1024)
+        self.assertEqual(result.run_suspicious_count, 2)
+        self.assertFalse(result.checkpoints[-1]["completed"])
+
+    def test_same_named_suspicious_items_survive_run_reparsing(self):
+        output = (
+            "length= 1 megabyte (2^20 bytes)\n"
+            "  Test Name: BCFN repeated ... mildly suspicious\n"
+            "  ...and 125 other test result(s)\n"
+            "length= 2 megabytes (2^21 bytes)\n"
+            "  Test Name: BCFN repeated ... mildly suspicious\n"
+            "  ...and 125 other test result(s)\n"
+        )
+        result = TestResult(log_file="tester.log")
+        update_result_checkpoint_evidence(result, output)
+        first_count = result.run_suspicious_count
+        update_result_checkpoint_evidence(result, output)
+        self.assertEqual(first_count, 2)
+        self.assertEqual(result.run_suspicious_count, 2)
+        self.assertEqual(len(result.suspicious_markers), 2)
 
 
 if __name__ == "__main__":

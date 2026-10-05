@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "default_profile": "nightly",
+  "runner_budget": {
+    "job_timeout_minutes": 360,
+    "reserved_minutes": 60
+  },
+  "fixed_seed": 11400714819323198485,
+  "engines": [
+    { "name": "xoshiro256", "input_width_bits": 64, "seed_strategy": "fixed" },
+    { "name": "xoroshiro128", "input_width_bits": 64, "seed_strategy": "fixed" },
+    { "name": "xoshiro128", "input_width_bits": 32, "seed_strategy": "fixed" },
+    { "name": "xoroshiro64", "input_width_bits": 32, "seed_strategy": "fixed" },
+    { "name": "splitmix64", "input_width_bits": 64, "seed_strategy": "fixed" },
+    { "name": "sfc64", "input_width_bits": 64, "seed_strategy": "fixed" },
+    { "name": "romuduojr", "input_width_bits": 64, "seed_strategy": "fixed" },
+    { "name": "chacha20", "input_width_bits": 64, "seed_strategy": "os_entropy" }
+  ],
+  "profiles": {
+    "quick": {
+      "acceptance_status": "initial_unverified",
+      "checkpoint_min": "1MB",
+      "timeout_seconds": 1800,
+      "target_lengths": {
+        "default": "4GB",
+        "chacha20": "4GB"
+      }
+    },
+    "nightly": {
+      "acceptance_status": "initial_unverified",
+      "checkpoint_min": "1MB",
+      "timeout_seconds": 18000,
+      "target_lengths": {
+        "default": "4GB",
+        "chacha20": "4GB"
+      }
+    }
+  }
+}

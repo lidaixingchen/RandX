@@ -35,6 +35,25 @@ def main():
         sys.stdout.write("  no anomalies in 126 test result(s)\n")
         sys.stdout.flush()
         sys.exit(0)
+    elif mode == "checkpoint_sequence":
+        sys.stdout.write("RNG_test using PractRand version 0.95\n")
+        sys.stdout.write("length= 1 megabyte (2^20 bytes), time= 0.1 seconds\n")
+        sys.stdout.write("  Test Name: BCFN(2+0,13-0,T) ... mildly suspicious\n")
+        sys.stdout.write("  ...and 125 other test result(s)\n")
+        sys.stdout.write("length= 2 megabytes (2^21 bytes), time= 0.1 seconds\n")
+        if os.environ.get("MOCK_CHECKPOINT_MODE") == "same_name":
+            sys.stdout.write("  Test Name: BCFN(2+0,13-0,T) ... mildly suspicious\n")
+            sys.stdout.write("  ...and 125 other test result(s)\n")
+        elif os.environ.get("MOCK_CHECKPOINT_MODE") == "tail_suspicious":
+            sys.stdout.write("  Test Name: BCFN(2+0,13-0,T) ... mildly suspicious\n")
+            sys.stdout.flush()
+            time.sleep(10)
+        else:
+            sys.stdout.write("  no anomalies in 126 test result(s)\n")
+        sys.stdout.flush()
+        if os.environ.get("MOCK_CHECKPOINT_MODE") == "tail_suspicious":
+            time.sleep(10)
+        sys.exit(0)
     elif mode == "generator_infinite":
         try:
             chunk = b"A" * 4096

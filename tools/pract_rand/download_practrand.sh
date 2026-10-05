@@ -52,6 +52,7 @@ popd >/dev/null
 echo "[4/4] 拷贝产物到 ${BUILD_DIR}/ ..."
 mkdir -p "${BUILD_DIR}"
 cp "${SRC_DIR}/bin/RNG_test" "${BUILD_DIR}/RNG_test"
+git -C "${SRC_DIR}" rev-parse HEAD > "${BUILD_DIR}/practrand-commit.txt"
 
 # 清理源码（保留构建目录）
 rm -rf "${SRC_DIR}"
