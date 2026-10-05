@@ -403,6 +403,7 @@ class WorkflowContractTests(unittest.TestCase):
         self.assertEqual(
             job_ids,
             [
+                "measure_stream_initialization",
                 "measure_triangular",
                 "benchmark_plan",
                 "measure_general",
