@@ -58,10 +58,10 @@ class StreamJumpPowerGeneratorTests(unittest.TestCase):
 
         reordered_lines: list[str] = original_lines.copy()
         first_update_index: int = next(
-            index for index, line in enumerate(reordered_lines) if line.strip() == "s_[2] ^= s_[0];"
+            index for index, line in enumerate(reordered_lines) if line.strip() == "state[2] ^= state[0];"
         )
         dependent_update_index: int = next(
-            index for index, line in enumerate(reordered_lines) if line.strip() == "s_[1] ^= s_[2];"
+            index for index, line in enumerate(reordered_lines) if line.strip() == "state[1] ^= state[2];"
         )
         reordered_lines[first_update_index], reordered_lines[dependent_update_index] = (
             reordered_lines[dependent_update_index],
@@ -72,7 +72,7 @@ class StreamJumpPowerGeneratorTests(unittest.TestCase):
         return_index: int = next(
             index for index, line in enumerate(extra_update_lines) if line.strip() == "return result;"
         )
-        extra_update_lines.insert(return_index, "\t\ts_[0] ^= s_[1];")
+        extra_update_lines.insert(return_index, "\t\tstate[0] ^= state[1];")
 
         mutation_cases: tuple[tuple[str, list[str]], ...] = (
             ("reordered", reordered_lines),

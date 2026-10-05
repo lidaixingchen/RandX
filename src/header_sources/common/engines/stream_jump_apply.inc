@@ -18,15 +18,19 @@ namespace detail
 		using word_type = typename Polynomial::value_type;
 		using state_type = typename Engine::state_type;
 		state_type accumulated{};
+		auto* accumulatedWords = accumulated.data();
+		const std::size_t stateSize = accumulated.size();
 		for (std::size_t word = 0; word < polynomial.size(); ++word)
 		{
+			const word_type coefficient = polynomial.data()[word];
 			for (int bit = 0; bit < std::numeric_limits<word_type>::digits; ++bit)
 			{
-				if ((polynomial[word] & (word_type{1} << bit)) != 0)
+				if ((coefficient & (word_type{1} << bit)) != 0)
 				{
 					const state_type current = engine.serialize();
-					for (std::size_t index = 0; index < accumulated.size(); ++index)
-						accumulated[index] ^= current[index];
+					const auto* currentWords = current.data();
+					for (std::size_t index = 0; index < stateSize; ++index)
+						accumulatedWords[index] ^= currentWords[index];
 				}
 				(void)engine();
 			}

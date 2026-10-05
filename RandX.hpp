@@ -1524,14 +1524,15 @@ namespace RandX
 	//
 	inline constexpr Xoshiro256StarStar::result_type Xoshiro256StarStar::operator()() noexcept
 	{
-		const std::uint64_t result = detail::RotL(s_[1] * 5, 7) * 9;
-		const std::uint64_t t = s_[1] << 17;
-		s_[2] ^= s_[0];
-		s_[3] ^= s_[1];
-		s_[1] ^= s_[2];
-		s_[0] ^= s_[3];
-		s_[2] ^= t;
-		s_[3] = detail::RotL(s_[3], 45);
+		auto* state = s_.data();
+		const std::uint64_t result = detail::RotL(state[1] * 5, 7) * 9;
+		const std::uint64_t t = state[1] << 17;
+		state[2] ^= state[0];
+		state[3] ^= state[1];
+		state[1] ^= state[2];
+		state[0] ^= state[3];
+		state[2] ^= t;
+		state[3] = detail::RotL(state[3], 45);
 		return result;
 	}
 
@@ -1558,12 +1559,13 @@ namespace RandX
 	//
 	inline constexpr Xoroshiro128StarStar::result_type Xoroshiro128StarStar::operator()() noexcept
 	{
-		const std::uint64_t s0 = s_[0];
-		std::uint64_t s1 = s_[1];
+		auto* state = s_.data();
+		const std::uint64_t s0 = state[0];
+		std::uint64_t s1 = state[1];
 		const std::uint64_t result = detail::RotL(s0 * 5, 7) * 9;
 		s1 ^= s0;
-		s_[0] = detail::RotL(s0, 24) ^ s1 ^ (s1 << 16);
-		s_[1] = detail::RotL(s1, 37);
+		state[0] = detail::RotL(s0, 24) ^ s1 ^ (s1 << 16);
+		state[1] = detail::RotL(s1, 37);
 		return result;
 	}
 
@@ -1586,14 +1588,15 @@ namespace RandX
 	//
 	inline constexpr Xoshiro128StarStar::result_type Xoshiro128StarStar::operator()() noexcept
 	{
-		const std::uint32_t result = detail::RotL(s_[1] * 5, 7) * 9;
-		const std::uint32_t t = s_[1] << 9;
-		s_[2] ^= s_[0];
-		s_[3] ^= s_[1];
-		s_[1] ^= s_[2];
-		s_[0] ^= s_[3];
-		s_[2] ^= t;
-		s_[3] = detail::RotL(s_[3], 11);
+		auto* state = s_.data();
+		const std::uint32_t result = detail::RotL(state[1] * 5, 7) * 9;
+		const std::uint32_t t = state[1] << 9;
+		state[2] ^= state[0];
+		state[3] ^= state[1];
+		state[1] ^= state[2];
+		state[0] ^= state[3];
+		state[2] ^= t;
+		state[3] = detail::RotL(state[3], 11);
 		return result;
 	}
 
@@ -4657,15 +4660,19 @@ namespace detail
 		using word_type = typename Polynomial::value_type;
 		using state_type = typename Engine::state_type;
 		state_type accumulated{};
+		auto* accumulatedWords = accumulated.data();
+		const std::size_t stateSize = accumulated.size();
 		for (std::size_t word = 0; word < polynomial.size(); ++word)
 		{
+			const word_type coefficient = polynomial.data()[word];
 			for (int bit = 0; bit < std::numeric_limits<word_type>::digits; ++bit)
 			{
-				if ((polynomial[word] & (word_type{1} << bit)) != 0)
+				if ((coefficient & (word_type{1} << bit)) != 0)
 				{
 					const state_type current = engine.serialize();
-					for (std::size_t index = 0; index < accumulated.size(); ++index)
-						accumulated[index] ^= current[index];
+					const auto* currentWords = current.data();
+					for (std::size_t index = 0; index < stateSize; ++index)
+						accumulatedWords[index] ^= currentWords[index];
 				}
 				(void)engine();
 			}
