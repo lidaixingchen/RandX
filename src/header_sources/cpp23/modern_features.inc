@@ -1,34 +1,24 @@
+	// @randx-include ../common/engines/stream_jump_powers.inc
+
+// @randx-include ../common/engines/stream_jump_apply.inc
+
 	////////////////////////////////////////////////////////////////
 	//
 	//	多流接口（并行计算）
 	//
 
-	/// @brief 从同一种子创建第 streamId 个不重叠子序列的引擎
-	/// @param streamId 流编号（每个流之间间隔 2^128 步或 2^64 步）
+	/// @brief 从同一种子定位流编号对应的引擎起点
+	/// @param streamId 流编号；内置引擎先执行高 32 位指定的 longJump，再执行低 32 位指定的 jump
 	/// @param seed 共享种子（默认 DefaultSeed）
-	/// @return 第 streamId 个不重叠子序列的引擎实例
+	/// @return 指定流起点的引擎实例
+	/// @note 流的使用预算由所选引擎的 jump 距离决定，参见 API 文档的多流契约
 	/// @note Xoroshiro64 系列无 jump 函数，不支持多流
 	template <class Engine>
 		requires detail::StreamEngine<Engine>
 	[[nodiscard]]
 	inline constexpr Engine MakeStreamEngine(std::uint64_t streamId, std::uint64_t seed = DefaultSeed)
 	{
-		Engine rng{ seed };
-		if constexpr (requires(Engine& e) { e.longJump(); })
-		{
-			const std::uint64_t longJumps = streamId >> 32;
-			const std::uint64_t shortJumps = streamId & 0xFFFFFFFFULL;
-			for (std::uint64_t i = 0; i < longJumps; ++i)
-				rng.longJump();
-			for (std::uint64_t i = 0; i < shortJumps; ++i)
-				rng.jump();
-		}
-		else
-		{
-			for (std::uint64_t i = 0; i < streamId; ++i)
-				rng.jump();
-		}
-		return rng;
+		return detail::MakeStreamEngineWithId<Engine>(streamId, seed);
 	}
 
 	////////////////////////////////////////////////////////////////

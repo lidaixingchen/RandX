@@ -479,6 +479,7 @@ if(RANDX_BUILD_BENCHMARK)
         GIT_TAG        v1.8.5
     )
     set(BENCHMARK_ENABLE_TESTING OFF CACHE INTERNAL "")
+    set(BENCHMARK_ENABLE_WERROR OFF CACHE BOOL "将第三方基准库告警保留为诊断")
     FetchContent_MakeAvailable(benchmark_gbench_dep)
 
     add_executable(benchmark_gbench benchmark_gbench.cpp benchmark_gbench_default_cpp23.cpp)
@@ -551,6 +552,34 @@ if(RANDX_BUILD_BENCHMARK)
     endfunction()
     randx_add_triangular_benchmark(benchmark_gbench_triangular_cpp17 17 RandX_Cpp17)
     randx_add_triangular_benchmark(benchmark_gbench_triangular_cpp23 23 RandX_Cpp23)
+
+    function(randx_add_stream_initialization_benchmark target_name standard library_target)
+        add_executable(${target_name} benchmarks/stream_initialization_benchmarks.cpp)
+        if(MSVC)
+            target_compile_options(${target_name} PRIVATE /utf-8)
+        endif()
+        target_link_libraries(${target_name} PRIVATE benchmark::benchmark ${library_target})
+        target_compile_features(${target_name} PRIVATE cxx_std_${standard})
+        set_target_properties(${target_name} PROPERTIES
+            CXX_STANDARD ${standard}
+            CXX_STANDARD_REQUIRED ON
+            CXX_EXTENSIONS OFF
+        )
+        if("${standard}" STREQUAL "17")
+            target_compile_definitions(${target_name} PRIVATE RANDX_BENCHMARK_CPP17)
+        endif()
+    endfunction()
+    randx_add_stream_initialization_benchmark(
+        randx_stream_initialization_benchmarks_cpp17 17 RandX_Cpp17
+    )
+    randx_add_stream_initialization_benchmark(
+        randx_stream_initialization_benchmarks_cpp23 23 RandX_Cpp23
+    )
+    add_custom_target(randx_stream_initialization_benchmarks
+        DEPENDS
+            randx_stream_initialization_benchmarks_cpp17
+            randx_stream_initialization_benchmarks_cpp23
+    )
 endif()
 
 if(RANDX_BUILD_EXAMPLES)

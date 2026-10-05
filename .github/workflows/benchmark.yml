@@ -33,6 +33,7 @@ on:
       - 'tools/run_integer_benchmark_pair.py'
       - 'tools/test_run_integer_benchmark_pair.py'
       - 'tools/check_triangular_benchmark.py'
+      - 'tools/observe_stream_initialization.py'
       - 'tools/test_check_triangular_benchmark.py'
       - '.github/workflows/benchmark.yml'
   pull_request:
@@ -67,6 +68,7 @@ on:
       - 'tools/run_integer_benchmark_pair.py'
       - 'tools/test_run_integer_benchmark_pair.py'
       - 'tools/check_triangular_benchmark.py'
+      - 'tools/observe_stream_initialization.py'
       - 'tools/test_check_triangular_benchmark.py'
       - '.github/workflows/benchmark.yml'
   workflow_dispatch:
@@ -87,6 +89,59 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  measure_stream_initialization:
+    name: Observe stream initialization performance
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Configure stream observation targets
+        run: |
+          cmake -S . -B build/streams -DRANDX_BUILD_BENCHMARK=ON \
+            -DRANDX_BUILD_TESTS=OFF -DRANDX_BUILD_EXAMPLES=OFF \
+            -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=g++-14 \
+            -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+          g++-14 --version > build/streams/compiler.txt
+          lscpu > build/streams/cpu.txt
+          git rev-parse HEAD > build/streams/commit.txt
+      - name: Build benchmark runtime
+        run: cmake --build build/streams --target benchmark --parallel 1
+      - name: Record target build times
+        run: |
+          python - <<'PY'
+          import json, subprocess, time
+          from pathlib import Path
+          timings = []
+          for standard in (17, 23):
+              start = time.perf_counter()
+              subprocess.run(['cmake', '--build', 'build/streams', '--target',
+                              f'randx_stream_initialization_benchmarks_cpp{standard}', '--parallel', '1'], check=True)
+              timings.append({'standard': standard, 'build_seconds': time.perf_counter() - start})
+          Path('build/streams/build-times.json').write_text(json.dumps({
+              'scope': 'Fresh observation target compile and link, benchmark runtime already built',
+              'timings': timings}, indent=2) + '\n')
+          PY
+      - name: Measure stream observations
+        run: |
+          for standard in 17 23; do
+            python tools/observe_stream_initialization.py \
+              --binary "build/streams/randx_stream_initialization_benchmarks_cpp${standard}" \
+              --output-dir "build/streams/cpp${standard}"
+          done
+      - name: Upload stream observations
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: stream-initialization-observations
+          path: |
+            build/streams/*.json
+            build/streams/*.txt
+            build/streams/cpp17/*.json
+            build/streams/cpp23/*.json
+
   measure_triangular:
     name: Observe triangular distribution performance
     runs-on: ubuntu-24.04

@@ -147,6 +147,12 @@ jobs:
           python3 tools/generate_triangular_reference.py --check
       - name: Run triangular benchmark record tests
         run: python3 -m unittest discover -s tools -p 'test_check_triangular_benchmark.py' -v
+      - name: Verify stream jump materials and reference tests
+        run: |
+          python3 -m unittest discover -s tools -p 'test_generate_stream_jump_powers.py' -v
+          python3 tools/generate_stream_jump_powers.py --check
+      - name: Run stream observation record tests
+        run: python3 -m unittest discover -s tools -p 'test_observe_stream_initialization.py' -v
 
   gcc:
     needs: [header-generation-ubuntu, header-generation-windows]
