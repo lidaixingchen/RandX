@@ -132,12 +132,11 @@ def update_environment(directory: Path, updates: Mapping[str, Any]) -> dict[str,
 
 
 def build_locations(root: Path, group: str, variant: str) -> tuple[Path, Path, Path | None]:
-    """返回构建源码、构建目录和抽样头文件覆盖目录。"""
+    """返回共同基准源码、构建目录和发布头文件覆盖目录。"""
     if group == "general":
         if variant == "candidate":
             return root, root / "build" / "general-candidate", None
-        source: Path = root / "baseline-src"
-        return source, source / "build" / "general-baseline", None
+        return root, root / "build" / "general-baseline", root / "baseline-src"
 
     if group == "default_cpp17":
         build_directory: Path = root / "build" / group / variant
@@ -251,8 +250,8 @@ def initialize(plan_path: Path, group: str) -> None:
         "hardware": json.loads(hardware.stdout),
         "cpu": None,
     }
-    if group == "default_cpp17":
-        if baseline_commit is None:
+    if group in GENERAL_GROUP_NAMES:
+        if group == "default_cpp17" and baseline_commit is None:
             raise ValueError("default_cpp17 缺少统一计划选择的头文件基线提交")
         environment.update({
             "benchmark_source_commit": candidate_commit,
@@ -275,15 +274,16 @@ def build(plan_path: Path, group: str, variant: str) -> None:
     plan: dict[str, Any] = read_json(plan_path)
     configuration: dict[str, Any] = policy_group(plan, group)
     source, build_directory, _ = build_locations(root, group, variant)
-    if group == "default_cpp17" and variant == "baseline":
-        baseline_directory: Path = root / "default-cpp17-baseline-src"
-        baseline_header: Path = baseline_directory / "RandX_Cpp17.hpp"
+    if group in GENERAL_GROUP_NAMES and variant == "baseline":
+        baseline_directory: Path = root / ("baseline-src" if group == "general" else "default-cpp17-baseline-src")
+        header_name: str = "RandX.hpp" if group == "general" else "RandX_Cpp17.hpp"
+        baseline_header: Path = baseline_directory / header_name
         if not baseline_header.is_file():
-            raise ValueError(f"历史基线 checkout 缺少 C++17 发布头文件：{baseline_header}")
+            raise ValueError(f"历史基线 checkout 缺少发布头文件：{baseline_header}")
         actual_baseline_header_commit: str = actual_commit(baseline_directory)
         expected_baseline_header_commit: Any = read_environment(directory).get("baseline_header_source_commit")
         if actual_baseline_header_commit != expected_baseline_header_commit:
-            raise ValueError("历史 C++17 头文件提交与统一计划不匹配")
+            raise ValueError("历史头文件提交与统一计划不匹配")
     loop_alignment: int | None = None
     if group in SAMPLING_GROUPS:
         loop_alignment = int(read_environment(directory)["loop_alignment"])
@@ -300,8 +300,8 @@ def build(plan_path: Path, group: str, variant: str) -> None:
         "fetchcontent_base_dir": str(root / "build" / "_deps"),
     }
     if group == "general" and variant == "baseline":
-        environment_updates["baseline_commit"] = actual_commit(source)
-    if group == "default_cpp17":
+        environment_updates["baseline_commit"] = actual_baseline_header_commit
+    if group in GENERAL_GROUP_NAMES:
         benchmark_source_commit: str = actual_commit(source)
         environment_updates["benchmark_source_commit"] = benchmark_source_commit
         environment_updates[f"{variant}_header_source_commit"] = (
