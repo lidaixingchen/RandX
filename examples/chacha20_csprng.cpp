@@ -6,9 +6,12 @@
 
 int main()
 {
-    // 优先检测当前平台是否走 OS 密码学 API
+    // 编译期平台能力；运行时熵源读取结果由安全接口返回或异常表达。
     if (!RandX::IsOsCryptoEntropyAvailable())
-        std::cerr << "警告：当前运行在 std::random_device 兜底路径\n";
+    {
+        std::cerr << "当前平台未提供受支持的 OS 密码学熵源\n";
+        return 1;
+    }
 
     // 默认构造：OS 熵自动播种（密码学安全）
     RandX::ChaCha20 rng;

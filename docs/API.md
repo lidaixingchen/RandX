@@ -356,14 +356,23 @@ namespace RandX::ranges
 // 指定引擎版
 template <class Engine>
 [[nodiscard]] inline std::string RandString(Engine& engine, std::size_t n, CharSet cs);
+
+template <class Engine>
+[[nodiscard]] inline std::string RandString(Engine& engine, std::size_t n, std::string_view charset);
 ```
+
+`charset` 可由调用方提供自定义字符集合；空字符集抛出 `std::invalid_argument`。该重载按字符位置等概率选取，重复字符会按出现次数影响其概率。默认引擎与显式引擎两种形式均可使用自定义字符集。
 
 ### RandUUID
 
 ```cpp
 [[nodiscard]] inline std::string RandUUID();
+template <class Engine>
+[[nodiscard]] inline std::string RandUUID(Engine& engine);
 // 返回 UUID v4: "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx"
 ```
+
+`RandUUID()` 使用线程局部普通 PRNG。传入 `RandUUID(engine)` 可控制引擎与序列；安全敏感标识符应传入默认构造、由 OS 熵初始化的 `ChaCha20`，或改用 `SecureRandomBytes()`。显式传入普通伪随机引擎时，UUID 的格式不改变其安全属性。
 
 ---
 
@@ -472,6 +481,10 @@ static constexpr result_type max() noexcept;  // UINT64_MAX
 
 不提供 serialize/deserialize、operator<</>>、jump/longJump（CSPRNG 安全约束）。
 默认构造启用自动重播种，输出达到 2^20 字节后从 OS 熵获取新材料；显式种子与直接 key／nonce 构造关闭自动重播种。手动 `reseed()` 保持原自动设置。默认构造、重播种和自动重播种均可能因 OS 熵读取失败抛出 `std::runtime_error`。
+
+默认构造从 OS 熵取得 32 字节 key 与 12 字节 nonce，并从 block counter 0 开始。`ChaCha20(std::uint64_t seed)` 将确定性 64 位种子扩展为 key 和 nonce，只用于测试或复现；它不提供密码学熵。`SecureSeed()` 返回一个由 OS 熵填充的 64 位种子值，适合作为普通引擎的种子；64 位返回范围不等同于 ChaCha20 所需的完整密码学初始化材料。
+
+直接 key／nonce 构造要求非空指针、32 字节 key、12 字节 nonce，`counter` 是初始 32 位 block counter。ChaCha20 每个 block 为 64 字节。同一 key 与 nonce 下，各次使用必须分配互不重叠的 block counter 区间；重复或重叠位置会产生相同的密钥流字节，破坏保密性。该构造关闭自动重播种，key、nonce 与 counter 的唯一性和安全来源由调用方负责。
 
 单实例由单线程独立使用。移动后的源实例生成或 discard 时抛出 `std::logic_error`；确定性模式耗尽 block 计数器后抛出 `std::overflow_error`。
 
@@ -601,5 +614,5 @@ inline constexpr std::uint64_t DefaultSeed = 1234567890ULL;
 | `detail::Character<T>` | char / wchar_t / char16_t / char32_t / char8_t |
 | `detail::SerializableEngine<E>` | state_type 为可索引容器 + 有 serialize/deserialize |
 | `detail::JumpableEngine<E>` | 有 `jump() -> void` |
-| `detail::StreamEngine<E>` | 当前等价于 JumpableEngine（为 Philox 预留） |
+| `detail::StreamEngine<E>` | 具有 jump 能力的流引擎约束 |
 | `detail::RandFillable<It, T>` | output_iterator 且 T 为 integral 或 floating_point |

@@ -175,6 +175,8 @@ ChaCha20 生命周期中的敏感材料擦除由头文件后端处理。CMake �
 
 ## 安装与集成
 
+RandX v1.5.0 已发布，可直接用 CMake FetchContent 获取。仓库内的 vcpkg overlay 与 xmake 配方用于本地预演；官方包仓库的当前版本与审核状态见[发布流程](docs/RELEASING.md#渠道概览)。
+
 ### CMake FetchContent
 
 选择与头文件对应的 CMake 目标，自动传播语言标准及平台链接依赖：
@@ -194,22 +196,30 @@ target_link_libraries(myapp PRIVATE RandX::Cpp23)
 ### vcpkg（overlay 模式）
 
 ```bash
-vcpkg install randx --overlay-ports=path/to/this/repo/ports
+vcpkg install randx --classic --overlay-ports=path/to/this/repo/ports
 ```
+
+v1.5.0 的 port 通过本仓库 overlay 使用。
 
 ### xrepo / xmake
 
 ```bash
 xrepo add-repo local-randx path/to/this/repo/packaging/xmake-repo
-xrepo install randx
+xrepo install "local-randx@randx 1.5.0"
 ```
 
+该命令从本地仓库安装已预演的 v1.5.0 配方。
+
 ### find_package
+
+安装 RandX 后，消费者可以通过配置包选择标准对应的导出目标：
 
 ```cmake
 find_package(RandX CONFIG REQUIRED)
 target_link_libraries(myapp PRIVATE RandX::Cpp23)
 ```
+
+使用 C++17 头文件时链接 `RandX::Cpp17`。CMake 安装包导出所需的 bcrypt／Security 平台链接依赖。
 
 维护者发布流程见 [docs/RELEASING.md](docs/RELEASING.md)。
 

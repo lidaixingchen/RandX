@@ -2,6 +2,8 @@
 
 本指南面向 RandX 维护者，描述如何将新版本发布到三个发布渠道。
 
+整数分布类型候选集的收紧按破坏性变更管理：对外发布前确定主版本，同步版本声明、包描述与发布标签，并提供 [API 类型迁移说明](API.md#整数分布类型契约)。当前工作区的实现与本地验收记录见[项目功能改进方案](项目功能改进方案.md#11-实施结果)，发布渠道中的已发布版本按下表独立登记。
+
 ## 共同源码维护与发布检查
 
 维护入口为 `src/header_sources/targets.json` 及其引用的 `.inc` 文件。修改公共定义时编辑 `common/` 来源；修改标准约束、专属能力或适配时编辑对应的 `cpp23/`、`cpp17/` 来源。生产头文件由来源拼装生成，两个版本的来源和受影响产物必须在同一提交中更新。归属与声明上下文见 [共同源码迁移清单](共同源码迁移清单.md)。
@@ -34,13 +36,15 @@ python -X utf8 tools/check_header_maintenance.py `
 
 ## 渠道概览
 
-| 渠道 | 适用用户 | 提交方式 | 状态 |
-|------|---------|---------|------|
-| **vcpkg 官方 ports** | CMake / MSBuild 用户（最广） | PR 到 microsoft/vcpkg | 待首发 |
-| **xmake-repo** | xmake 用户 | PR 到 xmake-io/xmake-repo | 待首发 |
-| **CMake FetchContent** | 满足项目 CMake 最低版本的用户 | 无需提交，靠 Git tag 自动可用 | 已可用 |
+截至 2026-10-05，GitHub 最新 release 与 tag 均为 [`v1.5.0`](https://github.com/lidaixingchen/RandX/releases/tag/v1.5.0)，tag 指向 `708a64c6b04333c4cdfacd3c4fbeffd569d0608a`。
 
-> 上游 registry 通过 PR 审核接收包定义。CI 工作流 [`packaging-validation.yml`](../.github/workflows/packaging-validation.yml) 做打包预演，验证 port 能否构建。
+| 渠道 | 适用用户 | 本地准备 | 上游可安装状态 |
+|------|---------|---------|------|
+| **vcpkg 官方 ports** | CMake / MSBuild 用户 | `ports/randx/` 已准备 v1.5.0 overlay；版本登记目录仅作模板 | 官方仓库尚无 `ports/randx/`；[PR #53027](https://github.com/microsoft/vcpkg/pull/53027) 仍为开放状态，内容是旧版 1.4.2 |
+| **xmake-repo** | xmake 用户 | 本地配方已准备 v1.5.0 | [PR #10481](https://github.com/xmake-io/xmake-repo/pull/10481) 已合并，但[上游配方](https://github.com/xmake-io/xmake-repo/blob/master/packages/r/randx/xmake.lua)目前最高登记至 1.4.3；v1.5.0 尚未加入上游 |
+| **CMake FetchContent** | 满足项目 CMake 最低版本的用户 | 选择发布 tag | v1.5.0 可用 |
+
+上游 registry 通过 PR 审核接收包定义。CI 工作流 [`packaging-validation.yml`](../.github/workflows/packaging-validation.yml) 从本地 overlay／本地 xmake 仓库安装包，并用 C++17、C++23 消费者编译、链接和运行；该预演不代表上游 registry 已收录相同版本。提交 registry PR 前先核对上表及上游配方，避免重复提交或将旧版审核状态当作当前版本可安装。
 
 ## 前置准备
 
@@ -55,22 +59,23 @@ xmake --version         # >= 2.7（用于 xrepo 验证）
 vcpkg version           # 任意受支持版本
 ```
 
-### Fork 目标仓库
+### 上游仓库
 
-发布前需一次性 fork 两个目标 registry（首次发布时）：
+准备上游贡献时使用已有 fork；若尚无 fork，再创建对应仓库：
 
 - vcpkg：fork [microsoft/vcpkg](https://github.com/microsoft/vcpkg)
 - xmake-repo：fork [xmake-io/xmake-repo](https://github.com/xmake-io/xmake-repo)
 
 ---
 
-## 首次发布到 vcpkg 官方 ports
+## 发布到 vcpkg 官方 ports
 
 ### 1. 准备 port 文件
 
 本仓库的 `ports/randx/` 目录已就绪：
 - [`vcpkg.json`](../ports/randx/vcpkg.json) — 包清单
 - [`portfile.cmake`](../ports/randx/portfile.cmake) — 发布包安装脚本
+- 当前准备版本为 v1.5.0；开放的 vcpkg PR #53027 仍针对 v1.4.2，提交前应按发布授权推进当前版本的更新。
 
 ### 2. 复制到 vcpkg fork
 
@@ -109,27 +114,41 @@ vcpkg 要求每个 port 在 `versions/` 下登记版本信息：
 
 > `--classic` 必须加：本仓库根目录的 `vcpkg.json` 会让 vcpkg 误入 manifest mode。
 
+除检查头文件外，还需通过安装前缀执行两标准消费者验证。该验证明确选择安装前缀内的 `RandXConfig.cmake`，核对导出 include 目录，运行普通分布和 OS 熵初始化的 ChaCha20，并验证缺少配置时不会从其他 RandX 构建树回退：
+
+```powershell
+$prefix = "$env:VCPKG_ROOT/installed/x64-windows"
+python -X utf8 tools/validate_installed_consumers.py `
+  --consumer-source-dir examples/consumer_validation `
+  --work-dir "$env:TEMP/randx-vcpkg-consumers" `
+  --prefix $prefix `
+  --include-root $prefix `
+  --toolchain-file "$env:VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake" `
+  --configuration Release
+```
+
 ### 5. 提交 PR
 
 ```powershell
-git checkout -b add-randx-1.4.2
+git checkout -b add-randx-1.5.0
 git add ports/randx versions/r-/randx.json versions/baseline.json
-git commit -m "New port: randx/1.4.2"
-git push origin add-randx-1.4.2
+git commit -m "New port: randx/1.5.0"
+git push origin add-randx-1.5.0
 ```
 
 在 GitHub 上向 `microsoft/vcpkg:master` 发起 PR。等待维护者 review（通常 1~5 天）。
 
 ---
 
-## 首次发布到 xmake-repo
+## 更新 xmake-repo 版本
 
 ### 1. 准备 port 文件
 
 本仓库的 `packaging/xmake-repo/packages/r/randx/xmake.lua` 已就绪：
 - 含跨平台 OS 熵源链接（Windows `bcrypt` / macOS `Security`）
-- 含 `on_test` snippet（C++23 编译验证）
-- 含 v1.4.2 tarball 的 SHA256
+- 含 C++17、C++23 `on_test` 编译验证
+- 含 v1.5.0 tarball 的 SHA256
+- 上游 PR #10481 已合并 v1.4.2；上游配方当前最高登记至 1.4.3，本地配置等待 v1.5.0 更新 PR
 
 ### 2. 复制到 xmake-repo fork
 
@@ -149,18 +168,23 @@ Copy-Item <randx-repo>/packaging/xmake-repo/packages/r/randx/xmake.lua packages/
 xrepo add-repo local-randx "$PWD"
 
 # 安装并触发 on_test
-xrepo install -y randx
+xrepo install -y "local-randx@randx 1.5.0"
 
-# 期望输出：=> install randx 1.4.2 .. ok
+# 用包依赖构建并运行两标准消费者
+cd <randx-repo>/examples/consumer_validation
+$env:RANDX_PACKAGE_VERSION = "1.5.0"
+xmake build -y randx_consumer_cpp17 randx_consumer_cpp23
+xmake run randx_consumer_cpp17
+xmake run randx_consumer_cpp23
 ```
 
 ### 4. 提交 PR
 
 ```powershell
-git checkout -b add-randx-1.4.2
+git checkout -b update-randx-1.5.0
 git add packages/r/randx/xmake.lua
-git commit -m "Add package randx 1.4.2"
-git push origin add-randx-1.4.2
+git commit -m "Update randx to 1.5.0"
+git push origin update-randx-1.5.0
 ```
 
 在 GitHub 上向 `xmake-io/xmake-repo:master` 发起 PR。
@@ -169,42 +193,40 @@ git push origin add-randx-1.4.2
 
 ## 后续版本发布
 
-每次发布新版本（如 v1.4.0）的完整流程：
+每次发布新版本时，从准备、验证到 registry 更新按以下顺序推进。发布 tag 与上游 PR 在取得相应授权后执行。
 
 ### 步骤 1：本地准备
 
 ```powershell
-# 1.1 在 master 上更新版本号（4 处）
-# - CMakeLists.txt        : project(RandX VERSION 1.4.0 LANGUAGES CXX)
-# - vcpkg.json            : "version": "1.4.0"
-# - ports/randx/vcpkg.json: "version": "1.4.0"
-# - packaging/xmake-repo/packages/r/randx/xmake.lua: add_versions("1.4.0", "<sha256>")
+$version = Read-Host "版本号（不含 v）"
 
-# 1.2 提交并打 tag
+# 更新 CMakeLists.txt、根 vcpkg.json、ports/randx/vcpkg.json 与 xmake.lua 中的版本。
+
+# 待发布内容准备完成且获授权后，再提交并推送 tag。
 git add CMakeLists.txt vcpkg.json ports/randx/ packaging/
-git commit -m "release: v1.4.0"
-git tag v1.4.0
+git commit -m "release: v$version"
+git tag "v$version"
 git push origin master
-git push origin v1.4.0
+git push origin "v$version"
 ```
 
 ### 步骤 2：等待 CI 验证
 
 在 GitHub Actions 页面用 `workflow_dispatch` 触发[打包验证](../.github/workflows/packaging-validation.yml)工作流（可指定 version 参数）：
 
-- **vcpkg-validate**（windows-latest）：用 overlay port 安装 + 验证头文件
-- **xrepo-validate**（ubuntu-24.04）：注册本地 xmake-repo + 安装 + 触发 on_test
+- **vcpkg-validate**（windows-latest）：用 overlay port 安装，通过 CMake 包配置构建并运行 C++17、C++23 消费者
+- **xrepo-validate**（ubuntu-24.04）：注册本地 xmake-repo，通过包依赖构建并运行 C++17、C++23 消费者
 
-两个 job 都通过后才进入下一步。失败时修复后再推送新 tag（如 `v1.4.1`）。
+两个 job 都通过后再准备对应 registry 更新。失败时先修复 port 或消费者验证问题；只有需要发布修订版本且获授权时才创建新 tag。
 
 ### 步骤 3：计算新版本的 SHA 哈希
 
 vcpkg 需要 SHA512，xmake-repo 需要 SHA256：
 
 ```powershell
-# 等待 GitHub codeload 传播（推 tag 后 1~2 分钟）
-$tmp = "$env:TEMP\randx-v1.4.0.tar.gz"
-Invoke-WebRequest "https://codeload.github.com/lidaixingchen/RandX/tar.gz/refs/tags/v1.4.0" `
+# 等待 GitHub codeload 传播
+$tmp = "$env:TEMP\randx-v$version.tar.gz"
+Invoke-WebRequest "https://codeload.github.com/lidaixingchen/RandX/tar.gz/refs/tags/v$version" `
     -OutFile $tmp -UseBasicParsing
 
 # 计算 SHA512（写入 ports/randx/portfile.cmake）
@@ -226,10 +248,10 @@ Copy-Item -Recurse <randx-repo>/ports/randx/* ports/randx/
 # 生成新版本记录（追加到 versions/r-/randx.json + 更新 baseline.json）
 .\vcpkg.exe x-add-version randx
 
-git checkout -b bump-randx-1.4.0
+git checkout -b "bump-randx-$version"
 git add ports/randx versions/r-/randx.json versions/baseline.json
-git commit -m "[randx] Update to 1.4.0"
-git push origin bump-randx-1.4.0
+git commit -m "[randx] Update to $version"
+git push origin "bump-randx-$version"
 ```
 
 ### 步骤 5：向 xmake-repo fork 提交版本更新 PR
@@ -242,10 +264,10 @@ git pull origin master
 Copy-Item <randx-repo>/packaging/xmake-repo/packages/r/randx/xmake.lua `
          packages/r/randx/xmake.lua
 
-git checkout -b bump-randx-1.4.0
+git checkout -b "bump-randx-$version"
 git add packages/r/randx/xmake.lua
-git commit -m "Update randx to 1.4.0"
-git push origin bump-randx-1.4.0
+git commit -m "Update randx to $version"
+git push origin "bump-randx-$version"
 ```
 
 ### 步骤 6：更新 CHANGELOG
@@ -265,8 +287,8 @@ git push origin bump-randx-1.4.0
 
 | Job | Runner | 验证内容 |
 |-----|--------|---------|
-| `vcpkg-validate` | windows-latest | port 版本号匹配 tag + `vcpkg install` overlay 成功 + 头文件已安装 |
-| `xrepo-validate` | ubuntu-24.04 + GCC 14 | port 版本号匹配 tag + `xrepo install` 成功（含 on_test C++23 编译）|
+| `vcpkg-validate` | windows-latest | overlay port 安装；从所选 vcpkg 前缀加载配置，编译、链接并运行 C++17／C++23 消费者 |
+| `xrepo-validate` | ubuntu-24.04 + GCC 14 | 本地仓库按指定版本安装；xmake 包依赖编译并运行 C++17／C++23 消费者，port `on_test` 同时编译两标准片段 |
 | `summary` | ubuntu-24.04 | 汇总两个 job 的结果到 GitHub Actions Summary |
 
 **失败常见原因**：
@@ -285,8 +307,8 @@ git push origin bump-randx-1.4.0
 - [ ] packaging/xmake-repo/packages/r/randx/xmake.lua 的 add_versions 已新增
 - [ ] CHANGELOG.md 已追加新版本小节
 - [ ] 本地 `vcpkg install randx --classic --overlay-ports=ports` 通过
-- [ ] 本地 `xrepo install randx` 通过
+- [ ] CTest 的 `test_build_tree_consumers` 与 `test_installed_consumers` 通过
+- [ ] xmake package dependency 下的 C++17、C++23 消费者通过
 - [ ] commit + tag 已推送
 - [ ] CI 工作流 Packaging Validation 全绿
-- [ ] vcpkg fork PR 已提交
-- [ ] xmake-repo fork PR 已提交
+- [ ] 按当前上游登记状态创建或更新对应 registry PR
