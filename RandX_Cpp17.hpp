@@ -2755,6 +2755,55 @@ namespace detail
 		return charset[dist(engine)];
 	}
 
+	namespace detail
+	{
+		template <class T, class Diff, class It, class Sentinel, class GetEngine>
+		inline T
+		RandElementInput(It& first, Sentinel& last, GetEngine&& getEngine)
+		{
+			using Count = std::uint64_t;
+			constexpr Count maxCount = (std::numeric_limits<Count>::max)();
+
+			if (first == last)
+				throw std::invalid_argument("RandElement: empty range");
+			T selected = *first;
+			++first;
+			Count count = 1;
+			while (first != last)
+			{
+				if (count == maxCount)
+					throw std::length_error("RandElement: range exceeds count capacity");
+
+				auto& engine = getEngine();
+				Count index;
+				if constexpr (std::numeric_limits<Diff>::digits <= std::numeric_limits<Count>::digits)
+				{
+					if (count <= static_cast<Count>((std::numeric_limits<Diff>::max)()))
+					{
+						const Diff upper = static_cast<Diff>(count);
+						index = static_cast<Count>(RandInt<Diff>(engine, Diff{0}, upper));
+					}
+					else
+					{
+						index = RandInt<Count>(engine, Count{0}, count);
+					}
+				}
+				else
+				{
+					const Diff upper = static_cast<Diff>(count);
+					index = static_cast<Count>(RandInt<Diff>(engine, Diff{0}, upper));
+				}
+				if (index == 0)
+					selected = *first;
+				++first;
+				++count;
+			}
+			if constexpr (std::is_constructible_v<T, T&&>)
+				return selected;
+			else
+				return static_cast<const T&>(selected);
+		}
+	}
 	/// @defgroup containers 容器操作
 	/// @brief RandElement / RandSample / RandShuffle / RandPermutation / RandFill / RandVector
 
@@ -2810,21 +2859,16 @@ namespace detail
 	/// @throw std::invalid_argument 范围为空时抛出
 	template <class It,
 		std::enable_if_t<detail::is_input_iterator_v<It>
-			&& !detail::is_random_access_iterator_v<It>>* = nullptr>
+			&& !detail::is_random_access_iterator_v<It>
+			&& std::is_copy_constructible_v<typename std::iterator_traits<It>::value_type>
+			&& std::is_copy_assignable_v<typename std::iterator_traits<It>::value_type>>* = nullptr>
 	[[nodiscard]]
 	inline typename std::iterator_traits<It>::value_type RandElement(It first, It last)
 	{
-		if (first == last)
-			throw std::invalid_argument("RandElement: empty range");
-		typename std::iterator_traits<It>::value_type selected = *first;
-		++first;
-		for (typename std::iterator_traits<It>::difference_type i = 1;
-			first != last; ++first, ++i)
-		{
-			if (RandInt<typename std::iterator_traits<It>::difference_type>(0, i) == 0)
-				selected = *first;
-		}
-		return selected;
+		using Diff = typename std::iterator_traits<It>::difference_type;
+		using T = typename std::iterator_traits<It>::value_type;
+		return detail::RandElementInput<T, Diff>(first, last,
+			[]() -> Xoshiro256StarStar& { return DefaultEngine(); });
 	}
 
 	/// @brief 从迭代器范围内随机取一个元素（指定引擎，随机访问迭代器）
@@ -2852,22 +2896,16 @@ namespace detail
 	template <class It, class Engine,
 		std::enable_if_t<detail::is_input_iterator_v<It>
 			&& !detail::is_random_access_iterator_v<It>
+			&& std::is_copy_constructible_v<typename std::iterator_traits<It>::value_type>
+			&& std::is_copy_assignable_v<typename std::iterator_traits<It>::value_type>
 			&& detail::is_random_engine_v<Engine>>* = nullptr>
 	[[nodiscard]]
 	inline typename std::iterator_traits<It>::value_type RandElement(Engine& engine, It first, It last)
 	{
-		if (first == last)
-			throw std::invalid_argument("RandElement: empty range");
-		typename std::iterator_traits<It>::value_type selected = *first;
-		++first;
-		for (typename std::iterator_traits<It>::difference_type i = 1;
-			first != last; ++first, ++i)
-		{
-			if (RandInt<typename std::iterator_traits<It>::difference_type>(
-				engine, typename std::iterator_traits<It>::difference_type{0}, i) == 0)
-				selected = *first;
-		}
-		return selected;
+		using Diff = typename std::iterator_traits<It>::difference_type;
+		using T = typename std::iterator_traits<It>::value_type;
+		return detail::RandElementInput<T, Diff>(first, last,
+			[&engine]() -> Engine& { return engine; });
 	}
 
 
@@ -3849,24 +3887,46 @@ namespace detail
 				return {};
 
 			std::vector<T> reservoir;
+			using Count = std::uint64_t;
+			constexpr Count maxCount = (std::numeric_limits<Count>::max)();
+			Count requestedCount;
+			if constexpr (std::numeric_limits<Diff>::digits <= std::numeric_limits<Count>::digits)
+			{
+				requestedCount = static_cast<Count>(n);
+			}
+			else
+			{
+				requestedCount = n > static_cast<Diff>(maxCount) ? maxCount : static_cast<Count>(n);
+			}
 
-			// 填满蓄水池
-			Diff i = 0;
-			for (; i < n && first != last; ++i, ++first)
+			Count count = 0;
+			while (reservoir.size() < requestedCount && first != last)
+			{
+				if (count == maxCount)
+					throw std::length_error("SampleReservoir: range exceeds count capacity");
 				reservoir.push_back(*first);
+				++first;
+				++count;
+			}
 
 			if (first == last)
 				return reservoir;  // 元素不足 n，返回全部
+			if (count == maxCount)
+				throw std::length_error("SampleReservoir: range exceeds count capacity");
 
 			// Algorithm R：第 i 个元素（i >= n，0-indexed）以 n/(i+1) 概率替换蓄水池随机位置
 			// 关键：j ∈ [0, i]（闭区间），uniform_int_distribution(0, i) 正好是 [0, i] 闭区间
 			auto& rng = getEngine();
-			for (; first != last; ++i, ++first)
+			while (first != last)
 			{
-				SampleFixedIndexDistribution<std::uint64_t, Lifetime> dist(0, static_cast<std::uint64_t>(i));
+				if (count == maxCount)
+					throw std::length_error("SampleReservoir: range exceeds count capacity");
+				SampleFixedIndexDistribution<Count, Lifetime> dist(Count{0}, count);
 				const auto j = DrawReservoirSampleIndex(dist, rng);
-				if (j < static_cast<std::uint64_t>(n))
+				if (j < static_cast<Count>(reservoir.size()))
 					reservoir[static_cast<std::size_t>(j)] = *first;
+				++first;
+				++count;
 			}
 			return reservoir;
 		}

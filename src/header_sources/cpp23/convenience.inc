@@ -124,6 +124,7 @@
 
 	/// @}
 
+	// @randx-include ../common/convenience/rand_element_input.inc
 	/// @defgroup containers 容器操作
 	/// @brief RandElement / RandSample / RandShuffle / RandPermutation / RandFill / RandVector
 	/// @{
@@ -171,19 +172,15 @@
 	/// @throw std::invalid_argument 范围为空时抛出
 	template <std::input_iterator It, std::sentinel_for<It> Sentinel>
 		requires (!std::random_access_iterator<It> || !std::sized_sentinel_for<Sentinel, It>)
+			&& std::is_copy_constructible_v<std::iter_value_t<It>>
+			&& std::is_copy_assignable_v<std::iter_value_t<It>>
 	[[nodiscard]]
 	inline std::iter_value_t<It> RandElement(It first, Sentinel last)
 	{
-		if (first == last)
-			throw std::invalid_argument("RandElement: empty range");
-		std::iter_value_t<It> selected = *first;
-		++first;
-		for (std::iter_difference_t<It> i = 1; first != last; ++first, ++i)
-		{
-			if (RandInt<std::iter_difference_t<It>>(0, i) == 0)
-				selected = *first;
-		}
-		return selected;
+		using Diff = std::iter_difference_t<It>;
+		using T = std::iter_value_t<It>;
+		return detail::RandElementInput<T, Diff>(first, last,
+			[]() -> Xoshiro256StarStar& { return DefaultEngine(); });
 	}
 
 	/// @brief 从迭代器范围内随机取一个元素（指定引擎，随机访问迭代器）
@@ -209,19 +206,15 @@
 	/// @return 随机选取的元素值
 	template <std::input_iterator It, std::sentinel_for<It> Sentinel, detail::RandomEngine Engine>
 		requires (!std::random_access_iterator<It> || !std::sized_sentinel_for<Sentinel, It>)
+			&& std::is_copy_constructible_v<std::iter_value_t<It>>
+			&& std::is_copy_assignable_v<std::iter_value_t<It>>
 	[[nodiscard]]
 	inline std::iter_value_t<It> RandElement(Engine& engine, It first, Sentinel last)
 	{
-		if (first == last)
-			throw std::invalid_argument("RandElement: empty range");
-		std::iter_value_t<It> selected = *first;
-		++first;
-		for (std::iter_difference_t<It> i = 1; first != last; ++first, ++i)
-		{
-			if (RandInt<std::iter_difference_t<It>>(engine, std::iter_difference_t<It>{0}, i) == 0)
-				selected = *first;
-		}
-		return selected;
+		using Diff = std::iter_difference_t<It>;
+		using T = std::iter_value_t<It>;
+		return detail::RandElementInput<T, Diff>(first, last,
+			[&engine]() -> Engine& { return engine; });
 	}
 
 

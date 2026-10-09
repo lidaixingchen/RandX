@@ -158,13 +158,16 @@
 
 	namespace ranges
 	{
-		/// @brief 随机选取一个元素（返回值拷贝，非迭代器）
+		/// @brief 随机选取一个元素并返回元素值拷贝
 		/// @param r 源 range（需满足 sized_range 或 forward_range）
 		/// @return 随机选取的元素值拷贝
-		/// @note 语义差异：迭代器版返回迭代器（可修改原元素），ranges 版返回值拷贝
+		/// @note 随机访问迭代器入口返回迭代器，输入迭代器入口与 ranges 入口返回元素值。
 		template <std::ranges::input_range R>
 			requires (std::ranges::sized_range<R> || std::ranges::forward_range<R>)
 				&& std::copy_constructible<std::ranges::range_value_t<R>>
+				&& ((std::random_access_iterator<std::ranges::iterator_t<R>>
+					&& std::sized_sentinel_for<std::ranges::sentinel_t<R>, std::ranges::iterator_t<R>>)
+					|| std::is_copy_assignable_v<std::ranges::range_value_t<R>>)
 		[[nodiscard]]
 		inline std::ranges::range_value_t<R>
 		RandElement(R&& r)
@@ -184,6 +187,9 @@
 		template <detail::RandomEngine Engine, std::ranges::input_range R>
 			requires (std::ranges::sized_range<R> || std::ranges::forward_range<R>)
 				&& std::copy_constructible<std::ranges::range_value_t<R>>
+				&& ((std::random_access_iterator<std::ranges::iterator_t<R>>
+					&& std::sized_sentinel_for<std::ranges::sentinel_t<R>, std::ranges::iterator_t<R>>)
+					|| std::is_copy_assignable_v<std::ranges::range_value_t<R>>)
 		[[nodiscard]]
 		inline std::ranges::range_value_t<R>
 		RandElement(Engine& engine, R&& r)

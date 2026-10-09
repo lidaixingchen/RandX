@@ -29,6 +29,39 @@ namespace RandXTest
 {
 namespace SamplingCompileChecks
 {
+struct CopyConstructibleButNotAssignable
+{
+	int value{};
+	CopyConstructibleButNotAssignable() = default;
+	explicit CopyConstructibleButNotAssignable(int item) : value(item) {}
+	CopyConstructibleButNotAssignable(const CopyConstructibleButNotAssignable&) = default;
+	CopyConstructibleButNotAssignable& operator=(const CopyConstructibleButNotAssignable&) = delete;
+};
+
+struct CopyStreamValue
+{
+	int value{};
+	explicit CopyStreamValue(int item) : value(item) {}
+	CopyStreamValue(const CopyStreamValue&) = default;
+	CopyStreamValue(CopyStreamValue&&) = delete;
+	CopyStreamValue& operator=(const CopyStreamValue&) = default;
+};
+
+template <class Iterator, class = void>
+struct HasDefaultIteratorRandElement : std::false_type {};
+
+template <class Iterator>
+struct HasDefaultIteratorRandElement<Iterator, std::void_t<decltype(
+	RandX::RandElement(std::declval<Iterator>(), std::declval<Iterator>()))>> : std::true_type {};
+
+template <class Iterator, class = void>
+struct HasExplicitIteratorRandElement : std::false_type {};
+
+template <class Iterator>
+struct HasExplicitIteratorRandElement<Iterator, std::void_t<decltype(
+	RandX::RandElement(std::declval<RandX::Xoshiro256StarStar&>(),
+		std::declval<Iterator>(), std::declval<Iterator>()))>> : std::true_type {};
+
 template <class Container, class = void>
 struct HasDefaultContainerRandSample : std::false_type {};
 
@@ -205,6 +238,104 @@ TEST_SUITE("公共/基础/抽样")
             CHECK(val <= 500);
         }
 
+    }
+    TEST_CASE("RandElement 输入路径复制约束与随机访问 CopyOnly")
+    {
+        using CopyOnly = RandXTest::SamplingCompileChecks::CopyConstructibleButNotAssignable;
+        using InputIterator = std::list<CopyOnly>::const_iterator;
+        using RandomAccessIterator = std::vector<CopyOnly>::const_iterator;
+        static_assert(!RandXTest::SamplingCompileChecks::HasDefaultIteratorRandElement<InputIterator>::value);
+        static_assert(!RandXTest::SamplingCompileChecks::HasExplicitIteratorRandElement<InputIterator>::value);
+        static_assert(RandXTest::SamplingCompileChecks::HasDefaultIteratorRandElement<RandomAccessIterator>::value);
+        static_assert(RandXTest::SamplingCompileChecks::HasExplicitIteratorRandElement<RandomAccessIterator>::value);
+
+        constexpr int firstValue = 13;
+        constexpr int secondValue = 19;
+        constexpr int thirdValue = 29;
+        std::vector<CopyOnly> population;
+        population.emplace_back(firstValue);
+        population.emplace_back(secondValue);
+        population.emplace_back(thirdValue);
+
+        const auto defaultSelected = RandX::RandElement(population.cbegin(), population.cend());
+        REQUIRE(defaultSelected != population.cend());
+        CHECK((defaultSelected->value == firstValue
+            || defaultSelected->value == secondValue || defaultSelected->value == thirdValue));
+
+        RandX::Xoshiro256StarStar engine(RandXTest::TestConstants::kDefaultEngineTestSeed);
+        const auto explicitSelected = RandX::RandElement(engine, population.cbegin(), population.cend());
+        REQUIRE(explicitSelected != population.cend());
+        CHECK((explicitSelected->value == firstValue
+            || explicitSelected->value == secondValue || explicitSelected->value == thirdValue));
+
+    }
+    TEST_CASE("RandElement 与 RandSample 输入计数不依赖迭代器差值")
+    {
+        using NarrowDifference = signed char;
+        using NarrowIterator = std::istream_iterator<int, char, std::char_traits<char>, NarrowDifference>;
+        using WideIterator = std::istream_iterator<int>;
+        constexpr int countOverflowMargin = 3;
+        constexpr int populationSize = static_cast<int>((std::numeric_limits<NarrowDifference>::max)())
+            + countOverflowMargin;
+        constexpr NarrowDifference sampleCount = 1;
+        constexpr std::ptrdiff_t wideSampleCount = sampleCount;
+        const std::uint64_t seed = RandXTest::TestConstants::kDefaultEngineTestSeed;
+        std::ostringstream populationText;
+        for (int value = 0; value < populationSize; ++value)
+            populationText << value << ' ';
+        const std::string encodedPopulation = populationText.str();
+
+        RandX::Reseed(seed);
+        std::istringstream narrowDefaultElementInput(encodedPopulation);
+        const int narrowDefaultElement = RandX::RandElement(
+            NarrowIterator{narrowDefaultElementInput}, NarrowIterator{});
+        CHECK((narrowDefaultElement >= 0 && narrowDefaultElement < populationSize));
+
+        std::istringstream narrowExplicitElementInput(encodedPopulation);
+        RandX::Xoshiro256StarStar elementEngine(seed);
+        const int narrowExplicitElement = RandX::RandElement(
+            elementEngine, NarrowIterator{narrowExplicitElementInput}, NarrowIterator{});
+        CHECK((narrowExplicitElement >= 0 && narrowExplicitElement < populationSize));
+
+        RandX::Reseed(seed);
+        std::istringstream narrowDefaultSampleInput(encodedPopulation);
+        const auto narrowDefaultSample = RandX::RandSample(
+            NarrowIterator{narrowDefaultSampleInput}, NarrowIterator{}, sampleCount);
+        const auto narrowDefaultState = RandX::DefaultEngine();
+
+        RandX::Reseed(seed);
+        std::istringstream wideDefaultSampleInput(encodedPopulation);
+        const auto wideDefaultSample = RandX::RandSample(
+            WideIterator{wideDefaultSampleInput}, WideIterator{}, wideSampleCount);
+        const auto wideDefaultState = RandX::DefaultEngine();
+        CHECK(narrowDefaultSample == wideDefaultSample);
+        CHECK(narrowDefaultState == wideDefaultState);
+
+        std::istringstream narrowExplicitSampleInput(encodedPopulation);
+        std::istringstream wideExplicitSampleInput(encodedPopulation);
+        RandX::Xoshiro256StarStar narrowSampleEngine(seed);
+        RandX::Xoshiro256StarStar wideSampleEngine(seed);
+        const auto narrowExplicitSample = RandX::RandSample(
+            narrowSampleEngine, NarrowIterator{narrowExplicitSampleInput}, NarrowIterator{}, sampleCount);
+        const auto wideExplicitSample = RandX::RandSample(
+            wideSampleEngine, WideIterator{wideExplicitSampleInput}, WideIterator{}, wideSampleCount);
+        CHECK(narrowExplicitSample == wideExplicitSample);
+        CHECK(narrowSampleEngine == wideSampleEngine);
+
+    }
+    TEST_CASE("RandElement 输入路径支持复制返回")
+    {
+        using RandXTest::SamplingCompileChecks::CopyStreamValue;
+        constexpr int firstValue = 17;
+        constexpr int secondValue = 23;
+        std::list<CopyStreamValue> population;
+        population.emplace_back(firstValue);
+        population.emplace_back(secondValue);
+        RandX::Xoshiro256StarStar engine{RandXTest::TestConstants::kDefaultEngineTestSeed};
+        const auto explicitValue = RandX::RandElement(engine, population.cbegin(), population.cend());
+        const auto defaultValue = RandX::RandElement(population.cbegin(), population.cend());
+        CHECK((explicitValue.value == firstValue || explicitValue.value == secondValue));
+        CHECK((defaultValue.value == firstValue || defaultValue.value == secondValue));
     }
     TEST_CASE("RandElement 迭代器版（随机访问）")
     {

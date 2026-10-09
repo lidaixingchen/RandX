@@ -43,6 +43,17 @@ concept CanRandBits = requires(Engine& engine) {
     RandX::RandBits<N, T>(engine);
 };
 
+template <class Iterator>
+concept CanIteratorRandElement = requires(Iterator first, Iterator last) {
+    RandX::RandElement(first, last);
+};
+
+template <class Iterator>
+concept CanIteratorRandElementWithEngine = requires(
+    RandX::Xoshiro256StarStar& engine, Iterator first, Iterator last) {
+    RandX::RandElement(engine, first, last);
+};
+
 struct NonSizedSentinel
 {
     const int* end_ptr{ nullptr };
@@ -62,6 +73,15 @@ struct NonCopyableType
     NonCopyableType& operator=(const NonCopyableType&) = delete;
     NonCopyableType(NonCopyableType&&) = default;
     NonCopyableType& operator=(NonCopyableType&&) = default;
+};
+
+struct CopyOnlyElement
+{
+    int value{};
+    CopyOnlyElement() = default;
+    explicit CopyOnlyElement(int item) : value(item) {}
+    CopyOnlyElement(const CopyOnlyElement&) = default;
+    CopyOnlyElement& operator=(const CopyOnlyElement&) = delete;
 };
 
 struct ModernRandomAccessIterator
@@ -140,6 +160,12 @@ template <class Range>
 concept CanRandElement = requires(Range&& range) {
     RandX::ranges::RandElement(std::forward<Range>(range));
 };
+
+template <class Range>
+concept CanRangesRandElementWithEngine = requires(
+    RandX::Xoshiro256StarStar& engine, Range&& range) {
+    RandX::ranges::RandElement(engine, std::forward<Range>(range));
+};
 }
 }
 
@@ -215,6 +241,44 @@ TEST_SUITE("专属/C++23/编译期")
 TEST_SUITE("专属/C++23/范围")
 {
     using namespace RandXTest::Cpp23Fixtures;
+    TEST_CASE("RandElement 范围路径按实际访问分支约束复制能力")
+    {
+        using namespace RandXTest::Cpp23Fixtures;
+        using InputRange = std::list<CopyOnlyElement>;
+        using RandomAccessRange = std::vector<CopyOnlyElement>;
+        using InputIterator = std::ranges::iterator_t<InputRange>;
+        using RandomAccessIterator = std::ranges::iterator_t<RandomAccessRange>;
+        static_assert(!CanIteratorRandElement<InputIterator>);
+        static_assert(!CanIteratorRandElementWithEngine<InputIterator>);
+        static_assert(CanIteratorRandElement<RandomAccessIterator>);
+        static_assert(CanIteratorRandElementWithEngine<RandomAccessIterator>);
+        static_assert(!CanRandElement<InputRange&>);
+        static_assert(!CanRangesRandElementWithEngine<InputRange&>);
+        static_assert(CanRandElement<RandomAccessRange&>);
+        static_assert(CanRangesRandElementWithEngine<RandomAccessRange&>);
+
+        constexpr int firstValue = 17;
+        constexpr int secondValue = 23;
+        constexpr int thirdValue = 31;
+        RandomAccessRange population;
+        population.emplace_back(firstValue);
+        population.emplace_back(secondValue);
+        population.emplace_back(thirdValue);
+
+        const auto defaultIterator = RandX::RandElement(population.cbegin(), population.cend());
+        REQUIRE(defaultIterator != population.cend());
+        const auto defaultValue = RandX::ranges::RandElement(population);
+        CHECK((defaultValue.value == firstValue
+            || defaultValue.value == secondValue || defaultValue.value == thirdValue));
+
+        RandX::Xoshiro256StarStar engine(RandXTest::TestConstants::kDefaultEngineTestSeed);
+        const auto explicitIterator = RandX::RandElement(engine, population.cbegin(), population.cend());
+        REQUIRE(explicitIterator != population.cend());
+        const auto explicitValue = RandX::ranges::RandElement(engine, population);
+        CHECK((explicitValue.value == firstValue
+            || explicitValue.value == secondValue || explicitValue.value == thirdValue));
+
+    }
     TEST_CASE("RandElement 与 views::filter 组合")
     {
         RandX::Reseed(RandXTest::TestConstants::kDefaultEngineTestSeed);

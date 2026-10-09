@@ -2243,6 +2243,55 @@ namespace RandX
 
 	/// @}
 
+	namespace detail
+	{
+		template <class T, class Diff, class It, class Sentinel, class GetEngine>
+		inline T
+		RandElementInput(It& first, Sentinel& last, GetEngine&& getEngine)
+		{
+			using Count = std::uint64_t;
+			constexpr Count maxCount = (std::numeric_limits<Count>::max)();
+
+			if (first == last)
+				throw std::invalid_argument("RandElement: empty range");
+			T selected = *first;
+			++first;
+			Count count = 1;
+			while (first != last)
+			{
+				if (count == maxCount)
+					throw std::length_error("RandElement: range exceeds count capacity");
+
+				auto& engine = getEngine();
+				Count index;
+				if constexpr (std::numeric_limits<Diff>::digits <= std::numeric_limits<Count>::digits)
+				{
+					if (count <= static_cast<Count>((std::numeric_limits<Diff>::max)()))
+					{
+						const Diff upper = static_cast<Diff>(count);
+						index = static_cast<Count>(RandInt<Diff>(engine, Diff{0}, upper));
+					}
+					else
+					{
+						index = RandInt<Count>(engine, Count{0}, count);
+					}
+				}
+				else
+				{
+					const Diff upper = static_cast<Diff>(count);
+					index = static_cast<Count>(RandInt<Diff>(engine, Diff{0}, upper));
+				}
+				if (index == 0)
+					selected = *first;
+				++first;
+				++count;
+			}
+			if constexpr (std::is_constructible_v<T, T&&>)
+				return selected;
+			else
+				return static_cast<const T&>(selected);
+		}
+	}
 	/// @defgroup containers 容器操作
 	/// @brief RandElement / RandSample / RandShuffle / RandPermutation / RandFill / RandVector
 	/// @{
@@ -2298,19 +2347,15 @@ namespace RandX
 	/// @throw std::invalid_argument 范围为空时抛出
 	template <std::input_iterator It, std::sentinel_for<It> Sentinel>
 		requires (!std::random_access_iterator<It> || !std::sized_sentinel_for<Sentinel, It>)
+			&& std::is_copy_constructible_v<std::iter_value_t<It>>
+			&& std::is_copy_assignable_v<std::iter_value_t<It>>
 	[[nodiscard]]
 	inline std::iter_value_t<It> RandElement(It first, Sentinel last)
 	{
-		if (first == last)
-			throw std::invalid_argument("RandElement: empty range");
-		std::iter_value_t<It> selected = *first;
-		++first;
-		for (std::iter_difference_t<It> i = 1; first != last; ++first, ++i)
-		{
-			if (RandInt<std::iter_difference_t<It>>(0, i) == 0)
-				selected = *first;
-		}
-		return selected;
+		using Diff = std::iter_difference_t<It>;
+		using T = std::iter_value_t<It>;
+		return detail::RandElementInput<T, Diff>(first, last,
+			[]() -> Xoshiro256StarStar& { return DefaultEngine(); });
 	}
 
 	/// @brief 从迭代器范围内随机取一个元素（指定引擎，随机访问迭代器）
@@ -2336,19 +2381,15 @@ namespace RandX
 	/// @return 随机选取的元素值
 	template <std::input_iterator It, std::sentinel_for<It> Sentinel, detail::RandomEngine Engine>
 		requires (!std::random_access_iterator<It> || !std::sized_sentinel_for<Sentinel, It>)
+			&& std::is_copy_constructible_v<std::iter_value_t<It>>
+			&& std::is_copy_assignable_v<std::iter_value_t<It>>
 	[[nodiscard]]
 	inline std::iter_value_t<It> RandElement(Engine& engine, It first, Sentinel last)
 	{
-		if (first == last)
-			throw std::invalid_argument("RandElement: empty range");
-		std::iter_value_t<It> selected = *first;
-		++first;
-		for (std::iter_difference_t<It> i = 1; first != last; ++first, ++i)
-		{
-			if (RandInt<std::iter_difference_t<It>>(engine, std::iter_difference_t<It>{0}, i) == 0)
-				selected = *first;
-		}
-		return selected;
+		using Diff = std::iter_difference_t<It>;
+		using T = std::iter_value_t<It>;
+		return detail::RandElementInput<T, Diff>(first, last,
+			[&engine]() -> Engine& { return engine; });
 	}
 
 
@@ -3417,24 +3458,46 @@ namespace RandX
 				return {};
 
 			std::vector<T> reservoir;
+			using Count = std::uint64_t;
+			constexpr Count maxCount = (std::numeric_limits<Count>::max)();
+			Count requestedCount;
+			if constexpr (std::numeric_limits<Diff>::digits <= std::numeric_limits<Count>::digits)
+			{
+				requestedCount = static_cast<Count>(n);
+			}
+			else
+			{
+				requestedCount = n > static_cast<Diff>(maxCount) ? maxCount : static_cast<Count>(n);
+			}
 
-			// 填满蓄水池
-			Diff i = 0;
-			for (; i < n && first != last; ++i, ++first)
+			Count count = 0;
+			while (reservoir.size() < requestedCount && first != last)
+			{
+				if (count == maxCount)
+					throw std::length_error("SampleReservoir: range exceeds count capacity");
 				reservoir.push_back(*first);
+				++first;
+				++count;
+			}
 
 			if (first == last)
 				return reservoir;  // 元素不足 n，返回全部
+			if (count == maxCount)
+				throw std::length_error("SampleReservoir: range exceeds count capacity");
 
 			// Algorithm R：第 i 个元素（i >= n，0-indexed）以 n/(i+1) 概率替换蓄水池随机位置
 			// 关键：j ∈ [0, i]（闭区间），uniform_int_distribution(0, i) 正好是 [0, i] 闭区间
 			auto& rng = getEngine();
-			for (; first != last; ++i, ++first)
+			while (first != last)
 			{
-				SampleFixedIndexDistribution<std::uint64_t, Lifetime> dist(0, static_cast<std::uint64_t>(i));
+				if (count == maxCount)
+					throw std::length_error("SampleReservoir: range exceeds count capacity");
+				SampleFixedIndexDistribution<Count, Lifetime> dist(Count{0}, count);
 				const auto j = DrawReservoirSampleIndex(dist, rng);
-				if (j < static_cast<std::uint64_t>(n))
+				if (j < static_cast<Count>(reservoir.size()))
 					reservoir[static_cast<std::size_t>(j)] = *first;
+				++first;
+				++count;
 			}
 			return reservoir;
 		}
@@ -4942,13 +5005,16 @@ namespace detail
 
 	namespace ranges
 	{
-		/// @brief 随机选取一个元素（返回值拷贝，非迭代器）
+		/// @brief 随机选取一个元素并返回元素值拷贝
 		/// @param r 源 range（需满足 sized_range 或 forward_range）
 		/// @return 随机选取的元素值拷贝
-		/// @note 语义差异：迭代器版返回迭代器（可修改原元素），ranges 版返回值拷贝
+		/// @note 随机访问迭代器入口返回迭代器，输入迭代器入口与 ranges 入口返回元素值。
 		template <std::ranges::input_range R>
 			requires (std::ranges::sized_range<R> || std::ranges::forward_range<R>)
 				&& std::copy_constructible<std::ranges::range_value_t<R>>
+				&& ((std::random_access_iterator<std::ranges::iterator_t<R>>
+					&& std::sized_sentinel_for<std::ranges::sentinel_t<R>, std::ranges::iterator_t<R>>)
+					|| std::is_copy_assignable_v<std::ranges::range_value_t<R>>)
 		[[nodiscard]]
 		inline std::ranges::range_value_t<R>
 		RandElement(R&& r)
@@ -4968,6 +5034,9 @@ namespace detail
 		template <detail::RandomEngine Engine, std::ranges::input_range R>
 			requires (std::ranges::sized_range<R> || std::ranges::forward_range<R>)
 				&& std::copy_constructible<std::ranges::range_value_t<R>>
+				&& ((std::random_access_iterator<std::ranges::iterator_t<R>>
+					&& std::sized_sentinel_for<std::ranges::sentinel_t<R>, std::ranges::iterator_t<R>>)
+					|| std::is_copy_assignable_v<std::ranges::range_value_t<R>>)
 		[[nodiscard]]
 		inline std::ranges::range_value_t<R>
 		RandElement(Engine& engine, R&& r)

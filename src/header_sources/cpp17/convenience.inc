@@ -159,6 +159,7 @@
 	inline char RandChar(Engine& engine, CharSet cs)
 // @randx-include ../common/convenience/rand_char_body.inc
 
+	// @randx-include ../common/convenience/rand_element_input.inc
 	/// @defgroup containers 容器操作
 	/// @brief RandElement / RandSample / RandShuffle / RandPermutation / RandFill / RandVector
 
@@ -206,21 +207,16 @@
 	/// @throw std::invalid_argument 范围为空时抛出
 	template <class It,
 		std::enable_if_t<detail::is_input_iterator_v<It>
-			&& !detail::is_random_access_iterator_v<It>>* = nullptr>
+			&& !detail::is_random_access_iterator_v<It>
+			&& std::is_copy_constructible_v<typename std::iterator_traits<It>::value_type>
+			&& std::is_copy_assignable_v<typename std::iterator_traits<It>::value_type>>* = nullptr>
 	[[nodiscard]]
 	inline typename std::iterator_traits<It>::value_type RandElement(It first, It last)
 	{
-		if (first == last)
-			throw std::invalid_argument("RandElement: empty range");
-		typename std::iterator_traits<It>::value_type selected = *first;
-		++first;
-		for (typename std::iterator_traits<It>::difference_type i = 1;
-			first != last; ++first, ++i)
-		{
-			if (RandInt<typename std::iterator_traits<It>::difference_type>(0, i) == 0)
-				selected = *first;
-		}
-		return selected;
+		using Diff = typename std::iterator_traits<It>::difference_type;
+		using T = typename std::iterator_traits<It>::value_type;
+		return detail::RandElementInput<T, Diff>(first, last,
+			[]() -> Xoshiro256StarStar& { return DefaultEngine(); });
 	}
 
 	/// @brief 从迭代器范围内随机取一个元素（指定引擎，随机访问迭代器）
@@ -248,22 +244,16 @@
 	template <class It, class Engine,
 		std::enable_if_t<detail::is_input_iterator_v<It>
 			&& !detail::is_random_access_iterator_v<It>
+			&& std::is_copy_constructible_v<typename std::iterator_traits<It>::value_type>
+			&& std::is_copy_assignable_v<typename std::iterator_traits<It>::value_type>
 			&& detail::is_random_engine_v<Engine>>* = nullptr>
 	[[nodiscard]]
 	inline typename std::iterator_traits<It>::value_type RandElement(Engine& engine, It first, It last)
 	{
-		if (first == last)
-			throw std::invalid_argument("RandElement: empty range");
-		typename std::iterator_traits<It>::value_type selected = *first;
-		++first;
-		for (typename std::iterator_traits<It>::difference_type i = 1;
-			first != last; ++first, ++i)
-		{
-			if (RandInt<typename std::iterator_traits<It>::difference_type>(
-				engine, typename std::iterator_traits<It>::difference_type{0}, i) == 0)
-				selected = *first;
-		}
-		return selected;
+		using Diff = typename std::iterator_traits<It>::difference_type;
+		using T = typename std::iterator_traits<It>::value_type;
+		return detail::RandElementInput<T, Diff>(first, last,
+			[&engine]() -> Engine& { return engine; });
 	}
 
 

@@ -215,14 +215,18 @@ template <std::random_access_iterator It>
 [[nodiscard]] inline It RandElement(It first, It last);
 
 // 迭代器版 — 输入迭代器 O(n) reservoir sampling
-template <std::input_iterator It>
-    requires (!std::random_access_iterator<It>)
-[[nodiscard]] inline It RandElement(It first, It last);
+template <std::input_iterator It, std::sentinel_for<It> Sentinel>
+    requires (!std::random_access_iterator<It> || !std::sized_sentinel_for<Sentinel, It>)
+        && std::is_copy_constructible_v<std::iter_value_t<It>>
+        && std::is_copy_assignable_v<std::iter_value_t<It>>
+[[nodiscard]] inline std::iter_value_t<It> RandElement(It first, Sentinel last);
 
 // 指定引擎版
 template <std::random_access_iterator It, class Engine>
 [[nodiscard]] inline It RandElement(Engine& engine, It first, It last);
 ```
+
+输入路径按值返回元素，并要求元素可复制构造、复制赋值；随机访问且具有可计算距离的终点时返回迭代器。输入遍历使用独立的 64 位元素计数，支持差值类型较窄的输入迭代器；实际元素数超过 `uint64_t` 最大值时抛出 `std::length_error`。该计数容量同样适用于输入路径的 `RandSample`，请求量较大但实际输入较短时仍返回已有元素。
 
 ### RandSample
 
@@ -333,7 +337,7 @@ namespace RandX::ranges
 }
 ```
 
-语义差异：迭代器版 `RandElement` 返回迭代器（可修改原元素），ranges 版返回值拷贝。
+随机访问且具有可计算距离的迭代器入口返回迭代器；输入迭代器入口与 ranges 入口返回元素值。ranges 的输入路径额外要求元素可复制赋值，随机访问路径保留仅能复制构造的元素支持。
 
 ---
 
