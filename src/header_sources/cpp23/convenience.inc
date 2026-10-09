@@ -267,6 +267,7 @@
 	namespace detail
 	{
 		// @randx-include ../common/distributions/real_interval_kernel.inc
+		// @randx-include ../common/distributions/stable_gamma_log_sampling.inc
 	}
 
 	/// @brief 用 [min, max) 范围的随机浮点数填充迭代器区间

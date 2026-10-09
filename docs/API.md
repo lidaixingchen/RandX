@@ -121,6 +121,8 @@ T 须为整数类型且不为 bool，N 还须不超过 `std::numeric_limits<T>::
 
 指定引擎重载模式：`T RandNormal(Engine& engine, T mean = T{0}, T stddev = T{1})`。
 
+`RandStudentT` 与 `RandFisherF` 的自由度须为正有限数。常规参数使用标准库分布；大自由度和可能导致 Gamma 幂变换下溢的参数使用共同的对数 Gamma 路径，避免消减与中间乘积溢出。参数与类型决定路径，默认及显式引擎采用相同算法。极端尾部超过返回类型的有限范围时，按浮点结果返回无穷；Fisher-F 结果下溢时可舍入为零。
+
 ### 整数分布类型契约
 
 三个整数分布默认返回 `int`，默认与显式引擎重载采用相同的类型政策：

@@ -1214,6 +1214,161 @@ TEST_SUITE("公共/基础/便捷接口")
         CHECK(RandX::RandBeta(rng1, 2.0, 2.0) == RandX::RandBeta(rng2, 2.0, 2.0));
 
     }
+    TEST_CASE("Student-t 与 Fisher-F 极端自由度数值契约")
+    {
+        constexpr int StableDistributionTrials = 512;
+        constexpr int StandardSequenceSamples = 16;
+        constexpr int StableDegreesExponentOffset = 8;
+        constexpr int LargeFisherExponentNumerator = 3;
+        constexpr int LargeFisherExponentDenominator = 4;
+        constexpr int AllowedZeroStudentSamples = 2;
+        constexpr long double MinimumStudentSecondMoment = 0.5L;
+        constexpr long double MaximumStudentSecondMoment = 1.5L;
+        constexpr long double FisherMeanToleranceInEpsilon = 4.0L;
+        constexpr double StandardStudentDegrees = 4.0;
+        constexpr double SmallStudentDegrees = 0.5;
+        constexpr double SmallFisherM = 0.5;
+        constexpr double SmallFisherN = 0.75;
+        constexpr std::uint64_t StudentExtremeSeed = 712367;
+        constexpr std::uint64_t StudentMaxSeed = 991;
+        constexpr std::uint64_t StudentSmallSeed = 992;
+        constexpr std::uint64_t FisherExtremeSeed = 91827;
+        constexpr std::uint64_t FisherAsymmetricSeed = 91829;
+        constexpr std::uint64_t FisherMaxSeed = 319;
+        constexpr std::uint64_t FisherMaxRatioSeed = 321;
+        constexpr std::uint64_t FisherMinRatioSeed = 323;
+        constexpr std::uint64_t StandardStudentSeed = 293;
+        constexpr std::uint64_t SmallStudentSeed = 294;
+        constexpr std::uint64_t StandardFisherSeed = 587;
+        const auto savedDefaultState = RandX::DefaultEngine().serialize();
+
+        const auto verifyStudent = [&](auto type_tag)
+        {
+            using T = decltype(type_tag);
+            const int degrees_exponent = std::numeric_limits<T>::digits + StableDegreesExponentOffset;
+            const T degrees = std::ldexp(T{1}, degrees_exponent);
+            RandX::Xoshiro256StarStar explicit_engine{ StudentExtremeSeed };
+            RandX::DefaultEngine() = RandX::Xoshiro256StarStar{ StudentExtremeSeed };
+            long double square_sum = 0;
+            int zero_count = 0;
+            int finite_count = 0;
+
+            for (int index = 0; index < StableDistributionTrials; ++index)
+            {
+                const T explicit_value = RandX::RandStudentT(explicit_engine, degrees);
+                const T default_value = RandX::RandStudentT(degrees);
+                CHECK(explicit_value == default_value);
+                finite_count += std::isfinite(explicit_value) ? 1 : 0;
+                zero_count += explicit_value == T{0} ? 1 : 0;
+                square_sum += static_cast<long double>(explicit_value) * static_cast<long double>(explicit_value);
+            }
+
+            CHECK(RandX::DefaultEngine().serialize() == explicit_engine.serialize());
+            CHECK(finite_count == StableDistributionTrials);
+            CHECK(zero_count <= AllowedZeroStudentSamples);
+            const long double second_moment = square_sum / StableDistributionTrials;
+            CHECK(second_moment > MinimumStudentSecondMoment);
+            CHECK(second_moment < MaximumStudentSecondMoment);
+
+            RandX::Xoshiro256StarStar maximum_engine{ StudentMaxSeed };
+            const T maximum_degrees = (std::numeric_limits<T>::max)();
+            CHECK(std::isfinite(RandX::RandStudentT(maximum_engine, maximum_degrees)));
+
+            const T denorm_min = std::numeric_limits<T>::denorm_min();
+            const T small_degrees = denorm_min > T{0} ? denorm_min : std::numeric_limits<T>::min();
+            RandX::Xoshiro256StarStar small_engine{ StudentSmallSeed };
+            const T small_value = RandX::RandStudentT(small_engine, small_degrees);
+            CHECK(!std::isnan(small_value));
+            CHECK(std::isinf(small_value));
+        };
+
+        verifyStudent(float{});
+        verifyStudent(double{});
+        verifyStudent(static_cast<long double>(0));
+
+        RandX::Xoshiro256StarStar student_actual{ StandardStudentSeed };
+        RandX::Xoshiro256StarStar student_expected{ StandardStudentSeed };
+        for (int index = 0; index < StandardSequenceSamples; ++index)
+        {
+            std::student_t_distribution<double> standard_student(StandardStudentDegrees);
+            CHECK(RandX::RandStudentT(student_actual, StandardStudentDegrees) == standard_student(student_expected));
+        }
+        CHECK(student_actual.serialize() == student_expected.serialize());
+
+        RandX::Xoshiro256StarStar small_student_actual{ SmallStudentSeed };
+        RandX::Xoshiro256StarStar small_student_expected{ SmallStudentSeed };
+        std::student_t_distribution<double> standard_small_student(SmallStudentDegrees);
+        const double small_student_value = RandX::RandStudentT(small_student_actual, SmallStudentDegrees);
+        CHECK(std::isfinite(small_student_value));
+        CHECK(small_student_value == standard_small_student(small_student_expected));
+        CHECK(small_student_actual.serialize() == small_student_expected.serialize());
+
+        const auto verifyFisher = [&](auto type_tag)
+        {
+            using T = decltype(type_tag);
+            const int degrees_exponent = std::numeric_limits<T>::max_exponent *
+                LargeFisherExponentNumerator / LargeFisherExponentDenominator;
+            const T large_degrees = std::ldexp(T{1}, degrees_exponent);
+            const T maximum_degrees = (std::numeric_limits<T>::max)();
+            const T denorm_min = std::numeric_limits<T>::denorm_min();
+            const T small_degrees = denorm_min > T{0} ? denorm_min : std::numeric_limits<T>::min();
+
+            RandX::Xoshiro256StarStar explicit_engine{ FisherExtremeSeed };
+            RandX::DefaultEngine() = RandX::Xoshiro256StarStar{ FisherExtremeSeed };
+            const T explicit_value = RandX::RandFisherF(explicit_engine, large_degrees, large_degrees);
+            const T default_value = RandX::RandFisherF(large_degrees, large_degrees);
+            CHECK(explicit_value == default_value);
+            CHECK(RandX::DefaultEngine().serialize() == explicit_engine.serialize());
+            CHECK(std::isfinite(explicit_value));
+            CHECK(explicit_value > T{0});
+            CHECK(std::abs(static_cast<long double>(explicit_value) - 1.0L) <=
+                static_cast<long double>(std::numeric_limits<T>::epsilon()) * FisherMeanToleranceInEpsilon);
+
+            RandX::Xoshiro256StarStar asymmetric_engine{ FisherAsymmetricSeed };
+            RandX::DefaultEngine() = RandX::Xoshiro256StarStar{ FisherAsymmetricSeed };
+            const T asymmetric_value = RandX::RandFisherF(asymmetric_engine, large_degrees, large_degrees / T{2});
+            const T asymmetric_default_value = RandX::RandFisherF(large_degrees, large_degrees / T{2});
+            CHECK(asymmetric_value == asymmetric_default_value);
+            CHECK(RandX::DefaultEngine().serialize() == asymmetric_engine.serialize());
+            CHECK(std::isfinite(asymmetric_value));
+            CHECK(asymmetric_value > T{0});
+            CHECK(std::abs(static_cast<long double>(asymmetric_value) - 1.0L) <=
+                static_cast<long double>(std::numeric_limits<T>::epsilon()) * FisherMeanToleranceInEpsilon);
+
+            RandX::Xoshiro256StarStar maximum_engine{ FisherMaxSeed };
+            RandX::Xoshiro256StarStar maximum_ratio_engine{ FisherMaxRatioSeed };
+            RandX::Xoshiro256StarStar minimum_ratio_engine{ FisherMinRatioSeed };
+            CHECK(std::isfinite(RandX::RandFisherF(maximum_engine, maximum_degrees, maximum_degrees)));
+            const T maximum_ratio = RandX::RandFisherF(maximum_ratio_engine, maximum_degrees, small_degrees);
+            const T minimum_ratio = RandX::RandFisherF(minimum_ratio_engine, small_degrees, maximum_degrees);
+            CHECK(!std::isnan(maximum_ratio));
+            CHECK(std::isinf(maximum_ratio));
+            CHECK(maximum_ratio > T{0});
+            CHECK(minimum_ratio == T{0});
+            RandX::Xoshiro256StarStar tiny_engine{ FisherMaxSeed };
+            const T tiny_ratio = RandX::RandFisherF(tiny_engine, small_degrees, small_degrees);
+            CHECK(!std::isnan(tiny_ratio));
+            CHECK(tiny_ratio >= T{0});
+        };
+
+        verifyFisher(float{});
+        verifyFisher(double{});
+        verifyFisher(static_cast<long double>(0));
+
+        RandX::Xoshiro256StarStar fisher_actual{ StandardFisherSeed };
+        RandX::Xoshiro256StarStar fisher_expected{ StandardFisherSeed };
+        double small_fisher_value = 0;
+        for (int index = 0; index < StandardSequenceSamples; ++index)
+        {
+            std::fisher_f_distribution<double> standard_fisher(SmallFisherM, SmallFisherN);
+            small_fisher_value = RandX::RandFisherF(fisher_actual, SmallFisherM, SmallFisherN);
+            CHECK(small_fisher_value == standard_fisher(fisher_expected));
+        }
+        CHECK(std::isfinite(small_fisher_value));
+        CHECK(fisher_actual.serialize() == fisher_expected.serialize());
+
+        RandX::DefaultEngine().deserialize(savedDefaultState);
+    }
     TEST_CASE("极大有限量级与混合尺度")
     {
         RandX::Reseed(RandXTest::TestConstants::kDefaultEngineTestSeed);
