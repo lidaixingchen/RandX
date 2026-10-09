@@ -21,6 +21,7 @@
 #include <vector>
 #include "doctest.h"
 #include "fixtures.hpp"
+#include "../fixtures/distribution_boundaries.hpp"
 
 #include "integer_distribution_type_contracts.hpp"
 #include "triangular_distribution_contracts.hpp"
@@ -481,6 +482,61 @@ TEST_SUITE("公共/基础/分布")
         CHECK(c <= 'z');
 
     }
+    TEST_CASE("RandInt 保持标准整数序列并支持字符类型矩阵")
+    {
+        using Engine = RandX::Xoshiro256StarStar;
+        const auto checkStandardInteger = [](auto type)
+        {
+            using T = decltype(type);
+            constexpr T Minimum = T{1};
+            constexpr T Maximum = T{100};
+            Engine actualEngine{ RandXTest::TestConstants::kDefaultEngineTestSeed };
+            Engine expectedEngine{ RandXTest::TestConstants::kDefaultEngineTestSeed };
+            std::uniform_int_distribution<T> expectedDistribution(Minimum, Maximum);
+            const T expectedValue = expectedDistribution(expectedEngine);
+            const T actualValue = RandX::RandInt(actualEngine, Minimum, Maximum);
+            CHECK(actualValue == expectedValue);
+            CHECK(actualEngine == expectedEngine);
+        };
+        checkStandardInteger(static_cast<short>(0));
+        checkStandardInteger(static_cast<unsigned short>(0));
+        checkStandardInteger(static_cast<int>(0));
+        checkStandardInteger(static_cast<unsigned int>(0));
+        checkStandardInteger(static_cast<long>(0));
+        checkStandardInteger(static_cast<unsigned long>(0));
+        checkStandardInteger(static_cast<long long>(0));
+        checkStandardInteger(static_cast<unsigned long long>(0));
+
+        const auto checkCharacterInteger = [](auto minimum, auto maximum)
+        {
+            using T = decltype(minimum);
+            using ValueType = std::remove_cv_t<T>;
+            using DistributionType = std::conditional_t<(sizeof(ValueType) < sizeof(short)),
+                std::conditional_t<std::is_signed_v<ValueType>, int, unsigned int>,
+                std::conditional_t<std::is_signed_v<ValueType>,
+                    std::make_signed_t<ValueType>, std::make_unsigned_t<ValueType>>>;
+            Engine actualEngine{ RandXTest::TestConstants::kDefaultEngineTestSeed };
+            Engine expectedEngine{ RandXTest::TestConstants::kDefaultEngineTestSeed };
+            std::uniform_int_distribution<DistributionType> expectedDistribution(
+                static_cast<DistributionType>(minimum), static_cast<DistributionType>(maximum));
+            const T expectedValue = static_cast<T>(expectedDistribution(expectedEngine));
+            const T actualValue = RandX::RandInt(actualEngine, minimum, maximum);
+            CHECK(actualValue == expectedValue);
+            CHECK(actualValue >= minimum);
+            CHECK(actualValue <= maximum);
+            CHECK(actualEngine == expectedEngine);
+        };
+        checkCharacterInteger(static_cast<char>('A'), static_cast<char>('Z'));
+        checkCharacterInteger(static_cast<signed char>(-20), static_cast<signed char>(20));
+        checkCharacterInteger(static_cast<unsigned char>(10), static_cast<unsigned char>(20));
+        checkCharacterInteger(static_cast<wchar_t>(L'A'), static_cast<wchar_t>(L'Z'));
+        checkCharacterInteger(static_cast<char16_t>(u'A'), static_cast<char16_t>(u'Z'));
+        checkCharacterInteger(static_cast<char32_t>(U'A'), static_cast<char32_t>(U'Z'));
+#if defined(__cpp_char8_t)
+        checkCharacterInteger(static_cast<char8_t>(u8'A'), static_cast<char8_t>(u8'Z'));
+#endif
+
+    }
     TEST_CASE("RandInt 全范围 [min, max] 极值安全")
     {
         RandX::Reseed(RandXTest::TestConstants::kDefaultEngineTestSeed);
@@ -524,6 +580,173 @@ TEST_SUITE("公共/基础/分布")
         RandX::Reseed(RandXTest::TestConstants::kDefaultEngineTestSeed);
         CHECK(RandX::RandPoisson(0.0) == 0);
         CHECK_THROWS_AS((void)RandX::RandPoisson<int>(1e15), std::invalid_argument);
+
+    }
+    TEST_CASE("RandPoisson 64 位精确上界前可采样且界及界后不消耗引擎")
+    {
+        using Engine = RandX::Xoshiro256StarStar;
+        using CallBudgetEngine = RandXTest::DistributionBoundaryFixtures::CallBudgetEngine;
+        const auto checkBoundary = [](auto type)
+        {
+            using T = decltype(type);
+            const double maximumExclusiveMean = std::ldexp(1.0, std::numeric_limits<T>::digits);
+            const double meanBeforeBoundary = std::nextafter(maximumExclusiveMean,
+                -std::numeric_limits<double>::infinity());
+            const double meanAfterBoundary = std::nextafter(maximumExclusiveMean,
+                std::numeric_limits<double>::infinity());
+
+            CallBudgetEngine explicitEngine;
+            bool explicitDistributionReached = false;
+            try
+            {
+                (void)RandX::RandPoisson<CallBudgetEngine, T>(explicitEngine, meanBeforeBoundary);
+                explicitDistributionReached = true;
+            }
+            catch (const std::runtime_error&)
+            {
+                explicitDistributionReached = true;
+            }
+            catch (const std::invalid_argument&)
+            {
+            }
+            CHECK(explicitDistributionReached);
+            CHECK(explicitEngine.callCount() > 0);
+
+            RandX::Reseed(RandXTest::TestConstants::kDefaultEngineTestSeed);
+            const Engine defaultBeforeBoundary = RandX::DefaultEngine();
+            bool defaultDistributionReached = true;
+            try
+            {
+                (void)RandX::RandPoisson<T>(meanBeforeBoundary);
+            }
+            catch (const std::invalid_argument&)
+            {
+                defaultDistributionReached = false;
+            }
+            CHECK(defaultDistributionReached);
+            CHECK_FALSE(RandX::DefaultEngine() == defaultBeforeBoundary);
+
+            const std::array<double, 5> invalidMeans = {
+                maximumExclusiveMean,
+                meanAfterBoundary,
+                -std::numeric_limits<double>::epsilon(),
+                std::numeric_limits<double>::quiet_NaN(),
+                std::numeric_limits<double>::infinity()
+            };
+            for (const double invalidMean : invalidMeans)
+            {
+                CallBudgetEngine invalidExplicitEngine;
+                CHECK_THROWS_AS(((void)RandX::RandPoisson<CallBudgetEngine, T>(invalidExplicitEngine, invalidMean)),
+                    std::invalid_argument);
+                CHECK(invalidExplicitEngine.callCount() == 0);
+
+                RandX::Reseed(RandXTest::TestConstants::kDefaultEngineTestSeed);
+                const Engine defaultBeforeInvalidMean = RandX::DefaultEngine();
+                CHECK_THROWS_AS((void)RandX::RandPoisson<T>(invalidMean), std::invalid_argument);
+                CHECK(RandX::DefaultEngine() == defaultBeforeInvalidMean);
+            }
+        };
+
+        checkBoundary(std::int64_t{});
+        checkBoundary(std::uint64_t{});
+
+        const auto checkExactlyRepresentableMaximum = [](auto type)
+        {
+            using T = decltype(type);
+            const double exactMaximum = static_cast<double>((std::numeric_limits<T>::max)());
+            const double aboveMaximum = std::nextafter(exactMaximum,
+                std::numeric_limits<double>::infinity());
+            CallBudgetEngine explicitEngine;
+            bool explicitDistributionReached = false;
+            try
+            {
+                (void)RandX::RandPoisson<CallBudgetEngine, T>(explicitEngine, exactMaximum);
+                explicitDistributionReached = true;
+            }
+            catch (const std::runtime_error&)
+            {
+                explicitDistributionReached = true;
+            }
+            catch (const std::invalid_argument&)
+            {
+            }
+            CHECK(explicitDistributionReached);
+            CHECK(explicitEngine.callCount() > 0);
+
+            CallBudgetEngine invalidExplicitEngine;
+            CHECK_THROWS_AS(((void)RandX::RandPoisson<CallBudgetEngine, T>(invalidExplicitEngine, aboveMaximum)),
+                std::invalid_argument);
+            CHECK(invalidExplicitEngine.callCount() == 0);
+
+            RandX::Reseed(RandXTest::TestConstants::kDefaultEngineTestSeed);
+            const Engine defaultBeforeInvalidMean = RandX::DefaultEngine();
+            CHECK_THROWS_AS((void)RandX::RandPoisson<T>(aboveMaximum), std::invalid_argument);
+            CHECK(RandX::DefaultEngine() == defaultBeforeInvalidMean);
+        };
+        checkExactlyRepresentableMaximum(std::int32_t{});
+        checkExactlyRepresentableMaximum(std::uint32_t{});
+
+    }
+    TEST_CASE("RandGamma 极大形状拆分后保持有限且常规参数与标准分布一致")
+    {
+        using Engine = RandX::Xoshiro256StarStar;
+        using CallBudgetEngine = RandXTest::DistributionBoundaryFixtures::CallBudgetEngine;
+        const auto checkStandardParameters = [](auto type)
+        {
+            using T = decltype(type);
+            const T alpha = static_cast<T>(2.5);
+            const T beta = static_cast<T>(1.25);
+            Engine actualEngine{ RandXTest::TestConstants::kDefaultEngineTestSeed };
+            Engine expectedEngine{ RandXTest::TestConstants::kDefaultEngineTestSeed };
+            std::gamma_distribution<T> expectedDistribution(alpha, beta);
+            const T expectedValue = expectedDistribution(expectedEngine);
+            const T actualValue = RandX::RandGamma<Engine, T>(actualEngine, alpha, beta);
+            CHECK(actualValue == expectedValue);
+            CHECK(actualEngine == expectedEngine);
+        };
+        const auto checkMaximumShape = [](auto type)
+        {
+            using T = decltype(type);
+            constexpr int GammaShapeSplitCount = 2;
+            const T alpha = (std::numeric_limits<T>::max)();
+            const T beta = T{1} / alpha;
+            const T splitShape = alpha / static_cast<T>(GammaShapeSplitCount);
+            CallBudgetEngine explicitEngine;
+            const T explicitValue = RandX::RandGamma<CallBudgetEngine, T>(explicitEngine, alpha, beta);
+            CHECK(std::isfinite(explicitValue));
+            CHECK(explicitValue > T{0});
+            CHECK(explicitEngine.callCount() > 0);
+            CHECK(explicitEngine.callCount() < explicitEngine.callBudget());
+
+            Engine actualEngine{ RandXTest::TestConstants::kDefaultEngineTestSeed };
+            Engine expectedEngine{ RandXTest::TestConstants::kDefaultEngineTestSeed };
+            std::gamma_distribution<T> expectedDistribution(splitShape, beta);
+            const T expectedValue = expectedDistribution(expectedEngine) + expectedDistribution(expectedEngine);
+            const T actualValue = RandX::RandGamma<Engine, T>(actualEngine, alpha, beta);
+            CHECK(actualValue == expectedValue);
+            CHECK(actualEngine == expectedEngine);
+
+            RandX::Reseed(RandXTest::TestConstants::kDefaultEngineTestSeed);
+            const T defaultValue = RandX::RandGamma<T>(alpha, beta);
+            CHECK(std::isfinite(defaultValue));
+            CHECK(defaultValue > T{0});
+        };
+        checkStandardParameters(float{});
+        checkStandardParameters(double{});
+        checkStandardParameters(static_cast<long double>(0));
+        checkMaximumShape(float{});
+        checkMaximumShape(double{});
+        checkMaximumShape(static_cast<long double>(0));
+
+        Engine invalidEngine{ RandXTest::TestConstants::kDefaultEngineTestSeed };
+        const Engine invalidEngineBeforeCall = invalidEngine;
+        CHECK_THROWS_AS(((void)RandX::RandGamma<Engine, double>(invalidEngine, 0.0, 1.0)), std::invalid_argument);
+        CHECK(invalidEngine == invalidEngineBeforeCall);
+
+        RandX::Reseed(RandXTest::TestConstants::kDefaultEngineTestSeed);
+        const Engine defaultEngineBeforeCall = RandX::DefaultEngine();
+        CHECK_THROWS_AS((void)RandX::RandGamma<double>(0.0, 1.0), std::invalid_argument);
+        CHECK(RandX::DefaultEngine() == defaultEngineBeforeCall);
 
     }
     TEST_CASE("RandReal 半开区间上界约束 [min, max)")

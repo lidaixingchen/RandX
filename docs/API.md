@@ -26,7 +26,7 @@ template <std::integral T, class Engine>
 | `max` | 上界（含） |
 | `engine` | 自定义引擎 |
 
-返回均匀分布于 [min, max] 的随机整数。内部使用 `std::uniform_int_distribution<T>`。
+返回均匀分布于 [min, max] 的随机整数。支持 `bool` 以外的整数类型，包括当前语言标准支持的字符整数类型。内部将字符类型映射为同符号、能够表示其值域的标准整数类型，再调用 `std::uniform_int_distribution`；窄于 `short` 的类型使用 `int` 或 `unsigned int`。
 
 ### RandReal
 
@@ -132,6 +132,14 @@ T 须为整数类型且不为 bool，N 还须不超过 `std::numeric_limits<T>::
 
 标准计数分布调用使用上述八种整型；需要字符结果时，先获得支持的计数类型，再由调用方检查范围后转换。几何分布使用有效位数满足上限的类型。移除 cv 限定可保留对应值类型；布尔随机用途使用 `RandBool` 或 `RandBernoulli`，由调用方确认概率模型。候选集收紧属于破坏性变更，发布按主版本管理；支持类型的算法、状态和输出序列保持原有契约。
 
+### RandPoisson
+
+均值须为非负有限数，且不得超过返回类型的整数上限；校验在调用引擎之前完成。对于整数上限不能由 `double` 精确表示的返回类型，使用对应的二次幂排他边界比较，避免向上舍入造成漏检。均值为零返回零且不消耗引擎。采样仍由标准库泊松分布完成。
+
+### RandGamma
+
+形状与尺度参数须为正有限数。形状不超过返回类型最大有限值的一半时，直接使用标准库 Gamma 分布；更大的形状利用 Gamma 可加性，返回两个半形状、同尺度样本之和，避免形状翻倍时的中间溢出。尺度乘法及最终加法仍遵循返回类型的浮点表示范围，可能上溢或下溢。两版本采用相同路径与调用顺序。
+
 ### RandTriangular
 
 ```cpp
@@ -232,6 +240,8 @@ RandSample(It first, It last, std::iter_difference_t<It> n);
 // 输入迭代器版（reservoir sampling, Algorithm R）
 template <std::input_iterator It>
     requires (!std::random_access_iterator<It>)
+        && std::copy_constructible<std::iter_value_t<It>>
+        && std::is_copy_assignable_v<std::iter_value_t<It>>
 [[nodiscard]] inline std::vector<std::iter_value_t<It>>
 RandSample(It first, It last, std::iter_difference_t<It> n);
 
@@ -241,7 +251,9 @@ template <std::random_access_iterator It, class Engine>
 RandSample(Engine& engine, It first, It last, std::iter_difference_t<It> n);
 ```
 
-随机访问迭代器与容器入口复用共同抽样内核，按范围长度与请求数量选择稀疏集合、位图或索引数组路径。容器版只复制选中的元素，支持带只读成员的可复制构造类型；`n=0` 返回空结果，`n` 不小于容器大小时按原顺序返回全部元素的副本。
+随机访问迭代器与容器入口复用共同抽样内核，按范围长度与请求数量选择稀疏集合、位图或索引数组路径。容器版要求 const 限定后仍可随机访问遍历，只复制选中的元素，支持带只读成员的可复制构造类型；`n=0` 返回空结果，`n` 不小于容器大小时按原顺序返回全部元素的副本。
+
+输入迭代器路径要求元素可复制构造和复制赋值，按实际读入元素增长结果容量；输入不足请求数量时按原顺序返回全部已读元素，且不消耗引擎。C++23 的 `ranges::RandSample` 按迭代器能力选择相同路径，随机访问路径保留仅可复制构造的元素支持。
 
 随机访问范围的长度须同时能用 `std::uint64_t` 和 `std::size_t` 表示；正数量抽样超出该长度限制时抛出 `std::length_error`，不消耗引擎输出。
 
@@ -544,6 +556,8 @@ void discard(unsigned long long n);                     // ChaCha20
 
 ### MakeStreamEngine
 
+自定义引擎须支持从 `uint64_t` 种子直接列表构造，且 `jump()` 精确返回 void。C++17 中原先返回其他类型的自定义 jump 需调整签名；该类型约束收紧按破坏性变更管理。
+
 ```cpp
 template <class Engine>
     requires detail::StreamEngine<Engine>
@@ -563,7 +577,7 @@ MakeStreamEngine(std::uint64_t streamId, std::uint64_t seed = DefaultSeed);
 
 这些条件用于分隔状态子序列，不能据此推断统计独立性；任意两个输出值相等也不能作为子序列重叠的判据。任务持有自身引擎，保持 ID 与 seed 分配稳定并遵守调用预算。连续低位编号可从保存的流起点复制后逐次 `jump()`；低 32 位进位时，从保存的高位起点执行 `longJump()`。
 
-自定义引擎具有 `longJump()` 时沿用高、低位循环和调用顺序；只有 `jump()` 时执行完整 ID 次短跳跃。自定义跳跃的异常向调用方传播，其距离、周期和复杂度由该引擎契约规定。
+自定义流引擎须具有返回 `void` 的 `jump()`，并支持以 `std::uint64_t` 种子直接列表构造；C++17 与 C++23 在模板约束中检查这两个条件。具有 `longJump()` 时沿用高、低位循环和调用顺序；只有 `jump()` 时执行完整 ID 次短跳跃。自定义跳跃的异常向调用方传播，其距离、周期和复杂度由该引擎契约规定。
 
 ### Reseed / ReseedRandom
 
@@ -614,5 +628,5 @@ inline constexpr std::uint64_t DefaultSeed = 1234567890ULL;
 | `detail::Character<T>` | char / wchar_t / char16_t / char32_t / char8_t |
 | `detail::SerializableEngine<E>` | state_type 为可索引容器 + 有 serialize/deserialize |
 | `detail::JumpableEngine<E>` | 有 `jump() -> void` |
-| `detail::StreamEngine<E>` | 具有 jump 能力的流引擎约束 |
+| `detail::StreamEngine<E>` | 有 `jump() -> void`，且可由 `uint64_t` 种子直接列表构造 |
 | `detail::RandFillable<It, T>` | output_iterator 且 T 为 integral 或 floating_point |

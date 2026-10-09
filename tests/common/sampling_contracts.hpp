@@ -23,6 +23,100 @@
 #include <vector>
 #include "doctest.h"
 #include "fixtures.hpp"
+#include "../fixtures/sampling_type_contracts.hpp"
+
+namespace RandXTest
+{
+namespace SamplingCompileChecks
+{
+template <class Container, class = void>
+struct HasDefaultContainerRandSample : std::false_type {};
+
+template <class Container>
+struct HasDefaultContainerRandSample<Container, std::void_t<decltype(
+	RandX::RandSample(std::declval<Container&>(), std::declval<std::size_t>()))>> : std::true_type {};
+
+template <class Container, class = void>
+struct HasExplicitContainerRandSample : std::false_type {};
+
+template <class Container>
+struct HasExplicitContainerRandSample<Container, std::void_t<decltype(
+	RandX::RandSample(std::declval<RandX::Xoshiro256StarStar&>(),
+		std::declval<Container&>(), std::declval<std::size_t>()))>> : std::true_type {};
+
+template <class Iterator, class = void>
+struct HasDefaultIteratorRandSample : std::false_type {};
+
+template <class Iterator>
+struct HasDefaultIteratorRandSample<Iterator, std::void_t<decltype(
+	RandX::RandSample(std::declval<Iterator>(), std::declval<Iterator>(),
+		std::declval<typename std::iterator_traits<Iterator>::difference_type>()))>> : std::true_type {};
+
+template <class Iterator, class = void>
+struct HasExplicitIteratorRandSample : std::false_type {};
+
+template <class Iterator>
+struct HasExplicitIteratorRandSample<Iterator, std::void_t<decltype(
+	RandX::RandSample(std::declval<RandX::Xoshiro256StarStar&>(),
+		std::declval<Iterator>(), std::declval<Iterator>(),
+		std::declval<typename std::iterator_traits<Iterator>::difference_type>()))>> : std::true_type {};
+
+template <class Container, class = void>
+struct HasEmptyMember : std::false_type {};
+
+template <class Container>
+struct HasEmptyMember<Container, std::void_t<decltype(std::declval<const Container&>().empty())>>
+	: std::true_type {};
+
+#if defined(__cpp_lib_ranges) && __cpp_lib_ranges >= 201911L
+template <class Range, class = void>
+struct HasRangesRandSample : std::false_type {};
+
+template <class Range>
+struct HasRangesRandSample<Range, std::void_t<decltype(RandX::ranges::RandSample(
+	std::declval<Range&>(), std::declval<std::ranges::range_difference_t<Range>>()))>>
+	: std::true_type {};
+#endif
+
+using CopyOnlySampleItem = SamplingContractFixtures::NonDefaultReadOnlyCopyItem;
+using CopyOnlyRandomAccessIterator = std::vector<CopyOnlySampleItem>::const_iterator;
+using CopyOnlyInputIterator = std::list<CopyOnlySampleItem>::const_iterator;
+
+static_assert(HasDefaultContainerRandSample<std::vector<int>>::value,
+	"RandSample must accept a vector through its const container parameter");
+static_assert(HasExplicitContainerRandSample<std::vector<int>>::value,
+	"the engine overload must accept a vector through its const container parameter");
+static_assert(HasDefaultContainerRandSample<const std::vector<int>>::value,
+	"RandSample must accept an explicitly const range");
+static_assert(HasExplicitContainerRandSample<const std::vector<int>>::value,
+	"the engine overload must accept an explicitly const range");
+static_assert(!HasDefaultContainerRandSample<SamplingTypeFixtures::MutableOnlyRandomAccessRange>::value,
+	"mutable-only ranges must be rejected by the container overload constraints");
+static_assert(!HasExplicitContainerRandSample<SamplingTypeFixtures::MutableOnlyRandomAccessRange>::value,
+	"mutable-only ranges must be rejected by the engine container overload constraints");
+static_assert(std::is_copy_constructible<CopyOnlySampleItem>::value,
+	"the copy-only sample fixture must be copy constructible");
+static_assert(!std::is_copy_assignable<CopyOnlySampleItem>::value,
+	"the copy-only sample fixture must not be copy assignable");
+static_assert(HasDefaultIteratorRandSample<CopyOnlyRandomAccessIterator>::value,
+	"random-access sampling must accept copy-only elements");
+static_assert(HasExplicitIteratorRandSample<CopyOnlyRandomAccessIterator>::value,
+	"engine random-access sampling must accept copy-only elements");
+static_assert(!HasDefaultIteratorRandSample<CopyOnlyInputIterator>::value,
+	"reservoir sampling must require copy-assignable elements");
+static_assert(!HasExplicitIteratorRandSample<CopyOnlyInputIterator>::value,
+	"engine reservoir sampling must require copy-assignable elements");
+static_assert(!HasEmptyMember<SamplingTypeFixtures::SizedIndexedContainer>::value,
+	"the indexed container fixture must not expose empty()");
+
+#if defined(__cpp_lib_ranges) && __cpp_lib_ranges >= 201911L
+static_assert(HasRangesRandSample<std::vector<CopyOnlySampleItem>>::value,
+	"the C++23 ranges adapter must retain the random-access copy-only path");
+static_assert(!HasRangesRandSample<std::list<CopyOnlySampleItem>>::value,
+	"the C++23 ranges adapter must constrain the reservoir path");
+#endif
+}
+}
 
 TEST_SUITE("公共/基础/抽样")
 {
@@ -79,6 +173,17 @@ TEST_SUITE("公共/基础/抽样")
         RandX::Reseed(RandXTest::TestConstants::kDefaultEngineTestSeed);
         std::vector<int> empty;
         CHECK_THROWS_AS((void)RandX::RandElement(empty.begin(), empty.end()), std::invalid_argument);
+
+    }
+    TEST_CASE("RandElement 支持仅有 size 和索引的容器")
+    {
+        using Container = RandXTest::SamplingTypeFixtures::SizedIndexedContainer;
+        Container population;
+        const int selected = RandX::RandElement(population);
+        CHECK(std::find(population.begin(), population.end(), selected) != population.end());
+
+        const Container empty(RandXTest::SamplingTypeFixtures::kEmptySizedIndexedValueCount);
+        CHECK_THROWS_AS((void)RandX::RandElement(empty), std::invalid_argument);
 
     }
     TEST_CASE("RandElement 迭代器版（输入迭代器 reservoir sampling）")
@@ -173,6 +278,22 @@ TEST_SUITE("公共/基础/抽样")
         {
             CHECK((v >= 1 && v <= 8));
         }
+
+    }
+    TEST_CASE("RandSample 容器重载支持 const vector")
+    {
+        constexpr std::size_t kRequestCount{2};
+        const std::vector<int> population{
+            RandXTest::SamplingTypeFixtures::kFirstSizedIndexedValue,
+            RandXTest::SamplingTypeFixtures::kSecondSizedIndexedValue,
+            RandXTest::SamplingTypeFixtures::kThirdSizedIndexedValue};
+
+        const auto defaultSample = RandX::RandSample(population, kRequestCount);
+        CHECK(defaultSample.size() == kRequestCount);
+
+        RandX::Xoshiro256StarStar engine(RandXTest::TestConstants::kDefaultEngineTestSeed);
+        const auto explicitSample = RandX::RandSample(engine, population, kRequestCount);
+        CHECK(explicitSample.size() == kRequestCount);
 
     }
     TEST_CASE("RandSample 按索引抽取可复制构造元素")
@@ -582,6 +703,40 @@ TEST_SUITE("公共/基础/抽样")
         CHECK(engine.callCount == 0);
 
     }
+    TEST_CASE("RandSample 蓄水池超大请求返回短输入且不取引擎")
+    {
+        constexpr std::ptrdiff_t kMaximumRequest =
+            (std::numeric_limits<std::ptrdiff_t>::max)();
+        const std::list<int> emptyInput;
+        const std::list<int> shortInput{
+            RandXTest::SamplingTypeFixtures::kFirstReservoirValue,
+            RandXTest::SamplingTypeFixtures::kSecondReservoirValue};
+        const std::vector<int> expected{
+            RandXTest::SamplingTypeFixtures::kFirstReservoirValue,
+            RandXTest::SamplingTypeFixtures::kSecondReservoirValue};
+
+        REQUIRE(shortInput.size() == RandXTest::SamplingTypeFixtures::kShortReservoirValueCount);
+
+        RandXTest::SamplingContractFixtures::CountingEngine emptyEngine;
+        CHECK(RandX::RandSample(emptyEngine, emptyInput.cbegin(), emptyInput.cend(), kMaximumRequest).empty());
+        CHECK(emptyEngine.callCount == 0);
+
+        RandXTest::SamplingContractFixtures::CountingEngine shortEngine;
+        const auto explicitSample = RandX::RandSample(
+            shortEngine, shortInput.cbegin(), shortInput.cend(), kMaximumRequest);
+        CHECK(explicitSample == expected);
+        CHECK(shortEngine.callCount == 0);
+
+        RandX::Reseed(RandXTest::TestConstants::kDefaultEngineTestSeed);
+        const auto initialDefaultEngine = RandX::DefaultEngine();
+        CHECK(RandX::RandSample(emptyInput.cbegin(), emptyInput.cend(), kMaximumRequest).empty());
+        CHECK(RandX::DefaultEngine() == initialDefaultEngine);
+        const auto defaultSample = RandX::RandSample(
+            shortInput.cbegin(), shortInput.cend(), kMaximumRequest);
+        CHECK(defaultSample == expected);
+        CHECK(RandX::DefaultEngine() == initialDefaultEngine);
+
+    }
     TEST_CASE("RandSample 默认与显式引擎连续状态独立")
     {
         const std::size_t populationSize = RandX::detail::HashSetThresholdK * 2;
@@ -878,6 +1033,7 @@ TEST_SUITE("公共/基础/抽样")
         CHECK(fillSourceTrace.dereferences == 2);
         CHECK(fillSourceTrace.increments == 1);
 
+        constexpr std::ptrdiff_t reservoirSize{2};
         Trace replacementTrace;
         replacementTrace.throwOnAssignmentAttempt = 1;
         Trace replacementSourceTrace;
@@ -888,10 +1044,10 @@ TEST_SUITE("公共/基础/抽样")
         RandXTest::SamplingContractFixtures::CountingEngine replacementEngine;
         replacementTrace.engineCallCount = &replacementEngine.callCount;
         CHECK_THROWS_AS((void)RandX::RandSample(
-            replacementEngine, replacementFirst, replacementLast, std::ptrdiff_t{2}), std::runtime_error);
+            replacementEngine, replacementFirst, replacementLast, reservoirSize), std::runtime_error);
         CHECK(replacementEngine.callCount > 0);
         CHECK(replacementTrace.engineCallsAtThrow == replacementEngine.callCount);
-        CHECK(replacementTrace.copyAttempts == 2);
+        CHECK(replacementTrace.copyAttempts >= static_cast<std::size_t>(reservoirSize));
         CHECK(replacementTrace.assignmentAttempts == 1);
         CHECK(replacementSourceTrace.dereferences == 3);
         CHECK(replacementSourceTrace.increments == 2);
@@ -905,9 +1061,9 @@ TEST_SUITE("公共/基础/抽样")
         RandXTest::SamplingContractFixtures::ThrowingEngine throwingEngine;
         engineFailureTrace.engineCallCount = &throwingEngine.callCount;
         CHECK_THROWS_AS((void)RandX::RandSample(
-            throwingEngine, engineFailureFirst, engineFailureLast, std::ptrdiff_t{2}), std::runtime_error);
+            throwingEngine, engineFailureFirst, engineFailureLast, reservoirSize), std::runtime_error);
         CHECK(throwingEngine.callCount == 1);
-        CHECK(engineFailureTrace.copyAttempts == 2);
+        CHECK(engineFailureTrace.copyAttempts >= static_cast<std::size_t>(reservoirSize));
         CHECK(engineFailureSourceTrace.dereferences == 2);
         CHECK(engineFailureSourceTrace.increments == 2);
 

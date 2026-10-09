@@ -12,6 +12,26 @@
 		};
 
 		template <class T>
+		inline void ValidatePoissonMean(double mean)
+		{
+			if (!std::isfinite(mean) || mean < 0.0)
+				throw std::invalid_argument("RandPoisson: mean must be non-negative");
+
+			constexpr int PoissonDoublePrecisionDigits = std::numeric_limits<double>::digits;
+			if constexpr (std::numeric_limits<T>::digits <= PoissonDoublePrecisionDigits)
+			{
+				if (mean > static_cast<double>((std::numeric_limits<T>::max)()))
+					throw std::invalid_argument("RandPoisson: mean exceeds maximum value of return type");
+			}
+			else
+			{
+				const double maximumExclusiveMean = std::ldexp(1.0, std::numeric_limits<T>::digits);
+				if (mean >= maximumExclusiveMean)
+					throw std::invalid_argument("RandPoisson: mean exceeds maximum value of return type");
+			}
+		}
+
+		template <class T>
 		struct IsGeometricDistributionType : std::bool_constant<
 			std::is_integral_v<T> &&
 			std::is_same_v<T, std::remove_cv_t<T>> &&

@@ -548,9 +548,12 @@
 	}
 
 	// 路径 2：输入迭代器（reservoir sampling, Algorithm R）
+	// 元素须可复制构造和复制赋值。
 	template <class It,
 		std::enable_if_t<detail::is_input_iterator_v<It>
-			&& !detail::is_random_access_iterator_v<It>>* = nullptr>
+			&& !detail::is_random_access_iterator_v<It>
+			&& std::is_copy_constructible_v<typename std::iterator_traits<It>::value_type>
+			&& std::is_copy_assignable_v<typename std::iterator_traits<It>::value_type>>* = nullptr>
 	[[nodiscard]]
 	inline std::vector<typename std::iterator_traits<It>::value_type>
 	RandSample(It first, It last, typename std::iterator_traits<It>::difference_type n)
@@ -578,10 +581,13 @@
 	}
 
 	// 引擎重载 —— 输入迭代器（reservoir）
+	// 元素须可复制构造和复制赋值。
 	template <class It, class Engine,
 		std::enable_if_t<detail::is_input_iterator_v<It>
 			&& !detail::is_random_access_iterator_v<It>
-			&& detail::is_random_engine_v<Engine>>* = nullptr>
+			&& detail::is_random_engine_v<Engine>
+			&& std::is_copy_constructible_v<typename std::iterator_traits<It>::value_type>
+			&& std::is_copy_assignable_v<typename std::iterator_traits<It>::value_type>>* = nullptr>
 	[[nodiscard]]
 	inline std::vector<typename std::iterator_traits<It>::value_type>
 	RandSample(Engine& engine, It first, It last, typename std::iterator_traits<It>::difference_type n)
@@ -592,11 +598,11 @@
 	}
 
 	/// @brief 无放回抽样：按索引从容器中随机抽取 n 个元素
-	/// @param c 源容器
+	/// @param c 源容器（const 限定后仍支持随机访问遍历）
 	/// @param n 抽取数量（若 n >= 容器大小则返回全部元素的副本）
 	/// @return 含 n 个随机选取元素的 vector
 	template <class Container,
-		std::enable_if_t<detail::is_random_access_container_v<Container>>* = nullptr>
+		std::enable_if_t<detail::is_random_access_container_v<const Container>>* = nullptr>
 	[[nodiscard]]
 	RANDX_DETAIL_SAMPLE_INLINE auto RandSample(const Container& c, std::size_t n)
 	{
@@ -615,11 +621,11 @@
 
 	/// @brief 无放回抽样：从容器中随机抽取 n 个元素（指定引擎重载）
 	/// @param engine 自定义随机数引擎
-	/// @param c 源容器
+	/// @param c 源容器（const 限定后仍支持随机访问遍历）
 	/// @param n 抽取数量
 	/// @return 含 n 个随机选取元素的 vector
 	template <class Engine, class Container,
-		std::enable_if_t<detail::is_random_engine_v<Engine> && detail::is_random_access_container_v<Container>>* = nullptr>
+		std::enable_if_t<detail::is_random_engine_v<Engine> && detail::is_random_access_container_v<const Container>>* = nullptr>
 	[[nodiscard]]
 	RANDX_DETAIL_SAMPLE_INLINE auto RandSample(Engine& engine, const Container& c, std::size_t n)
 	{

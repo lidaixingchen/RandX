@@ -109,16 +109,15 @@
 
 	/// @brief 流式引擎概念：可通过 MakeStreamEngine 创建互不重叠的子序列流
 	///
-	/// @details 当前等价于 JumpableEngine（jump-based 流）。
-	/// JumpableEngine 描述能力（能 jump），StreamEngine 描述用途（能创建流）。
-	/// 未来 counter-based 引擎（如 Philox）可通过 counter 偏移创建流，
-	/// 届时此概念可扩展为 JumpableEngine<E> || CounterBasedEngine<E>。
+	/// @details 当前跳跃流需支持 jump()，并可由 uint64_t 种子直接列表构造。
+	/// JumpableEngine 描述跳跃能力，StreamEngine 描述 MakeStreamEngine 所需的完整能力。
+	/// 未来 counter-based 引擎（如 Philox）可通过 counter 偏移创建流，届时可扩展流引擎约束。
 	///
-	/// @warning 当前约束与 JumpableEngine 完全相同，仅为语义区分与 Philox 预留。
-	///          不要假设两者约束不同，等 Philox 落地时再引入 CounterBasedEngine。
 	/// @sa MakeStreamEngine, JumpableEngine
 	template <class E>
-	concept StreamEngine = JumpableEngine<E>;
+	concept StreamEngine = JumpableEngine<E> && requires(std::uint64_t seed) {
+		E{ seed };
+	};
 
 	// 迭代器可填充约束（RandFill 用）
 	template <class It, class T>

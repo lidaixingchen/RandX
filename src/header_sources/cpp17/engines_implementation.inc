@@ -78,7 +78,18 @@
 		template <class Engine, class = void>
 		struct HasJump : std::false_type {};
 		template <class Engine>
-		struct HasJump<Engine, std::void_t<decltype(std::declval<Engine&>().jump())>> : std::true_type {};
+		struct HasJump<Engine, std::void_t<decltype(std::declval<Engine&>().jump())>>
+			: std::is_same<void, decltype(std::declval<Engine&>().jump())> {};
+
+		template <class Engine, class = void>
+		struct HasStreamSeedConstructor : std::false_type {};
+		template <class Engine>
+		struct HasStreamSeedConstructor<Engine,
+			std::void_t<decltype(Engine{ std::declval<std::uint64_t>() })>> : std::true_type {};
+
+		template <class Engine>
+		struct HasStreamEngine : std::bool_constant<
+			HasJump<Engine>::value && HasStreamSeedConstructor<Engine>::value> {};
 
 		template <class Engine, class = void>
 		struct HasLongJump : std::false_type {};
@@ -286,7 +297,7 @@
 	template <class E>
 	inline constexpr bool is_random_engine_v = detail::is_random_engine_v<E>;
 
-	template <class Engine, std::enable_if_t<detail::HasJump<Engine>::value>* = nullptr>
+	template <class Engine, std::enable_if_t<detail::HasStreamEngine<Engine>::value>* = nullptr>
 	[[nodiscard]]
 	inline constexpr Engine MakeStreamEngine(std::uint64_t streamId, std::uint64_t seed = DefaultSeed)
 	{

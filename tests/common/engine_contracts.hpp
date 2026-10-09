@@ -78,6 +78,36 @@ struct JumpAndLongJumpEngine
     std::uint64_t trace;
 };
 
+struct NoSeedEngine
+{
+    constexpr NoSeedEngine() noexcept = default;
+    constexpr void jump() noexcept {}
+};
+
+struct NarrowingSeedEngine
+{
+    explicit constexpr NarrowingSeedEngine(int) noexcept {}
+    constexpr void jump() noexcept {}
+};
+
+struct IntegerJumpEngine
+{
+    explicit constexpr IntegerJumpEngine(std::uint64_t) noexcept {}
+    constexpr int jump() noexcept { return 0; }
+};
+
+struct NoJumpEngine
+{
+    explicit constexpr NoJumpEngine(std::uint64_t) noexcept {}
+};
+
+template <class Engine, class = void>
+struct CanMakeStreamEngine : std::false_type {};
+
+template <class Engine>
+struct CanMakeStreamEngine<Engine, std::void_t<decltype(
+    RandX::MakeStreamEngine<Engine>(std::uint64_t{}, std::uint64_t{}))>> : std::true_type {};
+
 template <class Engine>
 bool MatchesLegacyMapping()
 {
@@ -232,6 +262,20 @@ struct ThrowingLongJumpEngine : JumpAndLongJumpEngine
 
 TEST_SUITE("公共/基础/引擎")
 {
+    TEST_CASE("MakeStreamEngine 类型约束")
+    {
+        using namespace RandXTest::StreamContracts;
+        static_assert(CanMakeStreamEngine<RandX::Xoshiro256StarStar>::value);
+        static_assert(CanMakeStreamEngine<RandX::Xoroshiro128StarStar>::value);
+        static_assert(CanMakeStreamEngine<RandX::Xoshiro128StarStar>::value);
+        static_assert(CanMakeStreamEngine<JumpOnlyEngine>::value);
+        static_assert(CanMakeStreamEngine<JumpAndLongJumpEngine>::value);
+        static_assert(!CanMakeStreamEngine<NoSeedEngine>::value);
+        static_assert(!CanMakeStreamEngine<NarrowingSeedEngine>::value);
+        static_assert(!CanMakeStreamEngine<IntegerJumpEngine>::value);
+        static_assert(!CanMakeStreamEngine<NoJumpEngine>::value);
+    }
+
     TEST_CASE("七种 PRNG 的种子与状态契约")
     {
         RandXTest::EngineFixtures::VerifyEngineSeedSeqContracts<RandX::SplitMix64>();

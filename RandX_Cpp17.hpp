@@ -1488,7 +1488,18 @@ namespace RandX
 		template <class Engine, class = void>
 		struct HasJump : std::false_type {};
 		template <class Engine>
-		struct HasJump<Engine, std::void_t<decltype(std::declval<Engine&>().jump())>> : std::true_type {};
+		struct HasJump<Engine, std::void_t<decltype(std::declval<Engine&>().jump())>>
+			: std::is_same<void, decltype(std::declval<Engine&>().jump())> {};
+
+		template <class Engine, class = void>
+		struct HasStreamSeedConstructor : std::false_type {};
+		template <class Engine>
+		struct HasStreamSeedConstructor<Engine,
+			std::void_t<decltype(Engine{ std::declval<std::uint64_t>() })>> : std::true_type {};
+
+		template <class Engine>
+		struct HasStreamEngine : std::bool_constant<
+			HasJump<Engine>::value && HasStreamSeedConstructor<Engine>::value> {};
 
 		template <class Engine, class = void>
 		struct HasLongJump : std::false_type {};
@@ -2081,7 +2092,7 @@ namespace detail
 	template <class E>
 	inline constexpr bool is_random_engine_v = detail::is_random_engine_v<E>;
 
-	template <class Engine, std::enable_if_t<detail::HasJump<Engine>::value>* = nullptr>
+	template <class Engine, std::enable_if_t<detail::HasStreamEngine<Engine>::value>* = nullptr>
 	[[nodiscard]]
 	inline constexpr Engine MakeStreamEngine(std::uint64_t streamId, std::uint64_t seed = DefaultSeed)
 	{
@@ -2756,7 +2767,7 @@ namespace detail
 	[[nodiscard]]
 	inline decltype(auto) RandElement(Container& c)
 	{
-		if (std::empty(c))
+		if (std::size(c) == 0)
 			throw std::invalid_argument("RandElement: empty container");
 		return c[RandInt<std::size_t>(static_cast<std::size_t>(std::size(c) - 1))];
 	}
@@ -2770,7 +2781,7 @@ namespace detail
 	[[nodiscard]]
 	inline typename std::iterator_traits<decltype(std::begin(std::declval<Container&>()))>::value_type RandElement(Container&& c)
 	{
-		if (std::empty(c))
+		if (std::size(c) == 0)
 			throw std::invalid_argument("RandElement: empty container");
 		return c[RandInt<std::size_t>(static_cast<std::size_t>(std::size(c) - 1))];
 	}
@@ -3255,8 +3266,11 @@ namespace detail
 	{
 		if (min > max)
 			throw std::invalid_argument("RandInt: min > max");
-		using DistType = std::conditional_t<(sizeof(T) < sizeof(short)),
-			std::conditional_t<std::is_signed_v<T>, int, unsigned int>, T>;
+		using ValueType = std::remove_cv_t<T>;
+		using DistType = std::conditional_t<(sizeof(ValueType) < sizeof(short)),
+			std::conditional_t<std::is_signed_v<ValueType>, int, unsigned int>,
+			std::conditional_t<std::is_signed_v<ValueType>,
+				std::make_signed_t<ValueType>, std::make_unsigned_t<ValueType>>>;
 		std::uniform_int_distribution<DistType> dist(static_cast<DistType>(min), static_cast<DistType>(max));
 		return static_cast<T>(dist(engine));
 	}
@@ -3835,7 +3849,6 @@ namespace detail
 				return {};
 
 			std::vector<T> reservoir;
-			reservoir.reserve(static_cast<std::size_t>(n));
 
 			// 填满蓄水池
 			Diff i = 0;
@@ -3877,9 +3890,12 @@ namespace detail
 	}
 
 	// 路径 2：输入迭代器（reservoir sampling, Algorithm R）
+	// 元素须可复制构造和复制赋值。
 	template <class It,
 		std::enable_if_t<detail::is_input_iterator_v<It>
-			&& !detail::is_random_access_iterator_v<It>>* = nullptr>
+			&& !detail::is_random_access_iterator_v<It>
+			&& std::is_copy_constructible_v<typename std::iterator_traits<It>::value_type>
+			&& std::is_copy_assignable_v<typename std::iterator_traits<It>::value_type>>* = nullptr>
 	[[nodiscard]]
 	inline std::vector<typename std::iterator_traits<It>::value_type>
 	RandSample(It first, It last, typename std::iterator_traits<It>::difference_type n)
@@ -3907,10 +3923,13 @@ namespace detail
 	}
 
 	// 引擎重载 —— 输入迭代器（reservoir）
+	// 元素须可复制构造和复制赋值。
 	template <class It, class Engine,
 		std::enable_if_t<detail::is_input_iterator_v<It>
 			&& !detail::is_random_access_iterator_v<It>
-			&& detail::is_random_engine_v<Engine>>* = nullptr>
+			&& detail::is_random_engine_v<Engine>
+			&& std::is_copy_constructible_v<typename std::iterator_traits<It>::value_type>
+			&& std::is_copy_assignable_v<typename std::iterator_traits<It>::value_type>>* = nullptr>
 	[[nodiscard]]
 	inline std::vector<typename std::iterator_traits<It>::value_type>
 	RandSample(Engine& engine, It first, It last, typename std::iterator_traits<It>::difference_type n)
@@ -3921,11 +3940,11 @@ namespace detail
 	}
 
 	/// @brief 无放回抽样：按索引从容器中随机抽取 n 个元素
-	/// @param c 源容器
+	/// @param c 源容器（const 限定后仍支持随机访问遍历）
 	/// @param n 抽取数量（若 n >= 容器大小则返回全部元素的副本）
 	/// @return 含 n 个随机选取元素的 vector
 	template <class Container,
-		std::enable_if_t<detail::is_random_access_container_v<Container>>* = nullptr>
+		std::enable_if_t<detail::is_random_access_container_v<const Container>>* = nullptr>
 	[[nodiscard]]
 	RANDX_DETAIL_SAMPLE_INLINE auto RandSample(const Container& c, std::size_t n)
 	{
@@ -3956,11 +3975,11 @@ namespace detail
 
 	/// @brief 无放回抽样：从容器中随机抽取 n 个元素（指定引擎重载）
 	/// @param engine 自定义随机数引擎
-	/// @param c 源容器
+	/// @param c 源容器（const 限定后仍支持随机访问遍历）
 	/// @param n 抽取数量
 	/// @return 含 n 个随机选取元素的 vector
 	template <class Engine, class Container,
-		std::enable_if_t<detail::is_random_engine_v<Engine> && detail::is_random_access_container_v<Container>>* = nullptr>
+		std::enable_if_t<detail::is_random_engine_v<Engine> && detail::is_random_access_container_v<const Container>>* = nullptr>
 	[[nodiscard]]
 	RANDX_DETAIL_SAMPLE_INLINE auto RandSample(Engine& engine, const Container& c, std::size_t n)
 	{
@@ -4116,6 +4135,26 @@ namespace detail
 		};
 
 		template <class T>
+		inline void ValidatePoissonMean(double mean)
+		{
+			if (!std::isfinite(mean) || mean < 0.0)
+				throw std::invalid_argument("RandPoisson: mean must be non-negative");
+
+			constexpr int PoissonDoublePrecisionDigits = std::numeric_limits<double>::digits;
+			if constexpr (std::numeric_limits<T>::digits <= PoissonDoublePrecisionDigits)
+			{
+				if (mean > static_cast<double>((std::numeric_limits<T>::max)()))
+					throw std::invalid_argument("RandPoisson: mean exceeds maximum value of return type");
+			}
+			else
+			{
+				const double maximumExclusiveMean = std::ldexp(1.0, std::numeric_limits<T>::digits);
+				if (mean >= maximumExclusiveMean)
+					throw std::invalid_argument("RandPoisson: mean exceeds maximum value of return type");
+			}
+		}
+
+		template <class T>
 		struct IsGeometricDistributionType : std::bool_constant<
 			std::is_integral_v<T> &&
 			std::is_same_v<T, std::remove_cv_t<T>> &&
@@ -4133,10 +4172,7 @@ namespace detail
 	[[nodiscard]]
 	inline T RandPoisson(double mean = 1.0)
 	{
-		if (!std::isfinite(mean) || mean < 0.0)
-			throw std::invalid_argument("RandPoisson: mean must be non-negative");
-		if (mean > static_cast<double>((std::numeric_limits<T>::max)()))
-			throw std::invalid_argument("RandPoisson: mean exceeds maximum value of return type");
+		detail::ValidatePoissonMean<T>(mean);
 		if (mean == 0.0) return T{0};
 		std::poisson_distribution<T> dist(mean);
 		return dist(DefaultEngine());
@@ -4152,10 +4188,7 @@ namespace detail
 	[[nodiscard]]
 	inline T RandPoisson(Engine& engine, double mean = 1.0)
 	{
-		if (!std::isfinite(mean) || mean < 0.0)
-			throw std::invalid_argument("RandPoisson: mean must be non-negative");
-		if (mean > static_cast<double>((std::numeric_limits<T>::max)()))
-			throw std::invalid_argument("RandPoisson: mean exceeds maximum value of return type");
+		detail::ValidatePoissonMean<T>(mean);
 		if (mean == 0.0) return T{0};
 		std::poisson_distribution<T> dist(mean);
 		return dist(engine);
@@ -4171,6 +4204,18 @@ namespace detail
 	{
 		if (!std::isfinite(alpha) || !std::isfinite(beta) || alpha <= T{0} || beta <= T{0})
 			throw std::invalid_argument("RandGamma: alpha and beta must be positive");
+		constexpr int GammaShapeSplitCount = 2;
+		// 同尺度 Gamma 的形状可相加；半形状采样保持形状翻倍的中间量可表示。
+		constexpr T GammaShapeSplitThreshold =
+			(std::numeric_limits<T>::max)() / static_cast<T>(GammaShapeSplitCount);
+		if (alpha > GammaShapeSplitThreshold)
+		{
+			const T splitShape = alpha / static_cast<T>(GammaShapeSplitCount);
+			std::gamma_distribution<T> splitDistribution(splitShape, beta);
+			const T firstSample = splitDistribution(DefaultEngine());
+			const T secondSample = splitDistribution(DefaultEngine());
+			return firstSample + secondSample;
+		}
 		std::gamma_distribution<T> dist(alpha, beta);
 		return dist(DefaultEngine());
 	}
@@ -4187,6 +4232,18 @@ namespace detail
 	{
 		if (!std::isfinite(alpha) || !std::isfinite(beta) || alpha <= T{0} || beta <= T{0})
 			throw std::invalid_argument("RandGamma: alpha and beta must be positive");
+		constexpr int GammaShapeSplitCount = 2;
+		// 同尺度 Gamma 的形状可相加；半形状采样保持形状翻倍的中间量可表示。
+		constexpr T GammaShapeSplitThreshold =
+			(std::numeric_limits<T>::max)() / static_cast<T>(GammaShapeSplitCount);
+		if (alpha > GammaShapeSplitThreshold)
+		{
+			const T splitShape = alpha / static_cast<T>(GammaShapeSplitCount);
+			std::gamma_distribution<T> splitDistribution(splitShape, beta);
+			const T firstSample = splitDistribution(engine);
+			const T secondSample = splitDistribution(engine);
+			return firstSample + secondSample;
+		}
 		std::gamma_distribution<T> dist(alpha, beta);
 		return dist(engine);
 	}

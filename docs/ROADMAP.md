@@ -152,6 +152,7 @@ RandX 保持纯头文件、消费者零外部依赖、C++23 Concepts 与 C++17 S
 | PractRand profile 与运行结果交付工具 | `tools/pract_rand/`、`.github/workflows/practrand-nightly.yml` | quick 与默认 nightly 均通过八引擎各 4 GiB 完整运行，状态 `runner_verified`；验收范围及可疑证据见[远端验收](项目功能改进方案.md#114-远端验收) |
 | 整数分布类型契约 | 共同类型特征、双版本声明、公共实例化和 GNU 扩展整数探针 | 本地双标准及远端 GCC／Clang／MSVC C++17／20／23 矩阵通过；候选集收紧按破坏性变更管理，发布版本单独授权 |
 | 内置引擎快速流定位 | 共同跳跃幂材料、生成参考、公开契约与独立基准 | 默认 constexpr 预算、大编号参考和原映射状态对照通过；性能与跨平台结果见[项目功能改进方案](项目功能改进方案.md#11-实施结果) |
+| 分布数值与泛型契约修复 | Gamma／Poisson／字符整数、采样能力与内存增长、建流约束；[修复报告](项目缺陷审查报告.md#修复验收) | 9 项确认问题已修复；本机 GCC 双标准 Debug／Release CTest 与 MSVC 完整入口矩阵通过；水库定向性能存在回归；C++17 jump 返回类型收紧按破坏性变更管理，远端验收待执行 |
 | 安装树双标准消费者 | `tools/validate_installed_consumers.py`、`examples/consumer_validation/`、CTest | Windows／Linux／macOS 安装消费者通过；v1.5.0 的 vcpkg 与 xmake 双标准消费者预演通过 |
 
 ---
@@ -212,4 +213,4 @@ RandX 保持纯头文件、消费者零外部依赖、C++23 Concepts 与 C++17 S
 
 ---
 
-*最新更新日期：2026-10-05。上游渠道状态以[发布流程渠道概览](RELEASING.md#渠道概览)记录为准；近期实施计划见[安全擦除与三角分布实施方案](安全擦除与三角分布实施方案.md)。*
+*最新更新日期：2026-10-09。上游渠道状态以[发布流程渠道概览](RELEASING.md#渠道概览)记录为准；近期实施计划见[安全擦除与三角分布实施方案](安全擦除与三角分布实施方案.md)。*

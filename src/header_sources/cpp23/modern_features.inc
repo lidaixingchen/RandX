@@ -197,11 +197,14 @@
 		}
 
 		/// @brief 无放回抽样（复用迭代器版实现，自动选择 random_access / input 路径）
+		/// @note 输入迭代器路径要求元素可复制赋值
 		/// @param r 源 range
 		/// @param n 抽取数量
 		/// @return 含 n 个随机选取元素的 vector
 		template <std::ranges::input_range R>
 			requires std::copy_constructible<std::ranges::range_value_t<R>>
+				&& (std::ranges::random_access_range<R>
+					|| std::is_copy_assignable_v<std::ranges::range_value_t<R>>)
 		[[nodiscard]]
 		inline std::vector<std::ranges::range_value_t<R>>
 		RandSample(R&& r, std::ranges::range_difference_t<R> n)

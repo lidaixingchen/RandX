@@ -546,15 +546,16 @@
 	}
 
 	/// @brief 无放回抽样：按索引从容器中随机抽取 n 个元素
-	/// @param c 源容器（支持所有 random_access_range）
+	/// @param c 源容器（const 限定后仍支持随机访问遍历）
 	/// @param n 抽取数量（若 n >= 容器大小则返回全部元素的副本）
 	/// @return 含 n 个随机选取元素的 vector
-	template <std::ranges::random_access_range Container>
-		requires std::copy_constructible<std::ranges::range_value_t<Container>>
+	template <class Container>
+		requires std::ranges::random_access_range<const Container>
+			&& std::copy_constructible<std::ranges::range_value_t<const Container>>
 	[[nodiscard]]
 	RANDX_DETAIL_SAMPLE_INLINE auto RandSample(const Container& c, std::size_t n)
 	{
-		using T = std::ranges::range_value_t<Container>;
+		using T = std::ranges::range_value_t<const Container>;
 		using Diff = std::ranges::range_difference_t<const Container>;
 		if (detail::IsEmptySampleRequest(n)) return std::vector<T>{};
 		// @randx-include ../common/sampling/sample_container_count.inc
@@ -568,6 +569,7 @@
 	}
 
 	/// @brief 无放回抽样（输入迭代器版，reservoir sampling Algorithm R）
+	/// @note 元素须可复制构造和复制赋值
 	/// @param first 范围起始迭代器
 	/// @param last 范围结束迭代器/哨兵
 	/// @param n 抽取数量
@@ -575,6 +577,8 @@
 	// 路径 2：输入迭代器（reservoir sampling, Algorithm R）
 	template <std::input_iterator It, std::sentinel_for<It> Sentinel>
 		requires (!std::random_access_iterator<It>)
+			&& std::copy_constructible<std::iter_value_t<It>>
+			&& std::is_copy_assignable_v<std::iter_value_t<It>>
 	[[nodiscard]]
 	inline std::vector<std::iter_value_t<It>>
 	RandSample(It first, Sentinel last, std::iter_difference_t<It> n)
@@ -607,6 +611,7 @@
 	}
 
 	/// @brief 无放回抽样（指定引擎，输入迭代器版，reservoir sampling）
+	/// @note 元素须可复制构造和复制赋值
 	/// @param engine 自定义随机数引擎
 	/// @param first 范围起始迭代器
 	/// @param last 范围结束迭代器/哨兵
@@ -615,6 +620,8 @@
 	// 引擎重载 —— 输入迭代器（reservoir）
 	template <std::input_iterator It, std::sentinel_for<It> Sentinel, detail::RandomEngine Engine>
 		requires (!std::random_access_iterator<It>)
+			&& std::copy_constructible<std::iter_value_t<It>>
+			&& std::is_copy_assignable_v<std::iter_value_t<It>>
 	[[nodiscard]]
 	inline std::vector<std::iter_value_t<It>>
 	RandSample(Engine& engine, It first, Sentinel last, std::iter_difference_t<It> n)
@@ -626,15 +633,16 @@
 
 	/// @brief 无放回抽样：从容器中随机抽取 n 个元素（指定引擎重载）
 	/// @param engine 自定义随机数引擎
-	/// @param c 源容器（支持所有 random_access_range）
+	/// @param c 源容器（const 限定后仍支持随机访问遍历）
 	/// @param n 抽取数量
 	/// @return 含 n 个随机选取元素的 vector
-	template <detail::RandomEngine Engine, std::ranges::random_access_range Container>
-		requires std::copy_constructible<std::ranges::range_value_t<Container>>
+	template <detail::RandomEngine Engine, class Container>
+		requires std::ranges::random_access_range<const Container>
+			&& std::copy_constructible<std::ranges::range_value_t<const Container>>
 	[[nodiscard]]
 	RANDX_DETAIL_SAMPLE_INLINE auto RandSample(Engine& engine, const Container& c, std::size_t n)
 	{
-		using T = std::ranges::range_value_t<Container>;
+		using T = std::ranges::range_value_t<const Container>;
 		using Diff = std::ranges::range_difference_t<const Container>;
 		if (detail::IsEmptySampleRequest(n)) return std::vector<T>{};
 		// @randx-include ../common/sampling/sample_container_count.inc

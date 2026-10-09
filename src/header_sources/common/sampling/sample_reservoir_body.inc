@@ -3,7 +3,6 @@
 				return {};
 
 			std::vector<T> reservoir;
-			reservoir.reserve(static_cast<std::size_t>(n));
 
 			// 填满蓄水池
 			Diff i = 0;
