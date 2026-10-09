@@ -1,0 +1,14 @@
+<map id="RandX::RandFill" name="RandX::RandFill">
+<area shape="rect" id="Node000001" title="用 [min, max) 范围的随机浮点数填充迭代器区间" alt="" coords="5,13,129,38"/>
+<area shape="rect" id="Node000002" href="$group__engines.html#ga7dba92b95d7c5e6eb2d1db3c6a3b2ddf" title="获取当前线程专属的默认伪随机数生成引擎" alt="" coords="349,13,513,38"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="130,23,336,23,336,28,130,28"/>
+<area shape="rect" id="Node000006" href="$group__distributions.html#gacc7e0d1b66125f27a7d9e7aec974e72d" title="用 [min, max] 范围的随机整数填充迭代器区间" alt="" coords="177,38,301,63"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="130,32,164,37,163,42,129,37"/>
+<area shape="rect" id="Node000003" href="$namespaceRandX_1_1detail.html#a9356ec09c67a0c6ad6e56aa6679cd3ea" title=" " alt="" coords="561,5,769,45"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="514,23,548,23,548,28,514,28"/>
+<area shape="rect" id="Node000004" href="$group__engines.html#gaa82567759ff174faf923397ea9b0c71f" title="生成非确定性的 64 位种子" alt="" coords="817,13,976,38"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="770,23,804,23,804,28,770,28"/>
+<area shape="rect" id="Node000005" href="$namespaceRandX_1_1detail.html#a483477380db6686914887e45ac9610e4" title=" " alt="" coords="1024,5,1227,45"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="976,23,1010,23,1010,28,976,28"/>
+<area shape="poly" id="edge6_Node000006_Node000002" title=" " alt="" coords="301,40,335,35,336,41,302,45"/>
+</map>

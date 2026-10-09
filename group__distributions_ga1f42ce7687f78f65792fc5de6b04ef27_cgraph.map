@@ -1,0 +1,11 @@
+<map id="RandX::RandWeighted" name="RandX::RandWeighted">
+<area shape="rect" id="Node000001" title="按预构建权重分布随机选取索引；支持分布对象复用，查找复杂度取决于标准库实现" alt="" coords="5,13,172,38"/>
+<area shape="rect" id="Node000002" href="$group__engines.html#ga7dba92b95d7c5e6eb2d1db3c6a3b2ddf" title="获取当前线程专属的默认伪随机数生成引擎" alt="" coords="220,13,384,38"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="172,23,207,23,207,28,172,28"/>
+<area shape="rect" id="Node000003" href="$namespaceRandX_1_1detail.html#a9356ec09c67a0c6ad6e56aa6679cd3ea" title=" " alt="" coords="432,5,640,45"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="384,23,418,23,418,28,384,28"/>
+<area shape="rect" id="Node000004" href="$group__engines.html#gaa82567759ff174faf923397ea9b0c71f" title="生成非确定性的 64 位种子" alt="" coords="688,13,847,38"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="640,23,674,23,674,28,640,28"/>
+<area shape="rect" id="Node000005" href="$namespaceRandX_1_1detail.html#a483477380db6686914887e45ac9610e4" title=" " alt="" coords="895,5,1097,45"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="847,23,881,23,881,28,847,28"/>
+</map>

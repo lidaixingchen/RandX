@@ -1,0 +1,28 @@
+<map id="RandX::RandSample" name="RandX::RandSample">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,145,160,170"/>
+<area shape="rect" id="Node000002" href="$group__engines.html#ga7dba92b95d7c5e6eb2d1db3c6a3b2ddf" title="获取当前线程专属的默认伪随机数生成引擎" alt="" coords="236,65,400,90"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="120,142,266,92,268,97,122,147"/>
+<area shape="rect" id="Node000006" href="$namespaceRandX_1_1detail.html#a0d41e98ef22978253411ad46340120bb" title=" " alt="" coords="208,165,428,205"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="161,164,195,168,194,173,160,169"/>
+<area shape="rect" id="Node000003" href="$namespaceRandX_1_1detail.html#a9356ec09c67a0c6ad6e56aa6679cd3ea" title=" " alt="" coords="495,5,703,45"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="387,62,482,44,483,50,388,67"/>
+<area shape="rect" id="Node000004" href="$group__engines.html#gaa82567759ff174faf923397ea9b0c71f" title="生成非确定性的 64 位种子" alt="" coords="795,13,953,38"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="703,23,781,23,781,28,703,28"/>
+<area shape="rect" id="Node000005" href="$namespaceRandX_1_1detail.html#a483477380db6686914887e45ac9610e4" title=" " alt="" coords="1027,5,1230,45"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="953,23,1013,23,1013,28,953,28"/>
+<area shape="rect" id="Node000007" href="$namespaceRandX_1_1detail.html#a12a8ed052d17820702520f9011d550e9" title=" " alt="" coords="500,69,699,109"/>
+<area shape="poly" id="edge6_Node000006_Node000007" title=" " alt="" coords="363,163,475,119,502,111,503,116,477,124,365,168"/>
+<area shape="rect" id="Node000008" href="$namespaceRandX_1_1detail.html#ac80153a295468f972b4c7f8c54ac64ff" title=" " alt="" coords="496,133,703,173"/>
+<area shape="poly" id="edge7_Node000006_Node000008" title=" " alt="" coords="428,170,482,164,483,169,429,175"/>
+<area shape="rect" id="Node000011" href="$namespaceRandX_1_1detail.html#a7a7bec0012633c278cd4532df824234d" title=" " alt="" coords="496,197,703,237"/>
+<area shape="poly" id="edge11_Node000006_Node000011" title=" " alt="" coords="429,195,483,201,482,207,428,200"/>
+<area shape="rect" id="Node000012" href="$namespaceRandX_1_1detail.html#aaa2c9591609aafa4a13684f16960fee3" title=" " alt="" coords="494,261,705,301"/>
+<area shape="poly" id="edge12_Node000006_Node000012" title=" " alt="" coords="365,203,477,247,503,255,502,260,475,252,363,208"/>
+<area shape="rect" id="Node000013" href="$namespaceRandX_1_1detail.html#ad5cd0e27d73c4633524eb3d763037a28" title=" " alt="" coords="476,326,723,351"/>
+<area shape="poly" id="edge13_Node000006_Node000013" title=" " alt="" coords="340,204,398,258,436,287,477,311,499,320,497,325,475,316,433,291,394,262,336,208"/>
+<area shape="rect" id="Node000009" href="$namespaceRandX_1_1detail.html#afca55f498df75abd7902e3484a122f3c" title=" " alt="" coords="1025,133,1232,173"/>
+<area shape="poly" id="edge8_Node000008_Node000009" title=" " alt="" coords="703,149,771,148,977,148,1012,148,1012,154,977,153,771,153,703,154"/>
+<area shape="rect" id="Node000010" href="$namespaceRandX_1_1detail.html#a8844674f140570192231c75dbaa5ca4c" title=" " alt="" coords="771,163,977,203"/>
+<area shape="poly" id="edge9_Node000008_Node000010" title=" " alt="" coords="703,162,757,168,757,173,702,167"/>
+<area shape="poly" id="edge10_Node000010_Node000009" title=" " alt="" coords="977,168,1011,164,1012,169,978,173"/>
+</map>

@@ -1,0 +1,390 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "https://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="zh">
+<head>
+<meta http-equiv="Content-Type" content="text/xhtml;charset=UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=11"/>
+<meta name="generator" content="Doxygen 1.17.0"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>RandX: RandX</title>
+<link href="tabs.css" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src="codefolding.js"></script>
+<script type="text/javascript" src="clipboard.js"></script>
+<link href="navtree.css" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src="navtreedata.js"></script>
+<script type="text/javascript" src="navtree.js"></script>
+<script type="text/javascript" src="cookie.js"></script>
+<link href="search/search.css" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src="search/searchdata.js"></script>
+<script type="text/javascript" src="search/search.js"></script>
+<script type="module">
+import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+const theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'default';
+mermaid.initialize({ startOnLoad: true, theme: theme });
+</script>
+<link href="doxygen.css" rel="stylesheet" type="text/css" />
+</head>
+<body>
+<div id="top"><!-- do not remove this div, it is closed by doxygen! -->
+<div id="titlearea">
+<table cellspacing="0" cellpadding="0">
+ <tbody>
+ <tr id="projectrow">
+  <td id="projectalign">
+   <div id="projectname">RandX<span id="projectnumber">&#160;1.5.0</span>
+   </div>
+   <div id="projectbrief">基于 xoshiro/xoroshiro 算法族的纯头文件伪随机数生成器库</div>
+  </td>
+ </tr>
+ </tbody>
+</table>
+</div>
+<!-- end header part -->
+<!-- 制作者 Doxygen 1.17.0 -->
+<script type="text/javascript">
+let searchBox = new SearchBox("searchBox", "search/",'.html');
+</script>
+<script type="text/javascript">
+document.addEventListener('DOMContentLoaded', codefold.init);
+</script>
+<script type="text/javascript" src="menudata.js"></script>
+<script type="text/javascript" src="menu.js"></script>
+<script type="text/javascript">
+document.addEventListener('DOMContentLoaded', () => {
+  initMenu('',true);
+  init_search();
+});
+</script>
+<div id="main-nav-mobile">
+<div class="sm sm-dox"><input id="main-menu-state" type="checkbox"/>
+<label class="main-menu-btn" for="main-menu-state">
+<span class="main-menu-btn-icon"></span> Toggle main menu visibility</label>
+<span id="searchBoxPos1" style="position:absolute;right:8px;top:8px;height:36px;"></span>
+</div>
+</div><!-- main-nav-mobile -->
+<div id="main-nav">
+  <ul class="sm sm-dox" id="main-menu">
+    <li id="searchBoxPos2" style="float:right">
+        <div id="MSearchBox" class="MSearchBoxInactive">
+        <span class="left">
+          <span id="MSearchSelect" class="search-icon" onmouseover="return searchBox.OnSearchSelectShow()" onmouseout="return searchBox.OnSearchSelectHide()"><span class="search-icon-dropdown"></span></span>
+          <input type="text" id="MSearchField" value="" placeholder="搜索" accesskey="S"
+               onfocus="searchBox.OnSearchFieldFocus(true)" 
+               onblur="searchBox.OnSearchFieldFocus(false)" 
+               onkeyup="searchBox.OnSearchFieldChange(event)"/>
+          </span><span class="right">
+            <a id="MSearchClose" href="javascript:searchBox.CloseResultsWindow()"><div id="MSearchCloseImg" class="close-icon"></div></a>
+          </span>
+        </div>
+    </li>
+  </ul>
+</div><!-- main-nav -->
+</div><!-- top -->
+<div id="side-nav" class="ui-resizable side-nav-resizable">
+  <div id="nav-tree">
+    <div id="nav-tree-contents">
+      <div id="nav-sync" class="sync"></div>
+    </div>
+  </div>
+  <div id="splitbar" style="-moz-user-select:none;" 
+       class="ui-resizable-handle">
+  </div>
+</div>
+<script type="text/javascript">
+document.addEventListener('DOMContentLoaded',() => { initNavTree('index.html','',''); });
+</script>
+<div id="container">
+<div id="doc-content">
+<!-- window showing the filter options -->
+<div id="MSearchSelectWindow"
+     onmouseover="return searchBox.OnSearchSelectShow()"
+     onmouseout="return searchBox.OnSearchSelectHide()"
+     onkeydown="return searchBox.OnSearchSelectKey(event)">
+</div>
+
+<!-- iframe showing the search results (closed by default) -->
+<div id="MSearchResultsWindow">
+<div id="MSearchResults">
+<div class="SRPage">
+<div id="SRIndex">
+<div id="SRResults"></div>
+<div class="SRStatus" id="Loading">载入中...</div>
+<div class="SRStatus" id="Searching">搜索中...</div>
+<div class="SRStatus" id="NoMatches">未找到</div>
+</div>
+</div>
+</div>
+</div>
+
+<div><div class="header">
+  <div class="headertitle"><div class="title"><a class="el" href="namespaceRandX.html">RandX</a> </div></div>
+</div><!--header-->
+<div class="contents">
+<div class="textblock"><p><a class="anchor" id="md_README"></a></p>
+<p>基于 <b>xoshiro/xoroshiro</b> 算法族的纯头文件伪随机数生成器库。</p>
+<p>原始算法：<a href="http://prng.di.unimi.it/">David Blackman &amp; Sebastiano Vigna</a> 原始 C++ 封装：<a href="https://github.com/Reputeless/Xoshiro-cpp">Ryo Suzuki (Xoshiro-cpp)</a></p>
+<blockquote class="doxtable">
+<p><b>⚠️ 安全声明</b></p>
+<p>xoshiro / xoroshiro / SFC64 / RomuDuoJr / SplitMix64 引擎**均非 CSPRNG**，不可用于密码、密钥、会话 token 等安全场景。 安全场景请使用从 OS 熵初始化的 <b><span class="tt">ChaCha20()</span></b> 或 **<span class="tt">SecureRandomBytes()</span>**。显式 64 位种子构造的 ChaCha20 用于测试与复现；直接提供 key／nonce 时，调用方负责其安全来源。 </p>
+</blockquote>
+<h1 class="doxsection"><a class="anchor" id="autotoc_md1"></a>
+版本选择</h1>
+<table class="markdownTable">
+<tr class="markdownTableHead">
+<th class="markdownTableHeadNone">头文件  </th><th class="markdownTableHeadNone">标准  </th><th class="markdownTableHeadNone">命名空间  </th><th class="markdownTableHeadNone">说明  </th></tr>
+<tr class="markdownTableRowOdd">
+<td class="markdownTableBodyNone"><b><a class="el" href="RandX_8hpp.html">RandX.hpp</a></b>  </td><td class="markdownTableBodyNone">C++23  </td><td class="markdownTableBodyNone"><span class="tt"><a class="el" href="namespaceRandX.html">RandX</a></span>  </td><td class="markdownTableBodyNone">Concepts 约束、8 引擎、便捷 API、编译期随机与 ranges 接口  </td></tr>
+<tr class="markdownTableRowEven">
+<td class="markdownTableBodyNone"><b><a class="el" href="RandX__Cpp17_8hpp.html">RandX_Cpp17.hpp</a></b>  </td><td class="markdownTableBodyNone">C++17  </td><td class="markdownTableBodyNone"><span class="tt"><a class="el" href="namespaceRandX.html">RandX</a></span>  </td><td class="markdownTableBodyNone">SFINAE 约束、相同的 8 引擎及共同便捷 API  </td></tr>
+</table>
+<p>两版本的共同算法由同一维护来源生成。相同种子和状态下，引擎原始输出一致；共同便捷 API 的跨标准行为由契约测试与 parity 验证。依赖标准库分布的结果还受标准库实现影响。</p>
+<h1 class="doxsection"><a class="anchor" id="autotoc_md2"></a>
+API 参考文档</h1>
+<p>完整签名见 <a href="https://lidaixingchen.github.io/RandX/">Doxygen API 参考</a>，调用方式与参数行为见 API 详细参考。</p>
+<p>本地生成：<span class="tt">doxygen Doxyfile</span>，输出到 <span class="tt">docs/api/html/</span>。</p>
+<h1 class="doxsection"><a class="anchor" id="autotoc_md3"></a>
+特性</h1>
+<p><b>引擎</b></p>
+<ul>
+<li>8 引擎全覆盖（7 统计 PRNG + 1 ChaCha20 CSPRNG），含 SFC64 / RomuDuoJr 高速引擎</li>
+<li>满足统一随机位生成器要求；C++23 使用 Concepts，C++17 使用 SFINAE</li>
+<li>状态构造与恢复遵循各引擎的状态政策，Debug／Release 行为一致</li>
+</ul>
+<p><b>便捷 API</b></p>
+<ul>
+<li>基础生成 / 17 种统计分布 / 容器操作 / 字符串与 UUID / ranges 风格（仅 C++23）</li>
+<li>线程局部默认引擎 <span class="tt">DefaultEngine()</span>，零配置即用；也支持传入自定义引擎</li>
+<li><span class="tt">RandCanonical&lt;T&gt;</span> 提供 <span class="tt">[0,1)</span> 浮点采样；float／double 对满位宽引擎使用直通位提取，<span class="tt">RandReal(0,1)</span> 复用该路径</li>
+<li><span class="tt">RandTriangular(min, peak, max)</span> 按最小值、众数和最大值采样三角分布，支持显式引擎重载</li>
+</ul>
+<p><b>编译期</b></p>
+<ul>
+<li>PRNG 支持 <span class="tt">constexpr</span> 操作；<span class="tt">RandIntCE</span>、<span class="tt">ShuffleCE</span> / <span class="tt">ShuffledArray</span> 提供编译期采样与洗牌（仅 RandX.hpp）</li>
+</ul>
+<p><b>并行与状态</b></p>
+<ul>
+<li>支持跳跃的引擎提供 <span class="tt">jump()</span> / <span class="tt">longJump()</span> 与 <span class="tt">MakeStreamEngine</span> 多流接口；流间隔及每流消耗预算取决于引擎</li>
+<li>PRNG 提供 <span class="tt">serialize()</span> / <span class="tt">deserialize()</span>；数组状态引擎另提供 <span class="tt">operator&lt;&lt;</span> / <span class="tt">operator&gt;&gt;</span></li>
+<li><span class="tt">discard(n)</span> 跳过</li>
+</ul>
+<p><b>安全</b></p>
+<ul>
+<li>ChaCha20（RFC 8439）：默认构造从 OS 熵播种，自动模式输出达到重播种阈值后重新获取 OS 熵</li>
+<li><span class="tt">SecureRandomBytes()</span> / <span class="tt">SecureSeed()</span> 直接使用跨平台 OS 密码学熵源：BCryptGenRandom / getrandom / SecRandomCopyBytes，读取失败抛异常</li>
+</ul>
+<p><b>播种</b></p>
+<ul>
+<li><span class="tt">RandomSeed()</span> 用于通用 PRNG 播种，依次尝试硬件随机、OS 熵、<span class="tt">std::random_device</span> 与最终兜底</li>
+<li>7 个 PRNG 支持 <span class="tt">std::seed_seq</span>；<span class="tt">Reseed(seed)</span> 重置当前线程默认引擎以复现测试</li>
+</ul>
+<p><b>工程化</b></p>
+<ul>
+<li>消费者无需第三方库，CMake <span class="tt">find_package</span> / <span class="tt">FetchContent</span> 自动处理平台链接依赖；提供 vcpkg overlay 与本地 xmake 仓库</li>
+<li>共同源码生成、共享契约测试、独立熵源故障测试与集中性能门禁；验证配置见开发与验证</li>
+</ul>
+<h1 class="doxsection"><a class="anchor" id="autotoc_md4"></a>
+引擎一览</h1>
+<table class="markdownTable">
+<tr class="markdownTableHead">
+<th class="markdownTableHeadNone">引擎  </th><th class="markdownTableHeadNone">输出  </th><th class="markdownTableHeadNone">状态数据  </th><th class="markdownTableHeadNone">主要能力与场景  </th></tr>
+<tr class="markdownTableRowOdd">
+<td class="markdownTableBodyNone">Xoshiro256StarStar  </td><td class="markdownTableBodyNone">64-bit  </td><td class="markdownTableBodyNone">32B  </td><td class="markdownTableBodyNone">默认通用 PRNG；支持 jump／longJump  </td></tr>
+<tr class="markdownTableRowEven">
+<td class="markdownTableBodyNone">Xoroshiro128StarStar  </td><td class="markdownTableBodyNone">64-bit  </td><td class="markdownTableBodyNone">16B  </td><td class="markdownTableBodyNone">较小状态；支持 jump／longJump  </td></tr>
+<tr class="markdownTableRowOdd">
+<td class="markdownTableBodyNone">Xoshiro128StarStar  </td><td class="markdownTableBodyNone">32-bit  </td><td class="markdownTableBodyNone">16B  </td><td class="markdownTableBodyNone">32 位输出；支持 jump／longJump  </td></tr>
+<tr class="markdownTableRowEven">
+<td class="markdownTableBodyNone">Xoroshiro64StarStar  </td><td class="markdownTableBodyNone">32-bit  </td><td class="markdownTableBodyNone">8B  </td><td class="markdownTableBodyNone">小状态的 32 位输出  </td></tr>
+<tr class="markdownTableRowOdd">
+<td class="markdownTableBodyNone">SplitMix64  </td><td class="markdownTableBodyNone">64-bit  </td><td class="markdownTableBodyNone">8B  </td><td class="markdownTableBodyNone">种子扩展与轻量随机序列  </td></tr>
+<tr class="markdownTableRowEven">
+<td class="markdownTableBodyNone">SFC64  </td><td class="markdownTableBodyNone">64-bit  </td><td class="markdownTableBodyNone">32B  </td><td class="markdownTableBodyNone">计数器结构的高速 PRNG  </td></tr>
+<tr class="markdownTableRowOdd">
+<td class="markdownTableBodyNone">RomuDuoJr  </td><td class="markdownTableBodyNone">64-bit  </td><td class="markdownTableBodyNone">16B  </td><td class="markdownTableBodyNone">精简结构的高速 PRNG  </td></tr>
+<tr class="markdownTableRowEven">
+<td class="markdownTableBodyNone"><b>ChaCha20</b>  </td><td class="markdownTableBodyNone">64-bit  </td><td class="markdownTableBodyNone">48B 状态＋64B 缓存  </td><td class="markdownTableBodyNone">OS 熵播种与密码学随机输出  </td></tr>
+</table>
+<p>状态数据不等于对象大小；ChaCha20 还包含缓存位置、重播种计数及生命周期标记，实际对象布局由平台决定。各引擎实例需由单线程独立使用，默认引擎为线程局部对象。</p>
+<h1 class="doxsection"><a class="anchor" id="autotoc_md5"></a>
+快速上手</h1>
+<div class="fragment"><div class="line"><span class="preprocessor">#include &quot;<a class="code" href="RandX_8hpp.html">RandX.hpp</a>&quot;</span></div>
+<div class="line"><span class="preprocessor">#include &lt;array&gt;</span></div>
+<div class="line"><span class="preprocessor">#include &lt;cstddef&gt;</span></div>
+<div class="line"><span class="preprocessor">#include &lt;cstdint&gt;</span></div>
+<div class="line"><span class="preprocessor">#include &lt;iostream&gt;</span></div>
+<div class="line"> </div>
+<div class="line"><span class="keywordtype">int</span> main()</div>
+<div class="line">{</div>
+<div class="line">    <span class="keyword">constexpr</span> <span class="keywordtype">int</span> DieFirstFace = 1;</div>
+<div class="line">    <span class="keyword">constexpr</span> <span class="keywordtype">int</span> DieLastFace = 6;</div>
+<div class="line">    <span class="keyword">constexpr</span> std::size_t LabelLength = 16;</div>
+<div class="line">    <span class="keyword">constexpr</span> std::size_t KeyLength = 32;</div>
+<div class="line">    <span class="keyword">constexpr</span> std::uint64_t PrimaryStreamId = 0;</div>
+<div class="line">    <span class="keyword">constexpr</span> std::uint64_t SecondaryStreamId = 1;</div>
+<div class="line"> </div>
+<div class="line">    <span class="comment">// 普通模拟与随机标签</span></div>
+<div class="line">    std::cout &lt;&lt; <a class="code hl_function" href="group__basic.html#gafc5f49bd223a3206fb7020144e9e64a2">RandX::RandInt</a>(DieFirstFace, DieLastFace) &lt;&lt; <span class="charliteral">&#39;\n&#39;</span>;</div>
+<div class="line">    std::cout &lt;&lt; <a class="code hl_function" href="group__distributions.html#gaf8ebb5f0066bebd89b6c16cdfdb7e1b7">RandX::RandNormal</a>() &lt;&lt; <span class="charliteral">&#39;\n&#39;</span>;        <span class="comment">// 正态分布 N(0,1)</span></div>
+<div class="line">    std::cout &lt;&lt; <a class="code hl_function" href="group__strings.html#ga1553d9169f14ad29db99d3b327f40139">RandX::RandString</a>(LabelLength) &lt;&lt; <span class="charliteral">&#39;\n&#39;</span>;</div>
+<div class="line">    std::cout &lt;&lt; <a class="code hl_function" href="group__strings.html#ga735f85ac3914d7f06a06823c579272d1">RandX::RandUUID</a>() &lt;&lt; <span class="charliteral">&#39;\n&#39;</span>;          <span class="comment">// UUID v4</span></div>
+<div class="line"> </div>
+<div class="line">    <span class="comment">// 手动管理引擎</span></div>
+<div class="line">    <a class="code hl_class" href="classRandX_1_1Xoshiro256StarStar.html">RandX::Xoshiro256StarStar</a> rng{ <a class="code hl_function" href="group__engines.html#gaa82567759ff174faf923397ea9b0c71f">RandX::RandomSeed</a>() };</div>
+<div class="line">    std::cout &lt;&lt; <a class="code hl_function" href="group__basic.html#gafc5f49bd223a3206fb7020144e9e64a2">RandX::RandInt</a>(rng, DieFirstFace, DieLastFace) &lt;&lt; <span class="charliteral">&#39;\n&#39;</span>;</div>
+<div class="line">    rng.<a class="code hl_function" href="group__engines.html#ga1b5ea67cd26317ad5c9be321c47c72ab">jump</a>();  <span class="comment">// 前进 2^128 步（并行子序列）</span></div>
+<div class="line"> </div>
+<div class="line">    <span class="comment">// 多流并行</span></div>
+<div class="line">    <span class="keyword">auto</span> stream0 = <a class="code hl_function" href="group__strings.html#gac722df563360f3f0d5c591daaa92f95c">RandX::MakeStreamEngine&lt;RandX::Xoshiro256StarStar&gt;</a>(PrimaryStreamId);</div>
+<div class="line">    <span class="keyword">auto</span> stream1 = <a class="code hl_function" href="group__strings.html#gac722df563360f3f0d5c591daaa92f95c">RandX::MakeStreamEngine&lt;RandX::Xoshiro256StarStar&gt;</a>(SecondaryStreamId);</div>
+<div class="line">    std::cout &lt;&lt; stream0() &lt;&lt; <span class="charliteral">&#39; &#39;</span> &lt;&lt; stream1() &lt;&lt; <span class="charliteral">&#39;\n&#39;</span>;</div>
+<div class="line"> </div>
+<div class="line">    <span class="comment">// 编译期随机（仅 C++23）</span></div>
+<div class="line">    <span class="keyword">constexpr</span> <span class="keywordtype">int</span> dice = <a class="code hl_function" href="group__strings.html#gae3b4175858fad26883c628c00dc753f7">RandX::RandIntCE</a>(DieFirstFace, DieLastFace);</div>
+<div class="line">    <span class="keyword">static_assert</span>(dice &gt;= DieFirstFace &amp;&amp; dice &lt;= DieLastFace);</div>
+<div class="line"> </div>
+<div class="line">    <span class="comment">// 密码学安全</span></div>
+<div class="line">    <a class="code hl_class" href="classRandX_1_1ChaCha20.html">RandX::ChaCha20</a> csprng;  <span class="comment">// OS 熵自动播种</span></div>
+<div class="line">    std::cout &lt;&lt; <a class="code hl_function" href="group__strings.html#ga735f85ac3914d7f06a06823c579272d1">RandX::RandUUID</a>(csprng) &lt;&lt; <span class="charliteral">&#39;\n&#39;</span>;</div>
+<div class="line">    std::array&lt;std::uint8_t, KeyLength&gt; key{};</div>
+<div class="line">    <a class="code hl_function" href="group__csprng.html#ga31b80b51d6bc9e44f68c5232803bb6d6">RandX::SecureRandomBytes</a>(key.data(), key.size());</div>
+<div class="line">}</div>
+<div class="ttc" id="aRandX_8hpp_html"><div class="ttname"><a href="RandX_8hpp.html">RandX.hpp</a></div></div>
+<div class="ttc" id="aclassRandX_1_1ChaCha20_html"><div class="ttname"><a href="classRandX_1_1ChaCha20.html">RandX::ChaCha20</a></div><div class="ttdoc">ChaCha20 密码学安全伪随机数生成器（CSPRNG），64 位输出，符合 RFC 8439。</div><div class="ttdef"><b>定义</b> RandX.hpp:798</div></div>
+<div class="ttc" id="aclassRandX_1_1Xoshiro256StarStar_html"><div class="ttname"><a href="classRandX_1_1Xoshiro256StarStar.html">RandX::Xoshiro256StarStar</a></div><div class="ttdoc">Xoshiro256** 伪随机数生成器，64 位输出，周期 2^256-1。</div><div class="ttdef"><b>定义</b> RandX.hpp:470</div></div>
+<div class="ttc" id="agroup__basic_html_gafc5f49bd223a3206fb7020144e9e64a2"><div class="ttname"><a href="group__basic.html#gafc5f49bd223a3206fb7020144e9e64a2">RandX::RandInt</a></div><div class="ttdeci">T RandInt(T min, T max)</div><div class="ttdoc">生成 [min, max] 范围内的随机整数</div><div class="ttdef"><b>定义</b> RandX.hpp:2092</div></div>
+<div class="ttc" id="agroup__csprng_html_ga31b80b51d6bc9e44f68c5232803bb6d6"><div class="ttname"><a href="group__csprng.html#ga31b80b51d6bc9e44f68c5232803bb6d6">RandX::SecureRandomBytes</a></div><div class="ttdeci">void SecureRandomBytes(void *buf, std::size_t n)</div><div class="ttdoc">用 OS 密码学熵源填充 [buf, buf+n) 字节</div><div class="ttdef"><b>定义</b> RandX.hpp:1794</div></div>
+<div class="ttc" id="agroup__distributions_html_gaf8ebb5f0066bebd89b6c16cdfdb7e1b7"><div class="ttname"><a href="group__distributions.html#gaf8ebb5f0066bebd89b6c16cdfdb7e1b7">RandX::RandNormal</a></div><div class="ttdeci">T RandNormal(T mean=T{0}, T stddev=T{1})</div><div class="ttdoc">生成正态分布随机数</div><div class="ttdef"><b>定义</b> RandX.hpp:2408</div></div>
+<div class="ttc" id="agroup__engines_html_ga1b5ea67cd26317ad5c9be321c47c72ab"><div class="ttname"><a href="group__engines.html#ga1b5ea67cd26317ad5c9be321c47c72ab">RandX::Xoshiro256StarStar::jump</a></div><div class="ttdeci">constexpr void jump() noexcept</div><div class="ttdoc">前进 2^128 步，用于创建并行子序列</div><div class="ttdef"><b>定义</b> RandX.hpp:1538</div></div>
+<div class="ttc" id="agroup__engines_html_gaa82567759ff174faf923397ea9b0c71f"><div class="ttname"><a href="group__engines.html#gaa82567759ff174faf923397ea9b0c71f">RandX::RandomSeed</a></div><div class="ttdeci">std::uint64_t RandomSeed()</div><div class="ttdoc">生成非确定性的 64 位种子</div><div class="ttdef"><b>定义</b> RandX.hpp:1748</div></div>
+<div class="ttc" id="agroup__strings_html_ga1553d9169f14ad29db99d3b327f40139"><div class="ttname"><a href="group__strings.html#ga1553d9169f14ad29db99d3b327f40139">RandX::RandString</a></div><div class="ttdeci">std::string RandString(std::size_t length, std::string_view charset=&quot;abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789&quot;)</div><div class="ttdoc">生成指定长度的随机字符串</div><div class="ttdef"><b>定义</b> RandX.hpp:3845</div></div>
+<div class="ttc" id="agroup__strings_html_ga735f85ac3914d7f06a06823c579272d1"><div class="ttname"><a href="group__strings.html#ga735f85ac3914d7f06a06823c579272d1">RandX::RandUUID</a></div><div class="ttdeci">std::string RandUUID()</div><div class="ttdef"><b>定义</b> RandX.hpp:4657</div></div>
+<div class="ttc" id="agroup__strings_html_gac722df563360f3f0d5c591daaa92f95c"><div class="ttname"><a href="group__strings.html#gac722df563360f3f0d5c591daaa92f95c">RandX::MakeStreamEngine</a></div><div class="ttdeci">constexpr Engine MakeStreamEngine(std::uint64_t streamId, std::uint64_t seed=DefaultSeed)</div><div class="ttdoc">从同一种子定位流编号对应的引擎起点</div><div class="ttdef"><b>定义</b> RandX.hpp:5031</div></div>
+<div class="ttc" id="agroup__strings_html_gae3b4175858fad26883c628c00dc753f7"><div class="ttname"><a href="group__strings.html#gae3b4175858fad26883c628c00dc753f7">RandX::RandIntCE</a></div><div class="ttdeci">constexpr T RandIntCE(T min, T max)</div><div class="ttdoc">编译期生成 [min, max] 范围内的随机整数</div><div class="ttdef"><b>定义</b> RandX.hpp:5084</div></div>
+</div><!-- fragment --><p>更多示例见 <a href="examples/">examples/</a> 目录（引擎管理、编译期随机、多流并行、三角分布场景模拟、ChaCha20、按权重选取）。</p>
+<p>重复使用相同分布参数时，可以持有标准库分布并直接传入 <a class="el" href="namespaceRandX.html">RandX</a> 引擎；批量输出使用 <span class="tt">std::generate_n</span> 和引用捕获，保留同一分布对象的缓存。输出迭代器支持已有范围填充、序列追加和关联容器插入。双版本完整示例见<a href="examples/distribution_generation.cpp">分布复用与批量生成</a>，参数、状态和默认引擎使用规则见 <a href="docs/API.md#分布复用与标准库批量生成">API 说明</a>。</p>
+<h1 class="doxsection"><a class="anchor" id="autotoc_md6"></a>
+API 速查</h1>
+<table class="markdownTable">
+<tr class="markdownTableHead">
+<th class="markdownTableHeadNone">分类  </th><th class="markdownTableHeadNone">函数  </th><th class="markdownTableHeadNone">说明  </th></tr>
+<tr class="markdownTableRowOdd">
+<td class="markdownTableBodyNone">基础生成  </td><td class="markdownTableBodyNone"><span class="tt">RandInt(min, max)</span>  </td><td class="markdownTableBodyNone">[min, max] 闭区间整数  </td></tr>
+<tr class="markdownTableRowEven">
+<td class="markdownTableBodyNone"></td><td class="markdownTableBodyNone"><span class="tt">RandCanonical&lt;T&gt;()</span> / <span class="tt">RandCanonicalDouble()</span> / <span class="tt">RandCanonicalFloat()</span>  </td><td class="markdownTableBodyNone">[0,1) 浮点数  </td></tr>
+<tr class="markdownTableRowOdd">
+<td class="markdownTableBodyNone"></td><td class="markdownTableBodyNone"><span class="tt">RandReal(min, max)</span>  </td><td class="markdownTableBodyNone">[min, max) 浮点数  </td></tr>
+<tr class="markdownTableRowEven">
+<td class="markdownTableBodyNone"></td><td class="markdownTableBodyNone"><span class="tt">RandBool(p)</span>  </td><td class="markdownTableBodyNone">概率 p 为 true  </td></tr>
+<tr class="markdownTableRowOdd">
+<td class="markdownTableBodyNone"></td><td class="markdownTableBodyNone"><span class="tt">RandChar(min, max)</span> / <span class="tt">RandChar(CharSet)</span>  </td><td class="markdownTableBodyNone">随机字符 / 预设字符集  </td></tr>
+<tr class="markdownTableRowEven">
+<td class="markdownTableBodyNone"></td><td class="markdownTableBodyNone"><span class="tt">RandBits&lt;N&gt;()</span>  </td><td class="markdownTableBodyNone">N 位随机整数  </td></tr>
+<tr class="markdownTableRowOdd">
+<td class="markdownTableBodyNone">分布  </td><td class="markdownTableBodyNone"><span class="tt">RandNormal</span> <span class="tt">RandExp</span> <span class="tt">RandPoisson</span> <span class="tt">RandGamma</span> <span class="tt">RandBeta</span> <span class="tt">RandBinomial</span> <span class="tt">RandBernoulli</span> <span class="tt">RandLogNormal</span> <span class="tt">RandGeometric</span> <span class="tt">RandCauchy</span> <span class="tt">RandWeibull</span> <span class="tt">RandExtremeValue</span> <span class="tt">RandChiSquared</span> <span class="tt">RandStudentT</span> <span class="tt">RandFisherF</span> <span class="tt">RandWeighted</span> <span class="tt">RandTriangular</span>  </td><td class="markdownTableBodyNone">17 种统计分布与权重选取  </td></tr>
+<tr class="markdownTableRowEven">
+<td class="markdownTableBodyNone">容器  </td><td class="markdownTableBodyNone"><span class="tt">RandElement</span> / <span class="tt">RandSample</span> / <span class="tt">RandShuffle</span> / <span class="tt">RandPermutation</span> / <span class="tt">RandFill</span> / <span class="tt">RandVector</span>  </td><td class="markdownTableBodyNone">容器版 + 迭代器版  </td></tr>
+<tr class="markdownTableRowOdd">
+<td class="markdownTableBodyNone">ranges  </td><td class="markdownTableBodyNone"><span class="tt">ranges::RandElement</span> / <span class="tt">RandSample</span> / <span class="tt">RandShuffle</span> / <span class="tt">RandFill</span>  </td><td class="markdownTableBodyNone">仅 C++23  </td></tr>
+<tr class="markdownTableRowEven">
+<td class="markdownTableBodyNone">字符串  </td><td class="markdownTableBodyNone"><span class="tt">RandString(len, charset)</span> / <span class="tt">RandUUID()</span>  </td><td class="markdownTableBodyNone">随机字符串 / UUID v4  </td></tr>
+<tr class="markdownTableRowOdd">
+<td class="markdownTableBodyNone">编译期  </td><td class="markdownTableBodyNone"><span class="tt">RandIntCE&lt;T, Seed&gt;(min, max)</span> / <span class="tt">ShuffleCE</span> / <span class="tt">ShuffledArray</span>  </td><td class="markdownTableBodyNone">仅 C++23  </td></tr>
+<tr class="markdownTableRowEven">
+<td class="markdownTableBodyNone">序列化  </td><td class="markdownTableBodyNone"><span class="tt">serialize()</span> / <span class="tt">deserialize()</span>  </td><td class="markdownTableBodyNone">PRNG 状态持久化  </td></tr>
+<tr class="markdownTableRowOdd">
+<td class="markdownTableBodyNone"></td><td class="markdownTableBodyNone"><span class="tt">operator&lt;&lt;</span> / <span class="tt">operator&gt;&gt;</span>  </td><td class="markdownTableBodyNone">数组状态引擎的流式输入输出  </td></tr>
+<tr class="markdownTableRowEven">
+<td class="markdownTableBodyNone">CSPRNG  </td><td class="markdownTableBodyNone"><span class="tt">ChaCha20()</span> / <span class="tt">reseed()</span> / <span class="tt">SecureRandomBytes()</span> / <span class="tt">SecureSeed()</span> / <span class="tt">IsOsCryptoEntropyAvailable()</span>  </td><td class="markdownTableBodyNone">密码学安全  </td></tr>
+<tr class="markdownTableRowOdd">
+<td class="markdownTableBodyNone">引擎控制  </td><td class="markdownTableBodyNone"><span class="tt">jump()</span> / <span class="tt">longJump()</span> / <span class="tt">discard(n)</span> / <span class="tt">MakeStreamEngine</span> / <span class="tt">Reseed(seed)</span> / <span class="tt">RandomSeed()</span>  </td><td class="markdownTableBodyNone">并行与播种  </td></tr>
+</table>
+<blockquote class="doxtable">
+<p>CharSet 枚举：<span class="tt">Alphanumeric</span> / <span class="tt">Alpha</span> / <span class="tt">Lower</span> / <span class="tt">Upper</span> / <span class="tt">Digit</span> / <span class="tt">Hex</span> / <span class="tt">Printable</span> / <span class="tt">Base64</span> / <span class="tt">Base64UrlSafe</span>。 普通运行时采样的默认重载使用线程局部 <span class="tt">Xoshiro256StarStar</span>，也提供显式引擎重载，例如 <span class="tt">RandInt(rng, min, max)</span>。安全接口直接使用 OS 熵；编译期随机使用模板种子。 </p>
+</blockquote>
+<p><span class="tt">RandTriangular(min, peak, max)</span> 将 <span class="tt">peak</span> 作为众数，要求三个有限参数满足 <span class="tt">min &lt;= peak &lt;= max</span>。非退化结果位于 <span class="tt">[min, max)</span>；三个参数相等时原样返回且不消耗引擎。完整参数边界、浮点条件及构建配置见 API 参考。</p>
+<p>完整签名与参数说明见 <a href="https://lidaixingchen.github.io/RandX/">Doxygen API 参考</a>。</p>
+<h1 class="doxsection"><a class="anchor" id="autotoc_md7"></a>
+安全选型</h1>
+<table class="markdownTable">
+<tr class="markdownTableHead">
+<th class="markdownTableHeadNone">场景  </th><th class="markdownTableHeadNone">推荐  </th><th class="markdownTableHeadNone">理由  </th></tr>
+<tr class="markdownTableRowOdd">
+<td class="markdownTableBodyNone">模拟 / 游戏 / 蒙特卡洛  </td><td class="markdownTableBodyNone"><span class="tt">Xoshiro256StarStar</span>  </td><td class="markdownTableBodyNone">默认通用引擎  </td></tr>
+<tr class="markdownTableRowEven">
+<td class="markdownTableBodyNone">大量普通随机生成  </td><td class="markdownTableBodyNone"><span class="tt">SFC64</span> / <span class="tt">RomuDuoJr</span>  </td><td class="markdownTableBodyNone">根据目标工作负载测量选型  </td></tr>
+<tr class="markdownTableRowOdd">
+<td class="markdownTableBodyNone">并行子序列  </td><td class="markdownTableBodyNone"><span class="tt">MakeStreamEngine</span> + jump  </td><td class="markdownTableBodyNone">按引擎的间隔与消耗预算划分状态子序列  </td></tr>
+<tr class="markdownTableRowEven">
+<td class="markdownTableBodyNone"><b>密码 / 密钥 / token</b>  </td><td class="markdownTableBodyNone"><b>OS 熵初始化的 <span class="tt">ChaCha20()</span></b> 或 <b><span class="tt">SecureRandomBytes()</span></b>  </td><td class="markdownTableBodyNone">可信熵源初始化与密码学随机输出  </td></tr>
+</table>
+<blockquote class="doxtable">
+<p>核心判别：如果"输出可预测"会造成损害 → 必须用 CSPRNG；否则用统计 PRNG。 <span class="tt">IsOsCryptoEntropyAvailable()</span> 是编译期平台能力查询，不检测运行时熵源健康状况。返回 false 表示当前目标缺少支持的 OS 密码学接口；安全接口读取失败抛 <span class="tt">std::runtime_error</span>。通用 <span class="tt">RandomSeed()</span> 的回退链用于普通 PRNG 播种。 </p>
+</blockquote>
+<p>ChaCha20 默认构造启用自动重播种，阈值为输出 2^20 字节；显式种子和直接 key／nonce 构造关闭自动重播种。<span class="tt">reseed()</span> 从 OS 熵更新密钥和 nonce，保持实例原有的自动重播种设置。默认 <span class="tt">RandString()</span>、<span class="tt">RandUUID()</span> 使用普通 PRNG，安全场景传入可信初始化的 ChaCha20。</p>
+<p>ChaCha20 生命周期中的敏感材料擦除由头文件后端处理。CMake 的 <span class="tt">RANDX_USE_PORTABLE_SECURE_WIPE</span> 与 <span class="tt">RANDX_USE_APPLE_MEMSET_S</span> 默认为 <span class="tt">OFF</span>；启用后选项定义随对应 <a class="el" href="namespaceRandX.html">RandX</a> INTERFACE 目标传播。一个程序内所有包含 <a class="el" href="namespaceRandX.html">RandX</a> 的翻译单元必须使用相同设置；Apple 的 <span class="tt">memset_s</span> 选项还统一定义 <span class="tt">__STDC_WANT_LIB_EXT1__=1</span>。直接包含头文件时应在整个程序的构建配置中一致设置这些宏，详细说明见 API 参考。</p>
+<h1 class="doxsection"><a class="anchor" id="autotoc_md8"></a>
+安装与集成</h1>
+<p><a class="el" href="namespaceRandX.html">RandX</a> v1.5.0 已发布，可直接用 CMake FetchContent 获取。仓库内的 vcpkg overlay 与 xmake 配方用于本地预演；官方包仓库的当前版本与审核状态见<a href="docs/RELEASING.md#渠道概览">发布流程</a>。</p>
+<h2 class="doxsection"><a class="anchor" id="autotoc_md9"></a>
+CMake FetchContent</h2>
+<p>选择与头文件对应的 CMake 目标，自动传播语言标准及平台链接依赖：</p>
+<div class="fragment"><div class="line">include(FetchContent)</div>
+<div class="line">FetchContent_Declare(RandX</div>
+<div class="line">    GIT_REPOSITORY https://github.com/lidaixingchen/RandX.git</div>
+<div class="line">    GIT_TAG v1.5.0</div>
+<div class="line">)</div>
+<div class="line">FetchContent_MakeAvailable(RandX)</div>
+<div class="line">target_link_libraries(myapp PRIVATE RandX::Cpp23)</div>
+</div><!-- fragment --><p>使用 <span class="tt"><a class="el" href="RandX__Cpp17_8hpp.html">RandX_Cpp17.hpp</a></span> 时选择 <span class="tt">RandX::Cpp17</span>。通用目标 <span class="tt">RandX::RandX</span> 的最低标准为 C++17，使用 <span class="tt"><a class="el" href="RandX_8hpp.html">RandX.hpp</a></span> 的消费者需另外启用 C++23。</p>
+<h2 class="doxsection"><a class="anchor" id="autotoc_md10"></a>
+vcpkg（overlay 模式）</h2>
+<div class="fragment"><div class="line">vcpkg install randx --classic --overlay-ports=path/to/this/repo/ports</div>
+</div><!-- fragment --><p>v1.5.0 的 port 通过本仓库 overlay 使用。</p>
+<h2 class="doxsection"><a class="anchor" id="autotoc_md11"></a>
+xrepo / xmake</h2>
+<div class="fragment"><div class="line">xrepo add-repo local-randx path/to/this/repo/packaging/xmake-repo</div>
+<div class="line">xrepo install &quot;local-randx@randx 1.5.0&quot;</div>
+</div><!-- fragment --><p>该命令从本地仓库安装已预演的 v1.5.0 配方。</p>
+<h2 class="doxsection"><a class="anchor" id="autotoc_md12"></a>
+find_package</h2>
+<p>安装 <a class="el" href="namespaceRandX.html">RandX</a> 后，消费者可以通过配置包选择标准对应的导出目标：</p>
+<div class="fragment"><div class="line">find_package(RandX CONFIG REQUIRED)</div>
+<div class="line">target_link_libraries(myapp PRIVATE RandX::Cpp23)</div>
+</div><!-- fragment --><p>使用 C++17 头文件时链接 <span class="tt">RandX::Cpp17</span>。CMake 安装包导出所需的 bcrypt／Security 平台链接依赖。</p>
+<p>维护者发布流程见 docs/RELEASING.md。</p>
+<h1 class="doxsection"><a class="anchor" id="autotoc_md13"></a>
+开发与测试</h1>
+<p>维护流程与可执行命令见开发与验证，覆盖共同源码生成、两标准测试、固定重排、契约注册核对、熵源故障、覆盖率、性能门禁与消费者构建。统计质量测试由 <a href=".github/workflows/practrand-nightly.yml">PractRand 工作流</a>执行。</p>
+<p>生产头文件从 <span class="tt">src/header_sources/</span> 生成，仓库提交包含可独立使用的两份产物。维护工具使用 Python；消费者无需生成器。功能规划与完成状态见路线图。</p>
+<h1 class="doxsection"><a class="anchor" id="autotoc_md14"></a>
+编译要求</h1>
+<table class="markdownTable">
+<tr class="markdownTableHead">
+<th class="markdownTableHeadNone">头文件  </th><th class="markdownTableHeadNone">最低语言标准  </th><th class="markdownTableHeadNone">编译模式  </th></tr>
+<tr class="markdownTableRowOdd">
+<td class="markdownTableBodyNone"><a class="el" href="RandX_8hpp.html">RandX.hpp</a>  </td><td class="markdownTableBodyNone">C++23  </td><td class="markdownTableBodyNone">GCC／Clang 的 C++23 模式；MSVC 使用支持当前特性的 C++23 模式  </td></tr>
+<tr class="markdownTableRowEven">
+<td class="markdownTableBodyNone"><a class="el" href="RandX__Cpp17_8hpp.html">RandX_Cpp17.hpp</a>  </td><td class="markdownTableBodyNone">C++17  </td><td class="markdownTableBodyNone">对应编译器的 C++17 或更高标准模式  </td></tr>
+</table>
+<p>验证工具链以 <a href=".github/workflows/ci.yml">CI 配置</a>为准，MSVC 的项目 C++23 测试使用 <span class="tt">/std:c++23preview</span>。直接集成时 Windows 链接 bcrypt，macOS 链接 Security framework，Linux 无额外链接依赖；CMake 目标自动处理这些依赖。</p>
+<h1 class="doxsection"><a class="anchor" id="autotoc_md15"></a>
+变更记录</h1>
+<p>完整版本演进见 CHANGELOG.md。</p>
+<h1 class="doxsection"><a class="anchor" id="autotoc_md16"></a>
+致谢</h1>
+<ul>
+<li>算法设计：David Blackman &amp; Sebastiano Vigna</li>
+<li>原始 C++ 封装：Ryo Suzuki (<a href="https://github.com/Reputeless/Xoshiro-cpp">Xoshiro-cpp</a>, MIT License) </li>
+</ul>
+</div></div><!-- PageDoc -->
+<a href="doxygen_crawl.html"></a>
+</div><!-- contents -->
+</div><!-- doc-content -->
+</div><!-- container -->
+<!-- start footer part -->
+<div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
+  <ul>
+    <li class="footer">制作者 <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.17.0 </li>
+  </ul>
+</div>
+</body>
+</html>

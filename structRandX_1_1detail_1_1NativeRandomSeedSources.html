@@ -1,0 +1,403 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "https://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="zh">
+<head>
+<meta http-equiv="Content-Type" content="text/xhtml;charset=UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=11"/>
+<meta name="generator" content="Doxygen 1.17.0"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>RandX: RandX::detail::NativeRandomSeedSources结构体 参考</title>
+<link href="tabs.css" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src="codefolding.js"></script>
+<script type="text/javascript" src="clipboard.js"></script>
+<link href="navtree.css" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src="navtreedata.js"></script>
+<script type="text/javascript" src="navtree.js"></script>
+<script type="text/javascript" src="cookie.js"></script>
+<link href="search/search.css" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src="search/searchdata.js"></script>
+<script type="text/javascript" src="search/search.js"></script>
+<script type="module">
+import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+const theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'default';
+mermaid.initialize({ startOnLoad: true, theme: theme });
+</script>
+<link href="doxygen.css" rel="stylesheet" type="text/css" />
+</head>
+<body>
+<div id="top"><!-- do not remove this div, it is closed by doxygen! -->
+<div id="titlearea">
+<table cellspacing="0" cellpadding="0">
+ <tbody>
+ <tr id="projectrow">
+  <td id="projectalign">
+   <div id="projectname">RandX<span id="projectnumber">&#160;1.5.0</span>
+   </div>
+   <div id="projectbrief">基于 xoshiro/xoroshiro 算法族的纯头文件伪随机数生成器库</div>
+  </td>
+ </tr>
+ </tbody>
+</table>
+</div>
+<!-- end header part -->
+<!-- 制作者 Doxygen 1.17.0 -->
+<script type="text/javascript">
+let searchBox = new SearchBox("searchBox", "search/",'.html');
+</script>
+<script type="text/javascript">
+document.addEventListener('DOMContentLoaded', codefold.init);
+</script>
+<script type="text/javascript" src="menudata.js"></script>
+<script type="text/javascript" src="menu.js"></script>
+<script type="text/javascript">
+document.addEventListener('DOMContentLoaded', () => {
+  initMenu('',true);
+  init_search();
+});
+</script>
+<div id="main-nav-mobile">
+<div class="sm sm-dox"><input id="main-menu-state" type="checkbox"/>
+<label class="main-menu-btn" for="main-menu-state">
+<span class="main-menu-btn-icon"></span> Toggle main menu visibility</label>
+<span id="searchBoxPos1" style="position:absolute;right:8px;top:8px;height:36px;"></span>
+</div>
+</div><!-- main-nav-mobile -->
+<div id="main-nav">
+  <ul class="sm sm-dox" id="main-menu">
+    <li id="searchBoxPos2" style="float:right">
+        <div id="MSearchBox" class="MSearchBoxInactive">
+        <span class="left">
+          <span id="MSearchSelect" class="search-icon" onmouseover="return searchBox.OnSearchSelectShow()" onmouseout="return searchBox.OnSearchSelectHide()"><span class="search-icon-dropdown"></span></span>
+          <input type="text" id="MSearchField" value="" placeholder="搜索" accesskey="S"
+               onfocus="searchBox.OnSearchFieldFocus(true)" 
+               onblur="searchBox.OnSearchFieldFocus(false)" 
+               onkeyup="searchBox.OnSearchFieldChange(event)"/>
+          </span><span class="right">
+            <a id="MSearchClose" href="javascript:searchBox.CloseResultsWindow()"><div id="MSearchCloseImg" class="close-icon"></div></a>
+          </span>
+        </div>
+    </li>
+  </ul>
+</div><!-- main-nav -->
+</div><!-- top -->
+<div id="side-nav" class="ui-resizable side-nav-resizable">
+  <div id="nav-tree">
+    <div id="nav-tree-contents">
+      <div id="nav-sync" class="sync"></div>
+    </div>
+  </div>
+  <div id="splitbar" style="-moz-user-select:none;" 
+       class="ui-resizable-handle">
+  </div>
+</div>
+<script type="text/javascript">
+document.addEventListener('DOMContentLoaded',() => { initNavTree('structRandX_1_1detail_1_1NativeRandomSeedSources.html','','structRandX_1_1detail_1_1NativeRandomSeedSources-members'); });
+</script>
+<div id="container">
+<div id="doc-content">
+<!-- window showing the filter options -->
+<div id="MSearchSelectWindow"
+     onmouseover="return searchBox.OnSearchSelectShow()"
+     onmouseout="return searchBox.OnSearchSelectHide()"
+     onkeydown="return searchBox.OnSearchSelectKey(event)">
+</div>
+
+<!-- iframe showing the search results (closed by default) -->
+<div id="MSearchResultsWindow">
+<div id="MSearchResults">
+<div class="SRPage">
+<div id="SRIndex">
+<div id="SRResults"></div>
+<div class="SRStatus" id="Loading">载入中...</div>
+<div class="SRStatus" id="Searching">搜索中...</div>
+<div class="SRStatus" id="NoMatches">未找到</div>
+</div>
+</div>
+</div>
+</div>
+
+<div class="header">
+  <div class="headertitle"><div class="title">RandX::detail::NativeRandomSeedSources结构体 参考</div></div>
+</div><!--header-->
+<div class="contents">
+
+<p><code>#include &lt;<a class="el" href="RandX_8hpp_source.html">RandX.hpp</a>&gt;</code></p>
+<table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 id="header-pub-methods" class="groupheader"><a id="pub-methods" name="pub-methods"></a>
+Public 成员函数</h2></td></tr>
+<tr class="memitem:a49b24638745b912daa3cd1c5bdac84e4" id="r_a49b24638745b912daa3cd1c5bdac84e4"><td class="memItemLeft">bool&#160;</td><td class="memItemRight"><a class="el" href="#a49b24638745b912daa3cd1c5bdac84e4">TryHardware</a> (std::uint64_t &amp;out) noexcept</td></tr>
+<tr class="memitem:afda33c5a4f84e3ad14d5ca311c7cadee" id="r_afda33c5a4f84e3ad14d5ca311c7cadee"><td class="memItemLeft">bool&#160;</td><td class="memItemRight"><a class="el" href="#afda33c5a4f84e3ad14d5ca311c7cadee">TryOs</a> (std::uint64_t &amp;out) noexcept</td></tr>
+<tr class="memitem:a1e17b7a14f26441bc51fab1119ec72b4" id="r_a1e17b7a14f26441bc51fab1119ec72b4"><td class="memItemLeft">std::uint64_t&#160;</td><td class="memItemRight"><a class="el" href="#a1e17b7a14f26441bc51fab1119ec72b4">ReadRandomDevice</a> ()</td></tr>
+<tr class="memitem:abfd297ed16dc5c5654c13d045e11c713" id="r_abfd297ed16dc5c5654c13d045e11c713"><td class="memItemLeft">std::uint64_t&#160;</td><td class="memItemRight"><a class="el" href="#abfd297ed16dc5c5654c13d045e11c713">Fallback</a> () noexcept</td></tr>
+<tr class="memitem:a49b24638745b912daa3cd1c5bdac84e4" id="r_a49b24638745b912daa3cd1c5bdac84e4"><td class="memItemLeft">bool&#160;</td><td class="memItemRight"><a class="el" href="#a49b24638745b912daa3cd1c5bdac84e4">TryHardware</a> (std::uint64_t &amp;out) noexcept</td></tr>
+<tr class="memitem:afda33c5a4f84e3ad14d5ca311c7cadee" id="r_afda33c5a4f84e3ad14d5ca311c7cadee"><td class="memItemLeft">bool&#160;</td><td class="memItemRight"><a class="el" href="#afda33c5a4f84e3ad14d5ca311c7cadee">TryOs</a> (std::uint64_t &amp;out) noexcept</td></tr>
+<tr class="memitem:a1e17b7a14f26441bc51fab1119ec72b4" id="r_a1e17b7a14f26441bc51fab1119ec72b4"><td class="memItemLeft">std::uint64_t&#160;</td><td class="memItemRight"><a class="el" href="#a1e17b7a14f26441bc51fab1119ec72b4">ReadRandomDevice</a> ()</td></tr>
+<tr class="memitem:abfd297ed16dc5c5654c13d045e11c713" id="r_abfd297ed16dc5c5654c13d045e11c713"><td class="memItemLeft">std::uint64_t&#160;</td><td class="memItemRight"><a class="el" href="#abfd297ed16dc5c5654c13d045e11c713">Fallback</a> () noexcept</td></tr>
+</table>
+<a name="doc-func-members" id="doc-func-members"></a><h2 id="header-doc-func-members" class="groupheader">成员函数说明</h2>
+<a id="abfd297ed16dc5c5654c13d045e11c713" name="abfd297ed16dc5c5654c13d045e11c713"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#abfd297ed16dc5c5654c13d045e11c713">&#9670;&#160;</a></span>Fallback() <span class="overload">[1/2]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">std::uint64_t RandX::detail::NativeRandomSeedSources::Fallback </td>
+          <td>(</td>
+          <td class="paramname"><span class="paramname"><em></em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel nodiscard">nodiscard</span><span class="mlabel noexcept">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="abfd297ed16dc5c5654c13d045e11c713" name="abfd297ed16dc5c5654c13d045e11c713"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#abfd297ed16dc5c5654c13d045e11c713">&#9670;&#160;</a></span>Fallback() <span class="overload">[2/2]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">std::uint64_t RandX::detail::NativeRandomSeedSources::Fallback </td>
+          <td>(</td>
+          <td class="paramname"><span class="paramname"><em></em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel nodiscard">nodiscard</span><span class="mlabel noexcept">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="a1e17b7a14f26441bc51fab1119ec72b4" name="a1e17b7a14f26441bc51fab1119ec72b4"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a1e17b7a14f26441bc51fab1119ec72b4">&#9670;&#160;</a></span>ReadRandomDevice() <span class="overload">[1/2]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">std::uint64_t RandX::detail::NativeRandomSeedSources::ReadRandomDevice </td>
+          <td>(</td>
+          <td class="paramname"><span class="paramname"><em></em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel nodiscard">nodiscard</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="a1e17b7a14f26441bc51fab1119ec72b4" name="a1e17b7a14f26441bc51fab1119ec72b4"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a1e17b7a14f26441bc51fab1119ec72b4">&#9670;&#160;</a></span>ReadRandomDevice() <span class="overload">[2/2]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">std::uint64_t RandX::detail::NativeRandomSeedSources::ReadRandomDevice </td>
+          <td>(</td>
+          <td class="paramname"><span class="paramname"><em></em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel nodiscard">nodiscard</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="a49b24638745b912daa3cd1c5bdac84e4" name="a49b24638745b912daa3cd1c5bdac84e4"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a49b24638745b912daa3cd1c5bdac84e4">&#9670;&#160;</a></span>TryHardware() <span class="overload">[1/2]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">bool RandX::detail::NativeRandomSeedSources::TryHardware </td>
+          <td>(</td>
+          <td class="paramtype">std::uint64_t &amp;</td>          <td class="paramname"><span class="paramname"><em>out</em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel nodiscard">nodiscard</span><span class="mlabel noexcept">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<div class="dynheader">
+函数调用图:</div>
+<div class="dyncontent">
+<div class="center"><img src="structRandX_1_1detail_1_1NativeRandomSeedSources_a49b24638745b912daa3cd1c5bdac84e4_cgraph.png" border="0" usemap="#astructRandX_1_1detail_1_1NativeRandomSeedSources_a49b24638745b912daa3cd1c5bdac84e4_cgraph" loading="lazy" alt=""/></div>
+<map name="astructRandX_1_1detail_1_1NativeRandomSeedSources_a49b24638745b912daa3cd1c5bdac84e4_cgraph" id="astructRandX_1_1detail_1_1NativeRandomSeedSources_a49b24638745b912daa3cd1c5bdac84e4_cgraph">
+<area shape="rect" title=" " alt="" coords="5,5,220,45"/>
+<area shape="rect" href="namespaceRandX_1_1detail.html#a23a58952bbe85de475f50a4f1e6acfce" title=" " alt="" coords="268,13,497,38"/>
+<area shape="poly" title=" " alt="" coords="220,23,254,23,254,28,220,28"/>
+</map>
+</div>
+
+</div>
+</div>
+<a id="a49b24638745b912daa3cd1c5bdac84e4" name="a49b24638745b912daa3cd1c5bdac84e4"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a49b24638745b912daa3cd1c5bdac84e4">&#9670;&#160;</a></span>TryHardware() <span class="overload">[2/2]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">bool RandX::detail::NativeRandomSeedSources::TryHardware </td>
+          <td>(</td>
+          <td class="paramtype">std::uint64_t &amp;</td>          <td class="paramname"><span class="paramname"><em>out</em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel nodiscard">nodiscard</span><span class="mlabel noexcept">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<div class="dynheader">
+函数调用图:</div>
+<div class="dyncontent">
+<div class="center"><img src="structRandX_1_1detail_1_1NativeRandomSeedSources_a49b24638745b912daa3cd1c5bdac84e4_cgraph.png" border="0" usemap="#astructRandX_1_1detail_1_1NativeRandomSeedSources_a49b24638745b912daa3cd1c5bdac84e4_cgraph" loading="lazy" alt=""/></div>
+<map name="astructRandX_1_1detail_1_1NativeRandomSeedSources_a49b24638745b912daa3cd1c5bdac84e4_cgraph" id="astructRandX_1_1detail_1_1NativeRandomSeedSources_a49b24638745b912daa3cd1c5bdac84e4_cgraph">
+<area shape="rect" title=" " alt="" coords="5,5,220,45"/>
+<area shape="rect" href="namespaceRandX_1_1detail.html#a23a58952bbe85de475f50a4f1e6acfce" title=" " alt="" coords="268,13,497,38"/>
+<area shape="poly" title=" " alt="" coords="220,23,254,23,254,28,220,28"/>
+</map>
+</div>
+
+</div>
+</div>
+<a id="afda33c5a4f84e3ad14d5ca311c7cadee" name="afda33c5a4f84e3ad14d5ca311c7cadee"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#afda33c5a4f84e3ad14d5ca311c7cadee">&#9670;&#160;</a></span>TryOs() <span class="overload">[1/2]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">bool RandX::detail::NativeRandomSeedSources::TryOs </td>
+          <td>(</td>
+          <td class="paramtype">std::uint64_t &amp;</td>          <td class="paramname"><span class="paramname"><em>out</em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel nodiscard">nodiscard</span><span class="mlabel noexcept">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<div class="dynheader">
+函数调用图:</div>
+<div class="dyncontent">
+<div class="center"><img src="structRandX_1_1detail_1_1NativeRandomSeedSources_afda33c5a4f84e3ad14d5ca311c7cadee_cgraph.png" border="0" usemap="#astructRandX_1_1detail_1_1NativeRandomSeedSources_afda33c5a4f84e3ad14d5ca311c7cadee_cgraph" loading="lazy" alt=""/></div>
+<map name="astructRandX_1_1detail_1_1NativeRandomSeedSources_afda33c5a4f84e3ad14d5ca311c7cadee_cgraph" id="astructRandX_1_1detail_1_1NativeRandomSeedSources_afda33c5a4f84e3ad14d5ca311c7cadee_cgraph">
+<area shape="rect" title=" " alt="" coords="5,5,220,45"/>
+<area shape="rect" href="namespaceRandX_1_1detail.html#a02fce2f64f9c2eb6dbe7390a26aab73a" title=" " alt="" coords="268,5,475,45"/>
+<area shape="poly" title=" " alt="" coords="220,23,254,23,254,28,220,28"/>
+<area shape="rect" href="namespaceRandX_1_1detail.html#a0a5db3c2baae272329eb5cc5baab51aa" title=" " alt="" coords="523,13,725,38"/>
+<area shape="poly" title=" " alt="" coords="475,23,509,23,509,28,475,28"/>
+</map>
+</div>
+
+</div>
+</div>
+<a id="afda33c5a4f84e3ad14d5ca311c7cadee" name="afda33c5a4f84e3ad14d5ca311c7cadee"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#afda33c5a4f84e3ad14d5ca311c7cadee">&#9670;&#160;</a></span>TryOs() <span class="overload">[2/2]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">bool RandX::detail::NativeRandomSeedSources::TryOs </td>
+          <td>(</td>
+          <td class="paramtype">std::uint64_t &amp;</td>          <td class="paramname"><span class="paramname"><em>out</em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel nodiscard">nodiscard</span><span class="mlabel noexcept">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<div class="dynheader">
+函数调用图:</div>
+<div class="dyncontent">
+<div class="center"><img src="structRandX_1_1detail_1_1NativeRandomSeedSources_afda33c5a4f84e3ad14d5ca311c7cadee_cgraph.png" border="0" usemap="#astructRandX_1_1detail_1_1NativeRandomSeedSources_afda33c5a4f84e3ad14d5ca311c7cadee_cgraph" loading="lazy" alt=""/></div>
+<map name="astructRandX_1_1detail_1_1NativeRandomSeedSources_afda33c5a4f84e3ad14d5ca311c7cadee_cgraph" id="astructRandX_1_1detail_1_1NativeRandomSeedSources_afda33c5a4f84e3ad14d5ca311c7cadee_cgraph">
+<area shape="rect" title=" " alt="" coords="5,5,220,45"/>
+<area shape="rect" href="namespaceRandX_1_1detail.html#a02fce2f64f9c2eb6dbe7390a26aab73a" title=" " alt="" coords="268,5,475,45"/>
+<area shape="poly" title=" " alt="" coords="220,23,254,23,254,28,220,28"/>
+<area shape="rect" href="namespaceRandX_1_1detail.html#a0a5db3c2baae272329eb5cc5baab51aa" title=" " alt="" coords="523,13,725,38"/>
+<area shape="poly" title=" " alt="" coords="475,23,509,23,509,28,475,28"/>
+</map>
+</div>
+
+</div>
+</div>
+<hr/>该结构体的文档由以下文件生成:<ul>
+<li><a class="el" href="RandX_8hpp_source.html">RandX.hpp</a></li>
+<li><a class="el" href="RandX__Cpp17_8hpp_source.html">RandX_Cpp17.hpp</a></li>
+</ul>
+</div><!-- contents -->
+</div><!-- doc-content -->
+<div id="page-nav" class="page-nav-panel">
+<div id="page-nav-resize-handle"></div>
+<div id="page-nav-tree">
+<div id="page-nav-contents">
+</div><!-- page-nav-contents -->
+</div><!-- page-nav-tree -->
+</div><!-- page-nav -->
+</div><!-- container -->
+<!-- start footer part -->
+<div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
+  <ul>
+    <li class="navelem"><a href="namespaceRandX.html">RandX</a></li><li class="navelem"><a href="namespaceRandX_1_1detail.html">detail</a></li><li class="navelem"><a href="structRandX_1_1detail_1_1NativeRandomSeedSources.html">NativeRandomSeedSources</a></li>
+    <li class="footer">制作者 <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.17.0 </li>
+  </ul>
+</div>
+</body>
+</html>
