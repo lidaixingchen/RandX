@@ -101,6 +101,47 @@ struct NoJumpEngine
     explicit constexpr NoJumpEngine(std::uint64_t) noexcept {}
 };
 
+struct CopyOnlyStreamEngine
+{
+    explicit constexpr CopyOnlyStreamEngine(std::uint64_t seed) noexcept : trace(seed) {}
+    constexpr CopyOnlyStreamEngine(const CopyOnlyStreamEngine&) noexcept = default;
+
+    constexpr void jump() noexcept { ++trace; }
+
+    std::uint64_t trace;
+};
+
+struct CopyOnlyDeletedMoveStreamEngine
+{
+    explicit constexpr CopyOnlyDeletedMoveStreamEngine(std::uint64_t seed) noexcept : trace(seed) {}
+    constexpr CopyOnlyDeletedMoveStreamEngine(const CopyOnlyDeletedMoveStreamEngine&) noexcept = default;
+    CopyOnlyDeletedMoveStreamEngine(CopyOnlyDeletedMoveStreamEngine&&) = delete;
+
+    constexpr void jump() noexcept { ++trace; }
+
+    std::uint64_t trace;
+};
+
+struct MoveOnlyStreamEngine
+{
+    explicit constexpr MoveOnlyStreamEngine(std::uint64_t seed) noexcept : trace(seed) {}
+    MoveOnlyStreamEngine(const MoveOnlyStreamEngine&) = delete;
+    constexpr MoveOnlyStreamEngine(MoveOnlyStreamEngine&&) noexcept = default;
+
+    constexpr void jump() noexcept { ++trace; }
+
+    std::uint64_t trace;
+};
+
+struct ImmovableStreamEngine
+{
+    explicit constexpr ImmovableStreamEngine(std::uint64_t) noexcept {}
+    ImmovableStreamEngine(const ImmovableStreamEngine&) = delete;
+    ImmovableStreamEngine(ImmovableStreamEngine&&) = delete;
+
+    constexpr void jump() noexcept {}
+};
+
 template <class Engine, class = void>
 struct CanMakeStreamEngine : std::false_type {};
 
@@ -270,10 +311,32 @@ TEST_SUITE("公共/基础/引擎")
         static_assert(CanMakeStreamEngine<RandX::Xoshiro128StarStar>::value);
         static_assert(CanMakeStreamEngine<JumpOnlyEngine>::value);
         static_assert(CanMakeStreamEngine<JumpAndLongJumpEngine>::value);
+        static_assert(CanMakeStreamEngine<CopyOnlyStreamEngine>::value);
+        static_assert(CanMakeStreamEngine<CopyOnlyDeletedMoveStreamEngine>::value);
+        static_assert(CanMakeStreamEngine<MoveOnlyStreamEngine>::value);
+        static_assert(!CanMakeStreamEngine<ImmovableStreamEngine>::value);
+        static_assert(std::is_constructible<CopyOnlyStreamEngine, CopyOnlyStreamEngine&&>::value);
+        static_assert(!std::is_constructible<CopyOnlyDeletedMoveStreamEngine, CopyOnlyDeletedMoveStreamEngine&&>::value);
+        static_assert(std::is_constructible<CopyOnlyDeletedMoveStreamEngine, CopyOnlyDeletedMoveStreamEngine&>::value);
         static_assert(!CanMakeStreamEngine<NoSeedEngine>::value);
         static_assert(!CanMakeStreamEngine<NarrowingSeedEngine>::value);
         static_assert(!CanMakeStreamEngine<IntegerJumpEngine>::value);
         static_assert(!CanMakeStreamEngine<NoJumpEngine>::value);
+    }
+
+    TEST_CASE("MakeStreamEngine 支持可复制或可移动引擎")
+    {
+        using namespace RandXTest::StreamContracts;
+        const std::uint64_t expectedTrace = kReferenceSeed + kSingleJumpStreamId;
+
+        const auto copyOnly = RandX::MakeStreamEngine<CopyOnlyStreamEngine>(kSingleJumpStreamId, kReferenceSeed);
+        const auto copyOnlyDeletedMove = RandX::MakeStreamEngine<CopyOnlyDeletedMoveStreamEngine>(
+            kSingleJumpStreamId, kReferenceSeed);
+        const auto moveOnly = RandX::MakeStreamEngine<MoveOnlyStreamEngine>(kSingleJumpStreamId, kReferenceSeed);
+
+        CHECK(copyOnly.trace == expectedTrace);
+        CHECK(copyOnlyDeletedMove.trace == expectedTrace);
+        CHECK(moveOnly.trace == expectedTrace);
     }
 
     TEST_CASE("七种 PRNG 的种子与状态契约")

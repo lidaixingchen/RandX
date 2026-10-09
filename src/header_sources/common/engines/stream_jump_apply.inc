@@ -93,6 +93,10 @@ namespace detail
 	{
 		Engine engine{ seed };
 		ApplyStreamIdJumps(engine, streamId);
-		return engine;
+		if constexpr (std::is_constructible<Engine, Engine&&>::value)
+			return engine;
+		else
+			// 被删除的移动构造会阻断右值构造，此时从局部左值复制。
+			return static_cast<Engine&>(engine);
 	}
 }

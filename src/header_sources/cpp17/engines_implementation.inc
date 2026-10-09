@@ -88,8 +88,15 @@
 			std::void_t<decltype(Engine{ std::declval<std::uint64_t>() })>> : std::true_type {};
 
 		template <class Engine>
+		struct HasStreamReturnConstruction : std::bool_constant<
+			std::is_constructible<Engine, Engine&&>::value
+				|| std::is_constructible<Engine, Engine&>::value> {};
+
+		template <class Engine>
 		struct HasStreamEngine : std::bool_constant<
-			HasJump<Engine>::value && HasStreamSeedConstructor<Engine>::value> {};
+			HasJump<Engine>::value
+				&& HasStreamSeedConstructor<Engine>::value
+				&& HasStreamReturnConstruction<Engine>::value> {};
 
 		template <class Engine, class = void>
 		struct HasLongJump : std::false_type {};

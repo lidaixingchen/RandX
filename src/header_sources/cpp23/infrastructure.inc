@@ -117,7 +117,7 @@
 	template <class E>
 	concept StreamEngine = JumpableEngine<E> && requires(std::uint64_t seed) {
 		E{ seed };
-	};
+	} && (std::is_constructible_v<E, E&&> || std::is_constructible_v<E, E&>);
 
 	// 迭代器可填充约束（RandFill 用）
 	template <class It, class T>

@@ -1498,8 +1498,15 @@ namespace RandX
 			std::void_t<decltype(Engine{ std::declval<std::uint64_t>() })>> : std::true_type {};
 
 		template <class Engine>
+		struct HasStreamReturnConstruction : std::bool_constant<
+			std::is_constructible<Engine, Engine&&>::value
+				|| std::is_constructible<Engine, Engine&>::value> {};
+
+		template <class Engine>
 		struct HasStreamEngine : std::bool_constant<
-			HasJump<Engine>::value && HasStreamSeedConstructor<Engine>::value> {};
+			HasJump<Engine>::value
+				&& HasStreamSeedConstructor<Engine>::value
+				&& HasStreamReturnConstruction<Engine>::value> {};
 
 		template <class Engine, class = void>
 		struct HasLongJump : std::false_type {};
@@ -1854,7 +1861,11 @@ namespace detail
 	{
 		Engine engine{ seed };
 		ApplyStreamIdJumps(engine, streamId);
-		return engine;
+		if constexpr (std::is_constructible<Engine, Engine&&>::value)
+			return engine;
+		else
+			// 被删除的移动构造会阻断右值构造，此时从局部左值复制。
+			return static_cast<Engine&>(engine);
 	}
 }
 

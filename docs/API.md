@@ -562,7 +562,7 @@ void discard(unsigned long long n);                     // ChaCha20
 
 ### MakeStreamEngine
 
-自定义引擎须支持从 `uint64_t` 种子直接列表构造，且 `jump()` 精确返回 void。C++17 中原先返回其他类型的自定义 jump 需调整签名；该类型约束收紧按破坏性变更管理。
+自定义引擎须支持从 `uint64_t` 种子直接列表构造，且 `jump()` 精确返回 void；还须能从自身右值或左值构造返回对象。工厂优先使用可用的右值构造路径，移动构造被删除但左值复制可用时采用复制。C++17 中原先返回其他类型的自定义 jump 需调整签名；该类型约束收紧按破坏性变更管理。
 
 ```cpp
 template <class Engine>
@@ -634,5 +634,5 @@ inline constexpr std::uint64_t DefaultSeed = 1234567890ULL;
 | `detail::Character<T>` | char / wchar_t / char16_t / char32_t / char8_t |
 | `detail::SerializableEngine<E>` | state_type 为可索引容器 + 有 serialize/deserialize |
 | `detail::JumpableEngine<E>` | 有 `jump() -> void` |
-| `detail::StreamEngine<E>` | 有 `jump() -> void`，且可由 `uint64_t` 种子直接列表构造 |
+| `detail::StreamEngine<E>` | 有 `jump() -> void`、`uint64_t` 种子列表构造，以及自身右值或左值返回构造能力 |
 | `detail::RandFillable<It, T>` | output_iterator 且 T 为 integral 或 floating_point |

@@ -1355,7 +1355,7 @@ namespace RandX
 	template <class E>
 	concept StreamEngine = JumpableEngine<E> && requires(std::uint64_t seed) {
 		E{ seed };
-	};
+	} && (std::is_constructible_v<E, E&&> || std::is_constructible_v<E, E&>);
 
 	// 迭代器可填充约束（RandFill 用）
 	template <class It, class T>
@@ -5006,7 +5006,11 @@ namespace detail
 	{
 		Engine engine{ seed };
 		ApplyStreamIdJumps(engine, streamId);
-		return engine;
+		if constexpr (std::is_constructible<Engine, Engine&&>::value)
+			return engine;
+		else
+			// 被删除的移动构造会阻断右值构造，此时从局部左值复制。
+			return static_cast<Engine&>(engine);
 	}
 }
 
