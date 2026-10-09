@@ -400,9 +400,11 @@ template <class Engine>
 
 ```cpp
 template <std::integral T = int, std::uint64_t Seed = DefaultSeed>
+    requires (!std::same_as<std::remove_cv_t<T>, bool>)
 [[nodiscard]] inline constexpr T RandIntCE(T min, T max);
 
 template <std::integral T = int, std::uint64_t Seed = DefaultSeed>
+    requires (!std::same_as<std::remove_cv_t<T>, bool>)
 [[nodiscard]] inline constexpr T RandIntCE(T max);  // [0, max]
 ```
 

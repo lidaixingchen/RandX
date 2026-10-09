@@ -5079,6 +5079,7 @@ namespace detail
 	/// @param max 上界（含）
 	/// @return 使用固定种子在编译期确定的随机整数（Lemire 有界法，无模偏差）
 	template <std::integral T = int, std::uint64_t Seed = DefaultSeed>
+		requires (!std::same_as<std::remove_cv_t<T>, bool>)
 	[[nodiscard]]
 	inline constexpr T RandIntCE(T min, T max)
 	{
@@ -5100,6 +5101,7 @@ namespace detail
 	/// @param max 上界（含）
 	/// @return 使用固定种子在编译期确定的随机整数
 	template <std::integral T = int, std::uint64_t Seed = DefaultSeed>
+		requires (!std::same_as<std::remove_cv_t<T>, bool>)
 	[[nodiscard]]
 	inline constexpr T RandIntCE(T max)
 	{

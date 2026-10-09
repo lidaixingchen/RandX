@@ -43,6 +43,16 @@ concept CanRandBits = requires(Engine& engine) {
     RandX::RandBits<N, T>(engine);
 };
 
+template <class T>
+concept CanRandIntCEWithBounds = requires(T lower, T upper) {
+    RandX::RandIntCE<T>(lower, upper);
+};
+
+template <class T>
+concept CanRandIntCEWithMaximum = requires(T upper) {
+    RandX::RandIntCE<T>(upper);
+};
+
 template <class Iterator>
 concept CanIteratorRandElement = requires(Iterator first, Iterator last) {
     RandX::RandElement(first, last);
@@ -186,6 +196,24 @@ TEST_SUITE("专属/C++23/概念约束")
 
 TEST_SUITE("专属/C++23/编译期")
 {
+    TEST_CASE("RandIntCE 整数类型约束排除 bool")
+    {
+        using namespace RandXTest::Cpp23Fixtures;
+        static_assert(!CanRandIntCEWithBounds<bool>);
+        static_assert(!CanRandIntCEWithMaximum<bool>);
+        static_assert(CanRandIntCEWithBounds<int>);
+        static_assert(CanRandIntCEWithMaximum<char>);
+
+        constexpr char lowerCharacter = 'A';
+        constexpr char upperCharacter = 'Z';
+        constexpr std::uint64_t characterSeed = RandXTest::TestConstants::kDefaultEngineTestSeed;
+        constexpr char rangedCharacter = RandX::RandIntCE<char, characterSeed>(
+            lowerCharacter, upperCharacter);
+        constexpr char maximumCharacter = RandX::RandIntCE<char, characterSeed>(upperCharacter);
+        static_assert(rangedCharacter >= lowerCharacter && rangedCharacter <= upperCharacter);
+        static_assert(maximumCharacter >= char{0} && maximumCharacter <= upperCharacter);
+
+    }
     TEST_CASE("RandIntCE 64位无符号整数全范围有效生成")
     {
         RandX::Reseed(RandXTest::TestConstants::kDefaultEngineTestSeed);
