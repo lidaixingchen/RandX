@@ -4,7 +4,7 @@
     "name": "benchmark-baseline",
     "branch": "master",
     "workflow": ".github/workflows/benchmark.yml",
-    "initial_sampling_commit": "e0ce50a6c0dd5e3b5158efb1cbe17a68bd93edec",
+    "initial_sampling_commit": "c359538af33d222ef7a85a62affa9f38a77e4cc2",
     "publish_events": ["push", "workflow_dispatch"]
   },
   "groups": {

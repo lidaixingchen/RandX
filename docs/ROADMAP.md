@@ -152,7 +152,8 @@ RandX 保持纯头文件、消费者零外部依赖、C++23 Concepts 与 C++17 S
 | PractRand profile 与运行结果交付工具 | `tools/pract_rand/`、`.github/workflows/practrand-nightly.yml` | quick 与默认 nightly 均通过八引擎各 4 GiB 完整运行，状态 `runner_verified`；验收范围及可疑证据见[远端验收](项目功能改进方案.md#114-远端验收) |
 | 整数分布类型契约 | 共同类型特征、双版本声明、公共实例化和 GNU 扩展整数探针 | 本地双标准及远端 GCC／Clang／MSVC C++17／20／23 矩阵通过；候选集收紧按破坏性变更管理，发布版本单独授权 |
 | 内置引擎快速流定位 | 共同跳跃幂材料、生成参考、公开契约与独立基准 | 默认 constexpr 预算、大编号参考和原映射状态对照通过；性能与跨平台结果见[项目功能改进方案](项目功能改进方案.md#11-实施结果) |
-| 分布数值与泛型契约修复 | Gamma／Poisson／字符整数、采样能力与内存增长、建流约束；[修复报告](项目缺陷审查报告.md#修复验收) | 9 项确认问题已修复；本机 GCC 双标准 Debug／Release CTest 与 MSVC 完整入口矩阵通过；水库定向性能存在回归；C++17 jump 返回类型收紧按破坏性变更管理，远端验收待执行 |
+| 分布数值与泛型契约修复 | Gamma／Poisson／字符整数、采样能力与内存增长、建流约束；[修复报告](项目缺陷审查报告.md#修复验收) | 9 项确认问题已修复；本机 GCC 双标准 Debug／Release CTest 与 MSVC 完整入口矩阵通过；水库旧参照成本已归档，当前行为基线为 `c359538`；C++17 jump 返回类型收紧按破坏性变更管理 |
+| 输入计数与极端自由度契约修复 | 独立输入计数、RandElement 能力、Student-t／Fisher-F 稳定路径、建流返回构造及 RandIntCE 类型域；[深入修复报告](项目深入缺陷审查报告.md#修复验收) | 6 项确认问题已修复；GCC Debug／Release 各 31 项 CTest、MSVC 双标准完整入口与重排、完整及边界 parity 通过；154 项本机定向性能比较满足 25% 容差；新水库基线已接入 CI 与集中策略，远端结果由 Actions 运行登记 |
 | 安装树双标准消费者 | `tools/validate_installed_consumers.py`、`examples/consumer_validation/`、CTest | Windows／Linux／macOS 安装消费者通过；v1.5.0 的 vcpkg 与 xmake 双标准消费者预演通过 |
 
 ---
