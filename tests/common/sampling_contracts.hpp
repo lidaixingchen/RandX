@@ -101,16 +101,6 @@ template <class Container>
 struct HasEmptyMember<Container, std::void_t<decltype(std::declval<const Container&>().empty())>>
 	: std::true_type {};
 
-#if defined(__cpp_lib_ranges) && __cpp_lib_ranges >= 201911L
-template <class Range, class = void>
-struct HasRangesRandSample : std::false_type {};
-
-template <class Range>
-struct HasRangesRandSample<Range, std::void_t<decltype(RandX::ranges::RandSample(
-	std::declval<Range&>(), std::declval<std::ranges::range_difference_t<Range>>()))>>
-	: std::true_type {};
-#endif
-
 using CopyOnlySampleItem = SamplingContractFixtures::NonDefaultReadOnlyCopyItem;
 using CopyOnlyRandomAccessIterator = std::vector<CopyOnlySampleItem>::const_iterator;
 using CopyOnlyInputIterator = std::list<CopyOnlySampleItem>::const_iterator;
@@ -142,12 +132,6 @@ static_assert(!HasExplicitIteratorRandSample<CopyOnlyInputIterator>::value,
 static_assert(!HasEmptyMember<SamplingTypeFixtures::SizedIndexedContainer>::value,
 	"the indexed container fixture must not expose empty()");
 
-#if defined(__cpp_lib_ranges) && __cpp_lib_ranges >= 201911L
-static_assert(HasRangesRandSample<std::vector<CopyOnlySampleItem>>::value,
-	"the C++23 ranges adapter must retain the random-access copy-only path");
-static_assert(!HasRangesRandSample<std::list<CopyOnlySampleItem>>::value,
-	"the C++23 ranges adapter must constrain the reservoir path");
-#endif
 }
 }
 

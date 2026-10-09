@@ -176,6 +176,17 @@ concept CanRangesRandElementWithEngine = requires(
     RandX::Xoshiro256StarStar& engine, Range&& range) {
     RandX::ranges::RandElement(engine, std::forward<Range>(range));
 };
+
+template <class Range>
+concept CanRangesRandSample = requires(Range& range, std::ranges::range_difference_t<Range> count) {
+    RandX::ranges::RandSample(range, count);
+};
+
+using CopyOnlySampleItem = SamplingContractFixtures::NonDefaultReadOnlyCopyItem;
+static_assert(CanRangesRandSample<std::vector<CopyOnlySampleItem>>,
+    "the C++23 ranges adapter must retain the random-access copy-only path");
+static_assert(!CanRangesRandSample<std::list<CopyOnlySampleItem>>,
+    "the C++23 ranges adapter must constrain the reservoir path");
 }
 }
 
