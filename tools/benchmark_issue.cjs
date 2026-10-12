@@ -54,9 +54,13 @@ async function createOrReuseBenchmarkIssue({ github, context, core, report }) {
     labels: BENCHMARK_LABEL,
     per_page: API_PAGE_SIZE,
   });
-  const duplicate = issues.find(
-    (issue) => typeof issue.title === 'string' && issue.title.startsWith(REGRESSION_TITLE_PREFIX),
-  );
+  const duplicate = issues
+    .filter((issue) => !issue.pull_request)
+    .find(
+      (issue) =>
+        typeof issue.title === 'string' &&
+        issue.title.startsWith(REGRESSION_TITLE_PREFIX),
+    );
 
   if (duplicate) {
     core.info(`已有未关闭 issue #${duplicate.number}，跳过创建。`);

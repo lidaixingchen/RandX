@@ -4,6 +4,7 @@ const { createOrReuseBenchmarkIssue } = require('./benchmark_issue.cjs');
 
 const OTHER_ISSUE_COUNT = 20;
 const API_PAGE_SIZE = 100;
+const PULL_REQUEST_NUMBER = 1;
 const CREATED_ISSUE_NUMBER = 999;
 const REPOSITORY_CONTEXT = {
   repo: { owner: 'owner', repo: 'project' },
@@ -74,10 +75,16 @@ test('从多个未关闭 issue 中找到已有回归记录', async () => {
 
 test('finds an existing benchmark regression beyond the REST API page boundary', async () => {
   const duplicate = { number: API_PAGE_SIZE + 1, title: '[Benchmark 回归] 后续分页记录' };
-  const issues = Array.from({ length: API_PAGE_SIZE }, (_, index) => ({
-    number: index + 1,
-    title: `其他 issue ${index + 1}`,
+  const pullRequestCollision = {
+    number: PULL_REQUEST_NUMBER,
+    title: '[Benchmark 回归] pull request 标题冲突',
+    pull_request: {},
+  };
+  const issues = Array.from({ length: API_PAGE_SIZE - 1 }, (_, index) => ({
+    number: index + 2,
+    title: `其他 issue ${index + 2}`,
   }));
+  issues.unshift(pullRequestCollision);
   issues.push(duplicate);
   const { github, core, state } = githubMock(issues);
 
@@ -90,6 +97,25 @@ test('finds an existing benchmark regression beyond the REST API page boundary',
 
   assert.equal(result.duplicateNumber, duplicate.number);
   assert.equal(state.createCalls.length, 0);
+});
+
+test('does not reuse a pull request as a benchmark regression issue', async () => {
+  const pullRequestCollision = {
+    number: PULL_REQUEST_NUMBER,
+    title: '[Benchmark 回归] pull request 标题冲突',
+    pull_request: {},
+  };
+  const { github, core, state } = githubMock([pullRequestCollision]);
+
+  const result = await createOrReuseBenchmarkIssue({
+    github,
+    context: REPOSITORY_CONTEXT,
+    core,
+    report: regressionReport(),
+  });
+
+  assert.deepEqual(result, { created: true });
+  assert.equal(state.createCalls.length, 1);
 });
 
 test('creates one issue with the configured labels when no open regression exists', async () => {
