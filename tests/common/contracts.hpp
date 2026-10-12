@@ -6,6 +6,7 @@
 #include "sampling_contracts.hpp"
 #include "distribution_contracts.hpp"
 #include "convenience_contracts.hpp"
+#include "affine_stability_contracts.hpp"
 #include "security_contracts.hpp"
 #include "statistical_contracts.hpp"
 

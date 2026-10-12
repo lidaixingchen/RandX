@@ -260,6 +260,11 @@
 	/// @defgroup distributions 统计分布
 	/// @brief 16 种标准统计分布便捷函数
 
+	namespace detail
+	{
+		// @randx-include ../common/distributions/stable_affine_sampling.inc
+	}
+
 	/// @brief 生成正态分布随机数
 	/// @param mean 均值（默认 0）
 	/// @param stddev 标准差（默认 1）

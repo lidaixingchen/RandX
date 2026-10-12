@@ -2399,6 +2399,39 @@ namespace RandX
 	/// @brief 16 种标准统计分布便捷函数
 	/// @{
 
+	namespace detail
+	{
+	template <class T>
+	[[nodiscard]]
+	inline T StableAffineScaleThreshold() noexcept
+	{
+			// 平衡两个乘法因子的指数范围，提前归一化大尺度的尾部计算。
+			return std::sqrt((std::numeric_limits<T>::max)());
+	}
+
+	template <class T>
+	[[nodiscard]]
+	inline T StableAffineTransform(T location, T scale, T unitSample) noexcept
+	{
+		if (!std::isfinite(unitSample))
+			return std::fma(scale, unitSample, location);
+
+		int scaleExponent = 0;
+		int sampleExponent = 0;
+		int locationExponent = 0;
+		const T scaleFraction = std::frexp(scale, &scaleExponent);
+		const T sampleFraction = std::frexp(unitSample, &sampleExponent);
+		const T locationFraction = std::frexp(location, &locationExponent);
+		const int productExponent = scaleExponent + sampleExponent;
+		const int resultExponent = productExponent > locationExponent ? productExponent : locationExponent;
+			// 先将融合运算的操作数归一到共同指数，再恢复结果尺度。
+		const T scaledScale = std::ldexp(scaleFraction, productExponent - resultExponent);
+		const T scaledLocation = std::ldexp(locationFraction, locationExponent - resultExponent);
+		const T scaledResult = std::fma(scaledScale, sampleFraction, scaledLocation);
+		return std::ldexp(scaledResult, resultExponent);
+	}
+	}
+
 	/// @brief 生成正态分布随机数
 	/// @param mean 均值（默认 0）
 	/// @param stddev 标准差（默认 1）
@@ -2409,8 +2442,7 @@ namespace RandX
 	{
 		if (!std::isfinite(mean) || !std::isfinite(stddev) || stddev <= T{0})
 			throw std::invalid_argument("RandNormal: invalid mean or stddev");
-		std::normal_distribution<T> dist(mean, stddev);
-		return dist(DefaultEngine());
+		return RandNormal(DefaultEngine(), mean, stddev);
 	}
 
 	/// @brief 生成正态分布随机数（指定引擎重载）
@@ -2424,6 +2456,11 @@ namespace RandX
 	{
 		if (!std::isfinite(mean) || !std::isfinite(stddev) || stddev <= T{0})
 			throw std::invalid_argument("RandNormal: invalid mean or stddev");
+		if (stddev >= detail::StableAffineScaleThreshold<T>())
+		{
+			std::normal_distribution<T> unitDistribution(T{0}, T{1});
+			return detail::StableAffineTransform(mean, stddev, unitDistribution(engine));
+		}
 		std::normal_distribution<T> dist(mean, stddev);
 		return dist(engine);
 	}
@@ -4179,8 +4216,7 @@ namespace RandX
 	{
 		if (!std::isfinite(a) || !std::isfinite(b) || b <= T{0})
 			throw std::invalid_argument("RandCauchy: invalid a or b");
-		std::cauchy_distribution<T> dist(a, b);
-		return dist(DefaultEngine());
+		return RandCauchy(DefaultEngine(), a, b);
 	}
 
 	/// @brief 生成柯西分布随机数（指定引擎重载）
@@ -4194,6 +4230,11 @@ namespace RandX
 	{
 		if (!std::isfinite(a) || !std::isfinite(b) || b <= T{0})
 			throw std::invalid_argument("RandCauchy: invalid a or b");
+		if (b >= detail::StableAffineScaleThreshold<T>())
+		{
+			std::cauchy_distribution<T> unitDistribution(T{0}, T{1});
+			return detail::StableAffineTransform(a, b, unitDistribution(engine));
+		}
 		std::cauchy_distribution<T> dist(a, b);
 		return dist(engine);
 	}
@@ -4237,8 +4278,7 @@ namespace RandX
 	{
 		if (!std::isfinite(a) || !std::isfinite(b) || b <= T{0})
 			throw std::invalid_argument("RandExtremeValue: invalid a or b");
-		std::extreme_value_distribution<T> dist(a, b);
-		return dist(DefaultEngine());
+		return RandExtremeValue(DefaultEngine(), a, b);
 	}
 
 	/// @brief 生成极值分布随机数（指定引擎重载）
@@ -4252,6 +4292,11 @@ namespace RandX
 	{
 		if (!std::isfinite(a) || !std::isfinite(b) || b <= T{0})
 			throw std::invalid_argument("RandExtremeValue: invalid a or b");
+		if (b >= detail::StableAffineScaleThreshold<T>())
+		{
+			std::extreme_value_distribution<T> unitDistribution(T{0}, T{1});
+			return detail::StableAffineTransform(a, b, unitDistribution(engine));
+		}
 		std::extreme_value_distribution<T> dist(a, b);
 		return dist(engine);
 	}
