@@ -2657,18 +2657,59 @@ namespace RandX
 			return static_cast<T>(sample);
 		}
 
+		template <class WorkT>
+		inline WorkT GammaSampleLogValue(const DecomposedGammaLog<WorkT>& sample)
+		{
+			const WorkT correction = sample.has_extra
+				? sample.exp_val / sample.shape
+				: WorkT{0};
+			return sample.base_log - correction;
+		}
+
+		template <class T, class WorkT>
+		inline T ScaleGammaSampleFromLog(const DecomposedGammaLog<WorkT>& sample, T scale)
+		{
+			const WorkT log_sample = GammaSampleLogValue(sample) +
+				std::log(static_cast<WorkT>(scale));
+			return ExpToPositiveSample<T>(log_sample);
+		}
+
+		template <class T, class Engine>
+		inline T SampleScaledGamma(Engine& engine, T shape, T scale)
+		{
+			using WorkT = StableDistributionWorkType<T>;
+			DecomposedGammaLog<WorkT> sample;
+			SampleGammaLogScale(engine, static_cast<WorkT>(shape), sample);
+			return ScaleGammaSampleFromLog<T>(sample, scale);
+		}
+
+		template <class WorkT>
+		inline WorkT WeibullSampleLogValue(WorkT unit_exponential, WorkT shape, WorkT scale)
+		{
+			return std::log(unit_exponential) / shape + std::log(scale);
+		}
+
+		template <class T, class Engine>
+		inline T SampleScaledWeibull(Engine& engine, T shape, T scale)
+		{
+			using WorkT = StableDistributionWorkType<T>;
+			std::exponential_distribution<WorkT> unit_exponential(WorkT{1});
+			const WorkT unit_sample = unit_exponential(engine);
+			const WorkT log_sample = WeibullSampleLogValue(
+				unit_sample,
+				static_cast<WorkT>(shape),
+				static_cast<WorkT>(scale));
+			return ExpToPositiveSample<T>(log_sample);
+		}
+
 		template <class T>
 		inline bool RequiresStableStudentT(T degrees)
 		{
 			using WorkT = StableDistributionWorkType<T>;
 			// 大自由度下的指数增量会丢失有效位；小形状 Gamma 的幂变换则可能下溢。
 			const WorkT precision_boundary = WorkT{1} / std::sqrt(static_cast<WorkT>(std::numeric_limits<T>::epsilon()));
-			const T denorm_min = std::numeric_limits<T>::denorm_min();
-			const T smallest_positive = denorm_min > T{0} ? denorm_min : std::numeric_limits<T>::min();
-			const WorkT gamma_underflow_boundary = WorkT{2} /
-				(-std::log(static_cast<WorkT>(smallest_positive)));
 			const WorkT work_degrees = static_cast<WorkT>(degrees);
-			return work_degrees <= gamma_underflow_boundary || work_degrees >= precision_boundary;
+			return work_degrees < WorkT{2} || work_degrees >= precision_boundary;
 		}
 
 		template <class T, class Engine>
@@ -2695,10 +2736,7 @@ namespace RandX
 			const WorkT maximum = static_cast<WorkT>((std::numeric_limits<T>::max)());
 			const WorkT large_degree_boundary = std::sqrt(maximum);
 			const bool degree_scale_risk = work_m >= large_degree_boundary || work_n >= large_degree_boundary;
-			const T denorm_min = std::numeric_limits<T>::denorm_min();
-			const T smallest_positive = denorm_min > T{0} ? denorm_min : std::numeric_limits<T>::min();
-			const WorkT gamma_underflow_boundary = WorkT{2} / (-std::log(static_cast<WorkT>(smallest_positive)));
-			return degree_scale_risk || work_m <= gamma_underflow_boundary || work_n <= gamma_underflow_boundary;
+			return degree_scale_risk || work_m < WorkT{2} || work_n < WorkT{2};
 		}
 
 		template <class T, class Engine>
@@ -4045,6 +4083,8 @@ namespace RandX
 	{
 		if (!std::isfinite(alpha) || !std::isfinite(beta) || alpha <= T{0} || beta <= T{0})
 			throw std::invalid_argument("RandGamma: alpha and beta must be positive");
+		if (alpha < T{1} && beta > T{1})
+			return detail::SampleScaledGamma(DefaultEngine(), alpha, beta);
 		constexpr int GammaShapeSplitCount = 2;
 		// 同尺度 Gamma 的形状可相加；半形状采样保持形状翻倍的中间量可表示。
 		constexpr T GammaShapeSplitThreshold =
@@ -4072,6 +4112,8 @@ namespace RandX
 	{
 		if (!std::isfinite(alpha) || !std::isfinite(beta) || alpha <= T{0} || beta <= T{0})
 			throw std::invalid_argument("RandGamma: alpha and beta must be positive");
+		if (alpha < T{1} && beta > T{1})
+			return detail::SampleScaledGamma(engine, alpha, beta);
 		constexpr int GammaShapeSplitCount = 2;
 		// 同尺度 Gamma 的形状可相加；半形状采样保持形状翻倍的中间量可表示。
 		constexpr T GammaShapeSplitThreshold =
@@ -4249,6 +4291,8 @@ namespace RandX
 	{
 		if (!std::isfinite(a) || !std::isfinite(b) || a <= T{0} || b <= T{0})
 			throw std::invalid_argument("RandWeibull: invalid a or b");
+		if (a < T{1} && b > T{1})
+			return detail::SampleScaledWeibull(DefaultEngine(), a, b);
 		std::weibull_distribution<T> dist(a, b);
 		return dist(DefaultEngine());
 	}
@@ -4264,6 +4308,8 @@ namespace RandX
 	{
 		if (!std::isfinite(a) || !std::isfinite(b) || a <= T{0} || b <= T{0})
 			throw std::invalid_argument("RandWeibull: invalid a or b");
+		if (a < T{1} && b > T{1})
+			return detail::SampleScaledWeibull(engine, a, b);
 		std::weibull_distribution<T> dist(a, b);
 		return dist(engine);
 	}

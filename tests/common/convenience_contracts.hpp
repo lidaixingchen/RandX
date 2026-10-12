@@ -1226,9 +1226,9 @@ TEST_SUITE("公共/基础/便捷接口")
         constexpr long double MaximumStudentSecondMoment = 1.5L;
         constexpr long double FisherMeanToleranceInEpsilon = 4.0L;
         constexpr double StandardStudentDegrees = 4.0;
-        constexpr double SmallStudentDegrees = 0.5;
-        constexpr double SmallFisherM = 0.5;
-        constexpr double SmallFisherN = 0.75;
+        constexpr double StandardPathStudentDegrees = 2.5;
+        constexpr double StandardPathFisherM = 2.5;
+        constexpr double StandardPathFisherN = 3.75;
         constexpr std::uint64_t StudentExtremeSeed = 712367;
         constexpr std::uint64_t StudentMaxSeed = 991;
         constexpr std::uint64_t StudentSmallSeed = 992;
@@ -1295,13 +1295,14 @@ TEST_SUITE("公共/基础/便捷接口")
         }
         CHECK(student_actual.serialize() == student_expected.serialize());
 
-        RandX::Xoshiro256StarStar small_student_actual{ SmallStudentSeed };
-        RandX::Xoshiro256StarStar small_student_expected{ SmallStudentSeed };
-        std::student_t_distribution<double> standard_small_student(SmallStudentDegrees);
-        const double small_student_value = RandX::RandStudentT(small_student_actual, SmallStudentDegrees);
-        CHECK(std::isfinite(small_student_value));
-        CHECK(small_student_value == standard_small_student(small_student_expected));
-        CHECK(small_student_actual.serialize() == small_student_expected.serialize());
+        RandX::Xoshiro256StarStar standard_path_student_actual{ SmallStudentSeed };
+        RandX::Xoshiro256StarStar standard_path_student_expected{ SmallStudentSeed };
+        std::student_t_distribution<double> standard_path_student(StandardPathStudentDegrees);
+        const double standard_path_student_value =
+            RandX::RandStudentT(standard_path_student_actual, StandardPathStudentDegrees);
+        CHECK(std::isfinite(standard_path_student_value));
+        CHECK(standard_path_student_value == standard_path_student(standard_path_student_expected));
+        CHECK(standard_path_student_actual.serialize() == standard_path_student_expected.serialize());
 
         const auto verifyFisher = [&](auto type_tag)
         {
@@ -1357,14 +1358,16 @@ TEST_SUITE("公共/基础/便捷接口")
 
         RandX::Xoshiro256StarStar fisher_actual{ StandardFisherSeed };
         RandX::Xoshiro256StarStar fisher_expected{ StandardFisherSeed };
-        double small_fisher_value = 0;
+        double standard_path_fisher_value = 0;
         for (int index = 0; index < StandardSequenceSamples; ++index)
         {
-            std::fisher_f_distribution<double> standard_fisher(SmallFisherM, SmallFisherN);
-            small_fisher_value = RandX::RandFisherF(fisher_actual, SmallFisherM, SmallFisherN);
-            CHECK(small_fisher_value == standard_fisher(fisher_expected));
+            std::fisher_f_distribution<double> standard_path_fisher(
+                StandardPathFisherM, StandardPathFisherN);
+            standard_path_fisher_value = RandX::RandFisherF(
+                fisher_actual, StandardPathFisherM, StandardPathFisherN);
+            CHECK(standard_path_fisher_value == standard_path_fisher(fisher_expected));
         }
-        CHECK(std::isfinite(small_fisher_value));
+        CHECK(std::isfinite(standard_path_fisher_value));
         CHECK(fisher_actual.serialize() == fisher_expected.serialize());
 
         RandX::DefaultEngine().deserialize(savedDefaultState);

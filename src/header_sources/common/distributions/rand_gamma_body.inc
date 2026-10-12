@@ -1,6 +1,8 @@
 	{
 		if (!std::isfinite(alpha) || !std::isfinite(beta) || alpha <= T{0} || beta <= T{0})
 			throw std::invalid_argument("RandGamma: alpha and beta must be positive");
+		if (alpha < T{1} && beta > T{1})
+			return detail::SampleScaledGamma(DefaultEngine(), alpha, beta);
 		constexpr int GammaShapeSplitCount = 2;
 		// 同尺度 Gamma 的形状可相加；半形状采样保持形状翻倍的中间量可表示。
 		constexpr T GammaShapeSplitThreshold =
