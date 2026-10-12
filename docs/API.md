@@ -265,7 +265,7 @@ RandSample(Engine& engine, It first, It last, std::iter_difference_t<It> n);
 
 随机访问迭代器与容器入口复用共同抽样内核，按范围长度与请求数量选择稀疏集合、位图或索引数组路径。容器版要求 const 限定后仍可随机访问遍历，只复制选中的元素，支持带只读成员的可复制构造类型；`n=0` 返回空结果，`n` 不小于容器大小时按原顺序返回全部元素的副本。
 
-输入迭代器路径要求元素可复制构造和复制赋值，按实际读入元素增长结果容量；输入不足请求数量时按原顺序返回全部已读元素，且不消耗引擎。C++23 的 `ranges::RandSample` 按迭代器能力选择相同路径，随机访问路径保留仅可复制构造的元素支持。
+两版本均按实际复制构造能力接受元素，包括显式删除移动构造的可复制类型；所用标准库还须支持该类型的 vector 复制增长操作。当前 MSVC STL 的 vector 增长实现会实例化移动构造，此类型的抽样运行契约在 GCC 上验证，MSVC 验证复制类型特征与按值取元素。输入迭代器路径另外要求复制赋值，按实际读入元素增长结果容量；输入不足请求数量时按原顺序返回全部已读元素，且不消耗引擎。C++23 的 `ranges::RandSample` 按迭代器能力选择相同路径，随机访问路径保留仅可复制构造的元素支持。
 
 随机访问范围的长度须同时能用 `std::uint64_t` 和 `std::size_t` 表示；正数量抽样超出该长度限制时抛出 `std::length_error`，不消耗引擎输出。
 
@@ -275,6 +275,8 @@ RandSample(Engine& engine, It first, It last, std::iter_difference_t<It> n);
 template <class Container>
 inline void RandShuffle(Container&& c);  // 原地打乱
 ```
+
+容器须可随机访问，元素须可移动构造、可移动赋值并可交换。只读元素视图不满足该能力；代理引用和仅可移动的元素在满足实际交换条件时可使用。
 
 ### RandPermutation
 
@@ -301,7 +303,7 @@ template <class It, class T, class Engine>
 inline void RandFill(Engine& engine, It first, It last, T min, T max);
 ```
 
-T 从 min/max 推导，非从迭代器 value_type 推导。
+T 从 min/max 推导，非从迭代器 value_type 推导。数值类型包括 `char16_t`、`char32_t` 与 `wchar_t` 等字符整数，整数采样复用 `RandInt` 的标准分布类型映射；`bool` 不在填充与向量生成的参数域内。
 
 ### RandVector
 
@@ -341,6 +343,9 @@ namespace RandX::ranges
 
     // 随机数填充
     template <class T, std::ranges::output_range<const T&> R>
+        requires requires(R& range, T lower, T upper) {
+            RandX::RandFill(std::ranges::begin(range), std::ranges::end(range), lower, upper);
+        }
     inline void RandFill(R&& r, T min, T max);
 }
 ```
@@ -407,19 +412,24 @@ template <class Engine>
 ```cpp
 template <std::integral T = int, std::uint64_t Seed = DefaultSeed>
     requires (!std::same_as<std::remove_cv_t<T>, bool>)
+        && (std::numeric_limits<std::make_unsigned_t<T>>::digits
+            <= std::numeric_limits<std::uint64_t>::digits)
 [[nodiscard]] inline constexpr T RandIntCE(T min, T max);
 
 template <std::integral T = int, std::uint64_t Seed = DefaultSeed>
     requires (!std::same_as<std::remove_cv_t<T>, bool>)
+        && (std::numeric_limits<std::make_unsigned_t<T>>::digits
+            <= std::numeric_limits<std::uint64_t>::digits)
 [[nodiscard]] inline constexpr T RandIntCE(T max);  // [0, max]
 ```
 
-结果由 Seed 模板参数决定，显式写法为 `RandIntCE<T, Seed>(min, max)`。支持宽乘法时使用 Lemire 有界法，其他环境使用拒绝采样，均保持无模偏差。非法区间抛出 `std::invalid_argument`；在常量求值中该调用不能形成有效常量表达式。
+支持非 bool 整数，且对应无符号类型的有效位数不超过 `uint64_t`。需要运行期扩展整数采样时使用符合整数分布类型契约的 `RandInt`。结果由 Seed 模板参数决定，显式写法为 `RandIntCE<T, Seed>(min, max)`。支持宽乘法时使用 Lemire 有界法，其他环境使用拒绝采样，均保持无模偏差。非法区间抛出 `std::invalid_argument`；在常量求值中该调用不能形成有效常量表达式。
 
 ### ShuffleCE
 
 ```cpp
 template <std::random_access_iterator It, std::uint64_t Seed = DefaultSeed>
+    requires std::permutable<It>
 constexpr void ShuffleCE(It first, It last);
 ```
 
@@ -429,6 +439,7 @@ constexpr void ShuffleCE(It first, It last);
 
 ```cpp
 template <class T, std::size_t N, std::uint64_t Seed = DefaultSeed>
+    requires std::permutable<typename std::array<T, N>::iterator>
 [[nodiscard]] constexpr std::array<T, N> ShuffledArray(std::array<T, N> arr);
 ```
 
@@ -472,6 +483,8 @@ std::basic_ostream<CharT, Traits>& operator<<(std::basic_ostream<CharT, Traits>&
 template <class CharT, class Traits, detail::SerializableEngine Engine>
 std::basic_istream<CharT, Traits>& operator>>(std::basic_istream<CharT, Traits>& is, Engine& engine);
 ```
+
+两版本的流接口要求状态为非空 `std::array<uint32_t, N>` 或 `std::array<uint64_t, N>`，`serialize() const` 精确返回该状态类型，`deserialize` 可接收状态左值并精确返回 `void`。自定义引擎迁移时须满足这些签名与状态条件；该约束收紧按破坏性变更管理。
 
 格式为空格分隔的十进制状态字。SplitMix64 通过标量 `serialize()`／`deserialize()` 保存恢复状态，ChaCha20 不提供这些流接口。流式输入失败时设置 failbit 并保留原引擎状态；状态有效性按各引擎政策判断。
 
@@ -640,7 +653,7 @@ inline constexpr std::uint64_t DefaultSeed = 1234567890ULL;
 | Concept | 描述 |
 |---------|------|
 | `detail::Character<T>` | char / wchar_t / char16_t / char32_t / char8_t |
-| `detail::SerializableEngine<E>` | state_type 为可索引容器 + 有 serialize/deserialize |
+| `detail::SerializableEngine<E>` | 非空 uint32_t／uint64_t 数组状态、serialize 返回完整状态、deserialize 接受状态左值且返回 void |
 | `detail::JumpableEngine<E>` | 有 `jump() -> void` |
 | `detail::StreamEngine<E>` | 有 `jump() -> void`、`uint64_t` 种子列表构造，以及自身右值或左值返回构造能力 |
-| `detail::RandFillable<It, T>` | output_iterator 且 T 为 integral 或 floating_point |
+| `detail::RandFillable<It, T>` | output_iterator 且 T 为非 bool 整数或浮点数 |

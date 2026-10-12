@@ -8,6 +8,8 @@
 #include "convenience_contracts.hpp"
 #include "affine_stability_contracts.hpp"
 #include "scaled_distribution_contracts.hpp"
+#include "type_capability_contracts.hpp"
+#include "serialization_capability_contracts.hpp"
 #include "security_contracts.hpp"
 #include "statistical_contracts.hpp"
 

@@ -182,11 +182,120 @@ concept CanRangesRandSample = requires(Range& range, std::ranges::range_differen
     RandX::ranges::RandSample(range, count);
 };
 
+template <class Range, class T>
+concept CanRangesRandFill = requires(Range&& range, T minimum, T maximum) {
+    RandX::ranges::RandFill(std::forward<Range>(range), minimum, maximum);
+};
+
+template <class Iterator>
+concept CanShuffleCE = requires(Iterator first, Iterator last) {
+    RandX::ShuffleCE(first, last);
+};
+
+template <class Array>
+concept CanShuffledArray = requires(Array&& values) {
+    RandX::ShuffledArray(std::forward<Array>(values));
+};
+
+struct CopyOnlyMoveDisabled
+{
+    int value{};
+
+    CopyOnlyMoveDisabled() = default;
+    explicit CopyOnlyMoveDisabled(int initialValue) : value(initialValue) {}
+    CopyOnlyMoveDisabled(const CopyOnlyMoveDisabled&) = default;
+    CopyOnlyMoveDisabled(CopyOnlyMoveDisabled&&) = delete;
+    CopyOnlyMoveDisabled& operator=(const CopyOnlyMoveDisabled&) = default;
+};
+
+struct MoveOnlyShuffleItem
+{
+    int value{};
+
+    explicit MoveOnlyShuffleItem(int initialValue) : value(initialValue) {}
+    MoveOnlyShuffleItem(const MoveOnlyShuffleItem&) = delete;
+    MoveOnlyShuffleItem& operator=(const MoveOnlyShuffleItem&) = delete;
+    MoveOnlyShuffleItem(MoveOnlyShuffleItem&&) = default;
+    MoveOnlyShuffleItem& operator=(MoveOnlyShuffleItem&&) = default;
+};
+
+enum class NonNumericFillValue
+{
+    Item
+};
+
+inline constexpr std::size_t kCopyOnlyPopulationSize = 5;
+inline constexpr std::size_t kCopyOnlySampleSize = 2;
+inline constexpr std::size_t kShuffleArraySize = 3;
+inline constexpr std::size_t kProxyShuffleSize = 6;
+inline constexpr std::size_t kBooleanFillSize = 4;
+
 using CopyOnlySampleItem = SamplingContractFixtures::NonDefaultReadOnlyCopyItem;
 static_assert(CanRangesRandSample<std::vector<CopyOnlySampleItem>>,
     "the C++23 ranges adapter must retain the random-access copy-only path");
 static_assert(!CanRangesRandSample<std::list<CopyOnlySampleItem>>,
     "the C++23 ranges adapter must constrain the reservoir path");
+static_assert(std::is_copy_constructible_v<CopyOnlyMoveDisabled>);
+static_assert(!std::is_move_constructible_v<CopyOnlyMoveDisabled>);
+static_assert(CanRandIntCEWithBounds<std::uint64_t>);
+static_assert(CanRandIntCEWithMaximum<std::uint64_t>);
+static_assert(CanShuffleCE<int*>);
+static_assert(!CanShuffleCE<const int*>);
+static_assert(CanShuffleCE<std::vector<bool>::iterator>);
+static_assert(CanShuffleCE<MoveOnlyShuffleItem*>);
+static_assert(CanShuffledArray<std::array<int, kShuffleArraySize>>);
+static_assert(!CanShuffledArray<std::array<const int, kShuffleArraySize>>);
+static_assert(CanShuffledArray<std::array<MoveOnlyShuffleItem, kShuffleArraySize>>);
+static_assert(CanRangesRandFill<std::vector<int>&, int>);
+static_assert(CanRangesRandFill<std::vector<double>&, double>);
+static_assert(!CanRangesRandFill<std::array<bool, kBooleanFillSize>&, bool>);
+static_assert(!CanRangesRandFill<std::vector<bool>&, bool>);
+static_assert(!CanRangesRandFill<std::vector<NonNumericFillValue>&, NonNumericFillValue>);
+
+template <class Iterator>
+concept CanIteratorRandSample = requires(
+    Iterator first, Iterator last, typename std::iterator_traits<Iterator>::difference_type count) {
+    RandX::RandSample(first, last, count);
+};
+
+template <class Iterator>
+concept CanIteratorRandSampleWithEngine = requires(
+    RandX::Xoshiro256StarStar& engine, Iterator first, Iterator last,
+    typename std::iterator_traits<Iterator>::difference_type count) {
+    RandX::RandSample(engine, first, last, count);
+};
+
+template <class Container>
+concept CanContainerRandSample = requires(const Container& container) {
+    RandX::RandSample(container, std::size_t{});
+};
+
+template <class Container>
+concept CanContainerRandSampleWithEngine = requires(
+    RandX::Xoshiro256StarStar& engine, const Container& container) {
+    RandX::RandSample(engine, container, std::size_t{});
+};
+
+using CopyOnlyList = std::list<CopyOnlyMoveDisabled>;
+using CopyOnlyVector = std::vector<CopyOnlyMoveDisabled>;
+#if !defined(_MSC_VER)
+static_assert(CanIteratorRandSample<CopyOnlyList::iterator>);
+static_assert(CanIteratorRandSampleWithEngine<CopyOnlyList::iterator>);
+static_assert(CanContainerRandSample<CopyOnlyVector>);
+static_assert(CanContainerRandSampleWithEngine<CopyOnlyVector>);
+static_assert(CanRangesRandSample<CopyOnlyList>);
+#endif
+static_assert(CanRandElement<CopyOnlyList&>);
+static_assert(CanRangesRandElementWithEngine<CopyOnlyList&>);
+
+#if defined(__SIZEOF_INT128__)
+using SignedWideInteger = __int128;
+using UnsignedWideInteger = unsigned __int128;
+static_assert(!CanRandIntCEWithBounds<SignedWideInteger>);
+static_assert(!CanRandIntCEWithMaximum<SignedWideInteger>);
+static_assert(!CanRandIntCEWithBounds<UnsignedWideInteger>);
+static_assert(!CanRandIntCEWithMaximum<UnsignedWideInteger>);
+#endif
 }
 }
 
@@ -202,6 +311,76 @@ TEST_SUITE("专属/C++23/概念约束")
         static_assert(!CanRandBits<0, std::uint32_t, RandX::Xoshiro256StarStar>);
         static_assert(!CanRandBits<65, std::uint64_t, RandX::Xoshiro256StarStar>);
 
+    }
+}
+
+TEST_SUITE("专属/C++23/类型能力")
+{
+    using namespace RandXTest::Cpp23Fixtures;
+
+    TEST_CASE("ranges 抽样支持显式删除移动的可复制元素")
+    {
+        std::list<CopyOnlyMoveDisabled> inputValues;
+        std::array<CopyOnlyMoveDisabled, kCopyOnlyPopulationSize> containerValues{};
+        for (std::size_t index = 0; index < kCopyOnlyPopulationSize; ++index)
+        {
+            const int value = static_cast<int>(index);
+            inputValues.emplace_back(value);
+            containerValues[index].value = value;
+        }
+
+        RandX::Reseed(RandXTest::TestConstants::kDefaultEngineTestSeed);
+        const auto defaultElement = RandX::ranges::RandElement(inputValues);
+        CHECK((defaultElement.value >= 0
+            && static_cast<std::size_t>(defaultElement.value) < kCopyOnlyPopulationSize));
+#if !defined(_MSC_VER)
+        const auto defaultSample = RandX::ranges::RandSample(inputValues, kCopyOnlySampleSize);
+        REQUIRE(defaultSample.size() == kCopyOnlySampleSize);
+        for (const auto& value : defaultSample)
+            CHECK((value.value >= 0
+                && static_cast<std::size_t>(value.value) < kCopyOnlyPopulationSize));
+#endif
+
+        RandX::Xoshiro256StarStar engine{ RandXTest::TestConstants::kDefaultEngineTestSeed };
+        const auto explicitElement = RandX::ranges::RandElement(engine, inputValues);
+        CHECK((explicitElement.value >= 0
+            && static_cast<std::size_t>(explicitElement.value) < kCopyOnlyPopulationSize));
+
+#if !defined(_MSC_VER)
+        const auto containerDefaultSample = RandX::RandSample(containerValues, kCopyOnlySampleSize);
+        REQUIRE(containerDefaultSample.size() == kCopyOnlySampleSize);
+        for (const auto& value : containerDefaultSample)
+            CHECK((value.value >= 0
+                && static_cast<std::size_t>(value.value) < kCopyOnlyPopulationSize));
+        const auto containerExplicitSample = RandX::RandSample(
+            engine, containerValues, kCopyOnlySampleSize);
+        REQUIRE(containerExplicitSample.size() == kCopyOnlySampleSize);
+        for (const auto& value : containerExplicitSample)
+            CHECK((value.value >= 0
+                && static_cast<std::size_t>(value.value) < kCopyOnlyPopulationSize));
+#endif
+    }
+
+    TEST_CASE("ShuffleCE 接受代理引用与仅移动元素")
+    {
+        constexpr std::uint64_t seed = RandXTest::TestConstants::kDefaultEngineTestSeed;
+        const std::array<bool, kProxyShuffleSize> initialProxyValues{
+            true, false, true, true, false, false };
+        std::vector<bool> proxyValues(initialProxyValues.begin(), initialProxyValues.end());
+        const auto trueCount = std::count(proxyValues.begin(), proxyValues.end(), true);
+        RandX::ShuffleCE<std::vector<bool>::iterator, seed>(proxyValues.begin(), proxyValues.end());
+        CHECK(std::count(proxyValues.begin(), proxyValues.end(), true) == trueCount);
+
+        std::array<MoveOnlyShuffleItem, kShuffleArraySize> values{
+            MoveOnlyShuffleItem{ 0 }, MoveOnlyShuffleItem{ 1 }, MoveOnlyShuffleItem{ 2 }};
+        RandX::ShuffleCE<decltype(values.begin()), seed>(values.begin(), values.end());
+        auto shuffled = RandX::ShuffledArray(std::move(values));
+
+        std::array<int, kShuffleArraySize> observed{};
+        for (std::size_t index = 0; index < shuffled.size(); ++index)
+            observed[index] = shuffled[index].value;
+        std::sort(observed.begin(), observed.end());
+        CHECK((observed == std::array<int, kShuffleArraySize>{ 0, 1, 2 }));
     }
 }
 

@@ -68,6 +68,7 @@
 	/// @return 使用固定种子在编译期确定的随机整数（Lemire 有界法，无模偏差）
 	template <std::integral T = int, std::uint64_t Seed = DefaultSeed>
 		requires (!std::same_as<std::remove_cv_t<T>, bool>)
+			&& (std::numeric_limits<std::make_unsigned_t<T>>::digits <= std::numeric_limits<std::uint64_t>::digits)
 	[[nodiscard]]
 	inline constexpr T RandIntCE(T min, T max)
 	{
@@ -90,6 +91,7 @@
 	/// @return 使用固定种子在编译期确定的随机整数
 	template <std::integral T = int, std::uint64_t Seed = DefaultSeed>
 		requires (!std::same_as<std::remove_cv_t<T>, bool>)
+			&& (std::numeric_limits<std::make_unsigned_t<T>>::digits <= std::numeric_limits<std::uint64_t>::digits)
 	[[nodiscard]]
 	inline constexpr T RandIntCE(T max)
 	{
@@ -108,6 +110,7 @@
 	/// @param last 结束迭代器
 	/// @note 内部统一使用 Xoshiro256StarStar 在 constexpr 上下文中生成随机排列
 	template <std::random_access_iterator It, std::uint64_t Seed = DefaultSeed>
+		requires std::permutable<It>
 	constexpr void ShuffleCE(It first, It last)
 	{
 		const auto diff = last - first;
@@ -131,6 +134,7 @@
 	/// @param arr 待打乱的数组
 	/// @return 打乱后的数组副本
 	template <class T, std::size_t N, std::uint64_t Seed = DefaultSeed>
+		requires std::permutable<typename std::array<T, N>::iterator>
 	[[nodiscard]]
 	constexpr std::array<T, N> ShuffledArray(std::array<T, N> arr)
 	{
@@ -166,7 +170,7 @@
 		/// @note 随机访问迭代器入口返回迭代器，输入迭代器入口与 ranges 入口返回元素值。
 		template <std::ranges::input_range R>
 			requires (std::ranges::sized_range<R> || std::ranges::forward_range<R>)
-				&& std::copy_constructible<std::ranges::range_value_t<R>>
+				&& std::is_copy_constructible_v<std::ranges::range_value_t<R>>
 				&& ((std::random_access_iterator<std::ranges::iterator_t<R>>
 					&& std::sized_sentinel_for<std::ranges::sentinel_t<R>, std::ranges::iterator_t<R>>)
 					|| std::is_copy_assignable_v<std::ranges::range_value_t<R>>)
@@ -188,7 +192,7 @@
 		/// @return 随机选取的元素值拷贝
 		template <detail::RandomEngine Engine, std::ranges::input_range R>
 			requires (std::ranges::sized_range<R> || std::ranges::forward_range<R>)
-				&& std::copy_constructible<std::ranges::range_value_t<R>>
+				&& std::is_copy_constructible_v<std::ranges::range_value_t<R>>
 				&& ((std::random_access_iterator<std::ranges::iterator_t<R>>
 					&& std::sized_sentinel_for<std::ranges::sentinel_t<R>, std::ranges::iterator_t<R>>)
 					|| std::is_copy_assignable_v<std::ranges::range_value_t<R>>)
@@ -210,7 +214,7 @@
 		/// @param n 抽取数量
 		/// @return 含 n 个随机选取元素的 vector
 		template <std::ranges::input_range R>
-			requires std::copy_constructible<std::ranges::range_value_t<R>>
+			requires std::is_copy_constructible_v<std::ranges::range_value_t<R>>
 				&& (std::ranges::random_access_range<R>
 					|| std::is_copy_assignable_v<std::ranges::range_value_t<R>>)
 		[[nodiscard]]
@@ -236,6 +240,9 @@
 		/// @param max 随机数上界
 		/// @note T 从 min/max 推导：RandFill(v, 0, 99) -> T=int; RandFill(v, 0.0, 1.0) -> T=double
 		template <class T, std::ranges::output_range<const T&> R>
+				requires requires(R& range, T lower, T upper) {
+					RandX::RandFill(std::ranges::begin(range), std::ranges::end(range), lower, upper);
+				}
 		inline void
 		RandFill(R&& r, T min, T max)
 		{

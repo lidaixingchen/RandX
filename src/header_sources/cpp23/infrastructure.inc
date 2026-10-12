@@ -78,6 +78,8 @@
 #endif
 		;
 
+	// @randx-include ../common/serialization/supported_state_trait.inc
+
 	// 检测 state_type 是否为可索引容器（排除标量如 SplitMix64 的 uint64_t）
 	template <class S>
 	concept IndexableState = requires(const S& cs, S& s) {
@@ -89,9 +91,10 @@
 	template <class E>
 	concept SerializableEngine = requires(const E& ce, E& e) {
 		{ ce.serialize() } -> std::same_as<typename E::state_type>;
-		{ e.deserialize(std::declval<typename E::state_type>()) } -> std::same_as<void>;
+		{ e.deserialize(std::declval<typename E::state_type&>()) } -> std::same_as<void>;
 		typename E::state_type;
 		requires IndexableState<typename E::state_type>;
+		requires is_supported_serialization_state_v<typename E::state_type>;
 	};
 
 	/// @brief 可跳跃引擎概念：支持 jump() 前进 2^N 步

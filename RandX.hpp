@@ -1316,6 +1316,21 @@ namespace RandX
 #endif
 		;
 
+		template <class State>
+		struct is_supported_serialization_state : std::false_type {};
+
+		template <std::size_t N>
+		struct is_supported_serialization_state<std::array<std::uint32_t, N>>
+			: std::bool_constant<(N > 0)> {};
+
+		template <std::size_t N>
+		struct is_supported_serialization_state<std::array<std::uint64_t, N>>
+			: std::bool_constant<(N > 0)> {};
+
+		template <class State>
+		inline constexpr bool is_supported_serialization_state_v =
+			is_supported_serialization_state<State>::value;
+
 	// 检测 state_type 是否为可索引容器（排除标量如 SplitMix64 的 uint64_t）
 	template <class S>
 	concept IndexableState = requires(const S& cs, S& s) {
@@ -1327,9 +1342,10 @@ namespace RandX
 	template <class E>
 	concept SerializableEngine = requires(const E& ce, E& e) {
 		{ ce.serialize() } -> std::same_as<typename E::state_type>;
-		{ e.deserialize(std::declval<typename E::state_type>()) } -> std::same_as<void>;
+		{ e.deserialize(std::declval<typename E::state_type&>()) } -> std::same_as<void>;
 		typename E::state_type;
 		requires IndexableState<typename E::state_type>;
+		requires is_supported_serialization_state_v<typename E::state_type>;
 	};
 
 	/// @brief 可跳跃引擎概念：支持 jump() 前进 2^N 步
@@ -2487,8 +2503,11 @@ namespace RandX
 	{
 		if (min > max)
 			throw std::invalid_argument("RandFill: min > max");
-		using DistType = std::conditional_t<(sizeof(T) < sizeof(short)),
-			std::conditional_t<std::is_signed_v<T>, int, unsigned int>, T>;
+		using ValueType = std::remove_cv_t<T>;
+		using DistType = std::conditional_t<(sizeof(ValueType) < sizeof(short)),
+			std::conditional_t<std::is_signed_v<ValueType>, int, unsigned int>,
+			std::conditional_t<std::is_signed_v<ValueType>,
+				std::make_signed_t<ValueType>, std::make_unsigned_t<ValueType>>>;
 		std::uniform_int_distribution<DistType> dist(static_cast<DistType>(min), static_cast<DistType>(max));
 		for (; first != last; ++first)
 			*first = static_cast<T>(dist(DefaultEngine()));
@@ -2774,8 +2793,11 @@ namespace RandX
 	{
 		if (min > max)
 			throw std::invalid_argument("RandFill: min > max");
-		using DistType = std::conditional_t<(sizeof(T) < sizeof(short)),
-			std::conditional_t<std::is_signed_v<T>, int, unsigned int>, T>;
+		using ValueType = std::remove_cv_t<T>;
+		using DistType = std::conditional_t<(sizeof(ValueType) < sizeof(short)),
+			std::conditional_t<std::is_signed_v<ValueType>, int, unsigned int>,
+			std::conditional_t<std::is_signed_v<ValueType>,
+				std::make_signed_t<ValueType>, std::make_unsigned_t<ValueType>>>;
 		std::uniform_int_distribution<DistType> dist(static_cast<DistType>(min), static_cast<DistType>(max));
 		for (; first != last; ++first)
 			*first = static_cast<T>(dist(engine));
@@ -2843,8 +2865,11 @@ namespace RandX
 			throw std::invalid_argument("RandVector: min > max");
 		std::vector<T> v;
 		v.reserve(n);
-		using DistType = std::conditional_t<(sizeof(T) < sizeof(short)),
-			std::conditional_t<std::is_signed_v<T>, int, unsigned int>, T>;
+		using ValueType = std::remove_cv_t<T>;
+		using DistType = std::conditional_t<(sizeof(ValueType) < sizeof(short)),
+			std::conditional_t<std::is_signed_v<ValueType>, int, unsigned int>,
+			std::conditional_t<std::is_signed_v<ValueType>,
+				std::make_signed_t<ValueType>, std::make_unsigned_t<ValueType>>>;
 		std::uniform_int_distribution<DistType> dist(static_cast<DistType>(min), static_cast<DistType>(max));
 		for (std::size_t i = 0; i < n; ++i)
 			v.push_back(static_cast<T>(dist(engine)));
@@ -3758,7 +3783,7 @@ namespace RandX
 	/// @return 含 n 个随机选取元素的 vector
 	template <class Container>
 		requires std::ranges::random_access_range<const Container>
-			&& std::copy_constructible<std::ranges::range_value_t<const Container>>
+			&& std::is_copy_constructible_v<std::ranges::range_value_t<const Container>>
 	[[nodiscard]]
 	RANDX_DETAIL_SAMPLE_INLINE auto RandSample(const Container& c, std::size_t n)
 	{
@@ -3796,7 +3821,7 @@ namespace RandX
 	// 路径 2：输入迭代器（reservoir sampling, Algorithm R）
 	template <std::input_iterator It, std::sentinel_for<It> Sentinel>
 		requires (!std::random_access_iterator<It>)
-			&& std::copy_constructible<std::iter_value_t<It>>
+			&& std::is_copy_constructible_v<std::iter_value_t<It>>
 			&& std::is_copy_assignable_v<std::iter_value_t<It>>
 	[[nodiscard]]
 	inline std::vector<std::iter_value_t<It>>
@@ -3839,7 +3864,7 @@ namespace RandX
 	// 引擎重载 —— 输入迭代器（reservoir）
 	template <std::input_iterator It, std::sentinel_for<It> Sentinel, detail::RandomEngine Engine>
 		requires (!std::random_access_iterator<It>)
-			&& std::copy_constructible<std::iter_value_t<It>>
+			&& std::is_copy_constructible_v<std::iter_value_t<It>>
 			&& std::is_copy_assignable_v<std::iter_value_t<It>>
 	[[nodiscard]]
 	inline std::vector<std::iter_value_t<It>>
@@ -3857,7 +3882,7 @@ namespace RandX
 	/// @return 含 n 个随机选取元素的 vector
 	template <detail::RandomEngine Engine, class Container>
 		requires std::ranges::random_access_range<const Container>
-			&& std::copy_constructible<std::ranges::range_value_t<const Container>>
+			&& std::is_copy_constructible_v<std::ranges::range_value_t<const Container>>
 	[[nodiscard]]
 	RANDX_DETAIL_SAMPLE_INLINE auto RandSample(Engine& engine, const Container& c, std::size_t n)
 	{
@@ -5171,6 +5196,7 @@ namespace detail
 	/// @return 使用固定种子在编译期确定的随机整数（Lemire 有界法，无模偏差）
 	template <std::integral T = int, std::uint64_t Seed = DefaultSeed>
 		requires (!std::same_as<std::remove_cv_t<T>, bool>)
+			&& (std::numeric_limits<std::make_unsigned_t<T>>::digits <= std::numeric_limits<std::uint64_t>::digits)
 	[[nodiscard]]
 	inline constexpr T RandIntCE(T min, T max)
 	{
@@ -5193,6 +5219,7 @@ namespace detail
 	/// @return 使用固定种子在编译期确定的随机整数
 	template <std::integral T = int, std::uint64_t Seed = DefaultSeed>
 		requires (!std::same_as<std::remove_cv_t<T>, bool>)
+			&& (std::numeric_limits<std::make_unsigned_t<T>>::digits <= std::numeric_limits<std::uint64_t>::digits)
 	[[nodiscard]]
 	inline constexpr T RandIntCE(T max)
 	{
@@ -5211,6 +5238,7 @@ namespace detail
 	/// @param last 结束迭代器
 	/// @note 内部统一使用 Xoshiro256StarStar 在 constexpr 上下文中生成随机排列
 	template <std::random_access_iterator It, std::uint64_t Seed = DefaultSeed>
+		requires std::permutable<It>
 	constexpr void ShuffleCE(It first, It last)
 	{
 		const auto diff = last - first;
@@ -5234,6 +5262,7 @@ namespace detail
 	/// @param arr 待打乱的数组
 	/// @return 打乱后的数组副本
 	template <class T, std::size_t N, std::uint64_t Seed = DefaultSeed>
+		requires std::permutable<typename std::array<T, N>::iterator>
 	[[nodiscard]]
 	constexpr std::array<T, N> ShuffledArray(std::array<T, N> arr)
 	{
@@ -5269,7 +5298,7 @@ namespace detail
 		/// @note 随机访问迭代器入口返回迭代器，输入迭代器入口与 ranges 入口返回元素值。
 		template <std::ranges::input_range R>
 			requires (std::ranges::sized_range<R> || std::ranges::forward_range<R>)
-				&& std::copy_constructible<std::ranges::range_value_t<R>>
+				&& std::is_copy_constructible_v<std::ranges::range_value_t<R>>
 				&& ((std::random_access_iterator<std::ranges::iterator_t<R>>
 					&& std::sized_sentinel_for<std::ranges::sentinel_t<R>, std::ranges::iterator_t<R>>)
 					|| std::is_copy_assignable_v<std::ranges::range_value_t<R>>)
@@ -5291,7 +5320,7 @@ namespace detail
 		/// @return 随机选取的元素值拷贝
 		template <detail::RandomEngine Engine, std::ranges::input_range R>
 			requires (std::ranges::sized_range<R> || std::ranges::forward_range<R>)
-				&& std::copy_constructible<std::ranges::range_value_t<R>>
+				&& std::is_copy_constructible_v<std::ranges::range_value_t<R>>
 				&& ((std::random_access_iterator<std::ranges::iterator_t<R>>
 					&& std::sized_sentinel_for<std::ranges::sentinel_t<R>, std::ranges::iterator_t<R>>)
 					|| std::is_copy_assignable_v<std::ranges::range_value_t<R>>)
@@ -5313,7 +5342,7 @@ namespace detail
 		/// @param n 抽取数量
 		/// @return 含 n 个随机选取元素的 vector
 		template <std::ranges::input_range R>
-			requires std::copy_constructible<std::ranges::range_value_t<R>>
+			requires std::is_copy_constructible_v<std::ranges::range_value_t<R>>
 				&& (std::ranges::random_access_range<R>
 					|| std::is_copy_assignable_v<std::ranges::range_value_t<R>>)
 		[[nodiscard]]
@@ -5339,6 +5368,9 @@ namespace detail
 		/// @param max 随机数上界
 		/// @note T 从 min/max 推导：RandFill(v, 0, 99) -> T=int; RandFill(v, 0.0, 1.0) -> T=double
 		template <class T, std::ranges::output_range<const T&> R>
+				requires requires(R& range, T lower, T upper) {
+					RandX::RandFill(std::ranges::begin(range), std::ranges::end(range), lower, upper);
+				}
 		inline void
 		RandFill(R&& r, T min, T max)
 		{

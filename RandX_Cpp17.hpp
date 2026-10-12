@@ -2060,6 +2060,21 @@ namespace detail
 		template <class It, class T>
 		inline constexpr bool is_rand_fillable_v = is_rand_fillable<It, T>::value;
 
+		template <class State>
+		struct is_supported_serialization_state : std::false_type {};
+
+		template <std::size_t N>
+		struct is_supported_serialization_state<std::array<std::uint32_t, N>>
+			: std::bool_constant<(N > 0)> {};
+
+		template <std::size_t N>
+		struct is_supported_serialization_state<std::array<std::uint64_t, N>>
+			: std::bool_constant<(N > 0)> {};
+
+		template <class State>
+		inline constexpr bool is_supported_serialization_state_v =
+			is_supported_serialization_state<State>::value;
+
 		// 检测 state_type 是否为可索引容器（排除标量如 SplitMix64 的 uint64_t）
 		template <class S, class = void>
 		struct is_indexable_state : std::false_type {};
@@ -2084,12 +2099,17 @@ namespace detail
 		struct is_serializable_engine<E, std::void_t<
 			decltype(std::declval<const E&>().serialize()),
 			decltype(std::declval<E&>().deserialize(
-				std::declval<typename E::state_type>())),
+				std::declval<typename E::state_type&>())),
 			typename E::state_type
 		>> : std::bool_constant<
 			std::is_same_v<
 				decltype(std::declval<const E&>().serialize()),
 				typename E::state_type>
+			&& std::is_same_v<
+				decltype(std::declval<E&>().deserialize(
+					std::declval<typename E::state_type&>())),
+				void>
+			&& is_supported_serialization_state_v<typename E::state_type>
 			&& is_indexable_state_v<typename E::state_type>
 		> {};
 
@@ -2990,14 +3010,42 @@ namespace detail
 		return dist(engine);
 	}
 
+	namespace detail
+	{
+		template <class Container, class = void>
+		struct is_std_shuffleable_container : std::false_type {};
+
+		template <class Container>
+		struct is_std_shuffleable_container<Container, std::void_t<
+			decltype(std::begin(std::declval<Container&>())),
+			decltype(std::end(std::declval<Container&>())),
+			typename std::iterator_traits<decltype(std::begin(std::declval<Container&>()))>::value_type,
+			decltype(*std::declval<decltype(std::begin(std::declval<Container&>()))&>())>>
+			: std::bool_constant<
+				is_random_access_container_v<Container>
+				&& std::is_same_v<decltype(std::begin(std::declval<Container&>())),
+					decltype(std::end(std::declval<Container&>()))>
+				&& !std::is_const_v<std::remove_reference_t<Container>>
+				&& std::is_move_constructible_v<typename std::iterator_traits<
+					decltype(std::begin(std::declval<Container&>()))>::value_type>
+				&& std::is_move_assignable_v<typename std::iterator_traits<
+					decltype(std::begin(std::declval<Container&>()))>::value_type>
+				&& std::is_swappable_with_v<
+					decltype(*std::declval<decltype(std::begin(std::declval<Container&>()))&>()),
+					decltype(*std::declval<decltype(std::begin(std::declval<Container&>()))&>())>> {};
+
+		template <class Container>
+		inline constexpr bool is_std_shuffleable_container_v =
+			is_std_shuffleable_container<Container>::value;
+	}
+
 	/// @brief 随机打乱容器
 	/// @param c 待打乱的容器
 	template <class Container,
-		std::enable_if_t<detail::is_random_access_container_v<Container>
-			&& !std::is_const_v<std::remove_reference_t<Container>>>* = nullptr>
+		std::enable_if_t<detail::is_std_shuffleable_container_v<Container>>* = nullptr>
 	inline void RandShuffle(Container&& c)
 	{
-		std::shuffle(c.begin(), c.end(), DefaultEngine());
+		std::shuffle(std::begin(c), std::end(c), DefaultEngine());
 	}
 
 	/// @brief 用 [min, max] 范围的随机整数填充迭代器区间
@@ -3013,8 +3061,11 @@ namespace detail
 	{
 		if (min > max)
 			throw std::invalid_argument("RandFill: min > max");
-		using DistType = std::conditional_t<(sizeof(T) < sizeof(short)),
-			std::conditional_t<std::is_signed_v<T>, int, unsigned int>, T>;
+		using ValueType = std::remove_cv_t<T>;
+		using DistType = std::conditional_t<(sizeof(ValueType) < sizeof(short)),
+			std::conditional_t<std::is_signed_v<ValueType>, int, unsigned int>,
+			std::conditional_t<std::is_signed_v<ValueType>,
+				std::make_signed_t<ValueType>, std::make_unsigned_t<ValueType>>>;
 		std::uniform_int_distribution<DistType> dist(static_cast<DistType>(min), static_cast<DistType>(max));
 		for (; first != last; ++first)
 			*first = static_cast<T>(dist(DefaultEngine()));
@@ -3300,8 +3351,11 @@ namespace detail
 	{
 		if (min > max)
 			throw std::invalid_argument("RandFill: min > max");
-		using DistType = std::conditional_t<(sizeof(T) < sizeof(short)),
-			std::conditional_t<std::is_signed_v<T>, int, unsigned int>, T>;
+		using ValueType = std::remove_cv_t<T>;
+		using DistType = std::conditional_t<(sizeof(ValueType) < sizeof(short)),
+			std::conditional_t<std::is_signed_v<ValueType>, int, unsigned int>,
+			std::conditional_t<std::is_signed_v<ValueType>,
+				std::make_signed_t<ValueType>, std::make_unsigned_t<ValueType>>>;
 		std::uniform_int_distribution<DistType> dist(static_cast<DistType>(min), static_cast<DistType>(max));
 		for (; first != last; ++first)
 			*first = static_cast<T>(dist(engine));
@@ -3370,8 +3424,11 @@ namespace detail
 			throw std::invalid_argument("RandVector: min > max");
 		std::vector<T> v;
 		v.reserve(n);
-		using DistType = std::conditional_t<(sizeof(T) < sizeof(short)),
-			std::conditional_t<std::is_signed_v<T>, int, unsigned int>, T>;
+		using ValueType = std::remove_cv_t<T>;
+		using DistType = std::conditional_t<(sizeof(ValueType) < sizeof(short)),
+			std::conditional_t<std::is_signed_v<ValueType>, int, unsigned int>,
+			std::conditional_t<std::is_signed_v<ValueType>,
+				std::make_signed_t<ValueType>, std::make_unsigned_t<ValueType>>>;
 		std::uniform_int_distribution<DistType> dist(static_cast<DistType>(min), static_cast<DistType>(max));
 		for (std::size_t i = 0; i < n; ++i)
 			v.push_back(static_cast<T>(dist(engine)));

@@ -550,7 +550,7 @@
 	/// @return 含 n 个随机选取元素的 vector
 	template <class Container>
 		requires std::ranges::random_access_range<const Container>
-			&& std::copy_constructible<std::ranges::range_value_t<const Container>>
+			&& std::is_copy_constructible_v<std::ranges::range_value_t<const Container>>
 	[[nodiscard]]
 	RANDX_DETAIL_SAMPLE_INLINE auto RandSample(const Container& c, std::size_t n)
 	{
@@ -576,7 +576,7 @@
 	// 路径 2：输入迭代器（reservoir sampling, Algorithm R）
 	template <std::input_iterator It, std::sentinel_for<It> Sentinel>
 		requires (!std::random_access_iterator<It>)
-			&& std::copy_constructible<std::iter_value_t<It>>
+			&& std::is_copy_constructible_v<std::iter_value_t<It>>
 			&& std::is_copy_assignable_v<std::iter_value_t<It>>
 	[[nodiscard]]
 	inline std::vector<std::iter_value_t<It>>
@@ -619,7 +619,7 @@
 	// 引擎重载 —— 输入迭代器（reservoir）
 	template <std::input_iterator It, std::sentinel_for<It> Sentinel, detail::RandomEngine Engine>
 		requires (!std::random_access_iterator<It>)
-			&& std::copy_constructible<std::iter_value_t<It>>
+			&& std::is_copy_constructible_v<std::iter_value_t<It>>
 			&& std::is_copy_assignable_v<std::iter_value_t<It>>
 	[[nodiscard]]
 	inline std::vector<std::iter_value_t<It>>
@@ -637,7 +637,7 @@
 	/// @return 含 n 个随机选取元素的 vector
 	template <detail::RandomEngine Engine, class Container>
 		requires std::ranges::random_access_range<const Container>
-			&& std::copy_constructible<std::ranges::range_value_t<const Container>>
+			&& std::is_copy_constructible_v<std::ranges::range_value_t<const Container>>
 	[[nodiscard]]
 	RANDX_DETAIL_SAMPLE_INLINE auto RandSample(Engine& engine, const Container& c, std::size_t n)
 	{

@@ -285,14 +285,42 @@
 	inline T RandNormal(Engine& engine, T mean = T{0}, T stddev = T{1})
 // @randx-include ../common/distributions/rand_normal_02_body.inc
 
+	namespace detail
+	{
+		template <class Container, class = void>
+		struct is_std_shuffleable_container : std::false_type {};
+
+		template <class Container>
+		struct is_std_shuffleable_container<Container, std::void_t<
+			decltype(std::begin(std::declval<Container&>())),
+			decltype(std::end(std::declval<Container&>())),
+			typename std::iterator_traits<decltype(std::begin(std::declval<Container&>()))>::value_type,
+			decltype(*std::declval<decltype(std::begin(std::declval<Container&>()))&>())>>
+			: std::bool_constant<
+				is_random_access_container_v<Container>
+				&& std::is_same_v<decltype(std::begin(std::declval<Container&>())),
+					decltype(std::end(std::declval<Container&>()))>
+				&& !std::is_const_v<std::remove_reference_t<Container>>
+				&& std::is_move_constructible_v<typename std::iterator_traits<
+					decltype(std::begin(std::declval<Container&>()))>::value_type>
+				&& std::is_move_assignable_v<typename std::iterator_traits<
+					decltype(std::begin(std::declval<Container&>()))>::value_type>
+				&& std::is_swappable_with_v<
+					decltype(*std::declval<decltype(std::begin(std::declval<Container&>()))&>()),
+					decltype(*std::declval<decltype(std::begin(std::declval<Container&>()))&>())>> {};
+
+		template <class Container>
+		inline constexpr bool is_std_shuffleable_container_v =
+			is_std_shuffleable_container<Container>::value;
+	}
+
 	/// @brief 随机打乱容器
 	/// @param c 待打乱的容器
 	template <class Container,
-		std::enable_if_t<detail::is_random_access_container_v<Container>
-			&& !std::is_const_v<std::remove_reference_t<Container>>>* = nullptr>
+		std::enable_if_t<detail::is_std_shuffleable_container_v<Container>>* = nullptr>
 	inline void RandShuffle(Container&& c)
 	{
-		std::shuffle(c.begin(), c.end(), DefaultEngine());
+		std::shuffle(std::begin(c), std::end(c), DefaultEngine());
 	}
 
 	/// @brief 用 [min, max] 范围的随机整数填充迭代器区间

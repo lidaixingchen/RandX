@@ -261,6 +261,8 @@
 		template <class It, class T>
 		inline constexpr bool is_rand_fillable_v = is_rand_fillable<It, T>::value;
 
+		// @randx-include ../common/serialization/supported_state_trait.inc
+
 		// 检测 state_type 是否为可索引容器（排除标量如 SplitMix64 的 uint64_t）
 		template <class S, class = void>
 		struct is_indexable_state : std::false_type {};
@@ -285,12 +287,17 @@
 		struct is_serializable_engine<E, std::void_t<
 			decltype(std::declval<const E&>().serialize()),
 			decltype(std::declval<E&>().deserialize(
-				std::declval<typename E::state_type>())),
+				std::declval<typename E::state_type&>())),
 			typename E::state_type
 		>> : std::bool_constant<
 			std::is_same_v<
 				decltype(std::declval<const E&>().serialize()),
 				typename E::state_type>
+			&& std::is_same_v<
+				decltype(std::declval<E&>().deserialize(
+					std::declval<typename E::state_type&>())),
+				void>
+			&& is_supported_serialization_state_v<typename E::state_type>
 			&& is_indexable_state_v<typename E::state_type>
 		> {};
 
