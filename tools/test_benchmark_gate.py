@@ -22,6 +22,7 @@ POLICY_PATH: Path = TOOLS_DIR / "benchmark_policy.json"
 GATE_SCRIPT: Path = TOOLS_DIR / "benchmark_gate.py"
 BENCHMARK_NAME: str = "BM_Sample/range_size:1/request:1"
 DEFAULT_BENCHMARK_NAME: str = "BM_Default/range_size:1"
+OVERSIZED_JSON_INTEGER: int = 10**1000
 
 
 def policy_value() -> dict[str, Any]:
@@ -253,6 +254,16 @@ def complete_groups(plan: dict[str, Any], candidate_time: float = 100.0, baselin
 
 
 class PlanRunTests(unittest.TestCase):
+    def test_oversized_policy_tolerance_produces_data_error_plan(self) -> None:
+        policy: dict[str, Any] = policy_value()
+        policy["groups"]["general"]["tolerance"] = OVERSIZED_JSON_INTEGER
+
+        plan: dict[str, Any] = plan_run(policy, run_context(), successful_query())
+
+        self.assertFalse(plan["valid"])
+        self.assertEqual(plan["errors"][0]["status"], "DATA_ERROR")
+        self.assertIn("tolerance", plan["errors"][0]["message"])
+
     def test_selects_latest_acceptable_record_from_complete_list(self) -> None:
         policy: dict[str, Any] = policy_value()
         context: dict[str, Any] = run_context()
@@ -383,6 +394,21 @@ class EvaluateRunTests(unittest.TestCase):
         self.assertEqual(above_boundary["groups"]["general"]["regressions"], ["BM_General"])
         self.assertTrue(above_boundary["notify_regression"])
         self.assertFalse(above_boundary["publish_baseline"])
+
+    def test_oversized_cpu_time_is_a_structured_data_error(self) -> None:
+        for group_name, file_name in (
+            ("general", "candidate.json"),
+            ("sampling_cpp17", "rounds/candidate-1.json"),
+        ):
+            with self.subTest(group=group_name):
+                plan, execution, groups = self.make_valid_case()
+                groups[group_name]["files"][file_name]["benchmarks"][0]["cpu_time"] = OVERSIZED_JSON_INTEGER
+
+                report: dict[str, Any] = evaluate_run(plan, execution, groups)
+
+                self.assertEqual(report["groups"][group_name]["status"], "DATA_ERROR")
+                self.assertEqual(report["exit_code"], 2)
+                self.assertTrue(report["report_ready"])
 
     def test_ordinary_target_dispatch_compares_without_publishing(self) -> None:
         plan, execution, groups = self.make_valid_case(
@@ -663,6 +689,86 @@ class EvaluateRunTests(unittest.TestCase):
 
 
 class CommandLineTests(unittest.TestCase):
+    def test_plan_command_returns_data_error_for_oversized_policy_tolerance(self) -> None:
+        policy: dict[str, Any] = policy_value()
+        policy["groups"]["general"]["tolerance"] = OVERSIZED_JSON_INTEGER
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            temporary_path: Path = Path(temporary_directory)
+            policy_file: Path = temporary_path / "policy.json"
+            context_file: Path = temporary_path / "context.json"
+            query_file: Path = temporary_path / "query.json"
+            output_file: Path = temporary_path / "plan.json"
+            github_output: Path = temporary_path / "github-output.txt"
+            policy_file.write_text(json.dumps(policy), encoding="utf-8")
+            context_file.write_text(json.dumps(run_context()), encoding="utf-8")
+            query_file.write_text(json.dumps(successful_query()), encoding="utf-8")
+
+            process: subprocess.CompletedProcess[str] = subprocess.run(
+                [
+                    sys.executable, str(GATE_SCRIPT), "plan",
+                    "--policy", str(policy_file), "--context", str(context_file),
+                    "--query", str(query_file), "--output", str(output_file),
+                    "--github-output", str(github_output),
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+            )
+
+            plan: dict[str, Any] = json.loads(output_file.read_text(encoding="utf-8"))
+            outputs: str = github_output.read_text(encoding="utf-8")
+
+        self.assertEqual(process.returncode, 0, process.stderr)
+        self.assertFalse(plan["valid"])
+        self.assertEqual(plan["errors"][0]["status"], "DATA_ERROR")
+        self.assertIn("tolerance", plan["errors"][0]["message"])
+        self.assertIn("plan_valid=false", outputs)
+
+    def test_evaluate_command_writes_structured_error_for_oversized_cpu_time(self) -> None:
+        plan: dict[str, Any] = plan_run(policy_value(), run_context(), successful_query())
+        groups: dict[str, Any] = complete_groups(plan)
+        groups["general"]["files"]["candidate.json"]["benchmarks"][0]["cpu_time"] = OVERSIZED_JSON_INTEGER
+        execution: dict[str, Any] = execution_record()
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            temporary_path: Path = Path(temporary_directory)
+            plan_file: Path = temporary_path / "plan.json"
+            execution_file: Path = temporary_path / "execution.json"
+            groups_directory: Path = temporary_path / "groups"
+            output_file: Path = temporary_path / "report.json"
+            summary_file: Path = temporary_path / "summary.md"
+            github_output: Path = temporary_path / "github-output.txt"
+            plan_file.write_text(json.dumps(plan), encoding="utf-8")
+            execution_file.write_text(json.dumps(execution), encoding="utf-8")
+            for group_name, group_value in groups.items():
+                group_directory: Path = groups_directory / group_name
+                group_directory.mkdir(parents=True)
+                (group_directory / "group.json").write_text(json.dumps(group_value["metadata"]), encoding="utf-8")
+                for file_name, file_value in group_value["files"].items():
+                    result_path: Path = group_directory / file_name
+                    result_path.parent.mkdir(parents=True, exist_ok=True)
+                    result_path.write_text(json.dumps(file_value), encoding="utf-8")
+
+            process: subprocess.CompletedProcess[str] = subprocess.run(
+                [
+                    sys.executable, str(GATE_SCRIPT), "evaluate",
+                    "--plan", str(plan_file), "--execution", str(execution_file),
+                    "--groups-dir", str(groups_directory), "--output", str(output_file),
+                    "--summary", str(summary_file), "--github-output", str(github_output),
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+            )
+
+            self.assertEqual(process.returncode, 0, process.stderr)
+            report: dict[str, Any] = json.loads(output_file.read_text(encoding="utf-8"))
+            self.assertTrue(report["report_ready"])
+            self.assertEqual(report["groups"]["general"]["status"], "DATA_ERROR")
+            self.assertEqual(report["exit_code"], 2)
+            self.assertIn("exit_code=2", github_output.read_text(encoding="utf-8"))
+
     def test_plan_and_evaluate_file_adapters_write_report_and_literal_outputs(self) -> None:
         context: dict[str, Any] = run_context()
         plan: dict[str, Any] = plan_run(policy_value(), context, successful_query())

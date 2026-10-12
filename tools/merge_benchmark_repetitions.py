@@ -12,6 +12,16 @@ from typing import Any, Sequence
 TIME_FIELDS: tuple[str, ...] = ("cpu_time", "real_time", "items_per_second", "bytes_per_second")
 
 
+def _is_finite_nonnegative(value: Any) -> bool:
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return False
+    try:
+        converted: float = float(value)
+    except OverflowError:
+        return False
+    return math.isfinite(converted) and converted >= 0.0
+
+
 def merge_results(results: Sequence[dict[str, Any]]) -> dict[str, Any]:
     rounds: list[dict[str, dict[str, Any]]] = []
     raw: list[dict[str, Any]] = []
@@ -25,7 +35,7 @@ def merge_results(results: Sequence[dict[str, Any]]) -> dict[str, Any]:
             name: str = entry["name"]
             for field in ("cpu_time", "real_time"):
                 value: Any = entry[field]
-                if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value) or value < 0:
+                if not _is_finite_nonnegative(value):
                     raise ValueError(f"测量时间须为非负有限数：{name} {field}")
             if name in entries:
                 raise ValueError(f"单轮包含重复测量：{name}")

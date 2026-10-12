@@ -166,7 +166,11 @@ def _parse_policy(value: Any) -> GatePolicy:
             raise GateInputError(f"policy.groups.{name}.min_time 配置无效")
         if not isinstance(tolerance, (int, float)) or isinstance(tolerance, bool):
             raise GateInputError(f"policy.groups.{name}.tolerance 配置无效")
-        if not math.isfinite(float(tolerance)) or tolerance < 0:
+        try:
+            tolerance_value: float = float(tolerance)
+        except OverflowError as error:
+            raise GateInputError(f"policy.groups.{name}.tolerance 配置无效") from error
+        if not math.isfinite(tolerance_value) or tolerance_value < 0:
             raise GateInputError(f"policy.groups.{name}.tolerance 配置无效")
         confirmation_repetitions: int | None = None
         confirmation_min_time: str | None = None
@@ -188,7 +192,7 @@ def _parse_policy(value: Any) -> GatePolicy:
             target=target,
             repetitions=repetitions,
             min_time=min_time,
-            tolerance=float(tolerance),
+            tolerance=tolerance_value,
             confirmation_repetitions=confirmation_repetitions,
             confirmation_min_time=confirmation_min_time,
         )

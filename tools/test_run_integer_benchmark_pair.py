@@ -15,6 +15,9 @@ from unittest.mock import patch
 import run_integer_benchmark_pair as pair
 
 
+OVERSIZED_JSON_INTEGER: int = 10**1000
+
+
 class PairDataContractTests(unittest.TestCase):
     def test_msvc_standard_library_is_identified_from_the_compiler_name(self) -> None:
         def unexpected_probe(*args: Any, **kwargs: Any) -> subprocess.CompletedProcess[str]:
@@ -58,6 +61,28 @@ class PairDataContractTests(unittest.TestCase):
                 pair.load_policy(policy_path),
                 {"repetitions": 3, "min_time": "0.2s", "tolerance": 0.3},
             )
+
+    def test_oversized_policy_tolerance_is_a_data_error(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            policy_path: Path = Path(temporary) / "policy.json"
+            policy_path.write_text(
+                json.dumps({
+                    "groups": {
+                        "general": {
+                            "repetitions": 3,
+                            "min_time": "0.2s",
+                            "tolerance": OVERSIZED_JSON_INTEGER,
+                        }
+                    }
+                }),
+                encoding="utf-8",
+            )
+
+            with self.assertRaises(pair.BenchmarkPairError) as raised:
+                pair.load_policy(policy_path)
+
+        self.assertEqual(raised.exception.kind, "data_error")
+        self.assertIn("general.tolerance", str(raised.exception))
 
     def test_measurement_arguments_use_one_raw_round(self) -> None:
         arguments: list[str] = pair.benchmark_arguments(Path("round one.json"), "0.2s")
@@ -134,6 +159,28 @@ class PairDataContractTests(unittest.TestCase):
         )
         self.assertEqual(validation["raw_run_count"], 1)
         self.assertEqual(validation["names"], ["BM_DefaultInt"])
+
+    def test_oversized_raw_times_are_data_errors_for_cpu_and_real_measurements(self) -> None:
+        for field in ("cpu_time", "real_time"):
+            with self.subTest(field=field):
+                row: dict[str, Any] = {
+                    "name": "BM_DefaultInt",
+                    "run_type": "iteration",
+                    "time_unit": "ns",
+                    "cpu_time": 10.0,
+                    "real_time": 11.0,
+                }
+                row[field] = OVERSIZED_JSON_INTEGER
+
+                with self.assertRaises(pair.BenchmarkPairError) as raised:
+                    pair.validate_raw_round(
+                        {"context": {}, "benchmarks": [row]},
+                        ["BM_DefaultInt"],
+                        "cpp23 第 1 轮 baseline",
+                    )
+
+                self.assertEqual(raised.exception.kind, "data_error")
+                self.assertIn(field, raised.exception.details["invalid_measurements"][0])
 
     def test_google_benchmark_measurement_errors_are_classified(self) -> None:
         failed: dict[str, Any] = {

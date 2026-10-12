@@ -4,6 +4,9 @@ import unittest
 from merge_benchmark_repetitions import merge_results
 
 
+OVERSIZED_JSON_INTEGER: int = 10**1000
+
+
 class MergeBenchmarkTests(unittest.TestCase):
     def result(self, cpu_time: float, unit: str = "ns") -> dict:
         return {"context": {}, "benchmarks": [{
@@ -48,6 +51,14 @@ class MergeBenchmarkTests(unittest.TestCase):
                     result["benchmarks"][0][field] = invalid
                     with self.assertRaises(ValueError):
                         merge_results([self.result(1), result, self.result(1)])
+
+    def test_oversized_raw_times_are_rejected_for_cpu_and_real(self) -> None:
+        for field in ("cpu_time", "real_time"):
+            with self.subTest(field=field):
+                result = self.result(1)
+                result["benchmarks"][0][field] = OVERSIZED_JSON_INTEGER
+                with self.assertRaisesRegex(ValueError, "非负有限数"):
+                    merge_results([result, self.result(1)])
 
 
 if __name__ == "__main__":

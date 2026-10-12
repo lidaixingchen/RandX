@@ -69,6 +69,16 @@ class BenchmarkPairError(RuntimeError):
         self.details: dict[str, Any] = dict(details or {})
 
 
+def _finite_float(value: Any) -> float | None:
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return None
+    try:
+        converted: float = float(value)
+    except OverflowError:
+        return None
+    return converted if math.isfinite(converted) else None
+
+
 CommandRunner = Callable[..., subprocess.CompletedProcess[str]]
 
 
@@ -133,18 +143,14 @@ def load_policy(path: Path) -> dict[str, Any]:
     if not isinstance(min_time, str) or not min_time.strip():
         raise BenchmarkPairError("data_error", "general.min_time 必须是非空字符串。", "policy")
     tolerance: Any = group.get("tolerance")
-    if (
-        isinstance(tolerance, bool)
-        or not isinstance(tolerance, (int, float))
-        or not math.isfinite(tolerance)
-        or tolerance < 0.0
-    ):
+    tolerance_value: float | None = _finite_float(tolerance)
+    if tolerance_value is None or tolerance_value < 0.0:
         raise BenchmarkPairError("data_error", "general.tolerance 必须是非负有限数。", "policy")
 
     return {
         "repetitions": repetitions,
         "min_time": min_time,
-        "tolerance": float(tolerance),
+        "tolerance": tolerance_value,
     }
 
 
@@ -838,12 +844,8 @@ def validate_raw_round(data: Any, expected_names: Sequence[str], scope: str) -> 
         raw_names.append(name)
         for field in ("cpu_time", "real_time"):
             value: Any = row.get(field)
-            if (
-                isinstance(value, bool)
-                or not isinstance(value, (int, float))
-                or not math.isfinite(value)
-                or value < 0.0
-            ):
+            numeric_value: float | None = _finite_float(value)
+            if numeric_value is None or numeric_value < 0.0:
                 invalid_measurements.append(f"{name} 的 {field} 不是非负有限数。")
         unit: Any = row.get("time_unit")
         if not isinstance(unit, str) or unit not in TIME_UNIT_TO_MS:

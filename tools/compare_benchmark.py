@@ -30,6 +30,18 @@ class BenchmarkDataError(ValueError):
     """Benchmark 输入或比较条件不符合数据契约。"""
 
 
+def _finite_float(value: Any, description: str) -> float:
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        raise BenchmarkDataError(f"{description} 必须为有限数")
+    try:
+        converted: float = float(value)
+    except OverflowError as error:
+        raise BenchmarkDataError(f"{description} 必须为有限数") from error
+    if not math.isfinite(converted):
+        raise BenchmarkDataError(f"{description} 必须为有限数")
+    return converted
+
+
 @dataclass(frozen=True)
 class ComparisonItem:
     name: str
@@ -96,10 +108,12 @@ def parse_results(data: dict[str, Any], source: str = "<memory>") -> dict[str, d
             continue
 
         cpu_time: Any = entry.get("cpu_time")
-        if isinstance(cpu_time, bool) or not isinstance(cpu_time, (int, float)):
-            errors.append(f"{display_name}: 缺少或非法的 cpu_time")
+        try:
+            cpu_time_value: float = _finite_float(cpu_time, "cpu_time")
+        except BenchmarkDataError as error:
+            errors.append(f"{display_name}: {error}")
             continue
-        if not math.isfinite(cpu_time) or cpu_time < 0.0:
+        if cpu_time_value < 0.0:
             errors.append(f"{display_name}: cpu_time 测量值无效 ({cpu_time})，必须为非负有限实数")
             continue
 
@@ -133,14 +147,13 @@ def load_results(path: str | Path) -> dict[str, dict[str, Any]]:
 
 def normalize_ms(value: float, unit: str) -> float:
     """将合法的 benchmark 时间转换为毫秒。"""
-    if isinstance(value, bool) or not isinstance(value, (int, float)):
-        raise BenchmarkDataError("cpu_time 必须为非负有限实数")
-    if not math.isfinite(value) or value < 0.0:
+    cpu_time: float = _finite_float(value, "cpu_time")
+    if cpu_time < 0.0:
         raise BenchmarkDataError("cpu_time 必须为非负有限实数")
     if not isinstance(unit, str) or unit not in TIME_UNIT_TO_MS:
         raise BenchmarkDataError(f"未知 time_unit '{unit}'，请检查输入文件")
 
-    normalized: float = value * TIME_UNIT_TO_MS[unit]
+    normalized: float = cpu_time * TIME_UNIT_TO_MS[unit]
     if not math.isfinite(normalized):
         raise BenchmarkDataError("归一化后的 cpu_time 必须为有限数")
     return normalized
@@ -153,7 +166,8 @@ def compare_results(
     allow_missing: bool = False,
 ) -> ComparisonResult:
     """比较当前结果与基线，严格按变化率是否大于容差标记回归。"""
-    if not math.isfinite(tolerance) or tolerance < 0.0:
+    tolerance_value: float = _finite_float(tolerance, "容差")
+    if tolerance_value < 0.0:
         raise BenchmarkDataError(f"容差必须为非负有限数，当前值: {tolerance}")
     if not current or not baseline:
         raise BenchmarkDataError(
@@ -191,7 +205,7 @@ def compare_results(
         if not math.isfinite(change):
             raise BenchmarkDataError(f"测试项 {name} 计算的变化量非有限数")
 
-        regression: bool = change > tolerance
+        regression: bool = change > tolerance_value
         items.append(ComparisonItem(name, baseline_ms, current_ms, change, regression))
         if regression:
             regressions.append(name)

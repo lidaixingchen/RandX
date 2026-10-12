@@ -18,6 +18,7 @@ from compare_benchmark import (
 )
 
 COMPARE_SCRIPT = Path(__file__).resolve().parent / "compare_benchmark.py"
+OVERSIZED_JSON_INTEGER: int = 10**1000
 
 
 class TestCompareBenchmark(unittest.TestCase):
@@ -30,10 +31,10 @@ class TestCompareBenchmark(unittest.TestCase):
             base_path = base_f.name
 
         try:
-            cmd = [sys.executable, str(COMPARE_SCRIPT), cur_path, base_path]
+            cmd = [sys.executable, "-X", "utf8", str(COMPARE_SCRIPT), cur_path, base_path]
             if extra_args:
                 cmd.extend(extra_args)
-            res = subprocess.run(cmd, capture_output=True, text=True)
+            res = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8")
             return res.returncode, res.stdout, res.stderr
         finally:
             Path(cur_path).unlink(missing_ok=True)
@@ -103,6 +104,24 @@ class TestCompareBenchmark(unittest.TestCase):
         code, out, err = self.run_compare(current, baseline)
         self.assertEqual(code, 2)
         self.assertIn("cpu_time", err)
+
+    def test_oversized_json_cpu_time_returns_data_error_exit_code(self):
+        baseline = {
+            "benchmarks": [
+                {"name": "BM_A/median", "aggregate_name": "median", "cpu_time": 10.0, "time_unit": "ns"},
+            ]
+        }
+        current = {
+            "benchmarks": [
+                {"name": "BM_A/median", "aggregate_name": "median", "cpu_time": OVERSIZED_JSON_INTEGER, "time_unit": "ns"},
+            ]
+        }
+
+        code, out, err = self.run_compare(current, baseline)
+
+        self.assertEqual(code, 2)
+        self.assertIn("cpu_time", err)
+        self.assertNotIn("OverflowError", err)
 
     def test_negative_cpu_time_fails(self):
         baseline = {
@@ -203,6 +222,25 @@ class ComparisonApiTests(unittest.TestCase):
             normalize_ms(1.0, "minutes")
         with self.assertRaises(BenchmarkDataError):
             compare_results({}, {}, -0.1)
+
+    def test_oversized_cpu_time_and_tolerance_raise_data_errors(self):
+        oversized_cpu_time: dict = {
+            "benchmarks": [
+                {"name": "BM_A", "aggregate_name": "median", "cpu_time": OVERSIZED_JSON_INTEGER, "time_unit": "ms"},
+            ]
+        }
+        valid_results = parse_results({
+            "benchmarks": [
+                {"name": "BM_A", "aggregate_name": "median", "cpu_time": 1.0, "time_unit": "ms"},
+            ]
+        })
+
+        with self.assertRaises(BenchmarkDataError):
+            parse_results(oversized_cpu_time)
+        with self.assertRaises(BenchmarkDataError):
+            normalize_ms(OVERSIZED_JSON_INTEGER, "ms")
+        with self.assertRaises(BenchmarkDataError):
+            compare_results(valid_results, valid_results, OVERSIZED_JSON_INTEGER)
 
 
 if __name__ == "__main__":
