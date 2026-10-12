@@ -1,0 +1,12 @@
+<map id="RandX::ResetThreadLocalEngine" name="RandX::ResetThreadLocalEngine">
+<area shape="rect" id="Node000001" title="重新播种当前线程的默认引擎（用于 POSIX fork() 产生子进程后重置引擎状态）" alt="" coords="5,45,237,70"/>
+<area shape="rect" id="Node000002" href="$group__engines.html#ga7dba92b95d7c5e6eb2d1db3c6a3b2ddf" title="获取当前线程专属的默认伪随机数生成引擎" alt="" coords="285,17,449,42"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="233,42,271,38,272,43,233,47"/>
+<area shape="rect" id="Node000004" href="$group__engines.html#gaa82567759ff174faf923397ea9b0c71f" title="生成非确定性的 64 位种子" alt="" coords="753,42,912,67"/>
+<area shape="poly" id="edge5_Node000001_Node000004" title=" " alt="" coords="238,55,705,55,740,54,740,60,705,60,238,61"/>
+<area shape="rect" id="Node000003" href="$namespaceRandX_1_1detail.html#a9356ec09c67a0c6ad6e56aa6679cd3ea" title=" " alt="" coords="497,5,705,45"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="450,25,484,25,484,30,450,31"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="706,36,740,40,739,46,705,41"/>
+<area shape="rect" id="Node000005" href="$namespaceRandX_1_1detail.html#a483477380db6686914887e45ac9610e4" title=" " alt="" coords="960,35,1163,75"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="912,52,946,52,946,57,912,57"/>
+</map>

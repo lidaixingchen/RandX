@@ -1,0 +1,6 @@
+<map id="RandX::Xoroshiro128StarStar" name="RandX::Xoroshiro128StarStar">
+<area shape="rect" id="Node000001" title="Xoroshiro128** 伪随机数生成器，64 位输出，周期 2^128&#45;1。" alt="" coords="5,108,216,133"/>
+<area shape="rect" id="Node000002" href="$structRandX_1_1detail_1_1EngineBase.html" title=" " alt="" coords="14,5,207,60"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="104,73,107,107,102,108,99,74"/>
+<area shape="poly" id="edge2_Node000001_Node000002" title=" " alt="" coords="122,74,120,108,114,107,117,73"/>
+</map>

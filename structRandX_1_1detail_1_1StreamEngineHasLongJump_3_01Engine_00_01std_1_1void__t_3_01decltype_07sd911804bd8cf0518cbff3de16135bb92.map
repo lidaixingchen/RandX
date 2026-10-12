@@ -1,0 +1,9 @@
+<map id="RandX::detail::StreamEngineHasLongJump&lt; Engine, std::void_t&lt; decltype(std::declval&lt; Engine &amp; &gt;().longJump())&gt; &gt;" name="RandX::detail::StreamEngineHasLongJump&lt; Engine, std::void_t&lt; decltype(std::declval&lt; Engine &amp; &gt;().longJump())&gt; &gt;">
+<area shape="rect" id="Node000001" title=" " alt="" coords="21,79,247,148"/>
+<area shape="rect" id="Node000002" title=" " alt="" coords="5,5,124,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="76,41,102,77,98,80,72,44"/>
+<area shape="poly" id="edge2_Node000001_Node000002" title=" " alt="" coords="91,39,120,77,116,80,86,42"/>
+<area shape="rect" id="Node000003" title=" " alt="" coords="147,5,259,31"/>
+<area shape="poly" id="edge3_Node000001_Node000003" title=" " alt="" coords="182,42,152,80,148,77,177,39"/>
+<area shape="poly" id="edge4_Node000001_Node000003" title=" " alt="" coords="196,44,170,80,166,77,192,41"/>
+</map>

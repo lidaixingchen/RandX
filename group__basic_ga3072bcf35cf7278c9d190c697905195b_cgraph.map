@@ -1,0 +1,13 @@
+<map id="RandX::RandBernoulli" name="RandX::RandBernoulli">
+<area shape="rect" id="Node000001" title="伯努利分布（RandBool 的别名封装，对齐 &lt;random&gt; 命名）" alt="" coords="5,13,168,38"/>
+<area shape="rect" id="Node000002" href="$group__basic.html#ga574d6881cf5235d2110373c875f5362f" title="生成随机布尔值" alt="" coords="216,13,351,38"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="168,23,202,23,202,28,168,28"/>
+<area shape="rect" id="Node000003" href="$group__engines.html#ga7dba92b95d7c5e6eb2d1db3c6a3b2ddf" title="获取当前线程专属的默认伪随机数生成引擎" alt="" coords="399,13,563,38"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="351,23,385,23,385,28,351,28"/>
+<area shape="rect" id="Node000004" href="$namespaceRandX_1_1detail.html#a9356ec09c67a0c6ad6e56aa6679cd3ea" title=" " alt="" coords="611,5,819,45"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="563,23,597,23,597,28,563,28"/>
+<area shape="rect" id="Node000005" href="$group__engines.html#gaa82567759ff174faf923397ea9b0c71f" title="生成非确定性的 64 位种子" alt="" coords="867,13,1025,38"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="819,23,853,23,853,28,819,28"/>
+<area shape="rect" id="Node000006" href="$namespaceRandX_1_1detail.html#a483477380db6686914887e45ac9610e4" title=" " alt="" coords="1073,5,1276,45"/>
+<area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="1026,23,1060,23,1060,28,1026,28"/>
+</map>

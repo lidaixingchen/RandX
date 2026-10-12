@@ -1,0 +1,19 @@
+<map id="RandX::ChaCha20::reseed" name="RandX::ChaCha20::reseed">
+<area shape="rect" id="Node000001" title="从 OS 熵重新播种" alt="" coords="5,46,196,71"/>
+<area shape="rect" id="Node000002" href="$group__engines.html#gaabf99f29ec05ab87f9b3ca5e78861f05" title="从 OS 熵重新播种" alt="" coords="244,46,435,71"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="196,56,230,56,230,61,196,61"/>
+<area shape="rect" id="Node000003" href="$group__csprng.html#ga31b80b51d6bc9e44f68c5232803bb6d6" title="用 OS 密码学熵源填充 [buf, buf+n) 字节" alt="" coords="483,17,689,42"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="435,45,469,41,469,46,435,50"/>
+<area shape="rect" id="Node000006" href="$namespaceRandX_1_1detail.html#a25723f6d9737b237a4bc88a654d3946a" title=" " alt="" coords="489,70,683,95"/>
+<area shape="poly" id="edge5_Node000002_Node000006" title=" " alt="" coords="435,65,475,69,475,75,435,71"/>
+<area shape="rect" id="Node000004" href="$namespaceRandX_1_1detail.html#a02fce2f64f9c2eb6dbe7390a26aab73a" title=" " alt="" coords="737,5,944,45"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="689,25,724,25,724,30,690,30"/>
+<area shape="rect" id="Node000005" href="$namespaceRandX_1_1detail.html#a0a5db3c2baae272329eb5cc5baab51aa" title=" " alt="" coords="992,13,1195,38"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="944,23,978,23,978,28,944,28"/>
+<area shape="rect" id="Node000007" href="$namespaceRandX_1_1detail.html#a10050784b3f3ccfa73c48523d15f6d2e" title=" " alt="" coords="743,69,938,109"/>
+<area shape="poly" id="edge6_Node000006_Node000007" title=" " alt="" coords="684,83,730,84,730,89,684,88"/>
+<area shape="rect" id="Node000008" href="$namespaceRandX_1_1detail.html#ad02443978409b0f50c7e986a4cdd6fd9" title=" " alt="" coords="996,69,1191,109"/>
+<area shape="poly" id="edge7_Node000007_Node000008" title=" " alt="" coords="938,87,982,87,982,92,938,92"/>
+<area shape="rect" id="Node000009" href="$namespaceRandX_1_1detail.html#a48ca81d8278c20519855e62d5ffc847c" title=" " alt="" coords="1243,69,1437,109"/>
+<area shape="poly" id="edge8_Node000008_Node000009" title=" " alt="" coords="1191,87,1229,87,1229,92,1191,92"/>
+</map>

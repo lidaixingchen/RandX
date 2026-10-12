@@ -1,0 +1,5 @@
+<map id="RandX::IsOsCryptoEntropyAvailable" name="RandX::IsOsCryptoEntropyAvailable">
+<area shape="rect" id="Node000001" title="编译期特性检测：检测当前平台是否支持 OS 密码学熵源 API" alt="" coords="5,5,199,45"/>
+<area shape="rect" id="Node000002" href="$namespaceRandX_1_1detail.html#ab11ce126c8ec7b2400ba4b430cd479de" title=" " alt="" coords="247,5,432,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="199,23,233,23,233,28,199,28"/>
+</map>

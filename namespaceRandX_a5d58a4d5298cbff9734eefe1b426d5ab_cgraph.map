@@ -1,0 +1,15 @@
+<map id="RandX::RandCanonical" name="RandX::RandCanonical">
+<area shape="rect" id="Node000001" title="采用无偏 Bit&#45;Extraction 直通算法生成 [0, 1) 半开区间的随机浮点数（默认线程引擎）" alt="" coords="5,13,175,38"/>
+<area shape="rect" id="Node000002" href="$group__engines.html#ga7dba92b95d7c5e6eb2d1db3c6a3b2ddf" title="获取当前线程专属的默认伪随机数生成引擎" alt="" coords="440,13,604,38"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="175,14,223,11,307,8,392,11,426,13,426,18,392,16,307,13,223,16,175,19"/>
+<area shape="rect" id="Node000006" href="$group__basic.html#ga5fed635ad7f03be9ff674a62a134e4d7" title="采用无偏 Bit&#45;Extraction 直通算法生成 [0, 1) 半开区间的随机浮点数（默认线程引擎）" alt="" coords="223,50,392,75"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="165,35,220,45,219,50,164,41"/>
+<area shape="rect" id="Node000003" href="$namespaceRandX_1_1detail.html#a9356ec09c67a0c6ad6e56aa6679cd3ea" title=" " alt="" coords="652,5,860,45"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="604,23,638,23,638,28,604,28"/>
+<area shape="rect" id="Node000004" href="$group__engines.html#gaa82567759ff174faf923397ea9b0c71f" title="生成非确定性的 64 位种子" alt="" coords="908,13,1067,38"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="860,23,894,23,894,28,860,28"/>
+<area shape="rect" id="Node000005" href="$namespaceRandX_1_1detail.html#a483477380db6686914887e45ac9610e4" title=" " alt="" coords="1115,5,1317,45"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="1067,23,1101,23,1101,28,1067,28"/>
+<area shape="poly" id="edge6_Node000006_Node000002" title=" " alt="" coords="381,47,435,38,436,43,381,53"/>
+<area shape="poly" id="edge7_Node000006_Node000006" title=" " alt="" coords="272,52,265,42,269,32,283,26,307,23,337,27,349,36,346,40,335,32,307,29,285,31,273,36,270,41,277,48"/>
+</map>

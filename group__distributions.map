@@ -1,0 +1,5 @@
+<map id="统计分布" name="统计分布">
+<area shape="rect" id="Node000001" title="16 种标准统计分布便捷函数" alt="" coords="5,31,96,56"/>
+<area shape="rect" id="Node000002" href="$group__engines.html" title="8 个伪随机数生成引擎（7 非 CSPRNG + 1 ChaCha20 CSPRNG）" alt="" coords="258,5,314,31"/>
+<area shape="rect" id="Node000003" href="$group__strings.html" title="RandString / RandUUID" alt="" coords="232,55,340,80"/>
+</map>

@@ -1,0 +1,9 @@
+<map id="RandX::DefaultEngine" name="RandX::DefaultEngine">
+<area shape="rect" id="Node000001" title="获取当前线程专属的默认伪随机数生成引擎" alt="" coords="5,13,169,38"/>
+<area shape="rect" id="Node000002" href="$namespaceRandX_1_1detail.html#a9356ec09c67a0c6ad6e56aa6679cd3ea" title=" " alt="" coords="217,5,425,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="170,23,204,23,204,28,170,28"/>
+<area shape="rect" id="Node000003" href="$group__engines.html#gaa82567759ff174faf923397ea9b0c71f" title="生成非确定性的 64 位种子" alt="" coords="473,13,632,38"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="426,23,460,23,460,28,426,28"/>
+<area shape="rect" id="Node000004" href="$namespaceRandX_1_1detail.html#a483477380db6686914887e45ac9610e4" title=" " alt="" coords="680,5,883,45"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="632,23,666,23,666,28,632,28"/>
+</map>

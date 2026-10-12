@@ -1,0 +1,6 @@
+<map id="RandX::SFC64" name="RandX::SFC64">
+<area shape="rect" id="Node000001" title="SFC64（Small Fast Counter）伪随机数生成器，64 位输出，周期 &gt;= 2^64。" alt="" coords="48,93,161,119"/>
+<area shape="rect" id="Node000002" href="$structRandX_1_1detail_1_1EngineBase.html" title=" " alt="" coords="5,5,204,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="98,59,101,93,95,93,93,59"/>
+<area shape="poly" id="edge2_Node000001_Node000002" title=" " alt="" coords="116,59,114,93,109,93,111,59"/>
+</map>

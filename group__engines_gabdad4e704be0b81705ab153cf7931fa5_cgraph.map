@@ -1,0 +1,5 @@
+<map id="RandX::Xoroshiro128StarStar::jump" name="RandX::Xoroshiro128StarStar::jump">
+<area shape="rect" id="Node000001" title="前进 2^64 步，用于创建并行子序列" alt="" coords="5,13,216,53"/>
+<area shape="rect" id="Node000002" href="$group__engines.html#gabd1ad45551e70b8d6ff8222c2f0ae89c" title=" " alt="" coords="264,5,471,60"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="216,30,250,30,250,35,216,35"/>
+</map>
